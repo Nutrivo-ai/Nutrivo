@@ -9,11 +9,20 @@
 ## Infisical
 - **Structure.** One project with environments dev, staging and prod. `config/secrets.yaml` lists every
   required name: where it must exist, what uses it, and which doctor check proves it.
-- **Machine identities.** Three:
-  - Claude Code on your machine (`INFISICAL_TOKEN` in its environment);
-  - GitHub Actions (`INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET` repository secrets, `INFISICAL_PROJECT_ID`
-    variable);
+- **Machine identities** (universal auth), each able to read only what it needs:
+  - `claude-dev`: reads dev. Every person's Claude Code on the web environment holds its client id and secret as
+    `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`; the session start hook exchanges them for `INFISICAL_TOKEN`.
+    On a laptop, `INFISICAL_TOKEN` in the shell does the same. It never reads staging or prod.
+  - `github-actions-dev`, `github-actions-staging`, `github-actions-prod`: one per environment. The dev one is a
+    repository secret (CI and the Claude workflows); the staging and prod ones are environment secrets on the GitHub
+    environments `staging` and `production`, which only jobs on `main` or a `v*` tag can read. A pull request branch
+    therefore never sees staging or production secrets, even if it edits a workflow. Each Infisical environment
+    stores its own identity's client id and secret as `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`, which is
+    where `scripts/bootstrap/github-setup.sh` copies them from. `INFISICAL_PROJECT_ID` is a repository variable.
   - Infisical's secret syncs to Vercel and Render, so nothing is copied by hand.
+- **Switches.** Repository variables turn deployments on at their gates: `STAGING_DEPLOY_ENABLED` (T-010, G7),
+  `PRODUCTION_DEPLOY_ENABLED` (T-1101, G7) and `SYNTHETIC_ENABLED` (T-1102). Until a founder sets one to `true`, the
+  matching workflow does nothing. docs/22-github-and-team.md has the click path.
 - **Existing names.** Names you already use can map to the canonical ones in `config/secret-aliases.env`
   (names only, never values).
 

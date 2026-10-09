@@ -8,6 +8,8 @@ Never print a secret value; never write a .env file; never run `infisical export
 `bash scripts/bootstrap/check-tools.sh`. If it reports anything missing, show its install commands and stop.
 
 ## 2 · Repository (GATE G1 if the repository already has code)
+In Claude Code on the web the session already has the repository checked out and pushes through the Claude GitHub
+App: skip 2.1–2.3. If a push is refused, ask the founder to install the app on the repository (docs/22 §1).
 1. `gh auth status`. If it is not authenticated, try `scripts/env/run.sh dev -- gh auth status` (GH_TOKEN in
    Infisical). Otherwise ask the founder to run `gh auth login`, and stop.
 2. Find the repository:
@@ -44,18 +46,23 @@ back.
 `make design-fetch && make design-check`. If Drive refuses (the folder is not link-shared and there is no
 GOOGLE_SERVICE_ACCOUNT_JSON), ask the founder to download the folder into `design/`, then run `make design-check`.
 
-## 7 · GitHub
-1. `bash scripts/bootstrap/github-setup.sh <owner>/<repo>`. It sets:
-   - labels, milestones and environments;
-   - protection for main (a merge-queue ruleset where the plan allows it, otherwise up-to-date branches);
-   - Actions secrets INFISICAL_CLIENT_ID / INFISICAL_CLIENT_SECRET and variable INFISICAL_PROJECT_ID, taken from
-     Infisical's `github-actions` machine identity. Ask the founder to create that identity if it does not exist.
-2. Ask for the founders' GitHub usernames and replace `@NUTRIVO_OWNER` in `.github/CODEOWNERS`.
-3. Pin every third-party action in `.github/workflows/` to a full commit SHA.
+## 7 · GitHub (docs/22-github-and-team.md)
+1. Every third-party action in `.github/workflows/` is pinned to a full commit SHA (Dependabot keeps the pins
+   current), and `.github/CODEOWNERS` names the founders: `@<org>/founders` once the organisation exists. Ask for the
+   organisation name if it is not known.
+2. The founder merges the set-up pull request first, then applies docs/22 §1–§3: organisation and `founders` team,
+   rulesets imported from `.github/rulesets/`, environments, the Infisical identities as Actions secrets and the
+   `INFISICAL_PROJECT_ID` variable. A founder with a terminal can run
+   `bash scripts/bootstrap/github-setup.sh <owner>/<repo>` instead; it exits non-zero on anything it could not set.
+   Claude Code cannot change repository settings itself: list what is missing and stop.
 
 ## 8 · Tasks
-`make issues-sync`. Every task in `plan/tasks.yaml` becomes an issue with lanes, dependencies, acceptance IDs and
-ready or blocked status. Confirm the issue count equals the task count.
+The `tracker` workflow creates the labels, milestones and one issue per task in `plan/tasks.yaml` on every push to
+main that changes the plan, and recomputes ready/blocked whenever a task issue closes. Run it once by hand (Actions →
+tracker → Run workflow) or `make issues-sync` locally, and confirm the issue count equals the task count.
+Then close the issues of the bootstrap tasks that are done, each with a comment naming the step: T-001 (step 2),
+T-002 (step 3), T-003 (step 4), T-004 (step 7), T-005 (this step), T-006 (step 6). The founder confirms the
+human-gated ones. Their dependants become ready, which is what step 9 starts from.
 
 ## 9 · Build
 Follow docs/15-build-protocol.md:
