@@ -48,8 +48,7 @@ GOOGLE_SERVICE_ACCOUNT_JSON), ask the founder to download the folder into `desig
 
 ## 7 · GitHub (docs/22-github-and-team.md)
 1. Every third-party action in `.github/workflows/` is pinned to a full commit SHA (Dependabot keeps the pins
-   current), and `.github/CODEOWNERS` names the founders: `@<org>/founders` once the organisation exists. Ask for the
-   organisation name if it is not known.
+   current), and `.github/CODEOWNERS` names the founders team, `@nutrivo/founders`.
 2. The founder merges the set-up pull request first, then applies docs/22 §1–§3: organisation and `founders` team,
    rulesets imported from `.github/rulesets/`, environments, the Infisical identities as Actions secrets and the
    `INFISICAL_PROJECT_ID` variable. A founder with a terminal can run

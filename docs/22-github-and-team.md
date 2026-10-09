@@ -2,22 +2,21 @@
 
 What a founder sets up once so that two founders and their Claude Code sessions build Nutrivo together under the
 protocol in docs/15. Claude Code cannot change repository settings, invite people or create accounts; everything
-below is a person's job. Steps are in order. `<org>` is the GitHub organisation's name.
+below is a person's job. Steps are in order. The organisation is `nutrivo`; the repository is `nutrivo/Nutrivo`.
 
 ## 1 · Organisation and repository
-1. **Create the organisation** on the Team plan: github.com → your avatar → Your organizations → New organization →
-   Team. Name it `nutrivo` if it is free (otherwise `nutrivo-ai` or similar).
-   Team is the cheapest plan on which a private repository gets enforced rulesets, required code-owner reviews,
-   environment secrets and deployment-branch rules. Required reviewers on environments and the merge queue need
-   Enterprise; the protocol does not rely on either (see 4 and 6).
-2. **Transfer the repository**: `ar835/Nutrivo` → Settings → General → Danger Zone → Transfer ownership → `<org>`.
+1. **The organisation** `nutrivo` is on the Team plan: the cheapest plan on which a private repository gets enforced
+   rulesets, required code-owner reviews, environment secrets and deployment-branch rules. Required reviewers on
+   environments and the merge queue need Enterprise; the protocol does not rely on either (see 4 and 6).
+2. **Transfer the repository**: `ar835/Nutrivo` → Settings → General → Danger Zone → Transfer ownership → `nutrivo`.
    Issues, pull requests and settings move with it, and the old URL redirects.
-3. **The founders team**: `<org>` → Teams → New team `founders`, add both founders. Then the repository → Settings →
-   Collaborators and teams → Add teams → `founders` → role **Admin**.
-4. **Code owners**: tell Claude Code the organisation name; it changes `.github/CODEOWNERS` to `@<org>/founders` in a
-   pull request. Any one founder's approval then satisfies code-owner review.
-5. **Claude GitHub App**: github.com/apps/claude → Configure → `<org>` → Only select repositories → `Nutrivo`.
-   Each founder also connects GitHub in claude.ai (Settings → Connectors) so their sessions can push.
+3. **The founders team**: github.com/orgs/nutrivo/teams → New team `founders`, add both founders. Then
+   `nutrivo/Nutrivo` → Settings → Collaborators and teams → Add teams → `founders` → role **Admin**.
+4. **Code owners**: `.github/CODEOWNERS` names `@nutrivo/founders`, so any one founder's approval satisfies
+   code-owner review. It takes effect once steps 2 and 3 are done; until then GitHub reports the team as unknown.
+5. **Claude GitHub App**: github.com/apps/claude → Configure → `nutrivo` → Only select repositories → `Nutrivo`.
+   Each founder also connects GitHub in claude.ai (Settings → Connectors) so their sessions can push. A Claude Code
+   session started before the transfer must be restarted on `nutrivo/Nutrivo`.
 
 ## 2 · Rulesets (gate G5 enforced, not just agreed)
 Do this after the set-up pull request is merged, so the rules are not blocking their own introduction.
@@ -47,7 +46,7 @@ In GitHub, repository → Settings:
   `v*`; Environment secrets → the two names, from `github-actions-prod`.
 
 A founder with a terminal can do sections 2 and 3 in one go instead: `gh auth login`, then
-`bash scripts/bootstrap/github-setup.sh <org>/Nutrivo` (it reads the same ruleset files and copies the identities
+`bash scripts/bootstrap/github-setup.sh nutrivo/Nutrivo` (it reads the same ruleset files and copies the identities
 from Infisical without printing them).
 
 ## 4 · Switches at the gates

@@ -1,13 +1,14 @@
-# Founders approve every merge (gate G5).
-*                         @ar835
-/spec/                    @ar835
-/plan/                    @ar835
-/supabase/migrations/     @ar835
-/supabase/tests/gates/    @ar835
-/worker/tests/gates/      @ar835
-/fixtures/golden/         @ar835
-/content/                 @ar835
-/.github/                 @ar835
-/CLAUDE.md                @ar835
-/.claude/                 @ar835
-/docs/02-decisions.md     @ar835
+# Founders approve every merge (gate G5). The team needs write access to this repository (docs/22 §1): any one
+# member's approval satisfies code-owner review.
+*                         @nutrivo/founders
+/spec/                    @nutrivo/founders
+/plan/                    @nutrivo/founders
+/supabase/migrations/     @nutrivo/founders
+/supabase/tests/gates/    @nutrivo/founders
+/worker/tests/gates/      @nutrivo/founders
+/fixtures/golden/         @nutrivo/founders
+/content/                 @nutrivo/founders
+/.github/                 @nutrivo/founders
+/CLAUDE.md                @nutrivo/founders
+/.claude/                 @nutrivo/founders
+/docs/02-decisions.md     @nutrivo/founders
