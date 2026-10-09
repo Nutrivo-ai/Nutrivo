@@ -1,0 +1,48 @@
+name: nightly
+on:
+  schedule: [{ cron: "0 2 * * *" }]
+  workflow_dispatch:
+permissions: { contents: read, issues: write, actions: write }
+
+jobs:
+  staging-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Infisical/secrets-action@v1          # pin to a commit SHA in T-004
+        with:
+          method: universal
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          env-slug: staging
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - uses: astral-sh/setup-uv@v6
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Full acceptance suite against staging (real models, real email)
+        run: make acceptance-staging
+      - name: Doctor for every environment
+        run: |
+          uv run --no-project --with boto3 python scripts/doctor/doctor.py --env staging
+      - name: Schema drift (staging must equal the migrations)
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" -p "$SUPABASE_DB_PASSWORD" && test -z "$(supabase db diff --linked -s app,ref,private,public 2>/dev/null | grep -v '^--' | grep -v '^$')"
+      - name: Dependency audit
+        run: (cd worker && uvx pip-audit) && (if [ -f apps/web/package.json ]; then pnpm --dir apps/web audit --prod --audit-level high; fi)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: nightly-reports, path: reports/ }
+      - name: Conformance on staging
+        if: always()
+        run: uv run --no-project --with pyyaml python scripts/conformance/report.py --results 'reports/**/*.xml' --summary "$GITHUB_STEP_SUMMARY"
+      - name: Issue for the autopilot
+        if: failure()
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          url=$(gh issue create --title "Nightly failed $(date -u +%F)" --label nightly,autopilot \
+            --body "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. Find the failing step, reproduce locally, fix the root cause.")
+          gh workflow run claude-autopilot.yml -f issue="${url##*/}"

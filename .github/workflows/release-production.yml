@@ -1,0 +1,42 @@
+name: release-production
+on:
+  push:
+    tags: ["v*"]
+concurrency: { group: deploy-production, cancel-in-progress: false }
+permissions: { contents: read, issues: write }
+
+jobs:
+  release:
+    environment: production          # required reviewers: gate G7
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Infisical/secrets-action@v1          # pin to a commit SHA in T-004
+        with:
+          method: universal
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          env-slug: prod
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - uses: astral-sh/setup-uv@v6
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: supabase link --project-ref "$SUPABASE_PROJECT_REF" -p "$SUPABASE_DB_PASSWORD" && supabase db push -p "$SUPABASE_DB_PASSWORD"
+      - run: if [ -d supabase/functions ]; then supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"; fi
+      - run: bash scripts/deploy/render.sh "$RENDER_WORKER_SERVICE_ID" "$GITHUB_SHA"
+      - run: bash scripts/deploy/vercel.sh prod
+      - name: Production smoke on the synthetic workspace
+        run: make smoke ENV=prod
+      - run: uv run --no-project --with boto3 python scripts/doctor/doctor.py --env prod
+      - name: Roll back
+        if: failure()
+        run: bash scripts/deploy/rollback.sh prod
+      - name: Incident issue
+        if: failure()
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: gh issue create --title "Production release ${GITHUB_REF_NAME} rolled back" --label incident,needs-human --body "Run ${{ github.run_id }}. The previous release is live again."

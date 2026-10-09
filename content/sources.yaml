@@ -1,0 +1,33 @@
+# Acts to fetch, store (sha256) and extract from first. CELEX numbers are candidates written on 8 Oct 2026 without
+# web access: milestone 0 confirms each and records the latest consolidated version date.
+# EUR-Lex URL pattern: https://eur-lex.europa.eu/legal-content/{LANG}/TXT/?uri=CELEX:{celex}
+languages: [en, sv, da, fi, de]
+licence: eu_reuse
+acts:
+  - celex: 32009R0767
+    title: Regulation (EC) No 767/2009 on the placing on the market and use of feed
+    why: Mandatory labelling particulars, claims, pet-food specifics, presentation and language
+  - celex: 32017R2279
+    title: Commission Regulation (EU) 2017/2279 amending Annexes II, IV, VI, VII and VIII to Regulation 767/2009
+    why: Current annex text (pet-food additive and analytical-constituent declarations)
+  - celex: 32003R1831
+    title: Regulation (EC) No 1831/2003 on additives for use in animal nutrition
+    why: Authorisation framework behind the additive register
+  - celex: 32013R0068
+    title: Commission Regulation (EU) No 68/2013 on the Catalogue of feed materials (as amended, e.g. 32022R1104)
+    why: Feed-material names in every official language
+  - celex: 32002L0032
+    title: Directive 2002/32/EC on undesirable substances in animal feed
+    why: Formulation limits for briefs (E02)
+  - celex: 31976L0211
+    title: Council Directive 76/211/EEC on the making-up by weight or volume of certain prepackaged products
+    why: Minimum figure height of the nominal quantity (candidate source for the type_geometry domain)
+  - celex: 32020R0354
+    title: Commission Regulation (EU) 2020/354 establishing the list of intended uses of feed for particular nutritional purposes
+    why: Dietetic feed classification (PARNUT status)
+  - celex: 32005R0183
+    title: Regulation (EC) No 183/2005 laying down requirements for feed hygiene
+    why: Establishment registration and approval (registration domain)
+registers:
+  - title: European Union Register of Feed Additives (current edition, published by the European Commission)
+    why: Authorised additives, identification numbers, species, maximum contents, conditions

@@ -1,0 +1,118 @@
+name: ci
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches: [main]
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: astral-sh/setup-uv@v6
+      - run: uv run --no-project --with pyyaml python scripts/protocol/validate-plan.py
+      - run: uv run --no-project --with pyyaml python scripts/workflows/render.py --check
+      - if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: cd scripts/protocol && uv run --no-project --with pyyaml python check-pr.py
+      - run: bash scripts/protocol/migration-guard.sh "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}"
+
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect --source /repo --no-banner --redact -v
+
+  database:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - run: supabase db start
+      - run: supabase test db
+      - name: Per-test TAP for the conformance report
+        run: |
+          mkdir -p reports
+          for f in $(find supabase/tests -name '*.sql' | sort); do psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -Atq -f "$f"; done > reports/database.tap
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: reports-database, path: reports/ }
+
+  worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
+      - uses: astral-sh/setup-uv@v6
+      - run: cd worker && uv sync
+      - run: cd worker && uv run python ../fixtures/synth/generate.py --out ../fixtures/synth/out
+      - run: cd worker && (uv run ruff check . || true) && mkdir -p ../reports && uv run pytest -q --junitxml=../reports/worker.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: reports-worker, path: reports/ }
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: app
+        run: if [ -f apps/web/package.json ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.app.outputs.ready == 'true'
+        uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - if: steps.app.outputs.ready == 'true'
+        uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - if: steps.app.outputs.ready == 'true'
+        run: pnpm --dir apps/web install --frozen-lockfile && pnpm --dir apps/web lint && pnpm --dir apps/web typecheck && pnpm --dir apps/web test && pnpm --dir apps/web build
+
+  e2e:
+    needs: [database, worker, web]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - id: app
+        run: if [ -f apps/web/package.json ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.app.outputs.ready == 'true'
+        run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
+      - if: steps.app.outputs.ready == 'true'
+        uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - if: steps.app.outputs.ready == 'true'
+        uses: astral-sh/setup-uv@v6
+      - if: steps.app.outputs.ready == 'true'
+        uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - if: steps.app.outputs.ready == 'true'
+        uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - if: steps.app.outputs.ready == 'true'
+        run: supabase start && make e2e-ci
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: reports-e2e, path: reports/ }
+
+  conformance:
+    needs: [database, worker, e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { pattern: reports-*, path: reports, merge-multiple: true }
+      - uses: astral-sh/setup-uv@v6
+      - run: uv run --no-project --with pyyaml python scripts/conformance/report.py --results 'reports/**/*.xml' 'reports/**/*.tap' --enforce --summary "$GITHUB_STEP_SUMMARY"

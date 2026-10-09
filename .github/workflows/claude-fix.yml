@@ -1,0 +1,57 @@
+name: claude-fix
+# When CI fails on an autopilot pull request, Claude Code reads the failure and pushes a fix. Three attempts, then a person.
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+permissions: { contents: write, pull-requests: write, issues: write, actions: read, id-token: write }
+
+jobs:
+  fix:
+    if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.event.workflow_run.head_branch }}
+          REPO: ${{ github.repository }}
+        run: |
+          pr=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number,labels --jq '.[0] // empty')
+          [ -z "$pr" ] && { echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0; }
+          num=$(echo "$pr" | jq -r .number); labels=$(echo "$pr" | jq -r '[.labels[].name] | join(",")')
+          case ",$labels," in *,autopilot,*) ;; *) echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0;; esac
+          attempts=$(echo "$labels" | tr ',' '\n' | grep -c '^fix-attempt-' || true)
+          if [ "$attempts" -ge 3 ]; then gh pr edit "$num" --repo "$REPO" --add-label needs-human; echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          next=$((attempts + 1)); gh label create "fix-attempt-$next" --repo "$REPO" --force >/dev/null
+          gh pr edit "$num" --repo "$REPO" --add-label "fix-attempt-$next"
+          gh run view ${{ github.event.workflow_run.id }} --repo "$REPO" --log-failed | tail -n 400 > /tmp/ci-failure.log || true
+          echo "number=$num" >> "$GITHUB_OUTPUT"; echo "attempt=$next" >> "$GITHUB_OUTPUT"
+      - if: steps.pr.outputs.skip != 'true'
+        uses: actions/checkout@v4
+        with: { ref: "${{ github.event.workflow_run.head_branch }}", fetch-depth: 0 }
+      - if: steps.pr.outputs.skip != 'true'
+        uses: Infisical/secrets-action@v1
+        with:
+          method: universal
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          env-slug: dev
+      - if: steps.pr.outputs.skip != 'true'
+        uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - if: steps.pr.outputs.skip != 'true'
+        run: supabase start
+      - if: steps.pr.outputs.skip != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
+          claude_args: "--model claude-opus-5-5 --max-turns 200"
+          prompt: |
+            CI failed on pull request #${{ steps.pr.outputs.number }} (attempt ${{ steps.pr.outputs.attempt }} of 3).
+            The failing log tail is in /tmp/ci-failure.log. Follow CLAUDE.md and docs/15-build-protocol.md: find the
+            root cause and fix the implementation. Never weaken, skip or delete a test, never edit protected files,
+            never print secrets. Run make verify-fast, commit "fix: <what>" and push to this branch. If the fix needs
+            a decision that is not written down, comment on the pull request and stop.

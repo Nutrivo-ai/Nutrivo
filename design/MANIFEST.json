@@ -1,0 +1,220 @@
+{
+ "source": "Google Drive folder 1K752aRiW-pqbppavPNPn6KnrdEYwtPCJ (listed 8 Oct 2026)",
+ "files": [
+  {
+   "path": "index.dc.html",
+   "drive_id": "1mDieVCmb3skD3r1BwIoZ0AoOe2WHXaDL",
+   "size": 19961
+  },
+  {
+   "path": "support.js",
+   "drive_id": "11TIsBfr2s4HoUnvnmy2yoYGtWV0tw7t0",
+   "size": 69150
+  },
+  {
+   "path": "build/Nutrivo - Full Coverage Requirements.dc.html",
+   "drive_id": "1bLZc5B_Rmugu1LoCOXFCxZGz87KL1Q03",
+   "size": 32235
+  },
+  {
+   "path": "build/Nutrivo - Handoff to Alex.dc.html",
+   "drive_id": "10jGL_TM-V0cCs-iN6rrHx8Lctp6BuSi4",
+   "size": 39957
+  },
+  {
+   "path": "build/doc-page.js",
+   "drive_id": "1rZ23tXtYRsIX6dQHoCrgeXyEcwWuKZsE",
+   "size": 38579
+  },
+  {
+   "path": "build/Nutrivo Pricing - Priced Ladder.dc.html",
+   "drive_id": "1LCKURqUMXWZBb5Bzc7OVIJRz_Qw7b6Aq",
+   "size": 42223
+  },
+  {
+   "path": "build/support.js",
+   "drive_id": "1DdXIoNjZuO3kpO01ZRYYeIbKDKMwmjG5",
+   "size": 69150
+  },
+  {
+   "path": "build/Nutrivo - Backend Action Register.dc.html",
+   "drive_id": "17rEyjFesV7PdS0m-kciGxWeNbGXpXADj",
+   "size": 28338
+  },
+  {
+   "path": "build/Nutrivo - Gap Register.dc.html",
+   "drive_id": "1LzRah3XseUZ0uRFaHrIU6KXfsnPeh1w8",
+   "size": 26229
+  },
+  {
+   "path": "public/Nutrivo Marketing Site.dc.html",
+   "drive_id": "1QrXSpwm1fLqamv2M103MEmu05Hd2wcvm",
+   "size": 45255
+  },
+  {
+   "path": "public/Nutrivo Coverage - public.dc.html",
+   "drive_id": "1YltwuphPhKoHhRNxPCbU57mIOTalUtXI",
+   "size": 40264
+  },
+  {
+   "path": "public/Nutrivo FAQ and About.dc.html",
+   "drive_id": "1jZU__AJUQCiPONx8iJNGN6hGHJjQD9yJ",
+   "size": 38433
+  },
+  {
+   "path": "public/Nutrivo Email Templates.dc.html",
+   "drive_id": "1ZNfG1F6L7Ro-5tXr0d5YAPNZaFG0ksN6",
+   "size": 34580
+  },
+  {
+   "path": "public/Nutrivo Landing Page.dc.html",
+   "drive_id": "1KhMXRiMwKAmiz9VDsyUkQQDYPc6YLyiD",
+   "size": 112712
+  },
+  {
+   "path": "public/support.js",
+   "drive_id": "1ojVTsRNEH7J6yuhz1ZFJIemt_rTIsKVp",
+   "size": 69150
+  },
+  {
+   "path": "public/Nutrivo Legal - Terms, DPA, Privacy.dc.html",
+   "drive_id": "1l7vHGRts7j8pm0raEGrsdx8sVotc9LDr",
+   "size": 48179
+  },
+  {
+   "path": "public/Nutrivo Segment Pages.dc.html",
+   "drive_id": "1Lk9SoOzYSMo_7hYhRKx1kwcouOZdEIR4",
+   "size": 39447
+  },
+  {
+   "path": "public/Nutrivo Pricing Page.dc.html",
+   "drive_id": "1VXm-B1kBqo229ky-ZxSuvkKCVMfuDrL9",
+   "size": 43270
+  },
+  {
+   "path": "brand/support.js",
+   "drive_id": "127bXdV2VTii9JP6cYOtz7PVrm2EYS-_R",
+   "size": 69150
+  },
+  {
+   "path": "brand/doc-page.js",
+   "drive_id": "1ccUsE-VWPVuqDHnqM-6fHQtxrr_BcAh1",
+   "size": 38579
+  },
+  {
+   "path": "brand/Nutrivo Brand - Cobalt Specification.dc.html",
+   "drive_id": "19WvIjVedZkhvhqdrBgIixmrbuuz_6NbC",
+   "size": 22930
+  },
+  {
+   "path": "product/Nutrivo Workspace Settings.dc.html",
+   "drive_id": "1AkJ7ZPoiql92HZoMprcx8JN0FL4lH7Pg",
+   "size": 56408
+  },
+  {
+   "path": "product/Nutrivo Partner Upsell.dc.html",
+   "drive_id": "1JlntUep9YBNMG4_tESoyOexhWp5iJ1ch",
+   "size": 22021
+  },
+  {
+   "path": "product/Nutrivo Plans and Checkout.dc.html",
+   "drive_id": "11CNUEeGdCas4e1v2gxv07-b8WkAapAJp",
+   "size": 57821
+  },
+  {
+   "path": "product/Nutrivo 2.0.dc.html",
+   "drive_id": "1XTiRLjkW0OFCdiWj0VUHDj-OizLUi0oh",
+   "size": 302312
+  },
+  {
+   "path": "product/Nutrivo Mobile.dc.html",
+   "drive_id": "1OCZiN88mKgOFNRvY4wsPWIGcnZgGN6Wb",
+   "size": 19760
+  },
+  {
+   "path": "product/Nutrivo Empty and Error States.dc.html",
+   "drive_id": "10QOLvzkPOUCQA8he8DUWgRkPrQfCvrwh",
+   "size": 18370
+  },
+  {
+   "path": "product/Nutrivo Account Recovery.dc.html",
+   "drive_id": "1BziJtNUGWUgH6WPF8sQald6f7UATX_2j",
+   "size": 21120
+  },
+  {
+   "path": "product/Nutrivo Onboarding Flow.dc.html",
+   "drive_id": "1rDZX6m-QT_xUpZYVW3OA8Pe2UAAhi4QR",
+   "size": 57438
+  },
+  {
+   "path": "product/support.js",
+   "drive_id": "1C62QBOjyNbagGv0Q56A_BX-kSYpcHRtT",
+   "size": 69150
+  },
+  {
+   "path": "product/Nutrivo Billing Settings.dc.html",
+   "drive_id": "1fDxQesfzjE42GtDHWsCL1NfKfUi8BtEF",
+   "size": 32180
+  },
+  {
+   "path": "product/Nutrivo - Missing Surfaces.dc.html",
+   "drive_id": "1tEN4yDCNvRI8x6hWddlN8TkRKnk0NW2V",
+   "size": 56663
+  },
+  {
+   "path": "product/Nutrivo Partner Tier.dc.html",
+   "drive_id": "1Itzw5XNEx19Mhici3iGhsPho4UFqHxkw",
+   "size": 35422
+  },
+  {
+   "path": "documents/support.js",
+   "drive_id": "1o9W6BNoXVEg8Jz4DDzLIb8mtB5POGPyk",
+   "size": 69150
+  },
+  {
+   "path": "documents/Nutrivo Export - Action Plan.dc.html",
+   "drive_id": "1cmf_289-iFtHyBzDyIhl9XtQanCNaTli",
+   "size": 23272
+  },
+  {
+   "path": "documents/Nutrivo Export - Certificate of Check.dc.html",
+   "drive_id": "1keM-AwcqbPLUULQn4pUMjIPWcsPbu892",
+   "size": 11094
+  },
+  {
+   "path": "documents/doc-page.js",
+   "drive_id": "15OyyqJc3WSyI--0nrk5sixhpB70uaV97",
+   "size": 38579
+  },
+  {
+   "path": "documents/Nutrivo Export - Label Report.dc.html",
+   "drive_id": "1mxyNlcFWjtKeNmHIAqQUUyjEVq5ncHxB",
+   "size": 26905
+  },
+  {
+   "path": "_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/_ds_manifest.json",
+   "drive_id": "1rCBAZj5NuoIb3M9mh6-5OVfANPI6iwb9",
+   "size": 7383
+  },
+  {
+   "path": "_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css",
+   "drive_id": "15NBLCTESq2weLdnzgciTtr3r-NIr_2iO",
+   "size": 12158
+  },
+  {
+   "path": "_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/_adherence.oxlintrc.json",
+   "drive_id": "1nCe4Ferds1NfEJDKnpNO4_hDiCXdfT4X",
+   "size": 4060
+  },
+  {
+   "path": "_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/_ds_bundle.js",
+   "drive_id": "1o8MVv01Co6EvA6q0Cj7bNfoYxooPg40m",
+   "size": 300
+  },
+  {
+   "path": "_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/readme.md",
+   "drive_id": "1We2z9atovLU45l7WRN6XheqwDaGreKG6",
+   "size": 8183
+  }
+ ]
+}

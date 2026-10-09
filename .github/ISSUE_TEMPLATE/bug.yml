@@ -1,0 +1,11 @@
+name: Bug
+description: Something does not behave as the spec says
+labels: [bug]
+body:
+  - type: input
+    attributes: { label: Workflow or screen, description: "e.g. D04 or S-NV2-001" }
+  - type: textarea
+    attributes: { label: What happened, description: "Steps, expected, actual. Link the Sentry issue or run if there is one." }
+    validations: { required: true }
+  - type: textarea
+    attributes: { label: Acceptance ID that should have caught it, description: "If none exists, the fix adds one to spec/acceptance.yaml via a founder-approved PR." }

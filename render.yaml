@@ -1,0 +1,27 @@
+# Render Blueprint: the worker in Frankfurt for staging and production. Deploys are triggered by GitHub Actions after
+# migrations (autoDeploy off), so the order is always database → worker → web. Variables come from Infisical's
+# Render sync; only NUTRIVO_ENV is set here.
+services:
+  - type: worker
+    name: nutrivo-worker-staging
+    runtime: docker
+    region: frankfurt
+    plan: standard
+    dockerfilePath: ./worker/Dockerfile
+    dockerContext: .
+    autoDeploy: false
+    envVars:
+      - key: NUTRIVO_ENV
+        value: staging
+  - type: worker
+    name: nutrivo-worker-prod
+    runtime: docker
+    region: frankfurt
+    plan: standard
+    numInstances: 2
+    dockerfilePath: ./worker/Dockerfile
+    dockerContext: .
+    autoDeploy: false
+    envVars:
+      - key: NUTRIVO_ENV
+        value: prod

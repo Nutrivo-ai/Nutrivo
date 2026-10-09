@@ -1,0 +1,41 @@
+[project]
+name = "nutrivo-worker"
+version = "0.1.0"
+description = "Nutrivo worker: artwork extraction, rules engine, model calls, report rendering, content tooling."
+requires-python = ">=3.12"
+# Licences checked 8 Oct 2026 (PyPI): all permissive or LGPL. PyMuPDF is deliberately absent (AGPL-3.0 or
+# commercial licence from Artifex). Do not add it without a purchased licence: see docs/02-decisions.md D-15.
+dependencies = [
+  "pypdfium2>=5.14",                 # BSD-3 / Apache-2.0: glyph boxes, rendering
+  "pdfplumber>=0.11",                # MIT: layout, characters, fonts
+  "fonttools>=4.66",                 # MIT: embedded font programmes, glyph metrics
+  "lingua-language-detector>=2.2",   # Apache-2.0: language per panel (needs Python 3.12)
+  "psycopg[binary]>=3.3",            # LGPL-3.0
+  "pgmq>=1.1",                       # Apache-2.0: Supabase Queues client
+  "pydantic>=2.14",                  # MIT
+  "anthropic>=1.12",                 # MIT: direct API path
+  "boto3>=1.43",                     # Apache-2.0: Bedrock (EU) and SES
+  "weasyprint>=70.0",                # BSD: server-side report PDFs
+  "langfuse>=4.17",                  # MIT: tracing, EU cloud
+  "sentry-sdk>=2.71",                # MIT
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "reportlab>=5.0", "pypdf>=5", "ruff>=0.6", "mypy>=1.11"]
+
+[project.scripts]
+nutrivo = "nutrivo_worker.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/nutrivo_worker"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["milestone(n): the test activates when the repository's .milestone file is >= n"]
+
+[tool.ruff]
+line-length = 120

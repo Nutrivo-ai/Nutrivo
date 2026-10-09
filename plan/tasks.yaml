@@ -1,0 +1,99 @@
+# The work, as a dependency graph. `make issues-sync` turns each task into a GitHub issue; `make next` claims ready ones.
+# A task's acceptance = every acceptance ID of its workflows (spec/acceptance.yaml) + its checks.
+# gate: human means a founder must act inside the task (G-codes in START-HERE.md); autopilot stops there.
+milestone_order: [M0, M1, M2, M3, M4, M5, M6, M7, M8, M9, M10, M11]
+lanes:
+  db: ["supabase/migrations/*", "supabase/tests/app/*", "supabase/seed/**", "supabase/config.toml"]
+  worker: ["worker/**", "fixtures/synth/**", "supabase/functions/**"]
+  web: ["apps/web/**", "supabase/functions/**", "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml"]
+  infra: [".github/**", "scripts/**", "config/**", "render.yaml", "Makefile", ".infisical.json", ".gitignore", "design/**", "infra/**"]
+  content: ["content/candidates/**", "worker/prompts/**", "worker/evals/**"]
+always_allowed: ["docs/**", "CONFORMANCE.md", "spec/conformance-baseline.json", "README.md"]
+protected: ["supabase/tests/gates/**", "worker/tests/gates/**", "fixtures/golden/**", "content/accepted/**",
+            "spec/acceptance.yaml", "spec/nfr.yaml", "spec/screens.yaml", ".milestone", "CLAUDE.md", ".claude/**",
+            "plan/tasks.yaml", "docs/02-decisions.md", "supabase/migrations/2026100800000*"]
+tasks:
+  # ── M0 · Bootstrap: the factory that builds everything else ─────────────────────────────────────
+  - {id: T-001, ms: M0, lanes: [infra], gate: human, deps: [], title: "Connect the GitHub repository Nutrivo and import the hand-off (existing code archived, never deleted)"}
+  - {id: T-002, ms: M0, lanes: [infra], gate: human, deps: [T-001], title: "Wire Infisical: .infisical.json, run wrapper, secret aliases; env-check green for dev, staging and prod", checks: ["make env-check ENV=dev", "make env-check ENV=staging", "make env-check ENV=prod"]}
+  - {id: T-003, ms: M0, lanes: [infra], deps: [T-002], title: "Doctor: prove every service for dev and staging, including Sentry and Langfuse round-trips", checks: ["make doctor ENV=dev", "make doctor ENV=staging"]}
+  - {id: T-004, ms: M0, lanes: [infra], gate: human, deps: [T-001, T-002], title: "Configure GitHub: labels, milestones, environments, protection or merge queue, CODEOWNERS, Actions secrets from Infisical, actions pinned to SHAs"}
+  - {id: T-005, ms: M0, lanes: [infra], deps: [T-004], title: "Sync plan/tasks.yaml to GitHub issues", checks: ["make issues-sync"]}
+  - {id: T-006, ms: M0, lanes: [infra], gate: human, deps: [T-001], title: "Import the design set from design/MANIFEST.json and verify every file", checks: ["make design-check"]}
+  - {id: T-007, ms: M0, lanes: [web], deps: [T-001], title: "Scaffold apps/web: Next.js, TypeScript, Tailwind, ESLint, Vitest, Playwright, @supabase/ssr, @sentry/nextjs, posthog-js; Vercel config (fra1)"}
+  - {id: T-008, ms: M0, lanes: [worker], deps: [T-002], title: "Worker runtime: config, pgmq job loop, idempotent handler registry, retries, reaper, structured logs, Sentry (errors, traces, heartbeat cron), Langfuse, models wrapper with record/replay, Dockerfile builds"}
+  - {id: T-009, ms: M0, lanes: [infra, web, worker], deps: [T-007, T-008], title: "Full-stack CI: local Supabase + worker + web + Mailpit in Actions; Playwright harness; JUnit and TAP reports; conformance report and ratchet required"}
+  - {id: T-010, ms: M0, lanes: [infra], gate: human, deps: [T-009, T-003], title: "Staging pipeline: migrations, Edge Functions, Render worker, Vercel, Infisical syncs, smoke tests, observability round-trip, automatic rollback"}
+  - {id: T-011, ms: M0, lanes: [infra], gate: human, deps: [T-001], title: "Verify the open research items in docs/14 with web search and record conflicts for the founders"}
+  - {id: T-012, ms: M0, lanes: [web], gate: human, deps: [T-006, T-007], title: "Screen inventory and design baselines: every screen in design/ into spec/screens.yaml; baselines at 1600 px and 390 px (gate G4)"}
+  - {id: T-013, ms: M0, lanes: [db], deps: [T-012], title: "Demo seed reproducing the design mock data (Halden Pet Nutrition) for local, CI and the staging demo workspace"}
+  # ── M1 · App shell, sign-in, people ───────────────────────────────────────────────────────────────
+  - {id: T-101, ms: M1, lanes: [web], deps: [T-012], title: "Cobalt tokens and component kit (state badges with glyphs, provenance, citation and gap links, tables, dialogs, empty and error states) with visual tests"}
+  - {id: T-102, ms: M1, lanes: [web], deps: [T-101], wf: [N02], title: "App shell, routing per spec/screens.yaml, workspace switcher, loading, empty, error and no-permission states"}
+  - {id: T-103, ms: M1, lanes: [web, db], deps: [T-102], wf: [A02, A07], title: "Auth: email and password, magic link, confirmation, TOTP enrolment, account recovery screens"}
+  - {id: T-104, ms: M1, lanes: [db], deps: [T-013], wf: [A05, A06, B01], title: "RPCs change_member, remove_member, revoke_invitation, set_default_operator with pgTAP"}
+  - {id: T-105, ms: M1, lanes: [worker], deps: [T-008, T-104], wf: [A03, A04], title: "notify handler (invitation tokens hashed, SES email from the design templates) and session_revoke"}
+  - {id: T-106, ms: M1, lanes: [web], deps: [T-103], wf: [A01], title: "Onboarding: create the workspace and set the default operator"}
+  - {id: T-107, ms: M1, lanes: [web], deps: [T-104, T-105, T-106], title: "Workspace Settings: People, Workspace, Your account (screens for A03 to A06)"}
+  - {id: T-108, ms: M1, lanes: [web], deps: [T-107], wf: [O02], title: "Audit log"}
+  # ── M2 · Content operations ─────────────────────────────────────────────────────────────────────────
+  - {id: T-201, ms: M2, lanes: [worker], deps: [T-008], title: "EUR-Lex source fetcher: consolidated texts in EN, SV, DA, FI, DE stored with sha256"}
+  - {id: T-202, ms: M2, lanes: [worker], deps: [T-201], title: "Importers: EU Register of Feed Additives and Catalogue of feed materials"}
+  - {id: T-203, ms: M2, lanes: [worker, content], deps: [T-201], wf: [K01, K02], title: "K01/K02 dual extraction with prompts v1 and Langfuse traces"}
+  - {id: T-204, ms: M2, lanes: [db], deps: [T-104], wf: [J02, K05], title: "Staff RPCs: accept candidate, term decisions, coverage edits, release_ruleset with the fixture gate"}
+  - {id: T-205, ms: M2, lanes: [web], deps: [T-204, T-203, T-102], wf: [K03, K04], title: "/admin content console: review queue, term register, coverage, glossary, release"}
+  - {id: T-206, ms: M2, lanes: [worker], deps: [T-008], title: "Fixtures runner: nutrivo fixtures run --ruleset <id>"}
+  - {id: T-207, ms: M2, lanes: [worker], deps: [T-201], wf: [J01], title: "Source watch and model triage for horizon items"}
+  - {id: T-208, ms: M2, lanes: [content], gate: human, deps: [T-205, T-206, T-202], title: "Founders accept the first EU core rules and release the first ruleset (gate G6)"}
+  # ── M3 · Artwork extraction ─────────────────────────────────────────────────────────────────────────
+  - {id: T-301, ms: M3, lanes: [worker], deps: [T-008], title: "Extraction spike: pypdfium2 against pdfplumber, results recorded in docs/06"}
+  - {id: T-302, ms: M3, lanes: [worker], deps: [T-301], title: "Extraction to the contract: worker gates BE-16, BE-17, BE-18 pass"}
+  - {id: T-303, ms: M3, lanes: [web, worker], deps: [T-302, T-102], wf: [D01, C02], title: "Upload flow: signed upload, register_artwork, extract job, Realtime progress, product from artwork"}
+  - {id: T-304, ms: M3, lanes: [web], deps: [T-303], wf: [D02], title: "Panel triage view"}
+  # ── M4 · First demo path ────────────────────────────────────────────────────────────────────────────
+  - {id: T-401, ms: M4, lanes: [web, db], deps: [T-102, T-204], wf: [C01, C03, C04, B02], title: "Products, families, stages and the free-allowance experience"}
+  - {id: T-402, ms: M4, lanes: [worker, web], deps: [T-303, T-203], wf: [D03], title: "Classification: model suggestion, person confirmation, citation"}
+  - {id: T-403, ms: M4, lanes: [worker], deps: [T-302, T-204, T-206], wf: [D04], title: "Rules engine core with evaluators mandatory_particular and prescribed_wording"}
+  - {id: T-404, ms: M4, lanes: [web], deps: [T-403], wf: [D07], title: "Label report: per-language results, artwork pins, Not assessed with gap links"}
+  - {id: T-405, ms: M4, lanes: [worker], deps: [T-403], wf: [I01], title: "Report PDF, pinned and reproducible, matching the Export - Label Report design"}
+  - {id: T-406, ms: M4, lanes: [web, worker], deps: [T-405], wf: [I04], title: "Public verification Edge Function and page"}
+  - {id: T-407, ms: M4, lanes: [web], deps: [T-404, T-406], title: "Demo path end to end (@demo) and docs/demo.md"}
+  # ── M5 · Engine complete ────────────────────────────────────────────────────────────────────────────
+  - {id: T-501, ms: M5, lanes: [worker, content], deps: [T-203], title: "Claims evaluation harness with Langfuse dataset runs"}
+  - {id: T-502, ms: M5, lanes: [worker], deps: [T-403, T-202], wf: [D05], title: "Evaluators threshold, additive_condition, character_height"}
+  - {id: T-503, ms: M5, lanes: [worker], deps: [T-501, T-403], title: "claim_judgement evaluator behind the harness threshold"}
+  - {id: T-504, ms: M5, lanes: [worker, web, db], deps: [T-403, T-401], wf: [D06, G01, G02, G03], title: "Registration state, obligations view, pack checklist, recording registrations"}
+  - {id: T-505, ms: M5, lanes: [web], deps: [T-404], wf: [D08, D09], title: "Re-check a revision; coverage per product"}
+  - {id: T-506, ms: M5, lanes: [web], deps: [T-401, T-403], wf: [F01, F04], title: "Board with database roll-up; portfolio findings"}
+  - {id: T-507, ms: M5, lanes: [web], deps: [T-404], title: "Mobile reading views from the Mobile design (verdict, pack photo)"}
+  # ── M6 · Sharing, notifications, public site ───────────────────────────────────────────────────────
+  - {id: T-601, ms: M6, lanes: [web, db], deps: [T-405], wf: [I02], title: "Share links: revocable, expiring, access-logged"}
+  - {id: T-602, ms: M6, lanes: [worker, web], deps: [T-105], wf: [O01], title: "Notifications in-app and by email for the six templates"}
+  - {id: T-603, ms: M6, lanes: [web], deps: [T-101], wf: [P01, P02], title: "Public site: landing, pricing, coverage, FAQ and about, segments, legal, with invented claims removed"}
+  # ── M7 · Billing ───────────────────────────────────────────────────────────────────────────────────
+  - {id: T-701, ms: M7, lanes: [infra], deps: [T-003], title: "Stripe test catalogue created from config/pricing.ts by an idempotent script"}
+  - {id: T-702, ms: M7, lanes: [worker, db], deps: [T-701], wf: [M04], title: "stripe-webhook function, payment events, subscription mirror, daily reconciliation"}
+  - {id: T-703, ms: M7, lanes: [web], deps: [T-702, T-102], wf: [M01, M02, M03, M05], title: "Plan picker with live counts, checkout, customer portal, billing settings"}
+  - {id: T-704, ms: M7, lanes: [db, worker], deps: [T-702], title: "Overage caps (BE-34) and the dunning schedule (BE-36)"}
+  - {id: T-705, ms: M7, lanes: [infra], gate: human, deps: [T-703, T-704], wf: [M06], title: "Stripe live mode (gate G8)"}
+  # ── M8 · Documents, suppliers, export ──────────────────────────────────────────────────────────────
+  - {id: T-801, ms: M8, lanes: [web, db], deps: [T-102], wf: [H01], title: "Document library against document requirements"}
+  - {id: T-802, ms: M8, lanes: [worker, web], deps: [T-801, T-105], wf: [H02, H03], title: "Supplier links, upload function, malware scan, promotion"}
+  - {id: T-803, ms: M8, lanes: [worker], deps: [T-802, T-602], wf: [H04], title: "Expiry reminders"}
+  - {id: T-804, ms: M8, lanes: [worker, web], deps: [T-008, T-102], wf: [O03], title: "Full data export, free on every plan"}
+  # ── M9 · Change propagation ────────────────────────────────────────────────────────────────────────
+  - {id: T-901, ms: M9, lanes: [worker], deps: [T-204, T-403], wf: [J03], title: "Diff fan-out and alerts"}
+  - {id: T-902, ms: M9, lanes: [web], deps: [T-901], wf: [J04], title: "Horizon and alerts inbox, desktop and mobile"}
+  - {id: T-903, ms: M9, lanes: [worker], deps: [T-901], wf: [J05, I05], title: "Scoped re-check and supersession"}
+  # ── M10 · Product briefs ───────────────────────────────────────────────────────────────────────────
+  - {id: T-1001, ms: M10, lanes: [web, db], deps: [T-401], wf: [E01], title: "Briefs: formula lines and intended claims"}
+  - {id: T-1002, ms: M10, lanes: [worker], deps: [T-1001, T-502], wf: [E02], title: "Compliance envelope"}
+  - {id: T-1003, ms: M10, lanes: [web], deps: [T-1001, T-303], wf: [E04], title: "Promote a brief to artwork"}
+  # ── M11 · Hardening and launch ─────────────────────────────────────────────────────────────────────
+  - {id: T-1101, ms: M11, lanes: [infra], gate: human, deps: [T-010], title: "Production pipeline: tag plus approval, point-in-time recovery, restore drill (gate G7)"}
+  - {id: T-1102, ms: M11, lanes: [infra], deps: [T-1101], title: "Synthetic monitoring, Sentry cron monitors, alert routing"}
+  - {id: T-1103, ms: M11, lanes: [db, worker, web, infra], deps: [T-703, T-802, T-903], title: "Security sweep: rls-reviewer, Supabase advisors, rate limits, clean scans"}
+  - {id: T-1104, ms: M11, lanes: [web], deps: [T-506, T-603, T-703], title: "Accessibility to WCAG 2.2 AA"}
+  - {id: T-1105, ms: M11, lanes: [infra, web, worker], deps: [T-506], title: "Load test and every budget in spec/nfr.yaml"}
+  - {id: T-1106, ms: M11, lanes: [infra], deps: [T-1101], title: "Runbooks: incidents, rollback, restore, pilot onboarding"}
+  - {id: T-1107, ms: M11, lanes: [infra], gate: human, deps: [T-1102, T-1103, T-1104, T-1105, T-1106, T-208, T-705, T-1002, T-1003, T-903, T-804, T-803, T-902, T-507, T-601], title: "Launch review against docs/21 (gate G9)"}

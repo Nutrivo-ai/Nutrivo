@@ -1,0 +1,29 @@
+# 02 · Decisions
+
+Defaults chosen on 8 Oct 2026 because no further material was available. Claude Code treats this file as settled.
+To change a row: edit it in a pull request, note the date, and tell Claude Code in the next session.
+
+| # | Decision | Default | Why | Source |
+|---|---|---|---|---|
+| D-01 | Launch markets | EU region; first nodes EU-SE, EU-DK, EU-FI, EU-DE | Stockholm base and Nordic network; Germany is the largest EU pet-food market; one EU regime covers all four | Gap Register open decision 1 |
+| D-02 | Hosting | Supabase eu-central-1 (Frankfurt); worker on Render Frankfurt; Vercel functions fra1; Bedrock and SES eu-central-1 | Co-located services; the worker talks to the database constantly. Supabase also offers eu-north-1 (Stockholm) if every other vendor can follow. **Update the DPA draft, which says AWS Ireland.** | Supabase regions (verified) |
+| D-03 | Plans and prices | Free: three new label artworks per workspace, whole product, no card. Basic €249/month, one region, no second. Standard €499/month, plus a second region at €199 (€698). Advanced from €999/month, all three regions, no seat check. Overage capped at 1.5× list (€374 / €749), then offer the next plan. Partner €1,499 per 10 client workspaces after launch. Euro only at launch. | The Priced Ladder is authoritative for figures; its Free row is superseded by the three-label allowance. The marketing site's Free/Core/Portfolio/Verified names are retired. | Handoff §04, §06; Gap Register; BE-34 |
+| D-04 | Roles | admin, portfolio_manager, editor, viewer; is_external; access_ends_at. Staff via app_metadata.nutrivo_staff | Four roles, not five | BE-03 |
+| D-05 | Naming | Workflow Register table names; Backend Action Register enum values; schemas `app` and `ref` as in BE-01, not `public` | Supabase grants anon and authenticated default privileges on `public`, which fights the BE-28 gate | docs/03-data-model.md |
+| D-06 | State vocabulary | label: clear, action, not_assessed. Registration: not_required, registered, not_registered, expired, unknown. Display adds blocked. Roll-up order: blocked > action > not_assessed > clear. Unknown registration never displays Clear. | Contract 3; BE-14, BE-15 | Handoff §03 |
+| D-07 | Check granularity | One `app.checks` row per product × node × language panel, grouped by job | Per-language result sets; the applied-rule record per event | BE-16, BE-23 |
+| D-08 | Gates | All 13 rows tagged GATE in the Backend Action Register's data (its text says seven) | Cheap now, unfixable later | docs/13-testing.md |
+| D-09 | After launch | Certificates UI (A08, I03; database preconditions built now), Compliance Worker (L01–L03), F02, F03, A09, N01, N03, E03 | BE-43 is deliberately last: without coverage it would answer anyway | BE register sequencing |
+| D-10 | Content method | EU primary law only. Machine extraction plus acceptance by a person; thresholds and prescribed terms extracted twice. A founder accepts until a content owner is hired. Independent feed-law expert review before the first paid contract. FEDIAF and AAFCO not ingested. | The design's published method; copyright | Gap Register open decision 4 |
+| D-11 | Models | Claude through AWS Bedrock in eu-central-1 (confirm model availability in M0); fallback the Anthropic API under zero data retention. Sonnet 5.5 for judgement and classification, Haiku 4.5 for triage, Opus 5.5 for offline extraction. Ids live in config. | EU processing; one vendor contract with SES | docs/07-ai.md |
+| D-12 | Jobs | Supabase Queues (pgmq) and pg_cron; state in `app.jobs` | No extra vendor; data stays in the database | Supabase docs (verified) |
+| D-13 | Worker | Python 3.12, uv, one container on Render Frankfurt (alternative: Fly.io Stockholm) | PDF and font tooling | — |
+| D-14 | Web | Next.js App Router, TypeScript, Tailwind, @supabase/ssr on Vercel. Desktop-first (designs at 1600 px), mobile for reading, tablet = reflowed desktop, interface in English | Gap Register surfaces | — |
+| D-15 | Extraction libraries | pypdfium2, pdfplumber, fontTools. No PyMuPDF without a purchased Artifex licence. No OCR geometry at launch. | Licences verified on PyPI; PyMuPDF is AGPL-3.0 | docs/14-research-log.md |
+| D-16 | Email | AWS SES eu-central-1 (same AWS account). Alternative if an EU-owned provider is required: Brevo. | "EU transactional provider" | BE-40 |
+| D-17 | Observability | Sentry EU region, PostHog EU cloud, Langfuse EU (cloud.langfuse.com) | EU processing | Langfuse README (verified) |
+| D-18 | Billing system | Stripe Billing + Stripe Tax + Stripe tax-ID validation is the source of truth. The register's own invoices table is dropped; Postgres mirrors subscriptions and payment events. | VAT logic is a liability to own | BE-31, BE-35 |
+| D-19 | Public claims | The coverage page reads `public.coverage_snapshot()` only. No named specialists until real. The "1.9 mm vs 2.0 mm, 767/2009 Annex VI" hero is removed. | They publish as commitments | Gap Register part 02 |
+| D-20 | Legal | Swedish commercial lawyer before the first sale; an insurer on the liability cap | — | Gap Register open decision 5 |
+| D-21 | Free-plan seats | No seat limit during the free allowance (no subscription row means no seat check); paid seat counts from the Priced Ladder in M7 | The allowance is "the whole product" | Handoff §04 |
+| D-22 | US pricing | Not sold at launch; dollar catalogue decided later as separate rows | — | Gap Register part 02 |

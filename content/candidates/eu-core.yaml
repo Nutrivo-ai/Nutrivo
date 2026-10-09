@@ -1,0 +1,80 @@
+# First extraction targets for the EU core ruleset (K01/K02). NOT accepted content.
+# Each 'candidate_source' was written from general knowledge without web access on 8 Oct 2026. Confirm the article
+# and paragraph against the stored consolidated text before extraction is accepted. Values (thresholds, terms,
+# heights) must come from the extraction, never from this file.
+targets:
+  - key: EU.767.TYPE_OF_FEED
+    shape: prescribed_wording
+    domain: mandatory_particulars
+    candidate_source: Reg. 767/2009, Art. 17 (type of compound feed designation)
+    extract: The prescribed designations (complete / complementary feed and any pet-food alternatives) per language
+  - key: EU.767.OPERATOR
+    shape: mandatory_particular
+    domain: mandatory_particulars
+    candidate_source: Reg. 767/2009, Art. 15 (name and address of the operator responsible for labelling)
+  - key: EU.767.ESTABLISHMENT_NUMBER
+    shape: mandatory_particular
+    domain: mandatory_particulars
+    candidate_source: Reg. 767/2009, Art. 15 (approval or registration number of the establishment)
+  - key: EU.767.BATCH
+    shape: mandatory_particular
+    domain: mandatory_particulars
+    candidate_source: Reg. 767/2009, Art. 15 (batch or lot reference)
+  - key: EU.767.NET_QUANTITY
+    shape: mandatory_particular
+    domain: mandatory_particulars
+    candidate_source: Reg. 767/2009, Art. 15 (net quantity and units)
+  - key: EU.767.ADDITIVES_DECLARATION
+    shape: mandatory_particular
+    domain: composition
+    candidate_source: Reg. 767/2009, Art. 15 with Annex VII Chapter I as amended by Reg. 2017/2279
+    extract: The "additives" heading per language and which additives pet food must declare
+  - key: EU.767.MOISTURE
+    shape: threshold
+    domain: composition
+    candidate_source: Reg. 767/2009, Art. 15 with Annexes I and II (moisture content declaration)
+    extract: The moisture level above which declaration is required for compound feed
+  - key: EU.767.SPECIES_AND_USE
+    shape: mandatory_particular
+    domain: mandatory_particulars
+    candidate_source: Reg. 767/2009, Art. 17 (species or category; instructions for proper use)
+  - key: EU.767.COMPOSITION
+    shape: mandatory_particular
+    domain: composition
+    candidate_source: Reg. 767/2009, Art. 17 (composition list, descending order by weight; pet-food categories)
+  - key: EU.767.ANALYTICAL_CONSTITUENTS
+    shape: mandatory_particular
+    domain: composition
+    candidate_source: Reg. 767/2009, Annex VII Chapter II as amended by Reg. 2017/2279
+    extract: The analytical constituents pet food must declare, by product type, with the heading per language
+  - key: EU.767.MINIMUM_STORAGE_LIFE
+    shape: mandatory_particular
+    domain: mandatory_particulars
+    candidate_source: Reg. 767/2009, Art. 17 (minimum storage life)
+  - key: EU.767.PET_FOOD_CONTACT
+    shape: mandatory_particular
+    domain: mandatory_particulars
+    candidate_source: Reg. 767/2009, Art. 19 (free telephone number or other appropriate means of communication)
+  - key: EU.767.EMPHASIS_PERCENTAGE
+    shape: threshold
+    domain: claims_wording
+    candidate_source: Reg. 767/2009, Art. 17 (percentage when labelling emphasises a feed material)
+  - key: EU.767.LANGUAGE
+    shape: mandatory_particular
+    domain: language
+    candidate_source: Reg. 767/2009, Art. 14 (official language or languages of the Member State of marketing)
+  - key: EU.767.CLAIMS_GENERAL
+    shape: claim_judgement
+    domain: claims_wording
+    candidate_source: Reg. 767/2009, Arts. 11 and 13 (no misleading claims; no prevention, treatment or cure claims)
+    note: Needs the claims evaluation harness (docs/07-ai.md) before it can join a ruleset
+  - key: EU.1831.ADDITIVE_AUTHORISED
+    shape: additive_condition
+    domain: composition
+    candidate_source: Reg. 1831/2003 and the EU Register of Feed Additives
+    extract: Authorisation for the target species, maximum contents and conditions per declared additive
+  - key: EU.76-211.FIGURE_HEIGHT
+    shape: character_height
+    domain: type_geometry
+    candidate_source: Dir. 76/211/EEC, Annex (minimum height of the figures of the nominal quantity)
+    extract: The quantity bands and minimum figure heights; confirm the Directive applies to the products in scope

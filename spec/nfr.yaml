@@ -1,0 +1,27 @@
+# Non-functional targets. Checked by tests, the nightly run and the launch review (docs/21).
+performance:
+  rpc_p95_ms: 300
+  board_300_recipes_p95_ms: 1500
+  search_300_recipes_p95_ms: 200            # BE-41, after launch
+  extraction_10_pages_p95_s: 20
+  check_completion_p95_s: 120
+  verify_endpoint_p95_ms: 300
+  public_pages_lcp_s: 2.5
+availability:
+  app_monthly_percent: 99.5
+  verify_monthly_percent: 99.9
+quality:
+  visual_max_diff_pixel_ratio: 0.02
+  axe_serious_or_critical: 0
+  required_acceptance_ratio: 1.0
+  quarantined_acceptance_tests: 0
+security:
+  high_or_critical_vulnerabilities: 0
+  secrets_in_repository: 0
+cost:
+  model_cost_per_check_eur_p95: 0.50
+reliability:
+  job_max_attempts: 5
+  job_visibility_timeout_s: 300
+  reaper_stuck_after_min: 15
+  heartbeat_interval_s: 60

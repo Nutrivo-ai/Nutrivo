@@ -1,0 +1,25 @@
+# Local development settings. Hosted projects must match: Dashboard → API → Exposed schemas = public, app, ref.
+project_id = "nutrivo"
+
+[api]
+schemas = ["public", "graphql_public", "app", "ref"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db.seed]
+enabled = false   # reference data is seeded by migrations so production gets it too
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+enable_signup = true
+
+[auth.email]
+enable_confirmations = true
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
+[storage]
+file_size_limit = "50MiB"

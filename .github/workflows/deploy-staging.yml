@@ -1,0 +1,51 @@
+name: deploy-staging
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+concurrency: { group: deploy-staging, cancel-in-progress: false }
+permissions: { contents: read, issues: write, actions: write }
+
+jobs:
+  deploy:
+    environment: staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Infisical/secrets-action@v1          # pin to a commit SHA in T-004
+        with:
+          method: universal
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          env-slug: staging
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - uses: astral-sh/setup-uv@v6
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Database migrations (expand/contract only)
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" -p "$SUPABASE_DB_PASSWORD" && supabase db push -p "$SUPABASE_DB_PASSWORD"
+      - name: Edge Functions
+        run: if [ -d supabase/functions ]; then supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"; fi
+      - name: Worker on Render
+        run: bash scripts/deploy/render.sh "$RENDER_WORKER_SERVICE_ID" "$GITHUB_SHA"
+      - name: Web on Vercel
+        run: if [ -f apps/web/package.json ]; then bash scripts/deploy/vercel.sh staging; fi
+      - name: Smoke tests on staging
+        run: make smoke ENV=staging
+      - name: Observability round-trip and doctor
+        run: uv run --no-project --with boto3 python scripts/doctor/doctor.py --env staging
+      - name: Roll back
+        if: failure()
+        run: bash scripts/deploy/rollback.sh staging
+      - name: Incident issue for the autopilot
+        if: failure()
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          url=$(gh issue create --title "Staging deploy failed at ${GITHUB_SHA::7}" --label incident,autopilot \
+            --body "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. Rolled back. Find the root cause and fix forward (docs/18-reliability.md).")
+          gh workflow run claude-autopilot.yml -f issue="${url##*/}"

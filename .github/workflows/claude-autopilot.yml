@@ -1,0 +1,73 @@
+name: claude-autopilot
+# Requires the Claude GitHub App on the repository (/install-github-app) so its pull requests trigger CI.
+on:
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      issue: { description: "Issue number to work on", required: true }
+permissions: { contents: write, pull-requests: write, issues: write, id-token: write, actions: read }
+
+jobs:
+  build:
+    if: >
+      (github.event_name == 'issues' && github.event.label.name == 'autopilot') ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: Infisical/secrets-action@v1          # pin to a commit SHA in T-004
+        with:
+          method: universal
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          env-slug: dev
+      - run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - uses: astral-sh/setup-uv@v6
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: supabase start
+      - uses: anthropics/claude-code-action@v1     # pin to a commit SHA in T-004
+        with:
+          anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
+          track_progress: true
+          claude_args: "--model claude-opus-5-5 --max-turns 300"
+          prompt: |
+            Work on issue #${{ github.event.issue.number || inputs.issue }} of ${{ github.repository }}.
+            If it is a task (title starts with T-), follow scripts/autopilot/task-prompt.md with TASK_ID from the
+            title, ISSUE = the issue number, and BRANCH = t/<TASK_ID>-<short-name>; first assign the issue to
+            yourself, and skip it if it is already assigned to someone else or has open dependencies.
+            If it is an incident or nightly issue, find the root cause from the linked run, fix it on a branch
+            fix/<issue-number>, and open a pull request that closes the issue. Follow CLAUDE.md throughout.
+
+  respond:
+    if: >
+      (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') &&
+      contains(github.event.comment.body, '@claude')
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: Infisical/secrets-action@v1
+        with:
+          method: universal
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          env-slug: dev
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
+          claude_args: "--model claude-opus-5-5 --max-turns 120"
