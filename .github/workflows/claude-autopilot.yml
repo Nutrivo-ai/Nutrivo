@@ -30,7 +30,7 @@ jobs:
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
           env-slug: dev
       - run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with: { version: latest }
       - uses: astral-sh/setup-uv@v6
       - uses: pnpm/action-setup@v4

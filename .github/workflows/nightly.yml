@@ -17,7 +17,7 @@ jobs:
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
           env-slug: staging
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with: { version: latest }
       - uses: astral-sh/setup-uv@v6
       - uses: pnpm/action-setup@v4
