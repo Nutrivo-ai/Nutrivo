@@ -6,6 +6,7 @@ permissions: { contents: read, issues: write, actions: write }
 
 jobs:
   staging-acceptance:
+    if: vars.STAGING_DEPLOY_ENABLED == 'true'      # staging exists from T-010 (gate G7)
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:

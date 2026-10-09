@@ -8,6 +8,9 @@ permissions: { contents: read, issues: write, actions: write }
 
 jobs:
   deploy:
+    # Off until T-010: a founder sets the repository variable STAGING_DEPLOY_ENABLED=true when approving the first
+    # staging deployment (gate G7). Until then a merge to main must not run migrations against nutrivo-staging.
+    if: vars.STAGING_DEPLOY_ENABLED == 'true'
     environment: staging
     runs-on: ubuntu-latest
     timeout-minutes: 60
