@@ -29,10 +29,10 @@ jobs:
           gh run view ${{ github.event.workflow_run.id }} --repo "$REPO" --log-failed | tail -n 400 > /tmp/ci-failure.log || true
           echo "number=$num" >> "$GITHUB_OUTPUT"; echo "attempt=$next" >> "$GITHUB_OUTPUT"
       - if: steps.pr.outputs.skip != 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with: { ref: "${{ github.event.workflow_run.head_branch }}", fetch-depth: 0 }
       - if: steps.pr.outputs.skip != 'true'
-        uses: Infisical/secrets-action@v1
+        uses: Infisical/secrets-action@d2e351f16c6ca20d17c85e6c992e04bdeb64e87d # v1.0.18
         with:
           method: universal
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
@@ -40,12 +40,12 @@ jobs:
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
           env-slug: dev
       - if: steps.pr.outputs.skip != 'true'
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
         with: { version: latest }
       - if: steps.pr.outputs.skip != 'true'
         run: supabase start
       - if: steps.pr.outputs.skip != 'true'
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@2dca132ff0e0c4094ce6048b422c6915a071210b # v1.0.247
         with:
           anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
           claude_args: "--model claude-opus-5-5 --max-turns 200"
