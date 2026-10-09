@@ -21,7 +21,7 @@ jobs:
           env-slug: prod
       - uses: supabase/setup-cli@v1
         with: { version: latest }
-      - uses: astral-sh/setup-uv@v6
+      - uses: astral-sh/setup-uv@v7
       - uses: pnpm/action-setup@v4
         with: { version: 10 }
       - uses: actions/setup-node@v4
