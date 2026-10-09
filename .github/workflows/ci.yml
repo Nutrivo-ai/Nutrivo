@@ -71,7 +71,7 @@ jobs:
       - id: app
         run: if [ -f apps/web/package.json ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; fi
       - if: steps.app.outputs.ready == 'true'
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with: { version: 10 }
       - if: steps.app.outputs.ready == 'true'
         uses: actions/setup-node@v4
@@ -95,7 +95,7 @@ jobs:
       - if: steps.app.outputs.ready == 'true'
         uses: astral-sh/setup-uv@v6
       - if: steps.app.outputs.ready == 'true'
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
         with: { version: 10 }
       - if: steps.app.outputs.ready == 'true'
         uses: actions/setup-node@v4

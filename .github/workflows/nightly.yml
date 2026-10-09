@@ -20,7 +20,7 @@ jobs:
       - uses: supabase/setup-cli@v1
         with: { version: latest }
       - uses: astral-sh/setup-uv@v6
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with: { version: 10 }
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
