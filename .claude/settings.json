@@ -23,6 +23,9 @@
     ]
   },
   "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh\"", "timeout": 1200 } ] }
+    ],
     "Stop": [
       { "hooks": [ { "type": "command", "command": "bash scripts/hooks/stop-verify.sh" } ] }
     ]
