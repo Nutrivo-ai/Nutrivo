@@ -5,8 +5,13 @@ LANE ?= any
 PY := uv run --no-project --with pyyaml python
 RUN = scripts/env/run.sh $(ENV) --
 
+# Every target is a command, never a file: without this, `make fixtures` sees the fixtures/ directory and does nothing.
+.PHONY: help bootstrap db-start db-reset fixtures typegen env-check doctor design-fetch design-check validate-plan \
+        workflows issues-sync next verify-task autopilot status gates test verify-fast verify e2e e2e-ci smoke \
+        acceptance-staging conformance conformance-update
+
 help: ## list targets
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-18s %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-18s %s\n", $$1, $$2}'
 
 # ── Setup ─────────────────────────────────────────────────────────────────────────────────────────
 bootstrap: ## install worker and web dependencies
