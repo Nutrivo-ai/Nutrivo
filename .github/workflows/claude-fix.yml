@@ -29,7 +29,7 @@ jobs:
           gh run view ${{ github.event.workflow_run.id }} --repo "$REPO" --log-failed | tail -n 400 > /tmp/ci-failure.log || true
           echo "number=$num" >> "$GITHUB_OUTPUT"; echo "attempt=$next" >> "$GITHUB_OUTPUT"
       - if: steps.pr.outputs.skip != 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with: { ref: "${{ github.event.workflow_run.head_branch }}", fetch-depth: 0 }
       - if: steps.pr.outputs.skip != 'true'
         uses: Infisical/secrets-action@v1

@@ -15,7 +15,7 @@ jobs:
   protocol:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
       - uses: astral-sh/setup-uv@v6
       - run: uv run --no-project --with pyyaml python scripts/protocol/validate-plan.py
@@ -31,14 +31,14 @@ jobs:
   secrets-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
       - run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect --source /repo --no-banner --redact -v
 
   database:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: supabase/setup-cli@v1
         with: { version: latest }
       - run: supabase db start
@@ -54,7 +54,7 @@ jobs:
   worker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
       - uses: astral-sh/setup-uv@v6
       - run: cd worker && uv sync
@@ -67,7 +67,7 @@ jobs:
   web:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: app
         run: if [ -f apps/web/package.json ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; fi
       - if: steps.app.outputs.ready == 'true'
@@ -84,7 +84,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: app
         run: if [ -f apps/web/package.json ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; fi
       - if: steps.app.outputs.ready == 'true'
@@ -111,7 +111,7 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v4
         with: { pattern: reports-*, path: reports, merge-multiple: true }
       - uses: astral-sh/setup-uv@v6
