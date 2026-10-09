@@ -7,6 +7,7 @@ permissions: { contents: read, issues: write, actions: write }
 jobs:
   staging-acceptance:
     if: vars.STAGING_DEPLOY_ENABLED == 'true'      # staging exists from T-010 (gate G7)
+    environment: staging                            # the staging Infisical identity is an environment secret
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
@@ -31,9 +32,15 @@ jobs:
         run: |
           uv run --no-project --with boto3 python scripts/doctor/doctor.py --env staging
       - name: Schema drift (staging must equal the migrations)
-        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" -p "$SUPABASE_DB_PASSWORD" && test -z "$(supabase db diff --linked -s app,ref,private,public 2>/dev/null | grep -v '^--' | grep -v '^$')"
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_REF" -p "$SUPABASE_DB_PASSWORD"
+          diff="$(supabase db diff --linked -s app,ref,private,public)"   # a failed diff fails the step
+          test -z "$(printf '%s\n' "$diff" | grep -v '^--' | grep -v '^$')"
       - name: Dependency audit
-        run: (cd worker && uvx pip-audit) && (if [ -f apps/web/package.json ]; then pnpm --dir apps/web audit --prod --audit-level high; fi)
+        run: |
+          (cd worker && uv export --frozen --no-hashes --no-emit-project --format requirements-txt > /tmp/worker-requirements.txt \
+            && uvx pip-audit -r /tmp/worker-requirements.txt --disable-pip --no-deps)
+          if [ -f apps/web/package.json ]; then pnpm --dir apps/web audit --prod --audit-level high; fi
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with: { name: nightly-reports, path: reports/ }

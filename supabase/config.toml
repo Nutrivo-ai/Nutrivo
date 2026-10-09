@@ -6,6 +6,9 @@ schemas = ["public", "graphql_public", "app", "ref"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
 
+[db]
+major_version = 17   # the gates are proven on 17; nutrivo-staging and nutrivo-prod must run 17 as well
+
 [db.seed]
 enabled = false   # reference data is seeded by migrations so production gets it too
 

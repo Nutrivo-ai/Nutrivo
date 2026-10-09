@@ -7,7 +7,11 @@ permissions: { contents: read, issues: write }
 
 jobs:
   release:
-    environment: production          # required reviewers: gate G7
+    # Gate G7. Only repository admins (the founders) can create v* tags (.github/rulesets/release-tags.json), and the
+    # job stays off until a founder sets PRODUCTION_DEPLOY_ENABLED=true in T-1101. Required reviewers on the
+    # environment would need GitHub Enterprise for a private repository.
+    if: vars.PRODUCTION_DEPLOY_ENABLED == 'true'
+    environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:

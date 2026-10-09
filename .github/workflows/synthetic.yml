@@ -6,6 +6,7 @@ permissions: { contents: read }
 jobs:
   smoke-prod:
     if: vars.SYNTHETIC_ENABLED == 'true'      # switched on in T-1102
+    environment: production                    # the prod Infisical identity is an environment secret
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
