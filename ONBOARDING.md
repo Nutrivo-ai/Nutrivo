@@ -5,8 +5,8 @@ and per printed language panel, with the rule, citation and provenance behind ev
 Claude Code writes the software inside the guardrails in this repository; the two of us decide, approve and accept.
 
 ## Day one (about an hour)
-1. **GitHub.** Accept the invitation to the organisation and its `founders` team. You get Admin on `Nutrivo` and are
-   a code owner: your approval merges pull requests.
+1. **GitHub.** Accept the invitation to collaborate on `ar835/Nutrivo`. You are a code owner: your approval merges
+   the other founder's pull requests.
 2. **Claude.** Accept the invitation to the Claude Team workspace "Nutrivo.ai". In claude.ai → Settings →
    Connectors, connect GitHub.
 3. **Infisical.** Accept the invitation to the Infisical project. You never copy secrets by hand; sessions read them

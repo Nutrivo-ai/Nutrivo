@@ -2,21 +2,24 @@
 
 What a founder sets up once so that two founders and their Claude Code sessions build Nutrivo together under the
 protocol in docs/15. Claude Code cannot change repository settings, invite people or create accounts; everything
-below is a person's job. Steps are in order. The organisation is `nutrivo`; the repository is `nutrivo/Nutrivo`.
+below is a person's job. Steps are in order. The repository is `ar835/Nutrivo`, private, on ar835's personal account.
 
-## 1 · Organisation and repository
-1. **The organisation** `nutrivo` is on the Team plan: the cheapest plan on which a private repository gets enforced
-   rulesets, required code-owner reviews, environment secrets and deployment-branch rules. Required reviewers on
-   environments and the merge queue need Enterprise; the protocol does not rely on either (see 4 and 6).
-2. **Transfer the repository**: `ar835/Nutrivo` → Settings → General → Danger Zone → Transfer ownership → `nutrivo`.
-   Issues, pull requests and settings move with it, and the old URL redirects.
-3. **The founders team**: github.com/orgs/nutrivo/teams → New team `founders`, add both founders. Then
-   `nutrivo/Nutrivo` → Settings → Collaborators and teams → Add teams → `founders` → role **Admin**.
-4. **Code owners**: `.github/CODEOWNERS` names `@nutrivo/founders`, so any one founder's approval satisfies
-   code-owner review. It takes effect once steps 2 and 3 are done; until then GitHub reports the team as unknown.
-5. **Claude GitHub App**: github.com/apps/claude → Configure → `nutrivo` → Only select repositories → `Nutrivo`.
-   Each founder also connects GitHub in claude.ai (Settings → Connectors) so their sessions can push. A Claude Code
-   session started before the transfer must be restarted on `nutrivo/Nutrivo`.
+## 1 · Repository and people
+1. **Plan.** GitHub Free does not enforce rulesets, code-owner review, environments or environment secrets on a
+   private repository. GitHub Pro on the owner's account does (github.com/settings/billing → Upgrade to Pro), and the
+   rest of this page assumes it. Without Pro, CI and the Claude review still run on every pull request, but nothing
+   stops a red or unreviewed merge, and staging and production secrets cannot be separated (§3).
+2. **The second founder**: `ar835/Nutrivo` → Settings → Collaborators → Add people → their GitHub username. On a
+   personal repository a collaborator can push, review and approve, but only the owner can change settings or
+   create release tags.
+3. **Code owners**: add the second founder's username next to `@ar835` on every line of `.github/CODEOWNERS` (any one
+   listed owner's approval satisfies code-owner review). Claude Code does it in a pull request once you give it the
+   username.
+4. **Claude GitHub App**: github.com/apps/claude → Configure → your account → Only select repositories → `Nutrivo`.
+   Each founder also connects GitHub in claude.ai (Settings → Connectors) so their sessions can push.
+
+Moving the repository into an organisation later (Team plan, a `founders` team as code owner, more than one admin)
+keeps its history, issues and pull requests; the steps on this page stay the same.
 
 ## 2 · Rulesets (gate G5 enforced, not just agreed)
 Do this after the set-up pull request is merged, so the rules are not blocking their own introduction.
@@ -24,8 +27,8 @@ Repository → Settings → Rules → Rulesets → New ruleset → **Import a ru
 - `.github/rulesets/main.json`: `main` only changes through a pull request with one founder approval (code owner,
   not the last pusher), resolved threads, and green `protocol`, `secrets-scan`, `database`, `worker`, `web`, `e2e`
   and `conformance` on a branch that is up to date with `main`. Squash merges only.
-- `.github/rulesets/release-tags.json`: only repository admins (the founders) can create, move or delete `v*` tags,
-  so a production release is always a founder's act.
+- `.github/rulesets/release-tags.json`: only repository admins can create, move or delete `v*` tags, so a production
+  release is always a founder's act. On a personal repository that is the owner, ar835.
 
 No one bypasses the `main` ruleset. In a genuine emergency an owner can switch it to Evaluate for one merge and back;
 the audit log records it.
@@ -46,7 +49,7 @@ In GitHub, repository → Settings:
   `v*`; Environment secrets → the two names, from `github-actions-prod`.
 
 A founder with a terminal can do sections 2 and 3 in one go instead: `gh auth login`, then
-`bash scripts/bootstrap/github-setup.sh nutrivo/Nutrivo` (it reads the same ruleset files and copies the identities
+`bash scripts/bootstrap/github-setup.sh ar835/Nutrivo` (it reads the same ruleset files and copies the identities
 from Infisical without printing them).
 
 ## 4 · Switches at the gates
@@ -93,7 +96,7 @@ to Infisical. The first session in a new environment takes several minutes while
 reuse the cached container. The hook's last line says what is ready and what is not.
 
 ## 6 · Costs and limits worth knowing
-- GitHub Team includes 3,000 Actions minutes a month for private repositories. One pull request's CI is about 10
+- GitHub Pro includes 3,000 Actions minutes a month for private repositories (Free: 2,000). One pull request's CI is about 10
   job-minutes now and grows with the end-to-end suite; the autopilot and Claude review add their own. Watch
   Settings → Billing → Actions from M1.
 - Without the merge queue, `main` requires branches to be up to date: when two pull requests are ready together,

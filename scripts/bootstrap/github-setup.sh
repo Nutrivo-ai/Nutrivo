@@ -15,7 +15,7 @@ fi
 IFS=$'\t' read -r owner_type private default_branch <<<"$info"
 [ "$private" = "true" ] && ok "private" || bad "the repository is public: make it private first (Settings → General → Danger Zone)"
 [ "$owner_type" = "Organization" ] && ok "owned by an organisation" \
-  || warn "owned by a personal account: rulesets on a private repo need GitHub Pro, and teams need an organisation (docs/22)"
+  || warn "owned by a personal account: rulesets and environments on a private repo need GitHub Pro (docs/22 §1)"
 [ "$default_branch" = "main" ] && ok "default branch main" || bad "default branch is '$default_branch': set it to main"
 
 echo "Labels and milestones"
@@ -73,7 +73,7 @@ errs="$(gh api "repos/$REPO/codeowners/errors" --jq '.errors | length' 2>/dev/nu
 [ "$errs" = "0" ] && ok "CODEOWNERS valid" || bad "CODEOWNERS has ${errs:-unknown} errors: gh api repos/$REPO/codeowners/errors"
 
 echo "Still to do by hand (docs/22-github-and-team.md):"
-echo "  · Claude GitHub App installed on the organisation with access to this repository"
-echo "  · the founders team has Admin on the repository and is the code owner"
+echo "  · Claude GitHub App installed on the repository's owner with access to this repository"
+echo "  · every founder can write to the repository and is listed in .github/CODEOWNERS"
 echo "  · Sentry's GitHub integration, so production issues become GitHub issues"
 exit $fail
