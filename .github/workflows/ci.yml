@@ -47,7 +47,7 @@ jobs:
         run: |
           mkdir -p reports
           for f in $(find supabase/tests -name '*.sql' | sort); do psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -Atq -f "$f"; done > reports/database.tap
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with: { name: reports-database, path: reports/ }
 
@@ -60,7 +60,7 @@ jobs:
       - run: cd worker && uv sync
       - run: cd worker && uv run python ../fixtures/synth/generate.py --out ../fixtures/synth/out
       - run: cd worker && (uv run ruff check . || true) && mkdir -p ../reports && uv run pytest -q --junitxml=../reports/worker.xml
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with: { name: reports-worker, path: reports/ }
 
@@ -102,7 +102,7 @@ jobs:
         with: { node-version: 22 }
       - if: steps.app.outputs.ready == 'true'
         run: supabase start && make e2e-ci
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         if: always()
         with: { name: reports-e2e, path: reports/ }
 
