@@ -53,6 +53,9 @@ def c_supabase(env):
     need("SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_ROLE_KEY")
     url, anon = E("SUPABASE_URL").rstrip("/"), E("SUPABASE_ANON_KEY")
     s, b = http("POST", f"{url}/rest/v1/rpc/coverage_snapshot", {"apikey": anon, **bearer(anon)}, {})
+    assert s not in (401, 403), f"the anon key was rejected ({s})"
+    if s == 404:
+        raise Skip("keys accepted; schema not deployed yet (deploy-staging, from T-010)")
     assert s == 200, f"coverage_snapshot returned {s} (are migrations applied and schemas exposed?)"
     rs = json.loads(b).get("ruleset_version")
     svc = E("SUPABASE_SERVICE_ROLE_KEY")
@@ -74,10 +77,14 @@ def c_postgres(env):
     need("DATABASE_URL")
     if not shutil.which("psql"):
         raise Skip("psql not installed")
-    r = subprocess.run(["psql", E("DATABASE_URL"), "-Atc", "select count(*) from ref.jurisdictions"],
-                       capture_output=True, text=True, timeout=30)
-    assert r.returncode == 0, "connection failed: " + (r.stderr.splitlines() or ["?"])[-1][:120]
-    return f"{r.stdout.strip()} jurisdictions"
+    def psql(sql):
+        r = subprocess.run(["psql", E("DATABASE_URL"), "-Atc", sql], capture_output=True, text=True, timeout=30)
+        # psql's errors can quote parts of the URL, password included: report the exit code only.
+        assert r.returncode == 0, f"connection or query failed (psql exit {r.returncode})"
+        return r.stdout.strip()
+    if psql("select to_regclass('ref.jurisdictions') is not null") != "t":
+        raise Skip("connected; schema not deployed yet (deploy-staging, from T-010)")
+    return f"{psql('select count(*) from ref.jurisdictions')} jurisdictions"
 
 
 def c_bedrock(env):
@@ -172,7 +179,9 @@ def c_posthog(env):
 
 
 def c_vercel(env):
-    need("VERCEL_TOKEN", "VERCEL_PROJECT_ID")
+    need("VERCEL_TOKEN")
+    if not E("VERCEL_PROJECT_ID"):
+        raise Skip("no Vercel project yet (T-010)")
     team = f"?teamId={E('VERCEL_ORG_ID')}" if E("VERCEL_ORG_ID") else ""
     s, _ = http("GET", f"https://api.vercel.com/v9/projects/{E('VERCEL_PROJECT_ID')}{team}", bearer(E("VERCEL_TOKEN")))
     assert s == 200, f"project lookup returned {s}"
@@ -180,7 +189,9 @@ def c_vercel(env):
 
 
 def c_render(env):
-    need("RENDER_API_KEY", "RENDER_WORKER_SERVICE_ID")
+    need("RENDER_API_KEY")
+    if not E("RENDER_WORKER_SERVICE_ID"):
+        raise Skip("no worker service yet (T-010)")
     s, b = http("GET", f"https://api.render.com/v1/services/{E('RENDER_WORKER_SERVICE_ID')}", bearer(E("RENDER_API_KEY")))
     assert s == 200, f"service lookup returned {s}"
     region = (json.loads(b).get("serviceDetails") or {}).get("region")
