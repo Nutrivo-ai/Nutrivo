@@ -5,7 +5,9 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
-ID_RE = re.compile(r"\b([A-P]\d{2})[._](main|must[._]\d+|fail[._]\d+)\b")
+# An acceptance ID in a test title: [A01.main], 'ok 3 - [A01.must.1]', or pytest's test_D04_must_1_x (docs/19).
+# Not \b: '_' is a word character, so \b never matches inside test_A01_main.
+ID_RE = re.compile(r"(?<![A-Za-z0-9])([A-P]\d{2})[._](main|must[._]\d+|fail[._]\d+)(?![A-Za-z0-9])")
 
 
 def load(rel):

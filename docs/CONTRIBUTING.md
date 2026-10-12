@@ -14,7 +14,10 @@ docs/15-build-protocol.md. This page is the short version, plus how the two of y
 4. **Build inside the task's lanes** (`plan/tasks.yaml` → `lanes`). Every acceptance ID of the task's workflows gets
    a test with the ID in its title, for example `[D04.must.1]`.
 5. **Verify**: `make verify-task T=T-123`.
-6. **Open the pull request** with the template filled in: `Task: T-123` and `Closes #<issue>`.
+6. **Open the pull request** with the template filled in: `Task: T-123` and `Closes #<issue>`. Two other forms pass
+   the protocol check: `Incident: #N` with `Closes #N` for a fix to an issue labelled `incident` or `nightly`, and
+   `Task: none` for a founder's change to the target itself (spec, plan, decisions), which needs `human-approved`.
+   Dependabot pull requests need neither, as long as they only touch dependency files.
 7. **CI** must be green: `protocol`, `secrets-scan`, `database`, `worker`, `web`, `e2e`, `conformance`. Claude
    reviews against the spec automatically.
 8. **Review**: the founder who did not push last approves (gate G5). Squash merge once the branch is up to date.
@@ -41,6 +44,9 @@ files (CLAUDE.md non-negotiables 11 and 12). Start a new session per task so the
   issue with the `needs-human` label instead of deciding in a chat. A change to the target is its own pull request.
 
 ## Labels you will add yourselves
+The two approval labels count only when a founder (a code owner on `main`, or the repository's admin) adds them by
+hand; the protocol check ignores them when a bot, an app or anyone else does.
+
 | Label | Means |
 |---|---|
 | `human-approved` | A founder accepts a change to protected files (spec, plan, CLAUDE.md, .claude, decisions, base migrations) |

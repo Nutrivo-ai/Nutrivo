@@ -7,7 +7,8 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
-ID_RE = re.compile(r"\b([A-P]\d{2})[._](main|must[._]\d+|fail[._]\d+)\b")
+sys.path.insert(0, str(ROOT / "scripts/protocol"))
+from lib import ID_RE, normalise_id  # the same ID pattern as make verify-task
 ap = argparse.ArgumentParser()
 ap.add_argument("--results", nargs="*", default=["reports/**/*.xml", "reports/**/*.tap"])
 ap.add_argument("--enforce", action="store_true")
@@ -21,7 +22,7 @@ outcome = defaultdict(set)  # id -> {"pass", "fail"}
 
 def record(text, ok):
     for m in ID_RE.finditer(text):
-        outcome[f"{m.group(1)}.{m.group(2).replace('_', '.')}"].add("pass" if ok else "fail")
+        outcome[normalise_id(m)].add("pass" if ok else "fail")
 
 
 for pattern in a.results:
@@ -64,8 +65,11 @@ Path(a.out).write_text(report)
 if a.summary:
     Path(a.summary).open("a").write(report)
 if a.update_baseline:
-    if regressions:
-        sys.exit("refusing to update the baseline while regressions exist")
+    # A local run (make verify-task) may lack a suite such as e2e: only an ID that ran and failed blocks the update;
+    # an ID with no result at all is still a regression for --enforce in CI.
+    failing = [i for i in regressions if status.get(i) == "fail"]
+    if failing:
+        sys.exit("refusing to update the baseline while baseline IDs fail: " + ", ".join(failing))
     baseline_path.write_text(json.dumps(sorted(baseline | set(passing)), indent=0) + "\n")
 print(f"conformance: {len(passing)}/{total} passing, {len(regressions)} regressions")
 sys.exit(1 if (a.enforce and regressions) else 0)

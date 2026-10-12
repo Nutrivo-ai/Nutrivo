@@ -1,7 +1,7 @@
 """Claim the next ready task in a lane: make next LANE=web. Ready = issue open, unassigned, every dependency closed.
 The GitHub assignment is the lock; on a race the later claimer backs off and takes the next task."""
 import argparse, json, os, re, sys
-from lib import ROOT, gh_json, ms_rank, plan, sh, task_num
+from lib import ROOT, gh_json, ms_rank, plan, sh, task_by_id, task_num
 
 ap = argparse.ArgumentParser()
 ap.add_argument("--lane", default="any")
@@ -14,7 +14,10 @@ issues = gh_json("issue", "list", "--label", "task", "--state", "all", "--limit"
                  "--json", "number,title,state,assignees")
 by_task = {i["title"].split(":")[0].strip(): i for i in issues}
 closed = {tid for tid, i in by_task.items() if i["state"] == "CLOSED"}
-db_busy = bool(gh_json("pr", "list", "--label", "lane:db", "--state", "open", "--json", "number"))
+# One open migration PR at a time: an open PR whose branch t/T-123-... names a task with the db lane.
+prs = gh_json("pr", "list", "--state", "open", "--limit", "200", "--json", "headRefName")
+open_tasks = [task_by_id(p, m.group(1)) for pr in prs if (m := re.match(r"t/(T-\d+)(?:-|$)", pr["headRefName"]))]
+db_busy = any(t and "db" in t["lanes"] for t in open_tasks)
 me = sh("gh", "api", "user", "--jq", ".login").strip()
 for t in sorted(p["tasks"], key=lambda t: (ms_rank(p, t["ms"]), task_num(t["id"]))):
     issue = by_task.get(t["id"])

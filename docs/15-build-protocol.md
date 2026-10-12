@@ -53,7 +53,8 @@ Any task may touch docs/. Anything else outside the task's lanes fails the proto
    main stays green.
 10. **Staging.** Every merge deploys to staging, then runs smoke tests and the Sentry and Langfuse round-trip. A
     failure rolls back and opens an incident issue.
-11. **Close.** The issue closes, dependants become ready, and CONFORMANCE.md updates.
+11. **Close.** The issue closes, dependants become ready, and `spec/conformance-baseline.json` keeps the IDs the task
+    made pass, so the ratchet protects them from then on.
 
 ## Required checks and what each one stops
 | Check | Stops |
