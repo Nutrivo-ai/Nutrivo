@@ -31,8 +31,8 @@ typegen: ## regenerate database types for the web app
 	supabase gen types typescript --local --schema app,ref,public > $(TYPES).tmp && mv $(TYPES).tmp $(TYPES) || { rm -f $(TYPES).tmp; exit 1; }
 
 # ── Secrets and services ──────────────────────────────────────────────────────────────────────────
-env-check: ## names present or missing in Infisical for ENV (never values)
-	bash scripts/env/check.sh $(ENV)
+env-check: ## names present or missing in Infisical for ENV (never values); ALL=1 also requires later-task names
+	bash scripts/env/check.sh $(ENV) $(if $(ALL),--all,)
 doctor: ## prove every service for ENV, with Sentry and Langfuse round-trips (READONLY=1 for prod)
 	$(RUN) uv run --no-project --with boto3 python scripts/doctor/doctor.py --env $(ENV) $(if $(READONLY),--readonly,)
 
