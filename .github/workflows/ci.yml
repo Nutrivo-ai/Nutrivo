@@ -9,38 +9,21 @@ concurrency:
   cancel-in-progress: true
 permissions:
   contents: read
-  pull-requests: read
 
 jobs:
-  protocol:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with: { fetch-depth: 0 }
-      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
-      - run: uv run --no-project --with pyyaml python scripts/protocol/validate-plan.py
-      - run: uv run --no-project --with pyyaml python scripts/workflows/render.py --check
-      - if: github.event_name == 'pull_request'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-        run: cd scripts/protocol && uv run --no-project --with pyyaml python check-pr.py
-      - run: bash scripts/protocol/migration-guard.sh "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}"
-
   secrets-scan:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with: { fetch-depth: 0 }
       - run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.30.1 detect --source /repo --config /repo/.github/gitleaks.toml --no-banner --redact -v
 
   database:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
-        with: { version: latest }
+        with: { version: 2.120.0 }
       - run: supabase db start
       - run: supabase test db
       - name: Per-test TAP for the conformance report
@@ -52,20 +35,20 @@ jobs:
         with: { name: reports-database, path: reports/ }
 
   worker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       - run: cd worker && uv sync
       - run: cd worker && uv run python ../fixtures/synth/generate.py --out ../fixtures/synth/out
-      - run: cd worker && (uv run ruff check . || true) && mkdir -p ../reports && uv run pytest -q --junitxml=../reports/worker.xml
+      - run: cd worker && uv run ruff check . && mkdir -p ../reports && uv run pytest -q --junitxml=../reports/worker.xml
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with: { name: reports-worker, path: reports/ }
 
   web:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - id: app
@@ -81,7 +64,7 @@ jobs:
 
   e2e:
     needs: [database, worker, web]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -91,7 +74,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
       - if: steps.app.outputs.ready == 'true'
         uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
-        with: { version: latest }
+        with: { version: 2.120.0 }
       - if: steps.app.outputs.ready == 'true'
         uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       - if: steps.app.outputs.ready == 'true'
@@ -109,7 +92,7 @@ jobs:
   conformance:
     needs: [database, worker, e2e]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0

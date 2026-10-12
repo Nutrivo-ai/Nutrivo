@@ -1,0 +1,34 @@
+name: protocol
+# The required 'protocol' check, apart from ci so that a label (scope-approved, human-approved) or a corrected
+# 'Task:'/'Closes #' line re-runs it without a push. check-pr.py reads the labels and body at run time.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled, ready_for_review]
+  merge_group:
+  push:
+    branches: [main]
+concurrency:
+  group: protocol-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+jobs:
+  protocol:
+    name: protocol
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { fetch-depth: 0 }
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - run: uv run --no-project --with pyyaml python scripts/protocol/validate-plan.py
+      - run: uv run --no-project --with pyyaml python scripts/workflows/render.py --check
+      - if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: cd scripts/protocol && uv run --no-project --with pyyaml python check-pr.py
+      - run: bash scripts/protocol/migration-guard.sh "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}"

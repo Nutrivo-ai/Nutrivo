@@ -1,0 +1,41 @@
+name: infisical
+description: >
+  Loads one Infisical environment into the job's environment, then applies config/secret-aliases.env the way
+  scripts/env/with-aliases.sh does locally, so CI sees the same canonical names. Needs actions/checkout first.
+  Composite actions cannot read the secrets context, so the caller passes the identity in.
+inputs:
+  client-id: { description: "Infisical machine identity client id (secrets.INFISICAL_CLIENT_ID)", required: true }
+  client-secret: { description: "Infisical machine identity client secret (secrets.INFISICAL_CLIENT_SECRET)", required: true }
+  project-id: { description: "Infisical project id (vars.INFISICAL_PROJECT_ID)", required: true }
+  domain:
+    description: "Infisical base URL without /api, e.g. https://eu.infisical.com for the EU region (vars.INFISICAL_DOMAIN)"
+    required: false
+    default: https://app.infisical.com
+  env-slug: { description: "dev | staging | prod", required: true }
+runs:
+  using: composite
+  steps:
+    - uses: Infisical/secrets-action@d2e351f16c6ca20d17c85e6c992e04bdeb64e87d # v1.0.18
+      with:
+        method: universal
+        client-id: ${{ inputs.client-id }}
+        client-secret: ${{ inputs.client-secret }}
+        project-id: ${{ inputs.project-id }}
+        domain: ${{ inputs.domain || 'https://app.infisical.com' }}
+        env-slug: ${{ inputs.env-slug }}
+    - name: Secret aliases (config/secret-aliases.env)
+      shell: bash
+      run: |
+        f="$GITHUB_WORKSPACE/config/secret-aliases.env"
+        [ -f "$f" ] || exit 0
+        while IFS='=' read -r canonical alias; do
+          canonical="${canonical// /}"; alias="${alias// /}"
+          { [ -z "$canonical" ] || [ "${canonical:0:1}" = "#" ] || [ -z "$alias" ]; } && continue
+          if [ -z "${!canonical:-}" ] && [ -n "${!alias:-}" ]; then
+            # Already masked by the Infisical step; masked again line by line in case of a multi-line value.
+            while IFS= read -r line; do if [ -n "$line" ]; then echo "::add-mask::$line"; fi; done <<< "${!alias}"
+            d="ALIAS_$(cat /proc/sys/kernel/random/uuid)"
+            { echo "$canonical<<$d"; printf '%s\n' "${!alias}"; echo "$d"; } >> "$GITHUB_ENV"
+            echo "alias: $canonical from $alias"
+          fi
+        done < "$f"
