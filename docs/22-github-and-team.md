@@ -42,7 +42,8 @@ In Infisical (project id is in `.infisical.json`), create machine identities wit
 In GitHub, repository → Settings:
 - **Secrets and variables → Actions → Repository secrets**: `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET` of
   `github-actions-dev`.
-- **Secrets and variables → Actions → Variables**: `INFISICAL_PROJECT_ID` = the id in `.infisical.json`.
+- **Secrets and variables → Actions → Variables**: `INFISICAL_PROJECT_ID` = the id in `.infisical.json`; and, only
+  if the Infisical project is in Infisical's EU cloud, `INFISICAL_DOMAIN` = `https://eu.infisical.com`.
 - **Environments → New environment** `staging`: Deployment branches and tags → Selected → add branch `main`;
   Environment secrets → the two names, from `github-actions-staging`.
 - **Environments → New environment** `production`: Deployment branches and tags → Selected → branch `main` and tag
@@ -87,7 +88,7 @@ deployments happen only in GitHub Actions (CLAUDE.md non-negotiable 11).
 | Name | Value |
 |---|---|
 | `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET` | the `claude-dev` identity |
-| `INFISICAL_API_URL` | `https://eu.infisical.com/api`, only if the project is in Infisical's EU region |
+| `INFISICAL_DOMAIN` | `https://eu.infisical.com`, only if the project is in Infisical's EU cloud |
 | `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` | optional: a free Docker Hub account's read-only token avoids pull rate limits |
 
 The repository's session start hook (`.claude/hooks/session-start.sh`) then installs Ghostscript, Poppler, the
