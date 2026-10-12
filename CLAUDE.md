@@ -45,7 +45,8 @@ every result. The product is honest by construction: no rule, no verdict.
 - Database first, then worker, then UI. The smallest vertical slice that runs end to end.
 - Write paths copy the pattern in `supabase/migrations/20261008000005_functions.sql`: security definer,
   `set search_path = ''`, permission check first, one transaction, `private.write_audit`, `private.enqueue`.
-- Never edit an applied migration: `supabase migration new <name>`, then `make db-reset gates typegen`.
+- Never edit an applied migration: `supabase migration new <name> < /dev/null` (it hangs on an open stdin), then
+  `make db-reset gates typegen`.
 - Job payloads hold ids only, never secrets or tokens: members can read their own jobs.
 - Screens follow design/ exactly, with tokens from docs/10-design-system.md. If an endpoint cannot return a shape
   a screen assumes (docs/04-contracts.md), stop and say so rather than working around it.

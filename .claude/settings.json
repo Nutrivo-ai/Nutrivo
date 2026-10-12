@@ -2,24 +2,32 @@
   "permissions": {
     "allow": [
       "Bash(make:*)", "Bash(pnpm:*)", "Bash(uv:*)", "Bash(npx playwright:*)",
-      "Bash(scripts/env/run.sh:*)", "Bash(bash scripts/bootstrap/check-tools.sh)", "Bash(bash scripts/bootstrap/github-setup.sh:*)",
+      "Bash(scripts/env/run.sh dev:*)", "Bash(bash scripts/bootstrap/check-tools.sh)", "Bash(bash scripts/bootstrap/github-setup.sh:*)",
       "Bash(supabase start:*)", "Bash(supabase stop:*)", "Bash(supabase status:*)", "Bash(supabase db reset:*)",
       "Bash(supabase test db:*)", "Bash(supabase migration new:*)", "Bash(supabase gen types:*)", "Bash(supabase functions serve:*)",
       "Bash(gh auth status)", "Bash(gh repo list:*)", "Bash(gh repo view:*)", "Bash(gh issue:*)", "Bash(gh pr create:*)",
       "Bash(gh pr view:*)", "Bash(gh pr checks:*)", "Bash(gh pr edit:*)", "Bash(gh pr list:*)", "Bash(gh pr comment:*)",
-      "Bash(gh run:*)", "Bash(gh label:*)", "Bash(gh api:*)",
+      "Bash(gh run:*)", "Bash(gh label:*)", "Bash(gh api user:*)", "Bash(gh api user/orgs:*)",
       "Bash(git status:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git switch:*)", "Bash(git add:*)",
       "Bash(git commit:*)", "Bash(git fetch:*)", "Bash(git pull:*)", "Bash(git push:*)", "Bash(git rebase:*)",
-      "Bash(git mv:*)", "Bash(git init:*)", "Bash(git remote:*)"
+      "Bash(git mv:*)", "Bash(git init:*)", "Bash(git remote:*)", "Bash(git checkout origin/main --:*)"
     ],
     "deny": [
       "Edit(./supabase/tests/gates/**)", "Edit(./worker/tests/gates/**)", "Edit(./fixtures/golden/**)",
       "Edit(./content/accepted/**)", "Edit(./.milestone)", "Edit(./spec/acceptance.yaml)", "Edit(./spec/nfr.yaml)",
       "Read(./.env)", "Read(./.env.*)", "Read(./**/.env)", "Read(./**/.env.*)",
       "Bash(infisical export:*)", "Bash(infisical secrets:*)", "Bash(printenv:*)", "Bash(env)",
+      "Bash(scripts/env/run.sh staging:*)", "Bash(scripts/env/run.sh prod:*)",
+      "Bash(*scripts/env/run.sh staging*)", "Bash(*scripts/env/run.sh prod*)",
       "Bash(supabase link:*)", "Bash(supabase db push:*)", "Bash(supabase functions deploy:*)", "Bash(supabase secrets:*)",
+      "Bash(supabase db reset --linked:*)", "Bash(supabase db reset --db-url:*)", "Bash(supabase test db --linked:*)",
+      "Bash(supabase * --linked*)", "Bash(supabase * --db-url*)",
+      "Bash(gh api -X:*)", "Bash(gh api --method:*)", "Bash(gh api *-X*)", "Bash(gh api *--method*)",
       "Bash(npx vercel:*)", "Bash(vercel:*)", "Bash(gh pr merge:*)", "Bash(gh pr review:*)", "Bash(gh repo delete:*)",
-      "Bash(gh secret list:*)", "Bash(git push --force:*)", "Bash(git push -f:*)", "Bash(git reset --hard:*)"
+      "Bash(gh secret list:*)", "Bash(git push --force:*)", "Bash(git push -f:*)", "Bash(git reset --hard:*)",
+      "Bash(git push *--force*)", "Bash(*printenv*)",
+      "Bash(gh pr edit *human-approved*)", "Bash(gh pr edit *scope-approved*)",
+      "Bash(gh issue edit *human-approved*)", "Bash(gh issue edit *scope-approved*)"
     ]
   },
   "hooks": {
