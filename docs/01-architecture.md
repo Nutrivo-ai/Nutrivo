@@ -44,4 +44,5 @@
 
 ## Environments
 Local (`supabase start`, worker and web on the laptop) → staging (Supabase staging, Render staging, Vercel preview;
-deploys on merge) → production (tag plus manual approval). Claude Code only ever touches local.
+deploys on merge once `STAGING_DEPLOY_ENABLED` is true, from T-010) → production (a `v*` tag created by the owner,
+once `PRODUCTION_DEPLOY_ENABLED` is true: docs/22 §4). Claude Code only ever touches local.

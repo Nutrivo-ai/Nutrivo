@@ -62,12 +62,16 @@ design/ Claude Design files (read-only reference) · content/ sources, candidate
 fixtures/ synthetic and golden labels · worker/prompts/ versioned prompts
 
 ## Autonomous protocol (docs/15-build-protocol.md)
-- Work only on a claimed task (`make next LANE=<lane>`), on its branch `t/T-123-name`, within its lanes. The task's
+- Work only on a claimed task, one per session, within its lanes. Claim with `make next LANE=<lane>` (REST) or by
+  assigning its issue with the GitHub tools. On the web `gh issue` and `gh pr` are refused, and instead of
+  `make autopilot` (laptop only) a founder labels a ready issue `autopilot`. Branch: the session's own `claude/...`
+  on the web, `t/T-123-name` on a laptop. The PR body names the task: `Task: T-123` and `Closes #N`. The task's
   issue lists its acceptance IDs; each gets a test with the ID in its title. `make verify-task T=<id>` before the PR.
 - The target is fixed in spec/, docs/workflows/ and docs/02-decisions.md. If something is not written down, ask on the
   issue (label `needs-human`) instead of deciding. Never edit spec/, plan/ or protected files.
-- Secrets: run anything that needs them through `scripts/env/run.sh <dev|staging|prod> -- <command>`. Never print,
-  echo, log or commit a secret, never write .env files, never run `infisical export`, `infisical secrets` or `printenv`.
+- Secrets: a session holds only the dev identity. Use `make env-check` and `make doctor` (ENV=dev), or run anything
+  else that needs them through `scripts/env/run.sh dev -- <command>`; staging and prod run only in GitHub Actions.
+  Never print, echo, log or commit a secret, never write .env files, never run `infisical export`, `infisical secrets` or `printenv`.
 - Observability is part of done (docs/17): Sentry on every new code path (errors, transactions, cron check-ins for
   scheduled work), Langfuse on every model call through `nutrivo_worker.models`, request_id carried end to end.
 - Reliability is part of done (docs/18): idempotent handlers, bounded retries, visible terminal states, expand/contract

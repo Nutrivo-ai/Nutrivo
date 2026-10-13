@@ -36,7 +36,7 @@ Create everything under Sunny Ventures AB. Store every key in Infisical, never i
 
 | # | Service | Create | Settings that matter |
 |---|---|---|---|
-| 1 | GitHub | Organisation `nutrivo`, private repository `nutrivo` | Protect `main`: pull request required, CI must pass, one approval. Environments `staging` and `production` (production needs approval). |
+| 1 | GitHub | Private repository `ar835/Nutrivo` on ar835's personal account, with GitHub Pro | Everything in docs/22-github-and-team.md: `main` takes only pull requests with green CI and one founder approval; environments `staging` and `production`; production deploys only from a `v*` tag the owner creates. |
 | 2 | Supabase | Organisation; projects `nutrivo-staging` and `nutrivo-prod` | Region **Central EU (Frankfurt)**. Prod on Pro. API → Exposed schemas: add `app` and `ref`. Auth → email confirmations on, MFA (TOTP) on. Integrations → Queues on. Database → Extensions → pg_cron on. Save the project refs, keys and database passwords in Infisical. |
 | 3 | AWS | Account; region eu-central-1 | Bedrock → request access to the Anthropic Claude models. SES → verify `mail.nutrivo.ai` and request production access. IAM user `nutrivo-worker` limited to Bedrock invoke and SES send. |
 | 4 | Stripe | Account for Sunny Ventures AB (VAT SE559429715101) | Stay in test mode. Turn on Stripe Tax with your Swedish registration, and the customer portal. Do not create products by hand: milestone 7 does it from code. |
@@ -61,12 +61,12 @@ curl -fsSL https://claude.ai/install.sh | bash  # Claude Code, native installer
 Check: `node -v` is 22 or newer (Claude Code and supabase-js need it), `supabase --version`, `uv --version`,
 `docker info` and `claude --version` all answer. On Windows, do all of this inside WSL 2.
 
-## Step 3 · Create the repository (30 minutes)
+## Step 3 · The repository (30 minutes)
+
+`ar835/Nutrivo` already exists and holds the hand-off. On a laptop:
 
 ```bash
-unzip nutrivo-handoff.zip && cd nutrivo
-git init -b main && git add -A && git commit -m "Hand-off baseline, 8 Oct 2026"
-gh repo create nutrivo/nutrivo --private --source . --push
+gh repo clone ar835/Nutrivo && cd Nutrivo
 ```
 
 Copy the design set: download the Google Drive design folder and unzip it into `design/`, keeping its whole
@@ -142,11 +142,13 @@ ruleset. Hire a content owner when revenue allows; the design files rank this hi
 
 ## Step 7 · Staging and production
 
-- **Staging.** Every merge to `main` runs CI, applies migrations to `nutrivo-staging` (`supabase db push` from
-  GitHub Actions), deploys Edge Functions, redeploys the Render worker and the Vercel preview.
-- **Production.** Tag `vX.Y.Z`. The same pipeline runs against `nutrivo-prod` after manual approval in the
-  `production` environment. Turn on point-in-time recovery before the first customer uploads anything, and do one
-  restore drill.
+- **Staging.** Once `STAGING_DEPLOY_ENABLED` is true (T-010, docs/22 §4), every merge to `main` applies migrations to
+  `nutrivo-staging` (`supabase db push` from GitHub Actions), deploys Edge Functions, redeploys the Render worker and
+  the Vercel preview.
+- **Production.** The owner creates a `vX.Y.Z` tag on a commit already on `main`; only the owner can. Once
+  `PRODUCTION_DEPLOY_ENABLED` is true (T-1101, docs/22 §4), the same pipeline runs against `nutrivo-prod`. There is no
+  second approval in GitHub: the tag is the approval. Turn on point-in-time recovery before the first customer uploads
+  anything, and do one restore drill.
 
 ## Step 8 · Before the first pilot
 

@@ -18,7 +18,7 @@ fails when a baseline ID regresses (`spec/conformance-baseline.json`).
 |---|---|---|---|
 | Before Claude Code finishes | `make verify-fast` (Stop hook) | Laptop | Finishing the session |
 | Every PR and merge-queue entry | Protocol, secrets scan, lint, types, unit, pgTAP gates and app tests, contract tests, full-stack Playwright (local Supabase, worker, web, Mailpit, recorded model responses), visual comparison with the design, axe accessibility, conformance ratchet | GitHub Actions | The merge |
-| Every merge to main | Deploy to staging; `@smoke` suite; Sentry and Langfuse round-trip; doctor; rollback on failure | Staging | Later deploys until fixed |
+| Every merge to main (once `STAGING_DEPLOY_ENABLED` is set, T-010) | Deploy to staging; `@smoke` suite; Sentry and Langfuse round-trip; doctor; rollback on failure | Staging | Later deploys until fixed |
 | Nightly | The full acceptance suite against staging with real models and real email; golden labels; claims evaluations; extraction benchmark; performance budgets; schema-drift diff; doctor for every environment; dependency audit | Staging | Opens issues |
 | Release (tag) | Approval; production deploy; production smoke on the synthetic workspace; rollback on failure | Production | The release |
 | Every 15 minutes after launch | Synthetic smoke with a Sentry cron check-in | Production | Alerts |

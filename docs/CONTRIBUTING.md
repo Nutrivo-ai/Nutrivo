@@ -7,16 +7,22 @@ docs/15-build-protocol.md. This page is the short version, plus how the two of y
 ## The loop
 1. **Pick a task.** Every task in `plan/tasks.yaml` is an issue labelled `task`. `status:ready` means every dependency
    is closed; the `tracker` workflow recomputes it whenever a task issue closes. Claim one by assigning yourself, or
-   let Claude Code do it: `make next LANE=<db|worker|web|infra|content|any>`. The assignment is the lock, so two people
-   never take the same task. Issues labelled `gate:human` wait for a founder (START-HERE.md lists the gates).
-2. **Branch** `t/T-123-short-name` from the latest `main`.
+   let Claude Code do it: `make next LANE=<db|worker|web|infra|content|any>` (it uses the REST API, so it works on
+   the web too), or Claude assigns the issue with its GitHub tools. The assignment is the lock, so two people never
+   take the same task: `make next` skips a task that is assigned, labelled `autopilot` or named by an open pull
+   request. Issues labelled `gate:human` wait for a founder (START-HERE.md lists the gates).
+2. **Branch.** In Claude Code on the web the session works on its own `claude/...` branch: one task per session, and
+   `make next` does not switch branches there. On a laptop `make next` starts `t/T-123-short-name` from the latest
+   `main`.
 3. **Plan on the issue** before editing: files, migrations, tests by acceptance ID, risks.
 4. **Build inside the task's lanes** (`plan/tasks.yaml` → `lanes`). Every acceptance ID of the task's workflows gets
    a test with the ID in its title, for example `[D04.must.1]`.
 5. **Verify**: `make verify-task T=T-123`.
-6. **Open the pull request** with the template filled in: `Task: T-123` and `Closes #<issue>`. Two other forms pass
-   the protocol check: `Incident: #N` with `Closes #N` for a fix to an issue labelled `incident` or `nightly`, and
-   `Task: none` for a founder's change to the target itself (spec, plan, decisions), which needs `human-approved`.
+6. **Open the pull request** with the template filled in: `Task: T-123` and `Closes #<issue>`. These two lines, not
+   the branch name, tell the protocol check which task it is, and the pull request must close exactly its own open
+   task issue. Two other forms pass the protocol check:
+   `Incident: #N` with `Closes #N` for a fix to an issue labelled `incident` or `nightly`, and `Task: none` for a
+   founder's change to the target itself (spec, plan, decisions), which needs `human-approved`.
    Dependabot pull requests need neither, as long as they only touch dependency files.
 7. **CI** must be green: `protocol`, `secrets-scan`, `database`, `worker`, `web`, `e2e`, `conformance`. Claude
    reviews against the spec automatically.
@@ -30,22 +36,33 @@ The session start hook provisions the tools and the local Supabase stack, and re
 example:
 
 - "Claim the next ready task in the web lane and implement it following CLAUDE.md and docs/15."
-- "Continue T-104 on its branch; CI failed on the protocol check."
+- In the session that opened the pull request: "CI failed on the protocol check; fix it."
 - "Review pull request #42 against its workflow specs." (Claude comments; a founder approves.)
 
-Claude Code pushes task branches and opens pull requests. It never merges, approves, deploys, or edits the oracle
-files (CLAUDE.md non-negotiables 11 and 12). Start a new session per task so the context stays focused.
+Claude Code pushes its session's branch and opens pull requests. It never merges, approves, deploys, or edits the
+oracle files (CLAUDE.md non-negotiables 11 and 12). Start a new session per task: the session's branch is the task's
+branch, and the context stays focused.
+
+On the web, `gh issue` and `gh pr` are refused (the GitHub proxy blocks GraphQL), so Claude reads, assigns, comments
+on and closes issues with its GitHub tools; `make next` and `make status` use the REST API and work. `make autopilot`
+(scripts/autopilot/loop.sh) and `make issues-sync` are for a laptop. On the web, run the `tracker` workflow (Actions →
+tracker → Run workflow) instead of `make issues-sync`, and to let a ready task run on its own, label its issue
+`autopilot`: the GitHub autopilot takes it (from T-009/T-010).
 
 ## Splitting the work between two founders
 - **Lanes keep you apart.** Take tasks in different lanes (`db`, `worker`, `web`, `infra`, `content`) at the same
-  time. Only one migration pull request is open at a time: `make next` skips db tasks while one is open.
+  time. Only one db task is in flight at a time: `make next` skips db tasks while another is claimed or has an open
+  pull request. If you claim a db task by hand, first check that no other `lane:db` task is assigned.
+- **The conformance baseline is a plain list.** When two task pull requests both add IDs to
+  `spec/conformance-baseline.json`, the second one conflicts: keep both sides' IDs in one sorted list.
 - **Each pull request is reviewed by the other founder.** If you pushed last, you cannot approve it.
 - **Decisions are written down.** If something is not in spec/, docs/workflows/ or docs/02-decisions.md, ask on the
   issue with the `needs-human` label instead of deciding in a chat. A change to the target is its own pull request.
 
 ## Labels you will add yourselves
 The two approval labels count only when a founder (a code owner on `main`, or the repository's admin) adds them by
-hand; the protocol check ignores them when a bot, an app or anyone else does.
+hand; the protocol check ignores them when a bot, an app or anyone else does. The `tracker` workflow creates all of
+these once the set-up pull request is merged; before that, create the two approval labels by hand (docs/22 §1).
 
 | Label | Means |
 |---|---|

@@ -213,9 +213,10 @@ obligations, and withheld items with their gaps; cached by inputs_hash. Promote 
 Milestone 11. Prepare for paying pilots: run the rls-reviewer over every migration and fix findings; Supabase
 security advisors clean; rate limits on RPCs and Edge Functions; dependency audit; Sentry alerts and an uptime
 monitor on 'verify'; an accessibility pass to WCAG 2.2 AA (keyboard order, focus, how the four states read to a
-screen reader); a load test on a 300-recipe workspace; the production deploy pipeline (tag plus manual approval,
-migrations through GitHub Actions); point-in-time recovery and a restore drill; legal pages from design/ with
-counsel's edits; a pilot onboarding runbook in docs/pilot-runbook.md.
+screen reader); a load test on a 300-recipe workspace; the production deploy pipeline (a v* tag created by the
+owner, once PRODUCTION_DEPLOY_ENABLED is true (docs/22 §4); migrations through GitHub Actions); point-in-time
+recovery and a restore drill; legal pages from design/ with counsel's edits; a pilot onboarding runbook in
+docs/pilot-runbook.md.
 ```
 **Done when** SETUP.md Step 8 is fully ticked.
 
