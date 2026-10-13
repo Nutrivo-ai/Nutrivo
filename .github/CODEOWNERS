@@ -1,14 +1,14 @@
-# Founders approve every merge (gate G5). Add the second founder's GitHub username to every line once they are a
-# collaborator with write access (docs/22 §1): any one listed owner's approval satisfies code-owner review.
-*                         @ar835
-/spec/                    @ar835
-/plan/                    @ar835
-/supabase/migrations/     @ar835
-/supabase/tests/gates/    @ar835
-/worker/tests/gates/      @ar835
-/fixtures/golden/         @ar835
-/content/                 @ar835
-/.github/                 @ar835
-/CLAUDE.md                @ar835
-/.claude/                 @ar835
-/docs/02-decisions.md     @ar835
+# Founders approve every merge (gate G5). Both founders are collaborators with write access (docs/22 §1): any one
+# listed owner's approval satisfies code-owner review.
+*                         @ar835 @abnutrivo
+/spec/                    @ar835 @abnutrivo
+/plan/                    @ar835 @abnutrivo
+/supabase/migrations/     @ar835 @abnutrivo
+/supabase/tests/gates/    @ar835 @abnutrivo
+/worker/tests/gates/      @ar835 @abnutrivo
+/fixtures/golden/         @ar835 @abnutrivo
+/content/                 @ar835 @abnutrivo
+/.github/                 @ar835 @abnutrivo
+/CLAUDE.md                @ar835 @abnutrivo
+/.claude/                 @ar835 @abnutrivo
+/docs/02-decisions.md     @ar835 @abnutrivo
