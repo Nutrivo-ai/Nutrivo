@@ -1,7 +1,8 @@
 """Map test results (JUnit XML, TAP) to acceptance IDs; write CONFORMANCE.md; enforce the ratchet.
   --enforce          fail when an ID in spec/conformance-baseline.json does not pass now
+  --baseline-ref R   the baseline as committed on R counts too (CI: the PR's base), so a PR cannot shrink it
   --update-baseline  add every passing ID to the baseline (the baseline never shrinks)"""
-import argparse, glob, json, re, sys, xml.etree.ElementTree as ET
+import argparse, glob, json, re, subprocess, sys, xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
 import yaml
@@ -12,6 +13,7 @@ from lib import ID_RE, normalise_id  # the same ID pattern as make verify-task
 ap = argparse.ArgumentParser()
 ap.add_argument("--results", nargs="*", default=["reports/**/*.xml", "reports/**/*.tap"])
 ap.add_argument("--enforce", action="store_true")
+ap.add_argument("--baseline-ref")
 ap.add_argument("--update-baseline", action="store_true")
 ap.add_argument("--summary")
 ap.add_argument("--out", default=str(ROOT / "CONFORMANCE.md"))
@@ -42,7 +44,16 @@ status = {i: ("pass" if outcome.get(i) == {"pass"} else "fail" if "fail" in outc
 passing = sorted(i for i, s in status.items() if s == "pass")
 baseline_path = ROOT / "spec/conformance-baseline.json"
 baseline = set(json.loads(baseline_path.read_text())) if baseline_path.exists() else set()
-regressions = sorted(i for i in baseline if status.get(i) != "pass")
+if a.baseline_ref:
+    git = ["git", "-C", str(ROOT)]
+    if subprocess.run([*git, "cat-file", "-e", f"{a.baseline_ref}^{{commit}}"], capture_output=True).returncode:
+        sys.exit(f"--baseline-ref {a.baseline_ref} is not a commit here (actions/checkout needs fetch-depth: 0)")
+    committed = subprocess.run([*git, "show", f"{a.baseline_ref}:spec/conformance-baseline.json"], capture_output=True,
+                               text=True)  # no baseline on that commit: []
+    baseline |= set(json.loads(committed.stdout)) if committed.returncode == 0 else set()
+# Only IDs the spec still requires: one a founder removed from spec/acceptance.yaml (protected) stays in the base's
+# baseline, and no later PR could pass.
+regressions = sorted(i for i in baseline if i in required and status[i] != "pass")
 
 by_ms = defaultdict(lambda: [0, 0])
 for i, (wf, s) in required.items():

@@ -1,13 +1,17 @@
 """Create or update one GitHub issue per task, with lanes, dependencies, acceptance IDs and ready/blocked status.
 Idempotent: an existing issue is edited only where its body, status label or milestone differs from the plan, so the
-tracker workflow can run it on every task issue that closes or reopens. Exits non-zero if any create or edit fails."""
+tracker workflow can run it on every task issue that closes or reopens. Exits non-zero if any create or edit fails.
+gh issue is GraphQL, so this runs on a laptop or in Actions; from Claude Code on the web, run the tracker workflow."""
 import subprocess, sys
-from lib import ROOT, acceptance, acceptance_ids, gh_json, plan
+from lib import ROOT, acceptance, acceptance_ids, gh_failure, gh_json, plan
 
 p, acc = plan(), acceptance()
-existing = {i["title"].split(":")[0].strip(): i for i in gh_json(
-    "issue", "list", "--label", "task", "--state", "all", "--limit", "500",
-    "--json", "number,title,state,labels,body,milestone")}
+try:
+    existing = {i["title"].split(":")[0].strip(): i for i in gh_json(
+        "issue", "list", "--label", "task", "--state", "all", "--limit", "500",
+        "--json", "number,title,state,labels,body,milestone")}
+except subprocess.CalledProcessError as e:
+    sys.exit(gh_failure(e))
 failed = []
 
 

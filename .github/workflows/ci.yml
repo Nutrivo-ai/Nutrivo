@@ -95,7 +95,11 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { fetch-depth: 0 }   # the base commit, whose baseline the ratchet is held to
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with: { pattern: reports-*, path: reports, merge-multiple: true }
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
-      - run: uv run --no-project --with pyyaml python scripts/conformance/report.py --results 'reports/**/*.xml' 'reports/**/*.tap' --enforce --summary "$GITHUB_STEP_SUMMARY"
+      # A PR or merge group is held to the base's baseline as well as its own, so it cannot shrink it. On main, none.
+      - env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+        run: uv run --no-project --with pyyaml python scripts/conformance/report.py --results 'reports/**/*.xml' 'reports/**/*.tap' --enforce --summary "$GITHUB_STEP_SUMMARY" ${BASE_SHA:+--baseline-ref "$BASE_SHA"}

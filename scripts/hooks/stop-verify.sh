@@ -6,9 +6,12 @@ cd "$(git rev-parse --show-toplevel 2>/dev/null || pwd)" || exit 1
 
 # Everything this branch changed since it left origin/main, plus uncommitted and untracked work. Never a local main:
 # task branches start from origin/main and local main is often missing (cloud sessions, CI) or stale (laptops).
+# --no-renames: a moved file also shows its old path. -z: no path is quoted (git quotes non-ASCII, '"', '\' and control
+# characters, even with core.quotePath off), so each starts as it does on disk, to match below.
 base=$(git merge-base HEAD origin/main 2>/dev/null || git merge-base HEAD main 2>/dev/null || true)
-changed=$( { git diff --name-only HEAD 2>/dev/null; git ls-files --others --exclude-standard 2>/dev/null
-             [ -z "$base" ] || git diff --name-only "$base" HEAD 2>/dev/null; } | sort -u )
+g() { git "$@" 2>/dev/null; }
+changed=$( { g diff -z --no-renames --name-only HEAD; g ls-files -z --others --exclude-standard
+             [ -z "$base" ] || g diff -z --no-renames --name-only "$base" HEAD; } | tr '\0' '\n' | sort -u )
 [ -z "$changed" ] && exit 0
 
 # The oracle (CLAUDE.md non-negotiable 12): never changed in a Claude session.
@@ -28,6 +31,9 @@ if echo "$changed" | grep -Eq "$protected"; then
   echo "If no person asked for this, restore them (git checkout origin/main -- <path>)." >&2
 fi
 
+# In GitHub Actions only the jobs that start the local stack (autopilot build, claude-fix) set NUTRIVO_STOP_VERIFY=1;
+# claude-review and @claude replies have none, so there the checks above are all that runs.
+if [ "${GITHUB_ACTIONS:-}" = true ] && [ "${NUTRIVO_STOP_VERIFY:-}" != 1 ]; then exit 0; fi
 if ! out=$(make verify-fast 2>&1); then
   echo "make verify-fast failed. Fix the failures before finishing (never by editing tests you do not own):" >&2
   echo "$out" | tail -n 60 >&2
