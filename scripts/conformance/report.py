@@ -1,16 +1,19 @@
 """Map test results (JUnit XML, TAP) to acceptance IDs; write CONFORMANCE.md; enforce the ratchet.
   --enforce          fail when an ID in spec/conformance-baseline.json does not pass now
+  --baseline-ref R   the baseline as committed on R counts too (CI: the PR's base), so a PR cannot shrink it
   --update-baseline  add every passing ID to the baseline (the baseline never shrinks)"""
-import argparse, glob, json, re, sys, xml.etree.ElementTree as ET
+import argparse, glob, json, re, subprocess, sys, xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
-ID_RE = re.compile(r"\b([A-P]\d{2})[._](main|must[._]\d+|fail[._]\d+)\b")
+sys.path.insert(0, str(ROOT / "scripts/protocol"))
+from lib import ID_RE, normalise_id  # the same ID pattern as make verify-task
 ap = argparse.ArgumentParser()
 ap.add_argument("--results", nargs="*", default=["reports/**/*.xml", "reports/**/*.tap"])
 ap.add_argument("--enforce", action="store_true")
+ap.add_argument("--baseline-ref")
 ap.add_argument("--update-baseline", action="store_true")
 ap.add_argument("--summary")
 ap.add_argument("--out", default=str(ROOT / "CONFORMANCE.md"))
@@ -21,7 +24,7 @@ outcome = defaultdict(set)  # id -> {"pass", "fail"}
 
 def record(text, ok):
     for m in ID_RE.finditer(text):
-        outcome[f"{m.group(1)}.{m.group(2).replace('_', '.')}"].add("pass" if ok else "fail")
+        outcome[normalise_id(m)].add("pass" if ok else "fail")
 
 
 for pattern in a.results:
@@ -41,7 +44,16 @@ status = {i: ("pass" if outcome.get(i) == {"pass"} else "fail" if "fail" in outc
 passing = sorted(i for i, s in status.items() if s == "pass")
 baseline_path = ROOT / "spec/conformance-baseline.json"
 baseline = set(json.loads(baseline_path.read_text())) if baseline_path.exists() else set()
-regressions = sorted(i for i in baseline if status.get(i) != "pass")
+if a.baseline_ref:
+    git = ["git", "-C", str(ROOT)]
+    if subprocess.run([*git, "cat-file", "-e", f"{a.baseline_ref}^{{commit}}"], capture_output=True).returncode:
+        sys.exit(f"--baseline-ref {a.baseline_ref} is not a commit here (actions/checkout needs fetch-depth: 0)")
+    committed = subprocess.run([*git, "show", f"{a.baseline_ref}:spec/conformance-baseline.json"], capture_output=True,
+                               text=True)  # no baseline on that commit: []
+    baseline |= set(json.loads(committed.stdout)) if committed.returncode == 0 else set()
+# Only IDs the spec still requires: one a founder removed from spec/acceptance.yaml (protected) stays in the base's
+# baseline, and no later PR could pass.
+regressions = sorted(i for i in baseline if i in required and status[i] != "pass")
 
 by_ms = defaultdict(lambda: [0, 0])
 for i, (wf, s) in required.items():
@@ -64,8 +76,11 @@ Path(a.out).write_text(report)
 if a.summary:
     Path(a.summary).open("a").write(report)
 if a.update_baseline:
-    if regressions:
-        sys.exit("refusing to update the baseline while regressions exist")
+    # A local run (make verify-task) may lack a suite such as e2e: only an ID that ran and failed blocks the update;
+    # an ID with no result at all is still a regression for --enforce in CI.
+    failing = [i for i in regressions if status.get(i) == "fail"]
+    if failing:
+        sys.exit("refusing to update the baseline while baseline IDs fail: " + ", ".join(failing))
     baseline_path.write_text(json.dumps(sorted(baseline | set(passing)), indent=0) + "\n")
 print(f"conformance: {len(passing)}/{total} passing, {len(regressions)} regressions")
 sys.exit(1 if (a.enforce and regressions) else 0)

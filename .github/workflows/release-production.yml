@@ -7,24 +7,33 @@ permissions: { contents: read, issues: write }
 
 jobs:
   release:
-    environment: production          # required reviewers: gate G7
-    runs-on: ubuntu-latest
+    # Gate G7. Only repository admins (the founders) can create v* tags (.github/rulesets/release-tags.json), and the
+    # job stays off until a founder sets PRODUCTION_DEPLOY_ENABLED=true in T-1101. Required reviewers on the
+    # environment would need GitHub Enterprise for a private repository.
+    if: vars.PRODUCTION_DEPLOY_ENABLED == 'true'
+    environment: production
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: Infisical/secrets-action@v1          # pin to a commit SHA in T-004
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { fetch-depth: 0 }
+      # The environment admits any v* tag: deploy only a commit that is already on main, so reviewed and merged.
+      - name: Tag is on main
+        id: on-main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "::error::$GITHUB_REF_NAME ($GITHUB_SHA) is not on main"; exit 1; }
+      - uses: ./.github/actions/infisical
         with:
-          method: universal
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
           env-slug: prod
-      - uses: supabase/setup-cli@v1
-        with: { version: latest }
-      - uses: astral-sh/setup-uv@v6
-      - uses: pnpm/action-setup@v4
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+        with: { version: 2.120.0 }
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with: { version: 10 }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: 22 }
       - run: supabase link --project-ref "$SUPABASE_PROJECT_REF" -p "$SUPABASE_DB_PASSWORD" && supabase db push -p "$SUPABASE_DB_PASSWORD"
       - run: if [ -d supabase/functions ]; then supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"; fi
@@ -33,10 +42,11 @@ jobs:
       - name: Production smoke on the synthetic workspace
         run: make smoke ENV=prod
       - run: uv run --no-project --with boto3 python scripts/doctor/doctor.py --env prod
+      # A refused tag deployed nothing: nothing to roll back or report.
       - name: Roll back
-        if: failure()
+        if: failure() && steps.on-main.outcome == 'success'
         run: bash scripts/deploy/rollback.sh prod
       - name: Incident issue
-        if: failure()
+        if: failure() && steps.on-main.outcome == 'success'
         env: { GH_TOKEN: "${{ github.token }}" }
         run: gh issue create --title "Production release ${GITHUB_REF_NAME} rolled back" --label incident,needs-human --body "Run ${{ github.run_id }}. The previous release is live again."

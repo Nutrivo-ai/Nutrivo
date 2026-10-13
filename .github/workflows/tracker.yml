@@ -1,0 +1,29 @@
+name: tracker
+# Keeps the GitHub issues in step with plan/tasks.yaml (BOOTSTRAP step 8, task T-005): labels, milestones, one issue
+# per task, and ready/blocked recomputed whenever a task issue closes or reopens, so dependants become ready
+# (docs/15 step 11). Uses only GITHUB_TOKEN, so it needs no secrets and nobody has to run `make issues-sync`.
+on:
+  push:
+    branches: [main]
+    paths: ["plan/tasks.yaml", "spec/acceptance.yaml", "scripts/protocol/**", ".github/workflows/tracker.yml"]
+  issues:
+    types: [closed, reopened]
+  workflow_dispatch:
+permissions: { contents: read, issues: write }
+
+jobs:
+  sync:
+    if: github.event_name != 'issues' || contains(github.event.issue.labels.*.name, 'task')
+    # On the job, not the workflow: a run skipped for a non-task issue never joins the group, so it cannot cancel a
+    # pending sync. One sync at a time; a newer pending one replaces an older, and each syncs every task.
+    concurrency: { group: tracker, cancel-in-progress: false }
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - run: bash scripts/protocol/tracker-setup.sh "$GH_REPO"
+      - run: cd scripts/protocol && uv run --no-project --with pyyaml python sync-issues.py

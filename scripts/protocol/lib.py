@@ -1,11 +1,14 @@
 """Shared helpers for the build protocol scripts. Run them with: uv run --no-project --with pyyaml python <script>."""
-import json, re, subprocess
+import json, os, re, subprocess
 from fnmatch import fnmatch
+from functools import cache
 from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
-ID_RE = re.compile(r"\b([A-P]\d{2})[._](main|must[._]\d+|fail[._]\d+)\b")
+# An acceptance ID in a test title: [A01.main], 'ok 3 - [A01.must.1]', or pytest's test_D04_must_1_x (docs/19).
+# Not \b: '_' is a word character, so \b never matches inside test_A01_main.
+ID_RE = re.compile(r"(?<![A-Za-z0-9])([A-P]\d{2})[._](main|must[._]\d+|fail[._]\d+)(?![A-Za-z0-9])")
 
 
 def load(rel):
@@ -52,6 +55,27 @@ def sh(*cmd, check=True):
 
 def gh_json(*args):
     return json.loads(sh("gh", *args) or "null")
+
+
+@cache
+def repo():
+    """owner/name: GH_REPO, else the origin remote (https, ssh or a cloud session's git proxy URL all end in it)."""
+    src = os.environ.get("GH_REPO") or sh("git", "remote", "get-url", "origin").strip()
+    return "/".join(re.sub(r"\.git$", "", src.rstrip("/")).replace(":", "/").split("/")[-2:])
+
+
+def api(path, *args):
+    """Repository-scoped REST: gh api repos/{owner}/{name}/<path>. The GitHub proxy of Claude Code on the web serves
+    only these; it refuses GraphQL (gh issue, gh pr) and paths outside the repository (gh api user)."""
+    return gh_json("api", f"repos/{repo()}/{path}", *args)
+
+
+def gh_failure(e):
+    """A failed gh or git call as a message for sys.exit, with gh's own words instead of a traceback."""
+    why = (e.stderr or "").strip() or f"exit {e.returncode}"
+    if tuple(e.cmd[:2]) in (("gh", "issue"), ("gh", "pr")) and re.search(r"403|graphql", why, re.I):
+        why += "\n(gh issue and gh pr use GraphQL, which Claude Code on the web refuses: run it on a laptop or in Actions)"
+    return f"{' '.join(e.cmd[:3])} failed: {why}"
 
 
 def ms_rank(p, ms):

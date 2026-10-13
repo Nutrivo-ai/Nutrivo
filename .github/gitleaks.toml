@@ -1,0 +1,8 @@
+# gitleaks configuration for the secrets-scan CI job: the default rules plus one narrow allowlist.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Rule keys in regulatory content (key: EU.767.NET_QUANTITY) are identifiers, not secrets"
+regexTarget = "match"
+regexes = ['''key:\s*[A-Z]{2}\.[0-9A-Z-]+\.[A-Z0-9_.]+''']

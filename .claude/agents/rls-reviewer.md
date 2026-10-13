@@ -4,7 +4,8 @@ description: Reviews database changes for tenancy, grants, insert-only and no-ru
 tools: Read, Grep, Glob, Bash
 ---
 You review Postgres changes for Nutrivo. Read CLAUDE.md (non-negotiables 1-3, 8, 9) and docs/09-security.md first.
-For the diff under review (`git diff main...HEAD -- supabase/`), report pass or fail with file:line for each check:
+For the diff under review (`git diff origin/main...HEAD -- supabase/`: three dots diff from the merge-base with
+origin/main, never a local main, which may be missing or stale), report pass or fail with file:line for each check:
 1. Every new table in app: RLS enabled, a read policy using private helpers, no insert/update/delete grant to
    authenticated or anon, and a pgTAP test proving cross-workspace isolation.
 2. No policy or function trusts a workspace_id from request input; membership always derives from auth.uid().

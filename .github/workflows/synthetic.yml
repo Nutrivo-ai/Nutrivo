@@ -6,19 +6,21 @@ permissions: { contents: read }
 jobs:
   smoke-prod:
     if: vars.SYNTHETIC_ENABLED == 'true'      # switched on in T-1102
-    runs-on: ubuntu-latest
+    environment: production                    # the prod Infisical identity is an environment secret
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: Infisical/secrets-action@v1          # pin to a commit SHA in T-004
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: ./.github/actions/infisical
         with:
-          method: universal
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
           env-slug: prod
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with: { version: 10 }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: 22 }
-      - run: npx --yes @sentry/cli monitors run synthetic-smoke-prod -- make smoke ENV=prod
+      # An exact version: this runs beside every prod secret. The check-in authenticates with the web project's DSN.
+      - run: SENTRY_DSN="$SENTRY_DSN_WEB" npx --yes @sentry/cli@3.8.0 monitors run --environment prod synthetic-smoke-prod -- make smoke ENV=prod

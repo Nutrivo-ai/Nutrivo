@@ -36,12 +36,12 @@ Create everything under Sunny Ventures AB. Store every key in Infisical, never i
 
 | # | Service | Create | Settings that matter |
 |---|---|---|---|
-| 1 | GitHub | Organisation `nutrivo`, private repository `nutrivo` | Protect `main`: pull request required, CI must pass, one approval. Environments `staging` and `production` (production needs approval). |
+| 1 | GitHub | Private repository `ar835/Nutrivo` on ar835's personal account, with GitHub Pro | Everything in docs/22-github-and-team.md: `main` takes only pull requests with green CI and one founder approval; environments `staging` and `production`; production deploys only from a `v*` tag the owner creates. |
 | 2 | Supabase | Organisation; projects `nutrivo-staging` and `nutrivo-prod` | Region **Central EU (Frankfurt)**. Prod on Pro. API → Exposed schemas: add `app` and `ref`. Auth → email confirmations on, MFA (TOTP) on. Integrations → Queues on. Database → Extensions → pg_cron on. Save the project refs, keys and database passwords in Infisical. |
 | 3 | AWS | Account; region eu-central-1 | Bedrock → request access to the Anthropic Claude models. SES → verify `mail.nutrivo.ai` and request production access. IAM user `nutrivo-worker` limited to Bedrock invoke and SES send. |
 | 4 | Stripe | Account for Sunny Ventures AB (VAT SE559429715101) | Stay in test mode. Turn on Stripe Tax with your Swedish registration, and the customer portal. Do not create products by hand: milestone 7 does it from code. |
 | 5 | Vercel | Team on Pro (Hobby is for non-commercial use) | Link the repository after milestone 0; root `apps/web`; function region Frankfurt. |
-| 6 | Render | Workspace | The background worker is created in milestone 3, region Frankfurt. |
+| 6 | Render | Workspace | The background worker is created in milestone 0 (T-010, the staging pipeline), region Frankfurt. |
 | 7 | Sentry, PostHog, Langfuse | One project each | Choose the EU data region in each (Langfuse EU is cloud.langfuse.com). |
 | 8 | Infisical | Project `nutrivo`, environments dev / staging / prod | Connect to Vercel, Render and GitHub Actions later. `config/env.example` lists every variable. |
 | 9 | DNS | `app.nutrivo.ai` → Vercel; `mail.nutrivo.ai` → SES | Add SPF, DKIM and DMARC for mail. |
@@ -61,16 +61,17 @@ curl -fsSL https://claude.ai/install.sh | bash  # Claude Code, native installer
 Check: `node -v` is 22 or newer (Claude Code and supabase-js need it), `supabase --version`, `uv --version`,
 `docker info` and `claude --version` all answer. On Windows, do all of this inside WSL 2.
 
-## Step 3 · Create the repository (30 minutes)
+## Step 3 · The repository (30 minutes)
+
+`ar835/Nutrivo` already exists and holds the hand-off. On a laptop:
 
 ```bash
-unzip nutrivo-handoff.zip && cd nutrivo
-git init -b main && git add -A && git commit -m "Hand-off baseline, 8 Oct 2026"
-gh repo create nutrivo/nutrivo --private --source . --push
+gh repo clone ar835/Nutrivo && cd Nutrivo
 ```
 
-Copy the design set: download the Google Drive design folder and unzip it into `design/`, keeping `build/`,
-`product/`, `public/`, `_ds/`, `index.dc.html`, `support.js` and `doc-page.js`. Commit it as "Add design set".
+Copy the design set: download the Google Drive design folder and unzip it into `design/`, keeping its whole
+structure (`index.dc.html`, `support.js`, `_ds/`, `brand/`, `build/`, `documents/`, `product/`, `public/`: the 43 files
+in `design/MANIFEST.json`). Commit it as "Add design set".
 
 Then prove the baseline works before any code is written:
 
@@ -79,7 +80,7 @@ infisical login && infisical init   # link this folder to the Infisical project
 make bootstrap                      # worker dependencies
 make fixtures                       # six synthetic labels with exact ground truth
 make db-start                       # local Supabase in Docker (first run downloads images)
-make gates                          # expect "All tests successful": 44 gate tests
+make gates                          # expect "All tests successful": 45 tests (44 gates + 1 app placeholder)
 ```
 
 If `make gates` is not green on a clean checkout, stop and fix that first. Everything later depends on it.
@@ -93,8 +94,10 @@ claude            # in the repository root; trust the folder; /login with your C
 Inside Claude Code, check:
 - `/permissions`. Gate tests, golden fixtures, accepted content and `.milestone` are write-protected; production
   commands (`supabase link`, `db push`, `functions deploy`) are denied.
-- `/hooks`. The Stop hook runs `scripts/hooks/stop-verify.sh`. Claude cannot finish while tests fail or while a
-  protected file is changed. Claude Code stops blocking after 8 tries in a row, so it never loops forever.
+- `/hooks`. The Stop hook runs `scripts/hooks/stop-verify.sh`. Claude cannot finish while tests fail or while an
+  oracle file (gates, golden fixtures, accepted content, `.milestone`) is changed; other protected files only warn,
+  because the pull request needs `human-approved` anyway. Claude Code stops blocking after 8 tries in a row, so it
+  never loops forever. In Claude Code on the web, the SessionStart hook prepares the session first (docs/22 §5).
 - `/agents`: rls-reviewer, spec-checker, content-verifier. `/skills`: implement-workflow, new-migration,
   new-rule-shape, content-extract.
 
@@ -116,7 +119,7 @@ Then:
 2. Let it work. A milestone usually takes 2–6 sessions. Use `/clear` between sub-tasks to keep context sharp.
 3. When it says it is done: run the milestone's review checklist yourself, and ask the rls-reviewer subagent about
    any change under `supabase/`.
-4. Open the pull request, wait for CI, review, merge. From milestone 3 onwards, staging deploys on merge.
+4. Open the pull request, wait for CI, review, merge. Once T-010 is approved (gate G7, milestone 0), staging deploys on merge.
 5. Click through the milestone's demo on staging before starting the next one.
 
 Keep pull requests under about 1,500 changed lines; ask Claude Code to split anything larger.
@@ -139,11 +142,13 @@ ruleset. Hire a content owner when revenue allows; the design files rank this hi
 
 ## Step 7 · Staging and production
 
-- **Staging.** Every merge to `main` runs CI, applies migrations to `nutrivo-staging` (`supabase db push` from
-  GitHub Actions), deploys Edge Functions, redeploys the Render worker and the Vercel preview.
-- **Production.** Tag `vX.Y.Z`. The same pipeline runs against `nutrivo-prod` after manual approval in the
-  `production` environment. Turn on point-in-time recovery before the first customer uploads anything, and do one
-  restore drill.
+- **Staging.** Once `STAGING_DEPLOY_ENABLED` is true (T-010, docs/22 §4), every merge to `main` applies migrations to
+  `nutrivo-staging` (`supabase db push` from GitHub Actions), deploys Edge Functions, redeploys the Render worker and
+  the Vercel preview.
+- **Production.** The owner creates a `vX.Y.Z` tag on a commit already on `main`; only the owner can. Once
+  `PRODUCTION_DEPLOY_ENABLED` is true (T-1101, docs/22 §4), the same pipeline runs against `nutrivo-prod`. There is no
+  second approval in GitHub: the tag is the approval. Turn on point-in-time recovery before the first customer uploads
+  anything, and do one restore drill.
 
 ## Step 8 · Before the first pilot
 

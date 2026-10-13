@@ -1,0 +1,44 @@
+name: protocol
+# The required 'protocol' check, apart from ci so that a label (scope-approved, human-approved) or a corrected
+# 'Task:'/'Closes #' line re-runs it without a push. check-pr.py reads the labels and body at run time.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled, ready_for_review]
+  merge_group:
+  push:
+    branches: [main]
+concurrency:
+  group: protocol-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+  pull-requests: read
+  issues: read
+
+jobs:
+  protocol:
+    name: protocol
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { fetch-depth: 0 }
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      # The base commit's checker and migration guard, before any of the PR's code runs in this job (an earlier step
+      # could rewrite $GITHUB_ENV or the runner), so a PR cannot loosen the rules it is checked by. scripts/protocol/
+      # is replaced whole (a module the PR adds there would shadow an import); uv starts outside the checkout with no
+      # config or cache, so no .venv, uv.toml or .python-version the PR adds, nor anything an earlier run of it
+      # cached, is used. This file comes from the PR: edits to it rest on code review.
+      - if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          rm -rf scripts/protocol && git checkout "$BASE_SHA" -- scripts/protocol/
+          cd "$RUNNER_TEMP" && uv run --no-project --no-config --no-cache --with pyyaml python "$GITHUB_WORKSPACE/scripts/protocol/check-pr.py"
+      - run: bash scripts/protocol/migration-guard.sh "${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}"
+      # Then the PR's own copy, for the checks it may change along with the plan.
+      - if: github.event_name == 'pull_request'
+        run: rm -rf scripts/protocol && git restore --source=HEAD --staged --worktree -- scripts/protocol
+      - run: uv run --no-project --with pyyaml python scripts/protocol/validate-plan.py
+      - run: uv run --no-project --with pyyaml python scripts/workflows/render.py --check

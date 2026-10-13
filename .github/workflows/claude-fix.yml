@@ -8,9 +8,14 @@ permissions: { contents: write, pull-requests: write, issues: write, actions: re
 
 jobs:
   fix:
-    if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.event == 'pull_request'
-    runs-on: ubuntu-latest
+    # Same-repository branches only: the branch's own .github/actions and Makefile run with the dev secrets. Skipped,
+    # not red, until docs/22 §3 has stored the Infisical identity and INFISICAL_PROJECT_ID.
+    if: >
+      github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.head_repository.full_name == github.repository && vars.INFISICAL_PROJECT_ID != ''
+    runs-on: ubuntu-24.04
     timeout-minutes: 120
+    env: { NUTRIVO_STOP_VERIFY: "1" }   # this job starts the stack, so the Stop hook runs make verify-fast here
     steps:
       - id: pr
         env:
@@ -29,26 +34,38 @@ jobs:
           gh run view ${{ github.event.workflow_run.id }} --repo "$REPO" --log-failed | tail -n 400 > /tmp/ci-failure.log || true
           echo "number=$num" >> "$GITHUB_OUTPUT"; echo "attempt=$next" >> "$GITHUB_OUTPUT"
       - if: steps.pr.outputs.skip != 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with: { ref: "${{ github.event.workflow_run.head_branch }}", fetch-depth: 0 }
       - if: steps.pr.outputs.skip != 'true'
-        uses: Infisical/secrets-action@v1
+        uses: ./.github/actions/infisical
         with:
-          method: universal
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
           env-slug: dev
       - if: steps.pr.outputs.skip != 'true'
-        uses: supabase/setup-cli@v1
-        with: { version: latest }
+        run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
+      - if: steps.pr.outputs.skip != 'true'
+        uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+        with: { version: 2.120.0 }
+      - if: steps.pr.outputs.skip != 'true'
+        uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - if: steps.pr.outputs.skip != 'true'
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
+        with: { version: 10 }
+      - if: steps.pr.outputs.skip != 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with: { node-version: 22 }
       - if: steps.pr.outputs.skip != 'true'
         run: supabase start
       - if: steps.pr.outputs.skip != 'true'
-        uses: anthropics/claude-code-action@v1
+        uses: anthropics/claude-code-action@2dca132ff0e0c4094ce6048b422c6915a071210b # v1.0.247
         with:
           anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
-          claude_args: "--model claude-opus-5-5 --max-turns 200"
+          allowed_bots: claude          # autopilot pull requests are opened and pushed by claude[bot]
+          # Agent mode grants no file edits by default (tag mode adds the same flag itself).
+          claude_args: "--model claude-opus-5-5 --max-turns 200 --permission-mode acceptEdits"
           prompt: |
             CI failed on pull request #${{ steps.pr.outputs.number }} (attempt ${{ steps.pr.outputs.attempt }} of 3).
             The failing log tail is in /tmp/ci-failure.log. Follow CLAUDE.md and docs/15-build-protocol.md: find the

@@ -9,8 +9,9 @@ PID="${INFISICAL_PROJECT_ID:-}"
 if [ -z "$PID" ] && [ -f "$ROOT/.infisical.json" ]; then
   PID="$(python3 -c "import json,sys; print(json.load(open(sys.argv[1])).get('workspaceId',''))" "$ROOT/.infisical.json")"
 fi
+# The CLI reads INFISICAL_TOKEN itself, so the token never sits on a command line, and INFISICAL_DOMAIN
+# (https://eu.infisical.com for Infisical's EU cloud) or the 'domain' field of .infisical.json for the region.
 args=(run --env="$ENVNAME" --silent)
 [ -n "$PID" ] && [ "${PID#<}" = "$PID" ] && args+=(--projectId="$PID")
-[ -n "${INFISICAL_TOKEN:-}" ] && args+=(--token="$INFISICAL_TOKEN")
 export NUTRIVO_ENV="$ENVNAME"
 exec infisical "${args[@]}" -- bash "$ROOT/scripts/env/with-aliases.sh" "$@"

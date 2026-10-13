@@ -6,23 +6,25 @@ permissions: { contents: read, issues: write, actions: write }
 
 jobs:
   staging-acceptance:
-    runs-on: ubuntu-latest
+    if: vars.STAGING_DEPLOY_ENABLED == 'true'      # staging exists from T-010 (gate G7)
+    environment: staging                            # the staging Infisical identity is an environment secret
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
-      - uses: Infisical/secrets-action@v1          # pin to a commit SHA in T-004
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: ./.github/actions/infisical
         with:
-          method: universal
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
           env-slug: staging
-      - uses: supabase/setup-cli@v1
-        with: { version: latest }
-      - uses: astral-sh/setup-uv@v6
-      - uses: pnpm/action-setup@v4
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+        with: { version: 2.120.0 }
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with: { version: 10 }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: 22 }
       - name: Full acceptance suite against staging (real models, real email)
         run: make acceptance-staging
@@ -30,10 +32,16 @@ jobs:
         run: |
           uv run --no-project --with boto3 python scripts/doctor/doctor.py --env staging
       - name: Schema drift (staging must equal the migrations)
-        run: supabase link --project-ref "$SUPABASE_PROJECT_REF" -p "$SUPABASE_DB_PASSWORD" && test -z "$(supabase db diff --linked -s app,ref,private,public 2>/dev/null | grep -v '^--' | grep -v '^$')"
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_REF" -p "$SUPABASE_DB_PASSWORD"
+          diff="$(supabase db diff --linked -s app,ref,private,public)"   # a failed diff fails the step
+          test -z "$(printf '%s\n' "$diff" | grep -v '^--' | grep -v '^$')"
       - name: Dependency audit
-        run: (cd worker && uvx pip-audit) && (if [ -f apps/web/package.json ]; then pnpm --dir apps/web audit --prod --audit-level high; fi)
-      - uses: actions/upload-artifact@v4
+        run: |
+          (cd worker && uv export --frozen --no-hashes --no-emit-project --format requirements-txt > /tmp/worker-requirements.txt \
+            && uvx pip-audit -r /tmp/worker-requirements.txt --disable-pip --no-deps)
+          if [ -f apps/web/package.json ]; then pnpm --dir apps/web audit --prod --audit-level high; fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: always()
         with: { name: nightly-reports, path: reports/ }
       - name: Conformance on staging

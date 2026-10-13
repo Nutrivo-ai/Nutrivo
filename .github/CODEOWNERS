@@ -1,13 +1,14 @@
-# Founders approve every merge (gate G5). Replace @NUTRIVO_OWNER with GitHub usernames during BOOTSTRAP step 7.
-*                         @NUTRIVO_OWNER
-/spec/                    @NUTRIVO_OWNER
-/plan/                    @NUTRIVO_OWNER
-/supabase/migrations/     @NUTRIVO_OWNER
-/supabase/tests/gates/    @NUTRIVO_OWNER
-/worker/tests/gates/      @NUTRIVO_OWNER
-/fixtures/golden/         @NUTRIVO_OWNER
-/content/                 @NUTRIVO_OWNER
-/.github/                 @NUTRIVO_OWNER
-/CLAUDE.md                @NUTRIVO_OWNER
-/.claude/                 @NUTRIVO_OWNER
-/docs/02-decisions.md     @NUTRIVO_OWNER
+# Founders approve every merge (gate G5). Both founders are collaborators with write access (docs/22 §1): any one
+# listed owner's approval satisfies code-owner review.
+*                         @ar835 @abnutrivo
+/spec/                    @ar835 @abnutrivo
+/plan/                    @ar835 @abnutrivo
+/supabase/migrations/     @ar835 @abnutrivo
+/supabase/tests/gates/    @ar835 @abnutrivo
+/worker/tests/gates/      @ar835 @abnutrivo
+/fixtures/golden/         @ar835 @abnutrivo
+/content/                 @ar835 @abnutrivo
+/.github/                 @ar835 @abnutrivo
+/CLAUDE.md                @ar835 @abnutrivo
+/.claude/                 @ar835 @abnutrivo
+/docs/02-decisions.md     @ar835 @abnutrivo

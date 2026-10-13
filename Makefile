@@ -4,9 +4,17 @@ ENV ?= dev
 LANE ?= any
 PY := uv run --no-project --with pyyaml python
 RUN = scripts/env/run.sh $(ENV) --
+TYPES := apps/web/src/lib/database.types.ts
+# psql is optional on laptops (scripts/bootstrap/check-tools.sh): without it, use the one in the local stack's container.
+PSQL = $(if $(shell command -v psql),psql -Atq postgresql://postgres:postgres@127.0.0.1:54322/postgres,docker exec -i supabase_db_nutrivo psql -Atq -U postgres)
+
+# Every target is a command, never a file: without this, `make fixtures` sees the fixtures/ directory and does nothing.
+.PHONY: help bootstrap db-start db-reset db-migrate fixtures typegen env-check doctor design-fetch design-check \
+        validate-plan workflows issues-sync next verify-task autopilot status gates db-tap test verify-fast verify e2e \
+        e2e-ci smoke acceptance-staging conformance conformance-update
 
 help: ## list targets
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-18s %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-18s %s\n", $$1, $$2}'
 
 # ── Setup ─────────────────────────────────────────────────────────────────────────────────────────
 bootstrap: ## install worker and web dependencies
@@ -16,14 +24,17 @@ db-start: ## start local Supabase (Docker)
 	supabase start
 db-reset: ## rebuild the local database from migrations
 	supabase db reset
+db-migrate: ## apply migrations the running local database lacks (a reused container); keeps its data
+	@supabase migration up --local --include-all || { echo "db-migrate failed: fix the migration named above, or, if the local database has one supabase/migrations lacks (another branch's), run make db-reset (never migration repair)." >&2; exit 1; }
 fixtures: ## synthetic labels with exact ground truth (needs ghostscript + poppler)
 	cd worker && uv run python ../fixtures/synth/generate.py --out ../fixtures/synth/out
 typegen: ## regenerate database types for the web app
-	supabase gen types typescript --local --schema app,ref,public > apps/web/src/lib/database.types.ts
+	@mkdir -p $(dir $(TYPES))
+	supabase gen types typescript --local --schema app,ref,public > $(TYPES).tmp && mv $(TYPES).tmp $(TYPES) || { rm -f $(TYPES).tmp; exit 1; }
 
 # ── Secrets and services ──────────────────────────────────────────────────────────────────────────
-env-check: ## names present or missing in Infisical for ENV (never values)
-	bash scripts/env/check.sh $(ENV)
+env-check: ## names present or missing in Infisical for ENV (never values); ALL=1 also requires later-task names
+	bash scripts/env/check.sh $(ENV) $(if $(ALL),--all,)
 doctor: ## prove every service for ENV, with Sentry and Langfuse round-trips (READONLY=1 for prod)
 	$(RUN) uv run --no-project --with boto3 python scripts/doctor/doctor.py --env $(ENV) $(if $(READONLY),--readonly,)
 
@@ -46,23 +57,33 @@ verify-task: ## T=T-123: the fast suite, acceptance coverage and the task's chec
 	bash scripts/protocol/verify-task.sh $(T)
 autopilot: ## run tasks with Claude Code headless: LANE=web MAX_TASKS=3
 	LANE=$(LANE) MAX_TASKS=$(or $(MAX_TASKS),1) bash scripts/autopilot/loop.sh
+# Ready tasks over repository-scoped REST, as scripts/protocol/lib.py: Claude Code on the web refuses gh issue (GraphQL).
 status: ## where the build stands
-	@if [ -f .bootstrap-state ]; then echo "Bootstrap:"; sed 's/^/  /' .bootstrap-state; else echo "Bootstrap not started"; fi
+	@if [ -f .bootstrap-state ]; then echo "Bootstrap notes (this machine):"; sed 's/^/  /' .bootstrap-state; \
+	  else echo "No local bootstrap notes (on the web, progress is the T-001…T-006 issues)"; fi
 	@if [ -f CONFORMANCE.md ]; then sed -n '3p' CONFORMANCE.md; fi
-	@gh issue list --label task --label status:ready --state open --limit 10 2>/dev/null || true
+	@repo="$$(printf '%s' "$${GH_REPO:-$$(git remote get-url origin)}" | sed -E 's#(\.git)?/*$$##; s#.*[:/]([^/:]+/[^/:]+)$$#\1#')"; \
+	  echo "Ready tasks:"; gh api "repos/$$repo/issues?labels=task,status:ready&state=open&per_page=10" \
+	    --jq '.[] | select(.pull_request | not) | "  #\(.number) \(.title)"' || echo "  (gh api failed: see above)"
 
 # ── Tests ─────────────────────────────────────────────────────────────────────────────────────────
-gates: ## all database tests: supabase/tests/gates and supabase/tests/app
+gates: ## all database tests: supabase/tests/gates and supabase/tests/app (and reports/database.tap)
 	supabase test db
-test: ## worker tests and web unit tests
+	@$(MAKE) --no-print-directory db-tap
+db-tap: ## per-file TAP of the database tests into reports/database.tap, as CI writes it for conformance
+	@mkdir -p reports && for f in $$(find supabase/tests -name '*.sql' | sort); do $(PSQL) < "$$f"; done > reports/database.tap
+test: ## worker tests (JUnit in reports/worker.xml) and web unit tests
 	@[ -d fixtures/synth/out ] || $(MAKE) fixtures
-	cd worker && uv run pytest -q
+	@mkdir -p reports
+	cd worker && uv run pytest -q --junitxml=../reports/worker.xml
 	@if [ -f apps/web/package.json ]; then pnpm --dir apps/web test; fi
 verify-fast: ## what the Claude Code Stop hook runs
 	@supabase status >/dev/null 2>&1 || supabase start
+	@$(MAKE) --no-print-directory db-migrate
 	supabase test db
 	@[ -d fixtures/synth/out ] || $(MAKE) fixtures
-	cd worker && uv run pytest -q
+	@mkdir -p reports
+	cd worker && uv run ruff check . && uv run pytest -q --junitxml=../reports/worker.xml
 	@if [ -f apps/web/package.json ]; then pnpm --dir apps/web lint && pnpm --dir apps/web typecheck && pnpm --dir apps/web test; fi
 	$(PY) scripts/protocol/validate-plan.py
 	$(PY) scripts/workflows/render.py --check

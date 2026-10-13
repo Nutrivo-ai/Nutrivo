@@ -13,61 +13,72 @@ on:
 permissions: { contents: write, pull-requests: write, issues: write, id-token: write, actions: read }
 
 jobs:
+  # Both jobs are skipped, not red, until docs/22 §3 has stored the Infisical identity and INFISICAL_PROJECT_ID.
   build:
     if: >
+      vars.INFISICAL_PROJECT_ID != '' && (
       (github.event_name == 'issues' && github.event.label.name == 'autopilot') ||
-      github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
+      github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-24.04
     timeout-minutes: 180
+    env: { NUTRIVO_STOP_VERIFY: "1" }   # this job starts the stack, so the Stop hook runs make verify-fast here
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with: { fetch-depth: 0 }
-      - uses: Infisical/secrets-action@v1          # pin to a commit SHA in T-004
+      - uses: ./.github/actions/infisical
         with:
-          method: universal
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
           env-slug: dev
       - run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
-      - uses: supabase/setup-cli@v1
-        with: { version: latest }
-      - uses: astral-sh/setup-uv@v6
-      - uses: pnpm/action-setup@v4
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+        with: { version: 2.120.0 }
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4.3.0
         with: { version: 10 }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with: { node-version: 22 }
       - run: supabase start
-      - uses: anthropics/claude-code-action@v1     # pin to a commit SHA in T-004
+      - uses: anthropics/claude-code-action@2dca132ff0e0c4094ce6048b422c6915a071210b # v1.0.247
         with:
           anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
-          track_progress: true
-          claude_args: "--model claude-opus-5-5 --max-turns 300"
+          # track_progress throws on workflow_dispatch, which deploy-staging and nightly send with GITHUB_TOKEN
+          # (actor github-actions[bot]). Agent mode, used on dispatch, grants no file edits without acceptEdits.
+          track_progress: ${{ github.event_name == 'issues' }}
+          allowed_bots: github-actions
+          claude_args: "--model claude-opus-5-5 --max-turns 300 --permission-mode acceptEdits"
           prompt: |
             Work on issue #${{ github.event.issue.number || inputs.issue }} of ${{ github.repository }}.
             If it is a task (title starts with T-), follow scripts/autopilot/task-prompt.md with TASK_ID from the
             title, ISSUE = the issue number, and BRANCH = t/<TASK_ID>-<short-name>; first assign the issue to
             yourself, and skip it if it is already assigned to someone else or has open dependencies.
             If it is an incident or nightly issue, find the root cause from the linked run, fix it on a branch
-            fix/<issue-number>, and open a pull request that closes the issue. Follow CLAUDE.md throughout.
+            fix/<issue-number>, and open a pull request whose body has the lines "Incident: #<issue-number>" and
+            "Closes #<issue-number>". After opening any pull request (task or incident), run
+            `gh pr edit <pr-number> --add-label autopilot` so that the CI fixer (claude-fix) picks it up.
+            Follow CLAUDE.md throughout.
 
   respond:
     if: >
+      vars.INFISICAL_PROJECT_ID != '' &&
       (github.event_name == 'issue_comment' || github.event_name == 'pull_request_review_comment') &&
-      contains(github.event.comment.body, '@claude')
-    runs-on: ubuntu-latest
+      contains(github.event.comment.body, '@claude') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with: { fetch-depth: 0 }
-      - uses: Infisical/secrets-action@v1
+      - uses: ./.github/actions/infisical
         with:
-          method: universal
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
           env-slug: dev
-      - uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@2dca132ff0e0c4094ce6048b422c6915a071210b # v1.0.247
         with:
           anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
           claude_args: "--model claude-opus-5-5 --max-turns 120"

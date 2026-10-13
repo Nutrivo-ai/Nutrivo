@@ -16,7 +16,8 @@ A change to the target is a pull request to these files, approved by a founder, 
 Code for something outside the target fails the protocol check.
 
 ## The unit of work: a task
-Each task in plan/tasks.yaml becomes a GitHub issue (`make issues-sync`). A task names:
+Each task in plan/tasks.yaml becomes a GitHub issue (the `tracker` workflow; `make issues-sync` on a laptop).
+A task names:
 - its lanes (the folders it may change);
 - its dependencies;
 - its workflows (whose acceptance IDs it must make pass);
@@ -27,7 +28,7 @@ A task is ready when every dependency is closed. Tasks are sized to land as one 
 ## Lanes keep developers apart
 | Lane | Folders | Rule |
 |---|---|---|
-| db | supabase/migrations, supabase/tests/app, supabase/seed | One open migration PR at a time; additive migrations only (expand, migrate, contract) |
+| db | supabase/migrations, supabase/tests/app, supabase/seed | One db task at a time (claimed or in an open PR); additive migrations only (expand, migrate, contract) |
 | worker | worker/, supabase/functions/, fixtures/synth/ | Parallel |
 | web | apps/web/, supabase/functions/ | Parallel; screens follow spec/screens.yaml |
 | infra | .github/, scripts/, config/, render.yaml, Makefile | Parallel; deploy changes need a founder |
@@ -38,22 +39,28 @@ Any task may touch docs/. Anything else outside the task's lanes fails the proto
 
 ## The loop (the same for a person and for Claude Code)
 1. **Claim.** `make next LANE=web` takes the highest-priority ready task in the lane and assigns the issue. The
-   assignment is the lock.
-2. **Branch.** `t/T-123-short-name` from the latest main. Rebase at least daily.
+   assignment is the lock: it skips a task that is assigned, labelled `autopilot` or named by an open pull request. It uses the REST API, so it works in Claude Code on the web too, where Claude can also
+   assign the issue with its GitHub tools. One task per session.
+2. **Branch.** On a laptop `make next` starts `t/T-123-short-name` from the latest main. In Claude Code on the web the
+   session's own `claude/...` branch is the task branch, and `make next` does not switch branches. Rebase at least
+   daily.
 3. **Plan.** Comment the plan on the issue before editing: files, migrations, tests by acceptance ID, risks.
 4. **Build.** Stay inside the lanes. Every acceptance ID of the task's workflows gets a test whose title carries it,
    for example `[D04.must.1]`.
 5. **Verify.** `make verify-task T=T-123` runs the fast suite and the task's checks, and confirms every acceptance
    ID has a test.
-6. **Pull request.** Fill in the template: Task, Closes, acceptance IDs now passing, screens touched.
+6. **Pull request.** Fill in the template: Task, Closes, acceptance IDs now passing, screens touched. `Task: T-123`
+   and `Closes #N` name the task, whatever the branch is called; the pull request must close exactly its own open task
+   issue. Claude Code cannot create or push tags (`git tag` is denied): to list them, `git ls-remote --tags origin`.
 7. **CI.** Required checks: protocol, secrets-scan, database, worker, web, e2e, conformance. On an autopilot PR a
    failure triggers the fixer (up to three attempts) before a person is asked.
 8. **Review.** The Claude reviewer comments against the spec; a founder approves.
 9. **Merge.** Through the merge queue, or only when up to date with main, so the PR is tested on the latest main and
    main stays green.
-10. **Staging.** Every merge deploys to staging, then runs smoke tests and the Sentry and Langfuse round-trip. A
-    failure rolls back and opens an incident issue.
-11. **Close.** The issue closes, dependants become ready, and CONFORMANCE.md updates.
+10. **Staging.** Once `STAGING_DEPLOY_ENABLED` is set at T-010 (docs/22 §4), every merge deploys to staging, then runs
+    smoke tests and the Sentry and Langfuse round-trip. A failure rolls back and opens an incident issue.
+11. **Close.** The issue closes, dependants become ready, and `spec/conformance-baseline.json` keeps the IDs the task
+    made pass, so the ratchet protects them from then on.
 
 ## Required checks and what each one stops
 | Check | Stops |
@@ -70,11 +77,11 @@ Any task may touch docs/. Anything else outside the task's lanes fails the proto
 | Drift | Detector | Response |
 |---|---|---|
 | Building outside the spec | Protocol check (task and lanes); spec files are CODEOWNED | PR blocked |
-| Regression | Conformance ratchet; nightly full suite on staging | Blocked, or an issue for the autopilot |
+| Regression | Conformance ratchet; nightly full suite on staging (from T-010) | Blocked, or an issue for the autopilot |
 | Design | Each screen compared to its design baseline; no-dead-controls crawl | PR blocked |
 | Contracts | Tests for the eight response shapes; generated database types compared | PR blocked |
-| Schema between environments | Nightly `supabase db diff` against staging and production | Issue; manual changes reverted by migration |
-| Environment | Nightly doctor for dev, staging and production | Issue |
+| Schema between environments | Nightly `supabase db diff` against staging only (from T-010) | Issue; manual changes reverted by migration |
+| Environment | Nightly doctor for staging only (from T-010); the `doctor` workflow for staging and prod on demand | Issue |
 | Dependencies | Dependabot weekly; nightly audit | PRs and issues |
 | Documentation | Workflow docs and acceptance.yaml regenerated and compared in CI | PR blocked |
 
@@ -87,6 +94,10 @@ Any task may touch docs/. Anything else outside the task's lanes fails the proto
 - **Flaky test:** retried once, then quarantined with an issue. A quarantined acceptance test counts as failing.
 
 ## What the autopilot may and may not do
+There are two. The GitHub autopilot (the `claude-autopilot` workflow, from T-009/T-010) takes a ready issue a founder
+labels `autopilot`; this is the one to use from Claude Code on the web. `make autopilot` (scripts/autopilot/loop.sh)
+runs tasks in sequence on a laptop only, because it needs `gh pr`, which the web refuses.
+
 - **May:** claim ready tasks, write code and tests, open pull requests, fix its own CI failures, answer review
   comments.
 - **May not:**

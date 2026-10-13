@@ -1,68 +1,84 @@
 #!/usr/bin/env bash
-# BOOTSTRAP step 7: configure the repository for the build protocol. Idempotent. Usage: github-setup.sh owner/repo
+# BOOTSTRAP step 7: configure the repository for the build protocol. Idempotent; exits non-zero if any step failed.
+# Needs `gh` logged in as an admin of the repository. Everything here can also be done by hand in the GitHub UI:
+# docs/22-github-and-team.md lists the same settings click by click. Usage: github-setup.sh owner/repo
 set -uo pipefail
 REPO="${1:?owner/repo}"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-ok() { printf '  ✓ %s\n' "$1"; }; warn() { printf '  ! %s\n' "$1" >&2; }
+fail=0
+ok() { printf '  ✓ %s\n' "$1"; }; warn() { printf '  ! %s\n' "$1" >&2; }; bad() { printf '  ✗ %s\n' "$1" >&2; fail=1; }
 
-echo "Labels"
-while IFS='|' read -r name color desc; do
-  [ -z "$name" ] && continue
-  gh label create "$name" --repo "$REPO" --color "$color" --description "$desc" --force >/dev/null && ok "$name" || warn "label $name"
-done <<'LABELS'
-task|0e8a16|A unit of work from plan/tasks.yaml
-status:ready|0e8a16|All dependencies are closed
-status:blocked|d4c5f9|Waiting on dependencies
-gate:human|b60205|A founder must act inside this task
-autopilot|5319e7|Claude Code may work on this autonomously
-needs-human|b60205|Autopilot stopped: a decision or approval is needed
-human-approved|0052cc|A founder approved a change to protected files
-scope-approved|0052cc|A founder approved changes outside the task's lanes
-incident|b60205|Staging or production incident
-nightly|fbca04|Found by the nightly run
-quarantine|fbca04|Flaky test in quarantine
-bug:prod|b60205|Error seen in production
-lane:db|1d76db|Database lane
-lane:worker|1d76db|Worker lane
-lane:web|1d76db|Web lane
-lane:infra|1d76db|Infrastructure lane
-lane:content|1d76db|Content lane
-LABELS
-for m in M0 M1 M2 M3 M4 M5 M6 M7 M8 M9 M10 M11; do gh label create "ms:$m" --repo "$REPO" --color c5def5 --force >/dev/null; done
+echo "Repository"
+if ! info="$(gh api "repos/$REPO" --jq '[.owner.type, .private, .default_branch] | @tsv' 2>&1)"; then
+  bad "cannot read $REPO: $info"; exit 1
+fi
+IFS=$'\t' read -r owner_type private default_branch <<<"$info"
+[ "$private" = "true" ] && ok "private" || bad "the repository is public: make it private first (Settings → General → Danger Zone)"
+[ "$owner_type" = "Organization" ] && ok "owned by an organisation" \
+  || warn "owned by a personal account: rulesets and environments on a private repo need GitHub Pro (docs/22 §1)"
+[ "$default_branch" = "main" ] && ok "default branch main" || bad "default branch is '$default_branch': set it to main"
 
-echo "Milestones"
-existing="$(gh api "repos/$REPO/milestones?state=all&per_page=100" --jq '.[].title' 2>/dev/null || true)"
-for m in M0 M1 M2 M3 M4 M5 M6 M7 M8 M9 M10 M11; do
-  echo "$existing" | grep -qx "$m" || gh api "repos/$REPO/milestones" -f title="$m" >/dev/null; ok "$m"
+echo "Labels and milestones"
+bash "$ROOT/scripts/protocol/tracker-setup.sh" "$REPO" || fail=1
+
+echo "Environments (deployment branches; required reviewers need GitHub Enterprise on private repos)"
+env_policy() { # env, then policies as name:type
+  local e="$1"; shift
+  if ! err=$(gh api -X PUT "repos/$REPO/environments/$e" --input - 2>&1 >/dev/null \
+       <<<'{"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}'); then
+    bad "environment $e: $err"; return
+  fi
+  local have; have="$(gh api "repos/$REPO/environments/$e/deployment-branch-policies" --jq '.branch_policies[] | "\(.name):\(.type)"' 2>/dev/null)"
+  for pol in "$@"; do
+    echo "$have" | grep -qx "$pol" && continue
+    gh api "repos/$REPO/environments/$e/deployment-branch-policies" -f name="${pol%%:*}" -f type="${pol##*:}" >/dev/null 2>&1 \
+      || bad "environment $e: policy $pol"
+  done
+  ok "$e ($*)"
+}
+env_policy staging main:branch
+env_policy production main:branch 'v*:tag'
+
+echo "Rulesets (.github/rulesets/*.json)"
+for f in "$ROOT"/.github/rulesets/*.json; do
+  name="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["name"])' "$f")"
+  rid="$(gh api "repos/$REPO/rulesets" --jq ".[] | select(.name==\"$name\") | .id" 2>/dev/null | head -1)"
+  if [ -n "$rid" ]; then method=PUT; path="repos/$REPO/rulesets/$rid"; else method=POST; path="repos/$REPO/rulesets"; fi
+  if err=$(gh api -X "$method" "$path" --input "$f" 2>&1 >/dev/null); then ok "$name"
+  else bad "ruleset $name: $err"; fi
 done
 
-echo "Environments"
-for e in staging production; do gh api -X PUT "repos/$REPO/environments/$e" >/dev/null && ok "$e" || warn "environment $e"; done
-warn "add required reviewers to the 'production' environment in Settings → Environments (gate G7)"
-
-echo "Protection for main (ruleset)"
-checks='[{"context":"protocol"},{"context":"secrets-scan"},{"context":"database"},{"context":"worker"},{"context":"web"},{"context":"e2e"},{"context":"conformance"}]'
-base_rules='{"type":"deletion"},{"type":"non_fast_forward"},
- {"type":"pull_request","parameters":{"required_approving_review_count":1,"require_code_owner_review":true,"dismiss_stale_reviews_on_push":true,"require_last_push_approval":true,"required_review_thread_resolution":true}},
- {"type":"required_status_checks","parameters":{"strict_required_status_checks_policy":true,"required_status_checks":'"$checks"'}}'
-mq='{"type":"merge_queue","parameters":{"check_response_timeout_minutes":60,"grouping_strategy":"ALLGREEN","max_entries_to_build":5,"max_entries_to_merge":5,"merge_method":"SQUASH","min_entries_to_merge":1,"min_entries_to_merge_wait_minutes":5}}'
-body() { printf '{"name":"main","target":"branch","enforcement":"active","conditions":{"ref_name":{"include":["~DEFAULT_BRANCH"],"exclude":[]}},"rules":[%s]}' "$1"; }
-rid="$(gh api "repos/$REPO/rulesets" --jq '.[] | select(.name=="main") | .id' 2>/dev/null | head -1)"
-method=POST; path="repos/$REPO/rulesets"; [ -n "$rid" ] && { method=PUT; path="repos/$REPO/rulesets/$rid"; }
-if body "$base_rules,$mq" | gh api -X "$method" "$path" --input - >/dev/null 2>&1; then ok "ruleset with merge queue"
-elif body "$base_rules" | gh api -X "$method" "$path" --input - >/dev/null 2>&1; then ok "ruleset (no merge queue on this plan: branches must be up to date)"
-else warn "rulesets unavailable on this plan: enable branch protection for main manually (docs/15)"; fi
-
-echo "Actions secrets and variables (values never printed)"
-"$ROOT/scripts/env/run.sh" dev -- bash -c '
-for n in INFISICAL_CLIENT_ID INFISICAL_CLIENT_SECRET; do
-  if [ -n "${!n:-}" ]; then printf %s "${!n}" | gh secret set "$n" --repo "'"$REPO"'" >/dev/null && echo "  ✓ $n"
-  else echo "  ! $n is not in Infisical dev: create the github-actions machine identity (universal auth) and store its client id and secret under these names" >&2; fi
-done'
+echo "Actions variables"
 pid="$(python3 -c "import json; print(json.load(open('$ROOT/.infisical.json'))['workspaceId'])" 2>/dev/null)"
-[ -n "$pid" ] && gh variable set INFISICAL_PROJECT_ID --repo "$REPO" --body "$pid" >/dev/null && ok "INFISICAL_PROJECT_ID"
+if [ -n "$pid" ] && [ "${pid#<}" = "$pid" ]; then
+  gh variable set INFISICAL_PROJECT_ID --repo "$REPO" --body "$pid" >/dev/null && ok "INFISICAL_PROJECT_ID" || bad "INFISICAL_PROJECT_ID"
+else bad ".infisical.json is missing or still holds the placeholder (BOOTSTRAP step 3.1)"; fi
+# Only for a project in Infisical's EU cloud (docs/22 §3): taken from this shell, as the Infisical CLI reads it.
+if [ -n "${INFISICAL_DOMAIN:-}" ]; then
+  gh variable set INFISICAL_DOMAIN --repo "$REPO" --body "$INFISICAL_DOMAIN" >/dev/null && ok "INFISICAL_DOMAIN" || bad "INFISICAL_DOMAIN"
+fi
 
-echo "Still to do by hand (Claude Code asks the founder):"
-echo "  · install the Claude GitHub App on the repository (in Claude Code: /install-github-app) so autopilot pull requests trigger CI"
-echo "  · replace @NUTRIVO_OWNER in .github/CODEOWNERS with the founders' GitHub usernames"
-echo "  · connect Sentry's GitHub integration so production issues become GitHub issues"
+echo "Actions secrets: one Infisical machine identity per environment (values never printed)"
+# Infisical dev holds the client id and secret of the identity that reads dev; staging and prod likewise. The dev one
+# is a repository secret (CI, Claude workflows); the staging and prod ones are environment secrets, which only jobs
+# on main or a v* tag can read, so a pull request branch can never fetch staging or production secrets.
+for pair in dev: staging:staging prod:production; do
+  src="${pair%%:*}"; scope="${pair##*:}"
+  REPO="$REPO" SCOPE="$scope" "$ROOT/scripts/env/run.sh" "$src" -- bash -c '
+    for n in INFISICAL_CLIENT_ID INFISICAL_CLIENT_SECRET; do
+      if [ -z "${!n:-}" ]; then echo "  ✗ $n is not in Infisical $NUTRIVO_ENV (docs/22 §3)" >&2; exit 1; fi
+      printf %s "${!n}" | gh secret set "$n" --repo "$REPO" ${SCOPE:+--env "$SCOPE"} >/dev/null || exit 1
+      echo "  ✓ $n (${SCOPE:-repository})"
+    done' || fail=1
+done
+
+echo "Code owners"
+errs="$(gh api "repos/$REPO/codeowners/errors" --jq '.errors | length' 2>/dev/null)"
+[ "$errs" = "0" ] && ok "CODEOWNERS valid" || bad "CODEOWNERS has ${errs:-unknown} errors: gh api repos/$REPO/codeowners/errors"
+
+echo "Still to do by hand (docs/22-github-and-team.md):"
+[ -n "${INFISICAL_DOMAIN:-}" ] || echo "  · INFISICAL_DOMAIN variable, only for a project in Infisical's EU cloud (§3)"
+echo "  · Claude GitHub App installed on the repository's owner with access to this repository (§1)"
+echo "  · every founder can write to the repository and is listed in .github/CODEOWNERS (§1)"
+echo "  · Sentry's GitHub integration, so production issues become GitHub issues"
+exit $fail

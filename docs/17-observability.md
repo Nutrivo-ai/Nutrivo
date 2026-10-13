@@ -54,5 +54,5 @@ release. Never label text, never secrets.
 - **Langfuse:** creates a trace, then fetches it by id.
 - **PostHog:** sends a capture.
 
-The staging deploy runs the same round-trip after every merge, so a broken DSN or key fails the pipeline instead of
+Once staging deploys are switched on (T-010, docs/22 §4), the staging deploy runs the same round-trip after every merge, so a broken DSN or key fails the pipeline instead of
 going silent.

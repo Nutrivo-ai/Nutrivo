@@ -5,22 +5,26 @@ on:
 permissions: { contents: read, pull-requests: write, issues: read, id-token: write }
 jobs:
   review:
-    if: github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
+    # Runs started by Dependabot get no Actions secrets, so there is nothing to review with. Skipped, not red, until
+    # docs/22 §3 has stored the Infisical identity and INFISICAL_PROJECT_ID.
+    if: >
+      github.event.pull_request.draft == false && github.actor != 'dependabot[bot]' && vars.INFISICAL_PROJECT_ID != ''
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with: { fetch-depth: 0 }
-      - uses: Infisical/secrets-action@v1
+      - uses: ./.github/actions/infisical
         with:
-          method: universal
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
           client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
           env-slug: dev
-      - uses: anthropics/claude-code-action@v1
+      - uses: anthropics/claude-code-action@2dca132ff0e0c4094ce6048b422c6915a071210b # v1.0.247
         with:
           anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
+          allowed_bots: claude          # autopilot pull requests are opened and pushed by claude[bot]
           claude_args: "--model claude-opus-5-5 --max-turns 60"
           prompt: |
             Review pull request #${{ github.event.pull_request.number }} against its task (named in the description),

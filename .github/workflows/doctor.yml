@@ -1,0 +1,33 @@
+name: doctor
+# BOOTSTRAP steps 3-4 and T-003 for staging and prod. Claude Code sessions hold only the dev Infisical identity, so a
+# founder runs this from Actions → doctor → Run workflow; it checks the names (config/secrets.yaml) and the services
+# inside the GitHub environment that holds that environment's identity. Names only, never a value; prod is read-only.
+on:
+  workflow_dispatch:
+    inputs:
+      env:
+        description: Environment
+        type: choice
+        options: [staging, prod]
+        required: true
+permissions: { contents: read }
+
+jobs:
+  doctor:
+    environment: ${{ inputs.env == 'prod' && 'production' || 'staging' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: ./.github/actions/infisical
+        with:
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
+          env-slug: ${{ inputs.env }}
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+      - name: Names present in Infisical
+        run: uv run --no-project --with pyyaml python scripts/env/check-secrets.py --env "${{ inputs.env }}"
+      - name: Services answer with the stored keys
+        run: uv run --no-project --with boto3 python scripts/doctor/doctor.py --env "${{ inputs.env }}" ${{ inputs.env == 'prod' && '--readonly' || '' }}
