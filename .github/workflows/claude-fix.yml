@@ -8,12 +8,14 @@ permissions: { contents: write, pull-requests: write, issues: write, actions: re
 
 jobs:
   fix:
-    # Same-repository branches only: the branch's own .github/actions and Makefile run with the dev secrets.
+    # Same-repository branches only: the branch's own .github/actions and Makefile run with the dev secrets. Skipped,
+    # not red, until docs/22 §3 has stored the Infisical identity and INFISICAL_PROJECT_ID.
     if: >
       github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.event == 'pull_request' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
+      github.event.workflow_run.head_repository.full_name == github.repository && vars.INFISICAL_PROJECT_ID != ''
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    env: { NUTRIVO_STOP_VERIFY: "1" }   # this job starts the stack, so the Stop hook runs make verify-fast here
     steps:
       - id: pr
         env:

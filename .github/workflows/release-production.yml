@@ -16,6 +16,11 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with: { fetch-depth: 0 }
+      # The environment admits any v* tag: deploy only a commit that is already on main, so reviewed and merged.
+      - name: Tag is on main
+        id: on-main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "::error::$GITHUB_REF_NAME ($GITHUB_SHA) is not on main"; exit 1; }
       - uses: ./.github/actions/infisical
         with:
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
@@ -37,10 +42,11 @@ jobs:
       - name: Production smoke on the synthetic workspace
         run: make smoke ENV=prod
       - run: uv run --no-project --with boto3 python scripts/doctor/doctor.py --env prod
+      # A refused tag deployed nothing: nothing to roll back or report.
       - name: Roll back
-        if: failure()
+        if: failure() && steps.on-main.outcome == 'success'
         run: bash scripts/deploy/rollback.sh prod
       - name: Incident issue
-        if: failure()
+        if: failure() && steps.on-main.outcome == 'success'
         env: { GH_TOKEN: "${{ github.token }}" }
         run: gh issue create --title "Production release ${GITHUB_REF_NAME} rolled back" --label incident,needs-human --body "Run ${{ github.run_id }}. The previous release is live again."

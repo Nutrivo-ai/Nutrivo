@@ -5,8 +5,10 @@ on:
 permissions: { contents: read, pull-requests: write, issues: read, id-token: write }
 jobs:
   review:
-    # Runs started by Dependabot get no Actions secrets, so there is nothing to review with.
-    if: github.event.pull_request.draft == false && github.actor != 'dependabot[bot]'
+    # Runs started by Dependabot get no Actions secrets, so there is nothing to review with. Skipped, not red, until
+    # docs/22 §3 has stored the Infisical identity and INFISICAL_PROJECT_ID.
+    if: >
+      github.event.pull_request.draft == false && github.actor != 'dependabot[bot]' && vars.INFISICAL_PROJECT_ID != ''
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:

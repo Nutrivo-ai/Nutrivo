@@ -9,12 +9,14 @@ on:
   issues:
     types: [closed, reopened]
   workflow_dispatch:
-concurrency: { group: tracker, cancel-in-progress: false }
 permissions: { contents: read, issues: write }
 
 jobs:
   sync:
     if: github.event_name != 'issues' || contains(github.event.issue.labels.*.name, 'task')
+    # On the job, not the workflow: a run skipped for a non-task issue never joins the group, so it cannot cancel a
+    # pending sync. One sync at a time; a newer pending one replaces an older, and each syncs every task.
+    concurrency: { group: tracker, cancel-in-progress: false }
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
