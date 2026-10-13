@@ -34,8 +34,9 @@ for s in later:
 if a.baseline:
     base = set(Path(a.baseline).read_text().split())
     known = {s["name"] for s in secrets} | set(aliases)
+    # INFISICAL_*: each environment's own machine identity (docs/22 §3), never an alias candidate.
     extra = sorted(n for n in os.environ if n not in base and n not in known and n not in TOOL_VARS
-                   and not n.startswith(("UV_", "LC_")))
+                   and not n.startswith(("UV_", "LC_", "INFISICAL_")))
     if extra:
         print("Names in Infisical that are not mapped (candidates for config/secret-aliases.env):")
         print("  " + ", ".join(extra))

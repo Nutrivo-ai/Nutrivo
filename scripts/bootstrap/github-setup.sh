@@ -53,6 +53,10 @@ pid="$(python3 -c "import json; print(json.load(open('$ROOT/.infisical.json'))['
 if [ -n "$pid" ] && [ "${pid#<}" = "$pid" ]; then
   gh variable set INFISICAL_PROJECT_ID --repo "$REPO" --body "$pid" >/dev/null && ok "INFISICAL_PROJECT_ID" || bad "INFISICAL_PROJECT_ID"
 else bad ".infisical.json is missing or still holds the placeholder (BOOTSTRAP step 3.1)"; fi
+# Only for a project in Infisical's EU cloud (docs/22 §3): taken from this shell, as the Infisical CLI reads it.
+if [ -n "${INFISICAL_DOMAIN:-}" ]; then
+  gh variable set INFISICAL_DOMAIN --repo "$REPO" --body "$INFISICAL_DOMAIN" >/dev/null && ok "INFISICAL_DOMAIN" || bad "INFISICAL_DOMAIN"
+fi
 
 echo "Actions secrets: one Infisical machine identity per environment (values never printed)"
 # Infisical dev holds the client id and secret of the identity that reads dev; staging and prod likewise. The dev one
@@ -62,7 +66,7 @@ for pair in dev: staging:staging prod:production; do
   src="${pair%%:*}"; scope="${pair##*:}"
   REPO="$REPO" SCOPE="$scope" "$ROOT/scripts/env/run.sh" "$src" -- bash -c '
     for n in INFISICAL_CLIENT_ID INFISICAL_CLIENT_SECRET; do
-      if [ -z "${!n:-}" ]; then echo "  ✗ $n is not in Infisical $NUTRIVO_ENV (docs/22, step 5)" >&2; exit 1; fi
+      if [ -z "${!n:-}" ]; then echo "  ✗ $n is not in Infisical $NUTRIVO_ENV (docs/22 §3)" >&2; exit 1; fi
       printf %s "${!n}" | gh secret set "$n" --repo "$REPO" ${SCOPE:+--env "$SCOPE"} >/dev/null || exit 1
       echo "  ✓ $n (${SCOPE:-repository})"
     done' || fail=1
@@ -73,7 +77,8 @@ errs="$(gh api "repos/$REPO/codeowners/errors" --jq '.errors | length' 2>/dev/nu
 [ "$errs" = "0" ] && ok "CODEOWNERS valid" || bad "CODEOWNERS has ${errs:-unknown} errors: gh api repos/$REPO/codeowners/errors"
 
 echo "Still to do by hand (docs/22-github-and-team.md):"
-echo "  · Claude GitHub App installed on the repository's owner with access to this repository"
-echo "  · every founder can write to the repository and is listed in .github/CODEOWNERS"
+[ -n "${INFISICAL_DOMAIN:-}" ] || echo "  · INFISICAL_DOMAIN variable, only for a project in Infisical's EU cloud (§3)"
+echo "  · Claude GitHub App installed on the repository's owner with access to this repository (§1)"
+echo "  · every founder can write to the repository and is listed in .github/CODEOWNERS (§1)"
 echo "  · Sentry's GitHub integration, so production issues become GitHub issues"
 exit $fail

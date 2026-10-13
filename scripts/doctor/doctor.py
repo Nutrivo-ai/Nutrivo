@@ -1,10 +1,11 @@
 """Prove every external service works with the stored keys. Run inside scripts/env/run.sh (make doctor ENV=...).
 Never prints a secret. Sentry and Langfuse are proven by a round-trip: send, then read back through their APIs."""
-import argparse, base64, json, os, shutil, subprocess, sys, time, urllib.error, urllib.parse, urllib.request, uuid
+import argparse, base64, json, os, re, shutil, subprocess, sys, time, urllib.error, urllib.parse, urllib.request, uuid
 from datetime import datetime, timezone
 
+ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REQUIRED = {
-    "dev": ["bedrock", "stripe", "sentry", "langfuse"],
+    "dev": ["bedrock", "stripe", "sentry", "langfuse", "infisical-scope"],
     "staging": ["supabase", "supabase-management", "postgres", "bedrock", "ses", "stripe", "sentry", "langfuse",
                 "posthog", "vercel", "render"],
     "prod": ["supabase", "supabase-management", "postgres", "bedrock", "ses", "stripe", "sentry", "langfuse",
@@ -12,6 +13,36 @@ REQUIRED = {
 }
 WRITES = {"sentry", "langfuse", "posthog", "bedrock"}  # skipped with --readonly
 E = os.environ.get
+
+
+def _read(rel):
+    try:
+        with open(os.path.join(ROOT, rel)) as fh:
+            return fh.read()
+    except OSError:
+        return ""
+
+
+def _secret_values():
+    """Values of every canonical secret name (config/secrets.yaml), alias and INFISICAL_* variable."""
+    names = set(re.findall(r"name: ([A-Z0-9_]+)", _read("config/secrets.yaml")))
+    names |= set(re.findall(r"^\s*[A-Z0-9_]+\s*=\s*([A-Z0-9_]+)", _read("config/secret-aliases.env"), re.M))
+    names |= {n for n in os.environ if n.startswith("INFISICAL_")}
+    out = set()
+    for v in (E(n, "").strip() for n in names):
+        # the value, its escaped form (as a bytes repr shows it) and each part of a value with whitespace inside
+        out |= {p for p in (v, v.encode("unicode_escape").decode(), *v.split()) if len(p) >= 6}
+    return out
+
+
+SECRETS = _secret_values()
+
+
+def redact(text):
+    """Exception messages can quote a credential (http.client echoes a malformed header in full): mask them all."""
+    for v in sorted(SECRETS, key=len, reverse=True):
+        text = text.replace(v, "***")
+    return text
 
 
 class Skip(Exception):
@@ -214,10 +245,59 @@ def c_github(env):
     return "authenticated"
 
 
+def _count_names(body):
+    try:
+        return len(json.loads(body).get("secrets") or [])
+    except (ValueError, AttributeError):
+        return -1  # an answer that cannot be read counts as a leak
+
+
+def c_infisical_scope(env):
+    """A dev identity (the session's token, and the client id and secret Infisical dev holds) must read dev and must
+    not read staging or prod (docs/22 §3). Prints statuses and name counts only: viewSecretValue=false keeps values out
+    of the answers. An environment that answers with no names (the unused staging and prod of a dev-only project when
+    there is one project per environment) exposes nothing."""
+    if env != "dev":
+        raise Skip("dev only")
+    if not (E("INFISICAL_TOKEN") or E("INFISICAL_CLIENT_ID")):
+        raise Skip("no Infisical machine identity in this environment")
+    cfg = json.loads(_read(".infisical.json") or "{}")
+    pid = E("INFISICAL_PROJECT_ID") or cfg.get("workspaceId", "")
+    if not pid or pid.startswith("<"):
+        raise Skip("no Infisical project id (.infisical.json)")
+    domain = E("INFISICAL_DOMAIN") or cfg.get("domain") or "https://app.infisical.com"
+    api = domain.rstrip("/").removesuffix("/api") + "/api"
+    tokens = {"token": E("INFISICAL_TOKEN")} if E("INFISICAL_TOKEN") else {}
+    if E("INFISICAL_CLIENT_ID"):
+        need("INFISICAL_CLIENT_SECRET")
+        form = urllib.parse.urlencode({"clientId": E("INFISICAL_CLIENT_ID"),
+                                       "clientSecret": E("INFISICAL_CLIENT_SECRET")})
+        s, b = http("POST", f"{api}/v1/auth/universal-auth/login",
+                    {"Content-Type": "application/x-www-form-urlencoded"}, form.encode())
+        assert s == 200, f"universal-auth login with INFISICAL_CLIENT_ID returned {s}"
+        tokens["client id"] = json.loads(b)["accessToken"]
+        SECRETS.add(tokens["client id"])
+    report, leaks = [], []
+    for who, tok in tokens.items():
+        st, names = {}, {}
+        for e in ("dev", "staging", "prod"):
+            st[e], b = http("GET", f"{api}/v4/secrets?" + urllib.parse.urlencode(
+                {"projectId": pid, "environment": e, "secretPath": "/", "viewSecretValue": "false"}), bearer(tok))
+            if e != "dev" and 200 <= st[e] < 300:
+                names[e] = _count_names(b)
+        report.append(f"{who}: " + ", ".join(f"{e} {s}" + (f" (names: {names[e]})" if e in names else "")
+                                             for e, s in st.items()))
+        assert st["dev"] == 200, f"{report[-1]}: this identity cannot read dev, so the check proves nothing"
+        leaks += [f"{who} reads {e}" for e, n in names.items() if n != 0]
+    assert not leaks, (f"{', '.join(leaks)} ({'; '.join(report)}): "
+                       "a dev identity must not read staging or prod (docs/22 §3)")
+    return "; ".join(report)
+
+
 CHECKS = {"supabase": c_supabase, "supabase-management": c_supabase_management, "postgres": c_postgres,
           "bedrock": c_bedrock, "ses": c_ses, "anthropic": c_anthropic, "stripe": c_stripe, "sentry": c_sentry,
           "langfuse": c_langfuse, "posthog": c_posthog, "vercel": c_vercel, "render": c_render, "app": c_app,
-          "github": c_github}
+          "github": c_github, "infisical-scope": c_infisical_scope}
 
 
 def main():
@@ -239,11 +319,12 @@ def main():
             try:
                 status, detail = "ok", fn(a.env)
             except Skip as e:
-                status, detail = "skip", str(e)
+                status, detail = "skip", redact(str(e))
             except AssertionError as e:
-                status, detail = ("fail" if required else "warn"), str(e)
+                status, detail = ("fail" if required else "warn"), redact(str(e))
             except Exception as e:  # noqa: BLE001 - report, never crash the doctor
-                status, detail = ("fail" if required else "warn"), f"{type(e).__name__}: {str(e)[:160]}"
+                # redact before truncating: a cut could leave part of a secret that no longer matches
+                status, detail = ("fail" if required else "warn"), f"{type(e).__name__}: {redact(str(e))[:160]}"
         failed |= status == "fail"
         mark = {"ok": "✓", "fail": "✗", "warn": "!", "skip": "·"}[status]
         print(f"  {mark} {name:<20} {int((time.time() - t0) * 1000):>6} ms  {detail}")

@@ -65,10 +65,12 @@ if [ "$(infisical --version 2>/dev/null)" != "infisical version $INFISICAL_VERSI
 fi
 [ "$(infisical --version 2>/dev/null)" = "infisical version $INFISICAL_VERSION" ] && ok "infisical $INFISICAL_VERSION"
 
-# Infisical access: a machine identity's client id and secret become a session token. Nothing is printed.
+# Infisical access: a machine identity's client id and secret become a session token. Nothing is printed, and the
+# secret reaches the CLI through its own environment variables, never the command line (readable in /proc).
 if [ -z "${INFISICAL_TOKEN:-}" ] && [ -n "${INFISICAL_CLIENT_ID:-}" ] && [ -n "${INFISICAL_CLIENT_SECRET:-}" ]; then
-  if token="$(infisical login --method=universal-auth --client-id="$INFISICAL_CLIENT_ID" \
-                --client-secret="$INFISICAL_CLIENT_SECRET" --silent --plain 2>/dev/null)" && [ -n "$token" ]; then
+  if token="$(INFISICAL_UNIVERSAL_AUTH_CLIENT_ID="$INFISICAL_CLIENT_ID" \
+              INFISICAL_UNIVERSAL_AUTH_CLIENT_SECRET="$INFISICAL_CLIENT_SECRET" \
+              infisical login --method=universal-auth --silent --plain 2>/dev/null)" && [ -n "$token" ]; then
     persist "export INFISICAL_TOKEN='$token'"; ok "infisical login"
   else fail "Infisical login failed: is the Infisical host allowed in this environment's network settings?"; fi
 elif [ -z "${INFISICAL_TOKEN:-}" ]; then
@@ -92,7 +94,10 @@ if docker info >/dev/null 2>&1 && command -v supabase >/dev/null; then
       supabase stop --no-backup >/dev/null 2>&1; sleep $((attempt * 20))
     done
   fi
-  if supabase status >/dev/null 2>&1; then ok "local supabase"; else fail "local Supabase did not start (see /tmp/supabase-start.log)"; fi
+  # A reused container keeps the schema it was built with: apply the migrations merged since. Data is never reset.
+  if ! supabase status >/dev/null 2>&1; then fail "local Supabase did not start (see /tmp/supabase-start.log)"
+  elif supabase migration up --local --include-all >/tmp/supabase-migrate.log 2>&1; then ok "local supabase"
+  else fail "local migrations did not apply (see /tmp/supabase-migrate.log): run make db-reset"; fi
 fi
 
 echo "Nutrivo cloud session: ready: ${ready[*]:-nothing}."

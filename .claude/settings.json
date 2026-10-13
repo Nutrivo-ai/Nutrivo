@@ -1,8 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Bash(make:*)", "Bash(pnpm:*)", "Bash(uv:*)", "Bash(npx playwright:*)",
-      "Bash(scripts/env/run.sh dev:*)", "Bash(bash scripts/bootstrap/check-tools.sh)", "Bash(bash scripts/bootstrap/github-setup.sh:*)",
+      "Bash(make:*)", "Bash(pnpm:*)", "Bash(uv:*)", "Bash(npx playwright:*)", "Bash(bash scripts/bootstrap/check-tools.sh)",
       "Bash(supabase start:*)", "Bash(supabase stop:*)", "Bash(supabase status:*)", "Bash(supabase db reset:*)",
       "Bash(supabase test db:*)", "Bash(supabase migration new:*)", "Bash(supabase gen types:*)", "Bash(supabase functions serve:*)",
       "Bash(gh auth status)", "Bash(gh repo list:*)", "Bash(gh repo view:*)", "Bash(gh issue:*)", "Bash(gh pr create:*)",
@@ -16,16 +15,20 @@
       "Edit(./supabase/tests/gates/**)", "Edit(./worker/tests/gates/**)", "Edit(./fixtures/golden/**)",
       "Edit(./content/accepted/**)", "Edit(./.milestone)", "Edit(./spec/acceptance.yaml)", "Edit(./spec/nfr.yaml)",
       "Read(./.env)", "Read(./.env.*)", "Read(./**/.env)", "Read(./**/.env.*)",
-      "Bash(infisical export:*)", "Bash(infisical secrets:*)", "Bash(printenv:*)", "Bash(env)",
+      "Bash(*infisical export*)", "Bash(*infisical secrets*)", "Bash(printenv:*)", "Bash(env)",
+      "Bash(*-- env)", "Bash(*-- env *)",
       "Bash(scripts/env/run.sh staging:*)", "Bash(scripts/env/run.sh prod:*)",
       "Bash(*scripts/env/run.sh staging*)", "Bash(*scripts/env/run.sh prod*)",
+      "Bash(make *ENV=staging*)", "Bash(make *ENV=prod*)",
       "Bash(supabase link:*)", "Bash(supabase db push:*)", "Bash(supabase functions deploy:*)", "Bash(supabase secrets:*)",
       "Bash(supabase db reset --linked:*)", "Bash(supabase db reset --db-url:*)", "Bash(supabase test db --linked:*)",
       "Bash(supabase * --linked*)", "Bash(supabase * --db-url*)",
       "Bash(gh api -X:*)", "Bash(gh api --method:*)", "Bash(gh api *-X*)", "Bash(gh api *--method*)",
-      "Bash(npx vercel:*)", "Bash(vercel:*)", "Bash(gh pr merge:*)", "Bash(gh pr review:*)", "Bash(gh repo delete:*)",
+      "Bash(npx vercel:*)", "Bash(vercel:*)", "Bash(*gh pr merge*)", "Bash(*gh pr review*)", "Bash(gh repo delete:*)",
       "Bash(gh secret list:*)", "Bash(git push --force:*)", "Bash(git push -f:*)", "Bash(git reset --hard:*)",
       "Bash(git push *--force*)", "Bash(*printenv*)",
+      "Bash(git tag:*)", "Bash(git push *--tags*)", "Bash(git push *refs/tags/*)", "Bash(git push *--follow-tags*)",
+      "mcp__github__merge_pull_request", "mcp__github__pull_request_review_write", "mcp__github__enable_pr_auto_merge",
       "Bash(gh pr edit *human-approved*)", "Bash(gh pr edit *scope-approved*)",
       "Bash(gh issue edit *human-approved*)", "Bash(gh issue edit *scope-approved*)"
     ]
