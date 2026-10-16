@@ -12,11 +12,11 @@ Code on the web the session start hook installs the tools, so usually only the `
 are missing; if a tool is, show the hook's "Not ready" line instead of install commands.
 
 ## 2 · Repository (GATE G1 if the repository already has code)
-`main` of `ar835/Nutrivo` already holds this hand-off, so in a clone of it (every web session, or SETUP Step 3 on a
+`main` of `nutrivo-ai/Nutrivo` already holds this hand-off, so in a clone of it (every web session, or SETUP Step 3 on a
 laptop) skip step 2; 2.1–2.4 are for an unzipped hand-off only. On the web the session pushes through the Claude
 GitHub App: if a push is refused, ask the founder to install the app on the repository (docs/22 §1).
 1. `gh auth status`. If it is not authenticated, ask the founder to run `gh auth login`, and stop.
-2. The repository is `ar835/Nutrivo` (docs/22). If `gh repo view ar835/Nutrivo` fails, ask.
+2. The repository is `nutrivo-ai/Nutrivo` (docs/22). If `gh repo view nutrivo-ai/Nutrivo` fails, ask.
 3. In this folder: `git init -b main` (if needed), `git remote add origin <url>`, `git fetch origin`.
 4. **Empty remote:** commit everything as "Hand-off baseline" and push to main.
    **Remote with commits:**
@@ -57,7 +57,7 @@ GitHub autopilot have the files.
 ## 7 · GitHub (docs/22-github-and-team.md)
 1. Every third-party action in `.github/workflows/` is pinned to a full commit SHA (Dependabot keeps the pins
    current), and `.github/CODEOWNERS` names every founder's GitHub username (ask for any that are missing).
-2. Before the set-up pull request is approved, the owner (ar835) creates the `scope-approved` and `human-approved`
+2. Before the set-up pull request is approved, an organisation owner creates the `scope-approved` and `human-approved`
    labels and adds the ones it needs; on it only the owner's labels count (docs/22 §1). After merging it, the founder applies the rest of docs/22 §1–§3: plan and
    collaborators, rulesets imported from `.github/rulesets/`, environments, the Infisical identities as Actions
    secrets and the `INFISICAL_PROJECT_ID` variable (and `INFISICAL_DOMAIN` if the project is in Infisical's EU cloud). The merge closes T-004's issue (the pull request's `Closes` line)
