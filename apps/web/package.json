@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "[ -d node_modules/.bin ] || pnpm install --frozen-lockfile",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
