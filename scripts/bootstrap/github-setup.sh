@@ -15,7 +15,7 @@ fi
 IFS=$'\t' read -r owner_type private default_branch <<<"$info"
 [ "$private" = "true" ] && ok "private" || bad "the repository is public: make it private first (Settings → General → Danger Zone)"
 [ "$owner_type" = "Organization" ] && ok "owned by an organisation" \
-  || warn "owned by a personal account: rulesets and environments on a private repo need GitHub Pro (docs/22 §1)"
+  || warn "owned by a personal account: rulesets and environments on a private repo need a paid plan: GitHub Pro, or an organisation on Team (docs/22 §1)"
 [ "$default_branch" = "main" ] && ok "default branch main" || bad "default branch is '$default_branch': set it to main"
 
 echo "Labels and milestones"

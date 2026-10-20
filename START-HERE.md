@@ -13,8 +13,8 @@ wrong. This system makes failures small, loud and quickly fixed, and keeps a per
 1. **Infisical token.** The shell that runs Claude Code has `INFISICAL_TOKEN`; in Claude Code on the web, the
    environment holds the `claude-dev` identity instead (docs/22 §5). If the project is in Infisical's EU cloud, also
    set `INFISICAL_DOMAIN=https://eu.infisical.com`.
-2. **GitHub plan.** Enforced rulesets, code-owner review and environment secrets on the private `ar835/Nutrivo` need
-   GitHub Pro on ar835's personal account (docs/22 §1). A merge queue needs Enterprise Cloud; without it the protocol
+2. **GitHub plan.** Enforced rulesets, code-owner review and environment secrets on the private `nutrivo-ai/Nutrivo`
+   come with the `nutrivo-ai` organisation's paid GitHub Team plan (docs/22 §1). A merge queue needs Enterprise Cloud; without it the protocol
    falls back to "branch must be up to date".
 3. **Tools.** On the web, the session start hook installs them. On a laptop: git, gh, Node 22+, pnpm, uv, Docker
    (running), Supabase CLI, Infisical CLI, Ghostscript and Poppler; `scripts/bootstrap/check-tools.sh` lists anything
@@ -23,7 +23,7 @@ wrong. This system makes failures small, loud and quickly fixed, and keeps a per
    fine: Claude Code maps them in `config/secret-aliases.env` and lists anything missing by name, never by value.
 
 ## Start
-**On the web:** open claude.ai/code, choose `ar835/Nutrivo` and your Nutrivo environment (docs/22 §5), and paste the
+**On the web:** open claude.ai/code, choose `nutrivo-ai/Nutrivo` and your Nutrivo environment (docs/22 §5), and paste the
 prompt below. **On a laptop:**
 ```bash
 mkdir -p ~/code && cd ~/code && unzip nutrivo-handoff.zip && cd nutrivo

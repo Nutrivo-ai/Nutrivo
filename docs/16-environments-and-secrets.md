@@ -7,11 +7,11 @@
 | production | nutrivo-prod, Frankfurt | Customers; releases by the owner's `v*` tag (docs/22 §4) | prod |
 
 ## Infisical
-- **Structure.** One project with environments dev, staging and prod (or one project per environment, if the
-  Infisical plan cannot scope an identity to one environment: docs/22 §3). `config/secrets.yaml` lists every
-  required name: where it must exist, what uses it, and which doctor check proves it.
-- **Machine identities** (universal auth), each able to read only what it needs. Infisical's built-in Viewer and
-  Member roles read every environment, so docs/22 §3 gives each identity one environment and nothing else:
+- **Structure.** One Infisical project per environment, each holding a single environment (`dev`, `staging` or
+  `prod`): Infisical's Viewer role reads every environment of its project, so this is how an identity reads exactly one
+  (docs/22 §3). `.infisical.json` holds the dev project's id. `config/secrets.yaml` lists every required name: where
+  it must exist, what uses it, and which doctor check proves it.
+- **Machine identities** (universal auth), each a Viewer of its one project and nothing else (docs/22 §3):
   - `claude-dev`: reads dev. Every person's Claude Code on the web environment holds its client id and their own
     client secret as `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`; the session start hook exchanges them for
     `INFISICAL_TOKEN`. On a laptop, `INFISICAL_TOKEN` in the shell does the same. It never reads staging or prod:
@@ -21,12 +21,12 @@
     environments `staging` and `production`, which only jobs on `main` or a `v*` tag can read. A pull request branch
     therefore never sees staging or production secrets, even if it edits a workflow. Each Infisical environment
     stores its own identity's client id and secret as `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`, which is
-    where `scripts/bootstrap/github-setup.sh` copies them from. `INFISICAL_PROJECT_ID` is a repository variable
-    (with one project per environment, `staging` and `production` override it with their own).
+    where `scripts/bootstrap/github-setup.sh` copies them from. `INFISICAL_PROJECT_ID` is a repository variable (the
+    dev project); the GitHub environments `staging` and `production` override it with their own project's id.
   - Infisical's secret syncs to Vercel and Render, so nothing is copied by hand.
 - **Switches.** Repository variables turn deployments on at their gates: `STAGING_DEPLOY_ENABLED` (T-010, G7),
-  `PRODUCTION_DEPLOY_ENABLED` (T-1101, G7) and `SYNTHETIC_ENABLED` (T-1102). Until the owner sets one to `true` (on a
-  personal repository only the owner changes settings), the matching workflow does nothing. docs/22-github-and-team.md has the click path.
+  `PRODUCTION_DEPLOY_ENABLED` (T-1101, G7) and `SYNTHETIC_ENABLED` (T-1102). Until an organisation owner sets one to `true`, the
+  matching workflow does nothing. docs/22-github-and-team.md has the click path.
 - **Existing names.** Names you already use can map to the canonical ones in `config/secret-aliases.env`
   (names only, never values).
 
