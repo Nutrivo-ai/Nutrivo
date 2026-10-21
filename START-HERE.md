@@ -41,7 +41,7 @@ names, and tell me exactly what you need from me at each one. Report after every
 | G0 Tools | Bootstrap step 1 | Install what is missing (on the web the session start hook installs the tools; only the `claude-dev` variables in docs/22 §5 can be missing) |
 | G1 Repository import | Bootstrap step 2, if the repository has code | Approve the import pull request (old code is archived on a branch and kept in `legacy/`, never deleted) |
 | G1b GitHub settings | Bootstrap step 7, task T-004 | The settings in docs/22: collaborators, the two approval labels, rulesets, environments, Actions secrets; Claude Code cannot change them |
-| G2 Secrets | Bootstrap steps 3–4 | Add or fix the named secrets in Infisical; run the `doctor` workflow for staging and prod |
+| G2 Secrets | Bootstrap steps 3–4 (dev); T-010 (staging) and T-1101 (prod) | Add or fix the named secrets in Infisical; run the `doctor` workflow for staging and prod in those tasks |
 | G2b Research conflicts | Task T-011 | Resolve the conflicts Claude Code records in docs/14 into docs/02-decisions.md |
 | G3 Design files | Bootstrap step 6, only if the automatic download is refused | Download the Drive design folder into `design/`; on the web, upload it as a zip into the session |
 | G4 Target freeze | Task T-012 | Approve `spec/screens.yaml`: every screen Claude Code found in your designs |

@@ -1,7 +1,8 @@
 name: doctor
-# BOOTSTRAP steps 3-4 and T-003 for staging and prod. Claude Code sessions hold only the dev Infisical identity, so a
-# founder runs this from Actions → doctor → Run workflow; it checks the names (config/secrets.yaml) and the services
-# inside the GitHub environment that holds that environment's identity. Names only, never a value; prod is read-only.
+# Staging in T-010 and prod in T-1101 (bootstrap checks dev only). Claude Code sessions hold only the dev Infisical
+# identity, so a founder runs this from Actions → doctor → Run workflow; it checks the names (config/secrets.yaml) and
+# the services inside the GitHub environment that holds that environment's identity. Names only, never a value; prod
+# is read-only.
 on:
   workflow_dispatch:
     inputs:

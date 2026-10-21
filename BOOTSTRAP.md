@@ -30,16 +30,17 @@ GitHub App: if a push is refused, ask the founder to install the app on the repo
 ## 3 · Secrets (GATE G2)
 1. Create `.infisical.json` from `.infisical.json.example` with the project id (INFISICAL_PROJECT_ID, or ask).
    Commit it; it holds no secret.
-2. `make env-check ENV=dev`. It prints names only. A Claude Code session holds only the dev identity (docs/16), so
-   staging and prod are checked by a founder: Actions → doctor → Run workflow, once with `staging` and once with
-   `prod` (after the set-up pull request is merged and docs/22 §3 is done). Names whose resource a later task
-   creates (`from:` in `config/secrets.yaml`, for example the Render worker in T-010) show as `later`, not missing.
+2. `make env-check ENV=dev`. It prints names only. Bootstrap checks dev only: the staging and prod Infisical projects
+   are created in T-010 (docs/22 §3), and a Claude Code session holds only the dev identity (docs/16). A founder
+   checks staging in T-010 and prod in T-1101: Actions → doctor → Run workflow, with `staging` or `prod`. Names whose
+   resource a later task creates (`from:` in `config/secrets.yaml`, for example the Render worker in T-010) show as
+   `later`, not missing.
 3. A missing canonical name with an obvious equivalent already in Infisical (for example SENTRY_DSN for
    SENTRY_DSN_WEB): add `CANONICAL=EXISTING` to `config/secret-aliases.env` and re-run.
 4. Anything still missing: list it with its purpose from `config/secrets.yaml`, and stop.
 
 ## 4 · Doctor (GATE G2 on a bad key)
-`make doctor ENV=dev` here; staging and prod in the same `doctor` workflow run as step 3 (prod read-only).
+`make doctor ENV=dev` here. Staging (T-010) and prod (T-1101, read-only) in the same `doctor` workflow run as step 3.
 Every check is green or explicitly skipped with a reason: until T-010 deploys staging, the database schema, the
 Render worker and the Vercel project are skipped, not failed. Sentry and Langfuse are proven by a round-trip: send,
 then read back.
