@@ -23,7 +23,7 @@ tasks:
   - {id: T-007, ms: M0, lanes: [web], deps: [T-001], title: "Scaffold apps/web: Next.js, TypeScript, Tailwind, ESLint, Vitest, Playwright, @supabase/ssr, @sentry/nextjs, posthog-js; Vercel config (fra1)"}
   - {id: T-008, ms: M0, lanes: [worker], deps: [T-002], title: "Worker runtime: config, pgmq job loop, idempotent handler registry, retries, reaper, structured logs, Sentry (errors, traces, heartbeat cron), Langfuse, models wrapper with record/replay, Dockerfile builds"}
   - {id: T-009, ms: M0, lanes: [infra, web, worker], deps: [T-007, T-008], title: "Full-stack CI: local Supabase + worker + web + Mailpit in Actions; Playwright harness; JUnit and TAP reports; conformance report and ratchet required"}
-  - {id: T-010, ms: M0, lanes: [infra], gate: human, deps: [T-009, T-003], title: "Staging pipeline: migrations, Edge Functions, Render worker, Vercel, Infisical syncs, smoke tests, observability round-trip, automatic rollback", checks: ["make env-check ENV=staging", "make doctor ENV=staging"]}
+  - {id: T-010, ms: M0, lanes: [infra], gate: human, deps: [T-009, T-003], title: "Staging pipeline: migrations, Edge Functions, Render worker, Vercel, Infisical syncs, smoke tests, observability round-trip, automatic rollback", checks: ["make env-check ENV=staging ALL=1", "make doctor ENV=staging"]}
   - {id: T-011, ms: M0, lanes: [infra], gate: human, deps: [T-001], title: "Verify the open research items in docs/14 with web search and record conflicts for the founders"}
   - {id: T-012, ms: M0, lanes: [web], gate: human, deps: [T-006, T-007], title: "Screen inventory and design baselines: every screen in design/ into spec/screens.yaml; baselines at 1600 px and 390 px (gate G4)"}
   - {id: T-013, ms: M0, lanes: [db], deps: [T-012], title: "Demo seed reproducing the design mock data (Halden Pet Nutrition) for local, CI and the staging demo workspace"}
@@ -90,7 +90,7 @@ tasks:
   - {id: T-1002, ms: M10, lanes: [worker], deps: [T-1001, T-502], wf: [E02], title: "Compliance envelope"}
   - {id: T-1003, ms: M10, lanes: [web], deps: [T-1001, T-303], wf: [E04], title: "Promote a brief to artwork"}
   # ── M11 · Hardening and launch ─────────────────────────────────────────────────────────────────────
-  - {id: T-1101, ms: M11, lanes: [infra], gate: human, deps: [T-010], title: "Production pipeline: tag plus approval, point-in-time recovery, restore drill (gate G7)", checks: ["make env-check ENV=prod"]}
+  - {id: T-1101, ms: M11, lanes: [infra], gate: human, deps: [T-010], title: "Production pipeline: tag plus approval, point-in-time recovery, restore drill (gate G7)", checks: ["make env-check ENV=prod ALL=1"]}
   - {id: T-1102, ms: M11, lanes: [infra], deps: [T-1101], title: "Synthetic monitoring, Sentry cron monitors, alert routing"}
   - {id: T-1103, ms: M11, lanes: [db, worker, web, infra], deps: [T-703, T-802, T-903], title: "Security sweep: rls-reviewer, Supabase advisors, rate limits, clean scans"}
   - {id: T-1104, ms: M11, lanes: [web], deps: [T-506, T-603, T-703], title: "Accessibility to WCAG 2.2 AA"}

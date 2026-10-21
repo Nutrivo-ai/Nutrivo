@@ -31,10 +31,10 @@ GitHub App: if a push is refused, ask the founder to install the app on the repo
 1. Create `.infisical.json` from `.infisical.json.example` with the project id (INFISICAL_PROJECT_ID, or ask).
    Commit it; it holds no secret.
 2. `make env-check ENV=dev`. It prints names only. Bootstrap checks dev only: the staging and prod Infisical projects
-   are created in T-010 (docs/22 §3), and a Claude Code session holds only the dev identity (docs/16). A founder
-   checks staging in T-010 and prod in T-1101: Actions → doctor → Run workflow, with `staging` or `prod`. Names whose
+   are created in T-010 (docs/22 §3), and a Claude Code session holds only the dev identity (docs/16). Names whose
    resource a later task creates (`from:` in `config/secrets.yaml`, for example the Render worker in T-010) show as
-   `later`, not missing.
+   `later`, not missing. A founder checks staging in T-010 and prod in T-1101 with every name required: Actions →
+   doctor → Run workflow, with `staging` or `prod` and `all` ticked, and links the run on the task's issue.
 3. A missing canonical name with an obvious equivalent already in Infisical (for example SENTRY_DSN for
    SENTRY_DSN_WEB): add `CANONICAL=EXISTING` to `config/secret-aliases.env` and re-run.
 4. Anything still missing: list it with its purpose from `config/secrets.yaml`, and stop.

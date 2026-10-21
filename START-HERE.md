@@ -19,8 +19,9 @@ wrong. This system makes failures small, loud and quickly fixed, and keeps a per
 3. **Tools.** On the web, the session start hook installs them. On a laptop: git, gh, Node 22+, pnpm, uv, Docker
    (running), Supabase CLI, Infisical CLI, Ghostscript and Poppler; `scripts/bootstrap/check-tools.sh` lists anything
    missing with the install command.
-4. **Secrets.** Infisical holds the names in `config/secrets.yaml` for dev, staging and prod. Different names are
-   fine: Claude Code maps them in `config/secret-aliases.env` and lists anything missing by name, never by value.
+4. **Secrets.** Infisical's dev project holds the dev names in `config/secrets.yaml`; staging and prod get their own
+   projects in T-010 (docs/22 §3). Different names are fine: Claude Code maps them in `config/secret-aliases.env` and
+   lists anything missing by name, never by value.
 
 ## Start
 **On the web:** open claude.ai/code, choose `nutrivo-ai/Nutrivo` and your Nutrivo environment (docs/22 §5), and paste the

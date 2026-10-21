@@ -11,6 +11,10 @@ on:
         type: choice
         options: [staging, prod]
         required: true
+      all:
+        description: Also require the names a later task creates (from T-010, as make env-check ALL=1)
+        type: boolean
+        default: false
 permissions: { contents: read }
 
 jobs:
@@ -29,6 +33,6 @@ jobs:
           env-slug: ${{ inputs.env }}
       - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
       - name: Names present in Infisical
-        run: uv run --no-project --with pyyaml python scripts/env/check-secrets.py --env "${{ inputs.env }}"
+        run: uv run --no-project --with pyyaml python scripts/env/check-secrets.py --env "${{ inputs.env }}" ${{ inputs.all && '--all' || '' }}
       - name: Services answer with the stored keys
         run: uv run --no-project --with boto3 python scripts/doctor/doctor.py --env "${{ inputs.env }}" ${{ inputs.env == 'prod' && '--readonly' || '' }}
