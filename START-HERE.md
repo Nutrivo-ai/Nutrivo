@@ -45,7 +45,7 @@ names, and tell me exactly what you need from me at each one. Report after every
 | G2b Research conflicts | Task T-011 | Resolve the conflicts Claude Code records in docs/14 into docs/02-decisions.md |
 | G3 Design files | Bootstrap step 6, only if the automatic download is refused | Download the Drive design folder into `design/`; on the web, upload it as a zip into the session |
 | G4 Target freeze | Task T-012 | Approve `spec/screens.yaml`: every screen Claude Code found in your designs |
-| G5 Merges | Every pull request | Review and approve (CI must be green; you never review red code) |
+| G5 Merges | Every pull request | The `claude-review` workflow approves when its review ends in APPROVE-READY (D-23); you merge, and can still review, approve or dismiss its review |
 | G6 Content | Weekly from milestone 2 | Accept rules in /admin (docs/12-content-ops.md) |
 | G7 Deploy environments | T-010 and T-1101 | Approve the first staging and production deployments: the owner sets the switches in docs/22 §4 |
 | G8 Stripe live | T-705 | Switch Stripe to live once test mode is proven |

@@ -54,7 +54,8 @@ Any task may touch docs/. Anything else outside the task's lanes fails the proto
    issue. Claude Code cannot create or push tags (`git tag` is denied): to list them, `git ls-remote --tags origin`.
 7. **CI.** Required checks: protocol, secrets-scan, database, worker, web, e2e, conformance. On an autopilot PR a
    failure triggers the fixer (up to three attempts) before a person is asked.
-8. **Review.** The Claude reviewer comments against the spec; a founder approves.
+8. **Review.** The Claude reviewer comments against the spec, and the `claude-review` workflow approves on
+   APPROVE-READY or requests changes on CHANGES-NEEDED (D-23). A founder can still approve, or dismiss its review.
 9. **Merge.** Through the merge queue, or only when up to date with main, so the PR is tested on the latest main and
    main stays green.
 10. **Staging.** Once `STAGING_DEPLOY_ENABLED` is set at T-010 (docs/22 §4), every merge deploys to staging, then runs
@@ -101,7 +102,7 @@ runs tasks in sequence on a laptop only, because it needs `gh pr`, which the web
 - **May:** claim ready tasks, write code and tests, open pull requests, fix its own CI failures, answer review
   comments.
 - **May not:**
-  - merge or approve;
+  - merge, or approve (only the `claude-review` workflow approves, D-23);
   - change spec/ or protected files;
   - deploy to production;
   - accept regulatory content;

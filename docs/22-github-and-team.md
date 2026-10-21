@@ -16,9 +16,10 @@ repository named Nutrivo under `ar835` again (that ends the redirect).
    create `v*` release tags; GitHub recommends at least two. If `abnutrivo` accepted a repository invitation before the
    move, they are an outside collaborator instead: People → Outside collaborators → ⋯ → Invite to organization. Base
    permissions (organisation Settings → Member privileges) can stay at Read or No permission.
-3. **Code owners**: `.github/CODEOWNERS` names `@ar835 @abnutrivo` on every line (any one listed owner's approval
-   satisfies code-owner review). Each needs write access, which an owner has; GitHub flags an entry until then. A
-   visible `founders` team with write access (`@nutrivo-ai/founders`) can replace the two names later.
+3. **Code owners**: `.github/CODEOWNERS` names `@ar835 @abnutrivo` on every line. The `main` ruleset no longer
+   requires code-owner review (D-23), but the protocol check reads the `*` line to know whose `scope-approved` and
+   `human-approved` labels count, so keep it. Each needs write access, which an owner has; GitHub flags an entry until
+   then. A visible `founders` team with write access (`@nutrivo-ai/founders`) can replace the two names later.
 4. **Claude GitHub App**: github.com/apps/claude/installations/new → `nutrivo-ai` → Only select repositories →
    `Nutrivo` (later: organisation Settings → GitHub Apps → Claude → Configure). Each founder connects GitHub in
    claude.ai (Settings → Connectors), and sessions choose `nutrivo-ai/Nutrivo`.
@@ -26,7 +27,9 @@ repository named Nutrivo under `ar835` again (that ends the redirect).
    GitHub's own plus `astral-sh/setup-uv@*`, `pnpm/action-setup@*`, `supabase/setup-cli@*`,
    `anthropics/claude-code-action@*` and `Infisical/secrets-action@*`. "Require actions to be pinned to a full-length
    commit SHA" can be on: every action is pinned. Workflow permissions stay "Read repository contents and packages"
-   (every workflow declares its own), and "Allow GitHub Actions to create and approve pull requests" stays off.
+   (every workflow declares its own). "Allow GitHub Actions to create and approve pull requests" is **on**, at
+   organisation and repository level (repository Settings → Actions → General), so `claude-review` can approve
+   (D-23).
 6. **Labels**: the `tracker` workflow creates every label, the two approval labels included (`scope-approved`,
    `human-approved`). Only a founder applies those two (docs/CONTRIBUTING.md).
 
@@ -35,9 +38,11 @@ Imported once the set-up pull request was merged, so the rules did not block the
 Settings → Rulesets lists both, each with Enforcement status **Active**, and Settings → Branches holds no classic
 branch protection rule (it would combine with them). To recreate one: New ruleset → **Import a ruleset**, once per
 file:
-- `.github/rulesets/main.json`: `main` only changes through a pull request with one founder approval (code owner,
-  not the last pusher), resolved threads, and green `protocol`, `secrets-scan`, `database`, `worker`, `web`, `e2e`
-  and `conformance` on a branch that is up to date with `main`. Squash merges only.
+- `.github/rulesets/main.json`: `main` only changes through a pull request with one approval (not from the last
+  pusher; normally the `claude-review` workflow's, D-23, with code-owner review off), resolved threads, and green
+  `protocol`, `secrets-scan`, `database`, `worker`, `web`, `e2e` and `conformance` on a branch that is up to date with
+  `main`. Squash merges only. A later push dismisses the approval and the next review run decides again. A
+  changes-requested review stays until the workflow approves a later head or a founder dismisses it.
 - `.github/rulesets/release-tags.json`: only repository admins can create, move or delete `v*` tags, so a production
   release is always a founder's act. Repository admins are the organisation owners, the two founders.
 
