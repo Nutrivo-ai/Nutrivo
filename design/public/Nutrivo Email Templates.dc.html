@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--panel); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  button { font: inherit; color: inherit; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @keyframes ntv-slide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+
+<div style="min-width: 1220px; min-height: 940px; display: grid; grid-template-columns: 248px minmax(0, 1fr); background: var(--panel); font-size: 14px">
+
+  <nav style="border-right: 1px solid var(--rule); background: var(--paper); padding-bottom: 30px">
+    <div style="padding: 17px 18px; border-bottom: 1px solid var(--ink)">
+      <p style="margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 20px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 6px; height: 6px; background: var(--accent); margin-bottom: 2px; flex-shrink: 0"></span></p>
+      <p style="margin: 4px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">Email templates · six</p>
+    </div>
+    <div style="padding: 14px 10px 0">
+      <p style="margin: 0 0 6px; padding: 0 8px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--n600)">Leaves the building</p>
+      <div style="display: flex; flex-direction: column; gap: 1px; margin-bottom: 16px">
+        <sc-for list="{{ navA }}" as="n" hint-placeholder-count="2">
+          <button type="button" onClick="{{ n.go }}" style="{{ n.style }}" style-hover="background: var(--accent-100)">
+            <span style="{{ n.dot }}"></span>
+            <span style="flex: 1; text-align: left">{{ n.k }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <p style="margin: 0 0 6px; padding: 0 8px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--n600)">Something changed</p>
+      <div style="display: flex; flex-direction: column; gap: 1px; margin-bottom: 16px">
+        <sc-for list="{{ navB }}" as="n" hint-placeholder-count="2">
+          <button type="button" onClick="{{ n.go }}" style="{{ n.style }}" style-hover="background: var(--accent-100)">
+            <span style="{{ n.dot }}"></span>
+            <span style="flex: 1; text-align: left">{{ n.k }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <p style="margin: 0 0 6px; padding: 0 8px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--n600)">Account</p>
+      <div style="display: flex; flex-direction: column; gap: 1px">
+        <sc-for list="{{ navC }}" as="n" hint-placeholder-count="2">
+          <button type="button" onClick="{{ n.go }}" style="{{ n.style }}" style-hover="background: var(--accent-100)">
+            <span style="{{ n.dot }}"></span>
+            <span style="flex: 1; text-align: left">{{ n.k }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="margin: 20px 8px 0; padding-top: 16px; border-top: 1px solid var(--n200)">
+        <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.11em; text-transform: uppercase; color: var(--n600)">Rules for all six</p>
+        <div style="margin-top: 11px; display: flex; flex-direction: column; gap: 10px">
+          <sc-for list="{{ rules }}" as="r" hint-placeholder-count="4">
+            <p style="margin: 0; font-size: 12px; line-height: 1.5; color: var(--n700)">{{ r }}</p>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div style="min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 18px; border-bottom: 1px solid var(--ink); background: var(--paper); padding: 13px 28px">
+      <div style="flex: 1; min-width: 0">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.11em; text-transform: uppercase; color: var(--accent)">{{ kicker }}</p>
+        <h1 style="margin: 3px 0 0; font-size: 21px; font-weight: 600; line-height: 1.1">{{ title }}</h1>
+      </div>
+      <span style="{{ triggerStyle }}">{{ trigger }}</span>
+    </header>
+
+    <div style="flex: 1; padding: 26px 28px 60px">
+      <div style="display: grid; grid-template-columns: minmax(0, 620px) minmax(0, 1fr); gap: 26px; align-items: start">
+
+        <!-- the email itself -->
+        <div>
+          <div style="border: 1px solid var(--n400); background: var(--paper); padding: 13px 16px">
+            <div style="display: grid; grid-template-columns: 62px minmax(0, 1fr); gap: 10px 12px; align-items: baseline">
+              <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--n500)">From</span>
+              <span style="font-size: 12.5px; color: var(--n700)">{{ from }}</span>
+              <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--n500)">To</span>
+              <span style="font-size: 12.5px; color: var(--n700)">{{ to }}</span>
+              <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--n500)">Subject</span>
+              <span style="font-size: 14.5px; font-weight: 600; line-height: 1.3">{{ subject }}</span>
+              <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--n500)">Preview</span>
+              <span style="font-size: 12.5px; line-height: 1.4; color: var(--n600)">{{ preheader }}</span>
+            </div>
+          </div>
+
+          <div style="border: 1px solid var(--ink); border-top: none; background: var(--paper); animation: ntv-slide 240ms ease-out both">
+            <div style="border-bottom: 1px solid var(--rule); padding: 20px 32px">
+              <p style="margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 19px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 5px; height: 5px; background: var(--accent); margin-bottom: 2px; flex-shrink: 0"></span></p>
+            </div>
+
+            <div style="padding: 28px 32px 30px">
+              <h2 style="margin: 0; font-size: 23px; font-weight: 600; line-height: 1.2; max-width: 30ch; text-wrap: pretty">{{ h }}</h2>
+
+              <sc-if value="{{ hasPanel }}">
+                <div style="{{ panelStyle }}">
+                  <div style="display: flex; align-items: center; gap: 10px">
+                    <span style="{{ panelGlyph }}"></span>
+                    <p style="margin: 0; font-size: 14.5px; font-weight: 600; line-height: 1.3">{{ panelTitle }}</p>
+                  </div>
+                  <p style="margin: 7px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--n700)">{{ panelBody }}</p>
+                  <sc-if value="{{ hasPanelRows }}">
+                    <div style="margin-top: 13px; display: flex; flex-direction: column; gap: 6px">
+                      <sc-for list="{{ panelRows }}" as="pr" hint-placeholder-count="4">
+                        <div style="display: flex; justify-content: space-between; gap: 14px; align-items: baseline; border-bottom: 1px solid var(--n200); padding-bottom: 6px">
+                          <span style="font-size: 12.5px; color: var(--n700)">{{ pr.k }}</span>
+                          <span style="font-family: var(--mono); font-size: 11.5px; text-align: right; color: {{ pr.color }}">{{ pr.v }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-if>
+
+              <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 13px">
+                <sc-for list="{{ body }}" as="p" hint-placeholder-count="4">
+                  <p style="margin: 0; font-size: 14.5px; line-height: 1.65; color: var(--n800)">{{ p }}</p>
+                </sc-for>
+              </div>
+
+              <div style="margin-top: 24px">
+                <span style="display: inline-block; background: var(--accent); color: #ffffff; padding: 13px 22px; border-radius: 3px; font-size: 14.5px; font-weight: 500">{{ cta }}</span>
+                <sc-if value="{{ hasSecondary }}">
+                  <p style="margin: 13px 0 0; font-size: 13px; line-height: 1.5; color: var(--n600)">{{ secondary }}</p>
+                </sc-if>
+              </div>
+
+              <sc-if value="{{ hasBoundary }}">
+                <p style="margin: 26px 0 0; padding-top: 16px; border-top: 1px solid var(--n200); font-size: 12.5px; line-height: 1.6; color: var(--n600)">{{ boundary }}</p>
+              </sc-if>
+            </div>
+
+            <div style="border-top: 1px solid var(--rule); background: var(--panel); padding: 20px 32px">
+              <p style="margin: 0; font-size: 11.5px; line-height: 1.6; color: var(--n600)">Nutrivo.ai is operated by Sunny Ventures AB, Karlbergsvägen 48, 113 37 Stockholm, Sweden. Company ID 5594297151.</p>
+              <p style="margin: 9px 0 0; font-size: 11.5px; line-height: 1.6; color: var(--n600)">{{ footerLine }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- the spec -->
+        <div style="display: flex; flex-direction: column; gap: 18px">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">Specification</p>
+            <div style="margin-top: 13px; display: flex; flex-direction: column; gap: 8px">
+              <sc-for list="{{ spec }}" as="sp" hint-placeholder-count="6">
+                <div style="display: grid; grid-template-columns: 106px minmax(0, 1fr); gap: 12px; align-items: baseline; border-bottom: 1px solid var(--n200); padding-bottom: 8px">
+                  <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--n600)">{{ sp.k }}</span>
+                  <span style="font-size: 12.5px; line-height: 1.45; color: var(--n800)">{{ sp.v }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div class="blueprint" style="{{ noteStyle }}">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-size: 13.5px; font-weight: 600">{{ noteTitle }}</p>
+            <p style="margin: 7px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">{{ noteBody }}</p>
+          </div>
+
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--blocked); background: var(--paper); padding: 20px 22px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blocked)">This one never</p>
+            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 9px">
+              <sc-for list="{{ nevers }}" as="nv" hint-placeholder-count="3">
+                <div style="display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 11px; align-items: baseline">
+                  <span style="width: 11px; height: 11px; flex: none; margin-top: 4px; background: var(--blocked); box-shadow: inset 0 4px 0 var(--paper), inset 0 -4px 0 var(--blocked)"></span>
+                  <span style="font-size: 12.5px; line-height: 1.5; color: var(--n800)">{{ nv }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:980}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)", n600: "var(--n600)", n700: "var(--n700)", ink: "var(--ink)" };
+
+const SQ = "width: 13px; height: 13px; flex: none; display: block; background: var(--clear)";
+const TRI = "width: 0; height: 0; flex: none; display: block; border-left: 6.5px solid transparent; border-right: 6.5px solid transparent; border-bottom: 13px solid var(--action)";
+const CIR = "width: 13px; height: 13px; flex: none; display: block; border: 1.5px solid var(--none); border-radius: 50%";
+const BAR = "width: 13px; height: 13px; flex: none; display: block; background: var(--blocked); box-shadow: inset 0 5px 0 var(--paper), inset 0 -5px 0 var(--blocked)";
+
+const EMAILS = {
+  report: {
+    nav: "A report was sent to you", group: "A", dot: C.accent,
+    kicker: "Template 01 · the artefact leaving the building",
+    title: "A report was sent to you",
+    trigger: "SENT ON DEMAND", triggerColor: C.accent,
+    from: "Nutrivo <reports@nutrivo.ai>", to: "A recipient who may have no account",
+    subject: "Halden Pet Nutrition sent you a label compliance report",
+    preheader: "Adult dog · complete dry · chicken. Three markets, one of them blocked on registration.",
+    h: "Johanna Holm at Halden Pet Nutrition sent you a report",
+    panel: {
+      title: "Adult dog · complete dry · chicken",
+      body: "Checked against ruleset 2026.08-b on 4 September 2026, for three markets and three printed language panels.",
+      glyph: SQ, bar: C.accent, bg: "var(--accent-100)",
+      rows: [
+        { k: "Clear", v: "14", color: C.clear },
+        { k: "Action needed", v: "3", color: C.action },
+        { k: "Not assessed", v: "2", color: C.none },
+        { k: "Blocked", v: "1", color: C.blocked },
+      ],
+    },
+    body: [
+      "The report names every rule that was checked, the ones that were not, and where each answer came from. Two items are marked Not assessed, which means nothing was checked for them — read those before you read anything else.",
+      "One market is Blocked. The label passes in Texas, and the product still cannot be sold there because a commercial feed registration has not been filed with the Office of the Texas State Chemist.",
+      "You do not need an account to read this. The link also lets you confirm the report is current, has not been superseded by a ruleset change, and covers what it says it covers.",
+    ],
+    cta: "Read the report",
+    secondary: "The link stays valid. If the report is later superseded, the page will say so rather than showing you something stale.",
+    boundary: "This report was generated automatically by Nutrivo and attested by nobody. Nutrivo names regulatory obligations and checks label artwork against encoded rules. It does not file registrations, pay fees, correspond with authorities, confirm that a registration is valid, or guarantee acceptance.",
+    footer: "You received this because somebody sent you a report. Nutrivo will not email you again unless they send another.",
+    spec: [
+      { k: "Trigger", v: "A person clicks Email or Share on a report" },
+      { k: "Goes to", v: "Anybody, including people with no account" },
+      { k: "Plan", v: "Every paid plan. Sending is the free-plan wall" },
+      { k: "Frequency", v: "Once per send. Never a follow-up" },
+      { k: "Carries", v: "State counts, the blocked market, the not-assessed count, the verification link" },
+      { k: "Rendering", v: "Must read in plain text. The counts survive as a list" },
+    ],
+    note: { title: "The most important of the six", body: "This is the one that reaches somebody who has never heard of us, and it is the moment the free plan converts. It has to be readable by a retailer's buyer, an artwork agency and a regulatory officer without any of them logging in.", bar: C.accent },
+    nevers: [
+      "Shows a compliance score, a percentage or a pass mark.",
+      "Omits the not-assessed count, which would make silence read as clear.",
+      "Markets Nutrivo to the recipient. They are reading somebody else's document.",
+    ],
+  },
+
+  invite: {
+    nav: "You have been invited", group: "A", dot: C.clear,
+    kicker: "Template 02 · joining a workspace that already exists",
+    title: "You have been invited",
+    trigger: "SENT ON INVITE", triggerColor: C.clear,
+    from: "Nutrivo <no-reply@nutrivo.ai>", to: "The invited colleague",
+    subject: "Johanna Holm has invited you to Halden Pet Nutrition on Nutrivo",
+    preheader: "Two fields and you are in. There is a finding waiting for you.",
+    h: "Johanna has invited you to Halden Pet Nutrition",
+    panel: {
+      title: "EU · France — character height below the minimum",
+      body: "Adult dog · complete dry · chicken. The article is named, the compliant height is given, and the panel is pinned on the artwork. This is what you were invited to fix.",
+      glyph: TRI, bar: C.action, bg: "var(--action-bg)",
+      rows: [],
+    },
+    body: [
+      "You are joining as an editor, which means you can run checks and edit products in your scope. The workspace is already set up, so there is no region to pick, no recipe to enter and no artwork to upload.",
+      "Two fields — your name and a password — and you land on the finding above rather than on an empty dashboard.",
+    ],
+    cta: "Create your user",
+    secondary: "The invitation expires in fourteen days. If it lapses, ask Johanna to send another; nothing is lost either way.",
+    boundary: "",
+    footer: "You received this because Johanna Holm entered your address. If you were not expecting it, ignore this email and no account is created.",
+    spec: [
+      { k: "Trigger", v: "An admin sends an invitation" },
+      { k: "Goes to", v: "The invited person only" },
+      { k: "Plan", v: "Every plan. Viewers are free and unlimited" },
+      { k: "Frequency", v: "Once, plus one reminder at day seven if unused" },
+      { k: "Carries", v: "Who invited them, their role, and the finding they are joining for" },
+      { k: "Expiry", v: "Fourteen days, stated in the email" },
+    ],
+    note: { title: "Attach it to a finding, not a product tour", body: "Nobody accepts an invitation to an empty workspace. Naming the specific thing somebody has to fix is the difference between a joined colleague and an ignored email.", bar: C.clear },
+    nevers: [
+      "Explains what Nutrivo is at length. Their colleague already decided that.",
+      "Implies a cost when the invitation is for a viewer.",
+      "Grants signing authority. That attaches to a person for named markets, separately.",
+    ],
+  },
+
+  ruleset: {
+    nav: "A rule changed", group: "B", dot: C.action,
+    kicker: "Template 03 · the alert that earns the subscription",
+    title: "A rule changed",
+    trigger: "SENT ON MATERIAL DIFF", triggerColor: C.action,
+    from: "Nutrivo <alerts@nutrivo.ai>", to: "Everyone with the affected product in scope",
+    subject: "A prescribed wording changed in France. Two of your recipes use it.",
+    preheader: "Effective 1 November 2026. One of the two has artwork at the printer.",
+    h: "A prescribed wording changed in France",
+    panel: {
+      title: "Tightened threshold · effective 1 November 2026",
+      body: "The permitted wording for joint-function claims on complementary feed has been replaced. The old phrasing is not grandfathered for artwork printed after the effective date.",
+      glyph: TRI, bar: C.action, bg: "var(--action-bg)",
+      rows: [
+        { k: "Recipes affected", v: "2", color: C.action },
+        { k: "Markets affected", v: "EU · FR", color: C.ink },
+        { k: "Effective", v: "1 NOV 2026", color: C.action },
+        { k: "Days to comply", v: "58", color: C.ink },
+      ],
+    },
+    body: [
+      "Senior salmon · complete dry and Joint support topper both carry the previous wording on their French panels. Senior salmon has an artwork version at prepress, which is the one worth acting on this week.",
+      "Both recipes have been re-checked against the new rule already. You do not need to run anything: the findings are on the products now, with the new wording quoted and the article cited.",
+      "Nothing else in your portfolio is affected. Fourteen other rules moved in this ruleset version, and none of them touches a product you sell.",
+    ],
+    cta: "See the two recipes",
+    secondary: "",
+    boundary: "",
+    footer: "You received this because a rule changed that affects a product in your scope. Editorial changes to rules never generate an email.",
+    spec: [
+      { k: "Trigger", v: "A rule-level diff typed as material, joined to your products" },
+      { k: "Goes to", v: "People with the affected product in scope. Nobody else" },
+      { k: "Plan", v: "Every plan, on whichever recipes are open to you" },
+      { k: "Frequency", v: "Per material change. Batched daily, never hourly" },
+      { k: "Carries", v: "The effect type, the named recipes, the effective date, the days remaining" },
+      { k: "Silent on", v: "Editorial and structural changes, always" },
+    ],
+    note: { title: "This is the email people stay subscribed for", body: "It only works because rules have stable identity across ruleset versions and every check records the rules it applied. Without that, a version bump would flag every product and the channel would be dead inside a month.", bar: C.action },
+    nevers: [
+      "Sends on an editorial change. That is content operations, not an alert.",
+      "Says a portfolio is affected without naming which recipes.",
+      "Asks the customer to re-run a check we have already re-run.",
+    ],
+  },
+
+  document: {
+    nav: "A document expires", group: "B", dot: C.action,
+    kicker: "Template 04 · the quiet one that blocks a filing",
+    title: "A document expires",
+    trigger: "SENT AT 60, 30, 7 DAYS", triggerColor: C.action,
+    from: "Nutrivo <alerts@nutrivo.ai>", to: "The person who owns the document pack",
+    subject: "The PMX-118 premix specification expires in 30 days",
+    preheader: "It is evidence for three recipes and one pending registration.",
+    h: "A specification you rely on expires on 4 October",
+    panel: {
+      title: "PMX-118 premix specification · Nordwild Feeds",
+      body: "Three recipes cite this document, and one of them is evidence for a registration that has not yet been filed in Texas.",
+      glyph: CIR, bar: C.none, bg: "var(--none-bg)",
+      rows: [
+        { k: "Recipes citing it", v: "3", color: C.ink },
+        { k: "Registrations at risk", v: "1", color: C.blocked },
+        { k: "Expires", v: "4 OCT 2026", color: C.action },
+        { k: "Supplier", v: "NORDWILD FEEDS", color: C.ink },
+      ],
+    },
+    body: [
+      "When it expires, three additive rules stop returning an answer and become Not assessed on all three recipes. Nothing turns red, and nothing is wrong with the label. We simply stop being able to tell you whether it is right.",
+      "The Texas registration is the part with a date attached. Its evidence list includes this specification, and an expired document is not evidence.",
+      "You can request a current version from Nordwild without them needing an account. They receive a link, upload the one document, and are done.",
+    ],
+    cta: "Request the current version",
+    secondary: "Or upload it yourself if a newer copy is already in your inbox.",
+    boundary: "",
+    footer: "You received this because you own the document pack for these recipes. We send this at sixty days, thirty days and seven days, then stop.",
+    spec: [
+      { k: "Trigger", v: "Document expiry at 60, 30 and 7 days" },
+      { k: "Goes to", v: "The document pack owner. Admins on the 7-day notice only" },
+      { k: "Plan", v: "Every paid plan" },
+      { k: "Frequency", v: "Three times, then silence. Never daily" },
+      { k: "Carries", v: "What cites it, what it blocks, the supplier, the date" },
+      { k: "Action", v: "A scoped supplier link, sent without creating an account" },
+    ],
+    note: { title: "Name the consequence, not the expiry", body: "A document expiring is not interesting. Three rules going Not assessed and a registration losing its evidence is interesting, and it is the same fact stated in terms somebody can act on.", bar: C.none },
+    nevers: [
+      "Describes the expiry as a compliance failure. It is a loss of evidence.",
+      "Emails daily as the date approaches. Three notices, then it waits on the screen.",
+      "Asks the supplier for a login in order to hand us one file.",
+    ],
+  },
+
+  trial: {
+    nav: "Your third free label", group: "C", dot: C.action,
+    kicker: "Template 05 · the third of three labels",
+    title: "Your third free label",
+    trigger: "SENT WHEN THE THIRD LABEL IS CHECKED", triggerColor: C.action,
+    from: "Nutrivo <no-reply@nutrivo.ai>", to: "The person who created the workspace",
+    subject: "That was your third free label",
+    preheader: "Nothing is taken away. A fourth label needs a plan.",
+    h: "You have used all three free labels",
+    panel: {
+      title: "Halden Pet Nutrition · from 7 September",
+      body: "You keep one recipe, one market and one person, and you keep reading every answer already on screen.",
+      glyph: TRI, bar: C.action, bg: "var(--action-bg)",
+      rows: [
+        { k: "Recipes", v: "8 → 1", color: C.action },
+        { k: "Markets in reach", v: "27 → 1", color: C.action },
+        { k: "People", v: "5 → 1", color: C.action },
+        { k: "Sending reports", v: "ON → PAID", color: C.blocked },
+      ],
+    },
+    body: [
+      "Nothing is deleted and nothing is taken away. All three labels stay, the 61 checks you have run stay, every answer stays readable, and the reports you sent stay verifiable. What stops is adding a fourth label.",
+      "One thing worth knowing: the Texas finding on Adult dog · complete dry is a Blocked market. The label passes every rule and the product is not registered, which is exactly the kind of thing worth catching before a print run.",
+      "Basic is €249 a month and covers ten recipes in one region. Standard is €499 and covers thirty across two. Both exclude VAT, and an annual term is ten months for twelve.",
+    ],
+    cta: "See your plan",
+    secondary: "You choose which recipe stays open, and you can change it as often as you like.",
+    boundary: "",
+    footer: "You received this because your trial ends in three days. This is the only email we send about it.",
+    spec: [
+      { k: "Trigger", v: "Day 12 of 14. Nothing before day 10" },
+      { k: "Goes to", v: "The workspace creator and admins" },
+      { k: "Plan", v: "Trial only" },
+      { k: "Frequency", v: "Once. There is no second reminder and no chase" },
+      { k: "Carries", v: "This workspace's real numbers, before and after" },
+      { k: "Pairs with", v: "The header counter from day 10 and the day-15 screen" },
+    ],
+    note: { title: "It reads the workspace, not the brochure", body: "Somebody who has run 61 checks and sent two reports already knows what the product does. The email only has to say what stops, when, and what it costs — in their numbers.", bar: C.action },
+    nevers: [
+      "Says the trial expired or the account closed. Neither happens — it stops accepting new labels.",
+      "Sends a second or third reminder. One email, then the screen does the work.",
+      "Asks for a card before the value is obvious. There was never a card.",
+    ],
+  },
+
+  receipt: {
+    nav: "Your invoice", group: "C", dot: C.clear,
+    kicker: "Template 06 · the boring one that has to be right",
+    title: "Your invoice",
+    trigger: "SENT ON PAYMENT", triggerColor: C.clear,
+    from: "Nutrivo <finance@nutrivo.ai>", to: "The payer, and the finance address if set",
+    subject: "Nutrivo invoice NTV-2026-0418 · €6,238.00 paid",
+    preheader: "Standard, annual. PDF attached. Nothing further is due.",
+    h: "Thank you. Standard is live on your workspace.",
+    panel: {
+      title: "Invoice NTV-2026-0418 · paid in full",
+      body: "Standard, billed annually for 4 September 2026 to 3 September 2027. The PDF is attached to this email and is always available in your billing settings.",
+      glyph: SQ, bar: C.clear, bg: "var(--clear-bg)",
+      rows: [
+        { k: "Subtotal", v: "€4,990.00", color: C.ink },
+        { k: "VAT · Sweden 25%", v: "€1,248.00", color: C.ink },
+        { k: "Paid by card", v: "€6,238.00", color: C.clear },
+        { k: "Next renewal", v: "4 SEP 2027", color: C.ink },
+      ],
+    },
+    body: [
+      "Export, email, share and the public verification page are on for every recipe in this workspace. Your eight recipes, your region and your three editors carried over exactly as they were, and nothing was re-checked.",
+      "Every line on the invoice is itemised, including the ones that cost nothing: thirty recipes, one region, five editor seats, and checks and re-checks at €0.00. There is no line we could add later without telling you first.",
+      "If your finance team needs a purchase order reference on future invoices, or invoicing on 30-day terms instead of card, both are settings rather than requests.",
+    ],
+    cta: "View invoice",
+    secondary: "Invoices, payment method and VAT details all live in billing settings.",
+    boundary: "",
+    footer: "Sent to the payer and to the finance address on this workspace. Reply to this email to reach finance@nutrivo.ai.",
+    spec: [
+      { k: "Trigger", v: "A successful payment, and each renewal" },
+      { k: "Goes to", v: "The payer, plus the finance address if one is set" },
+      { k: "Plan", v: "Every paid plan" },
+      { k: "Frequency", v: "Per payment. Monthly or annually, never more" },
+      { k: "Carries", v: "Reference, period, subtotal, VAT, total, renewal date, PDF" },
+      { k: "Entity", v: "Sunny Ventures AB, with Nutrivo.ai named alongside" },
+    ],
+    note: { title: "Both names, every time", body: "Nutrivo.ai is the product; Sunny Ventures AB is the company on the invoice. A finance department should never have to work out which is which, so both appear on the document and in the footer.", bar: C.clear },
+    nevers: [
+      "Upsells. Somebody has just paid; leave them alone.",
+      "Hides VAT treatment. Reverse charge, if it applies, is stated on the face.",
+      "Sends the receipt without the PDF attached.",
+    ],
+  },
+};
+
+class Component extends DCLogic {
+  state = { pick: "report" };
+  go(k) { return () => this.setState({ pick: k }); }
+
+  navFor(group) {
+    return Object.keys(EMAILS).filter(k => EMAILS[k].group === group).map(k => {
+      const e = EMAILS[k], on = this.state.pick === k;
+      return {
+        k: e.nav, go: this.go(k),
+        dot: "width: 8px; height: 8px; flex: none; background: " + (on ? e.dot : "var(--n400)"),
+        style: "display: flex; gap: 10px; align-items: center; width: 100%; border: none; border-left: 2px solid " + (on ? "var(--accent)" : "transparent") +
+          "; background: " + (on ? "var(--accent-100)" : "transparent") + "; padding: 9px 8px; font-size: 13px; font-weight: " + (on ? "600" : "400") + "; cursor: pointer",
+      };
+    });
+  }
+
+  renderVals() {
+    const e = EMAILS[this.state.pick] || EMAILS.report;
+    const p = e.panel;
+
+    return {
+      navA: this.navFor("A"), navB: this.navFor("B"), navC: this.navFor("C"),
+      rules: [
+        "One thing per email, and one action. A second call to action halves the first.",
+        "Name the recipe, the market and the date. Never \"your portfolio\" or \"some products\".",
+        "The four state names are never softened, and Not assessed is never dropped from a count.",
+        "Every email must read as plain text with the styling stripped.",
+      ],
+
+      kicker: e.kicker, title: e.title,
+      trigger: e.trigger,
+      triggerStyle: "font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; white-space: nowrap; border: 1px solid " + e.triggerColor + "; color: " + e.triggerColor + "; padding: 5px 9px",
+
+      from: e.from, to: e.to, subject: e.subject, preheader: e.preheader,
+      h: e.h, body: e.body, cta: e.cta,
+      hasSecondary: !!e.secondary, secondary: e.secondary,
+      hasBoundary: !!e.boundary, boundary: e.boundary,
+      footerLine: e.footer,
+
+      hasPanel: !!p,
+      panelTitle: p ? p.title : "",
+      panelBody: p ? p.body : "",
+      panelGlyph: p ? p.glyph : SQ,
+      panelStyle: p ? "margin-top: 20px; border: 1px solid var(--ink); border-left: 4px solid " + p.bar + "; background: " + p.bg + "; padding: 17px 19px" : "display: none",
+      hasPanelRows: !!(p && p.rows && p.rows.length),
+      panelRows: p && p.rows ? p.rows : [],
+
+      spec: e.spec,
+      noteTitle: e.note.title, noteBody: e.note.body,
+      noteStyle: "position: relative; border: 1px solid var(--ink); border-left: 4px solid " + e.note.bar + "; background: var(--paper); padding: 20px 22px",
+      nevers: e.nevers,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="./image-slot.js"></script>
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-300: #b4c6ff; --accent-700: #1738a8; --accent-900: #0d1c52;
+    --n200: #eef0f2; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; color: var(--ink); background: var(--paper); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  image-slot:not(:defined) { display: block; background: var(--panel); }
+
+  @keyframes ntv-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes ntv-sweep { 0% { transform: translateY(-8px); opacity: 0; } 10% { opacity: 1; } 88% { opacity: 1; } 100% { transform: translateY(184px); opacity: 0; } }
+  @keyframes ntv-blink { 0%, 45% { opacity: 1; } 55%, 100% { opacity: 0.25; } }
+  @keyframes ntv-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+  @keyframes ntv-film { 0%, 1% { opacity: 0; transform: translateY(10px); } 4%, 22% { opacity: 1; transform: none; } 25%, 100% { opacity: 0; transform: translateY(-8px); } }
+  @keyframes ntv-filmlab { 0%, 1% { color: var(--n500); border-color: var(--rule); background: transparent; } 3%, 23% { color: var(--accent-700); border-color: var(--accent); background: var(--accent-100); } 25%, 100% { color: var(--n500); border-color: var(--rule); background: transparent; } }
+  @keyframes ntv-in { 0%, 2% { opacity: 0; transform: translateY(6px); } 6%, 100% { opacity: 1; transform: none; } }
+  @keyframes ntv-tick { 0% { width: 0; } 25%, 100% { width: 100%; } }
+  @keyframes ntv-scan { 0%, 2% { transform: translateY(0); opacity: 0; } 6% { opacity: 1; } 20% { opacity: 1; } 22%, 100% { transform: translateY(120px); opacity: 0; } }
+
+  @keyframes ntv-f1 { 0%,1% { width: 0; background: var(--accent); } 12% { width: 100%; background: var(--accent); } 13%,100% { width: 100%; background: var(--clear); } }
+  @keyframes ntv-f2 { 0%,12% { width: 0; background: var(--accent); } 25% { width: 100%; background: var(--accent); } 26%,100% { width: 100%; background: var(--clear); } }
+  @keyframes ntv-f3 { 0%,25% { width: 0; background: var(--accent); } 42% { width: 100%; background: var(--accent); } 43%,100% { width: 100%; background: var(--clear); } }
+  @keyframes ntv-f4 { 0%,42% { width: 0; background: var(--accent); } 55% { width: 100%; background: var(--accent); } 56%,100% { width: 100%; background: var(--clear); } }
+  @keyframes ntv-f5 { 0%,55% { width: 0; background: var(--accent); } 64% { width: 100%; background: var(--accent); } 65%,100% { width: 100%; background: var(--clear); } }
+
+  @keyframes ntv-d1 { 0%,1% { background: var(--paper); box-shadow: inset 0 0 0 1px var(--n400); } 3%,12% { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-100); } 13%,100% { background: var(--clear); box-shadow: none; } }
+  @keyframes ntv-d2 { 0%,12% { background: var(--paper); box-shadow: inset 0 0 0 1px var(--n400); } 14%,25% { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-100); } 26%,100% { background: var(--clear); box-shadow: none; } }
+  @keyframes ntv-d3 { 0%,25% { background: var(--paper); box-shadow: inset 0 0 0 1px var(--n400); } 27%,42% { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-100); } 43%,100% { background: var(--clear); box-shadow: none; } }
+  @keyframes ntv-d4 { 0%,42% { background: var(--paper); box-shadow: inset 0 0 0 1px var(--n400); } 44%,55% { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-100); } 56%,100% { background: var(--clear); box-shadow: none; } }
+  @keyframes ntv-d5 { 0%,55% { background: var(--paper); box-shadow: inset 0 0 0 1px var(--n400); } 57%,64% { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-100); } 65%,100% { background: var(--clear); box-shadow: none; } }
+
+  @keyframes ntv-p1 { 0%,2% { border-color: var(--rule); color: var(--n500); background: transparent; } 4%,100% { border-color: var(--accent); color: var(--accent-700); background: var(--accent-100); } }
+  @keyframes ntv-p2 { 0%,4% { border-color: var(--rule); color: var(--n500); background: transparent; } 6%,100% { border-color: var(--accent); color: var(--accent-700); background: var(--accent-100); } }
+  @keyframes ntv-p3 { 0%,6% { border-color: var(--rule); color: var(--n500); background: transparent; } 8%,100% { border-color: var(--accent); color: var(--accent-700); background: var(--accent-100); } }
+  @keyframes ntv-p4 { 0%,8% { border-color: var(--rule); color: var(--n500); background: transparent; } 10%,100% { border-color: var(--accent); color: var(--accent-700); background: var(--accent-100); } }
+  @keyframes ntv-p5 { 0%,10% { border-color: var(--rule); color: var(--n500); background: transparent; } 12%,100% { border-color: var(--accent); color: var(--accent-700); background: var(--accent-100); } }
+  @keyframes ntv-p6 { 0%,12% { border-color: var(--rule); color: var(--n500); background: transparent; } 14%,100% { border-color: var(--accent); color: var(--accent-700); background: var(--accent-100); } }
+
+  @keyframes ntv-t1 { 0%,64% { opacity: 0; transform: translateY(6px); } 68%,100% { opacity: 1; transform: none; } }
+  @keyframes ntv-t2 { 0%,66% { opacity: 0; transform: translateY(6px); } 70%,100% { opacity: 1; transform: none; } }
+  @keyframes ntv-t3 { 0%,68% { opacity: 0; transform: translateY(6px); } 72%,100% { opacity: 1; transform: none; } }
+  @keyframes ntv-t4 { 0%,70% { opacity: 0; transform: translateY(6px); } 74%,100% { opacity: 1; transform: none; } }
+
+  @keyframes ntv-n1 { 0%,52% { opacity: 1; } 56%,100% { opacity: 0; } }
+  @keyframes ntv-n2 { 0%,54% { opacity: 0; } 58%,78% { opacity: 1; } 82%,100% { opacity: 0; } }
+  @keyframes ntv-n3 { 0%,78% { opacity: 0; } 82%,100% { opacity: 1; } }
+
+  @keyframes ntv-act1 { 0%,30% { opacity: 1; } 33%,97% { opacity: 0; } 100% { opacity: 1; } }
+  @keyframes ntv-act2 { 0%,30% { opacity: 0; } 33%,63% { opacity: 1; } 66%,100% { opacity: 0; } }
+  @keyframes ntv-act3 { 0%,63% { opacity: 0; } 66%,97% { opacity: 1; } 100% { opacity: 0; } }
+  @keyframes ntv-row { 0%,1% { opacity: 0; transform: translateY(5px); } 4%,94% { opacity: 1; transform: none; } 100% { opacity: 1; transform: none; } }
+  @keyframes ntv-nd1 { 0%,30% { border-color: var(--accent); background: var(--accent); color: #ffffff; } 33%,97% { border-color: var(--rule); background: transparent; color: var(--n500); } 100% { border-color: var(--accent); background: var(--accent); color: #ffffff; } }
+  @keyframes ntv-nd2 { 0%,30% { border-color: var(--rule); background: transparent; color: var(--n500); } 33%,63% { border-color: var(--accent); background: var(--accent); color: #ffffff; } 66%,100% { border-color: var(--rule); background: transparent; color: var(--n500); } }
+  @keyframes ntv-nd3 { 0%,63% { border-color: var(--rule); background: transparent; color: var(--n500); } 66%,97% { border-color: var(--accent); background: var(--accent); color: #ffffff; } 100% { border-color: var(--rule); background: transparent; color: var(--n500); } }
+  @keyframes ntv-prog { from { width: 0; } to { width: 100%; } }
+
+  @keyframes ntv-s1 { 0%,62% { opacity: 1; } 65%,100% { opacity: 0; } }
+  @keyframes ntv-s2 { 0%,63% { opacity: 0; } 66%,78% { opacity: 1; } 81%,100% { opacity: 0; } }
+  @keyframes ntv-s3 { 0%,79% { opacity: 0; } 82%,100% { opacity: 1; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</helmet>
+
+<div style="width: 1280px; margin: 0 auto; background: var(--paper); overflow: hidden">
+
+  <header style="display: flex; align-items: center; justify-content: space-between; padding: 18px 56px; border-bottom: 1px solid var(--ink); position: sticky; top: 0; z-index: 30; background: #ffffff">
+    <div style="display: flex; align-items: baseline; gap: 2px">
+      <span style="font-size: 21px; font-weight: 600; letter-spacing: -0.03em">nutrivo</span>
+      <span style="width: 6px; height: 6px; background: var(--accent); display: inline-block"></span>
+      <span style="font-size: 21px; font-weight: 400; color: var(--n500); letter-spacing: -0.03em">.ai</span>
+    </div>
+    <nav style="display: flex; align-items: center; gap: 26px; font-size: 14px; color: var(--n700)">
+      <a href="#how">How it works</a>
+      <a href="#tour">Watch it run</a>
+      <a href="#report">The report</a>
+      <a href="#coverage">Coverage</a>
+      <a href="#compare">Compare</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#start" style="border: 1px solid var(--ink); padding: 9px 17px; color: var(--ink); font-weight: 500; transition: background 120ms ease-out, color 120ms ease-out" style-hover="background: var(--ink); color: #ffffff">Check a label free</a>
+    </nav>
+  </header>
+
+  <section style="display: grid; grid-template-columns: minmax(0, 560px) minmax(0, 1fr); border-bottom: 1px solid var(--ink)">
+    <div style="padding: 60px 44px 56px 56px; border-right: 1px solid var(--rule)">
+      <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); animation: ntv-rise 500ms ease-out both">Label compliance for pet food and animal nutrition</p>
+      <h1 style="margin: 18px 0 0; font-size: 42px; font-weight: 600; line-height: 1.1; letter-spacing: -0.035em; text-wrap: balance; animation: ntv-rise 600ms ease-out 60ms both">Want to sell in EU? Listing in the UK? Expanding in the US?</h1>
+      <p style="margin: 20px 0 0; font-size: 17.5px; line-height: 1.5; color: var(--n700); animation: ntv-rise 600ms ease-out 140ms both">Checking if your current labels are compliant to new recipes and label generation that are compliant and regulatory approved. Nutrivo helps you.</p>
+      <p style="margin: 14px 0 0; font-size: 15.5px; line-height: 1.55; color: var(--n700); animation: ntv-rise 600ms ease-out 200ms both">From an easy to use yet fully professional service we help you at a fraction of the current cost of listing your products. Powered by AI, built by pet food professionals.</p>
+      <div style="margin-top: 30px; display: flex; align-items: center; gap: 12px; animation: ntv-rise 600ms ease-out 260ms both">
+        <a href="#start" style="position: relative; background: var(--accent); color: #ffffff; font-size: 16px; font-weight: 500; padding: 15px 26px; border-radius: 3px; transition: background 120ms ease-out" style-hover="background: var(--accent-700); color: #ffffff">
+          Check a label free
+          <span style="position: absolute; top: -7px; left: -5px; font-family: var(--mono); font-size: 11px; line-height: 1; color: var(--accent-300)">+</span>
+          <span style="position: absolute; top: -7px; right: -5px; font-family: var(--mono); font-size: 11px; line-height: 1; color: var(--accent-300)">+</span>
+          <span style="position: absolute; bottom: -7px; left: -5px; font-family: var(--mono); font-size: 11px; line-height: 1; color: var(--accent-300)">+</span>
+          <span style="position: absolute; bottom: -7px; right: -5px; font-family: var(--mono); font-size: 11px; line-height: 1; color: var(--accent-300)">+</span>
+        </a>
+        <a href="#tour" style="border: 1px solid var(--n400); color: var(--ink); font-size: 16px; font-weight: 500; padding: 14px 22px; border-radius: 3px; transition: border-color 120ms ease-out" style-hover="border-color: var(--ink); color: var(--ink)">Watch it run</a>
+      </div>
+      <p style="margin: 16px 0 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--n600); animation: ntv-rise 600ms ease-out 320ms both">NO CARD · NO SALES CALL · THREE LABELS FREE</p>
+    </div>
+
+    <div style="position: relative; padding: 40px 56px 40px 44px; background: var(--panel); display: flex; flex-direction: column; justify-content: center">
+      <div style="position: relative; border: 1px solid var(--ink); background: var(--paper)">
+        <span style="position: absolute; top: -8px; left: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+        <span style="position: absolute; top: -8px; right: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+        <span style="position: absolute; bottom: -8px; left: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+        <span style="position: absolute; bottom: -8px; right: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 13px 18px; border-bottom: 1px solid var(--rule)">
+          <p style="margin: 0; font-size: 13.5px; font-weight: 600">Salmon &amp; rice adult · 3 kg</p>
+          <div style="position: relative; width: 130px; height: 14px">
+            <p style="margin: 0; position: absolute; right: 0; top: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); animation: ntv-s1 11.4s linear infinite">Checking</p>
+            <p style="margin: 0; position: absolute; right: 0; top: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); animation: ntv-s2 11.4s linear infinite">Compiling report</p>
+            <p style="margin: 0; position: absolute; right: 0; top: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--clear); animation: ntv-s3 11.4s linear infinite">Report ready</p>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 186px minmax(0, 1fr)">
+          <div style="border-right: 1px solid var(--rule); padding: 16px">
+            <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Artwork</p>
+            <div style="margin-top: 10px; position: relative; height: 172px; min-width: 0; border: 1px solid var(--rule); overflow: hidden">
+              <image-slot id="hero-pack" shape="rect" fit="cover" placeholder="Drop pack artwork"></image-slot>
+              <div style="position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--accent); box-shadow: 0 0 10px 1px rgba(47,94,255,0.5); animation: ntv-sweep 2.85s ease-in-out infinite; pointer-events: none"></div>
+            </div>
+            <p style="margin: 12px 0 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Panels read</p>
+            <div style="margin-top: 7px; display: flex; flex-wrap: wrap; gap: 4px">
+              <span style="font-family: var(--mono); font-size: 10px; padding: 3px 6px; border: 1px solid var(--rule); color: var(--n500); animation: ntv-p1 11.4s linear infinite">DE</span>
+              <span style="font-family: var(--mono); font-size: 10px; padding: 3px 6px; border: 1px solid var(--rule); color: var(--n500); animation: ntv-p2 11.4s linear infinite">AT-DE</span>
+              <span style="font-family: var(--mono); font-size: 10px; padding: 3px 6px; border: 1px solid var(--rule); color: var(--n500); animation: ntv-p3 11.4s linear infinite">EN-GB</span>
+              <span style="font-family: var(--mono); font-size: 10px; padding: 3px 6px; border: 1px solid var(--rule); color: var(--n500); animation: ntv-p4 11.4s linear infinite">FR</span>
+              <span style="font-family: var(--mono); font-size: 10px; padding: 3px 6px; border: 1px solid var(--rule); color: var(--n500); animation: ntv-p5 11.4s linear infinite">NL</span>
+              <span style="font-family: var(--mono); font-size: 10px; padding: 3px 6px; border: 1px solid var(--rule); color: var(--n500); animation: ntv-p6 11.4s linear infinite">BE-NL</span>
+            </div>
+          </div>
+
+          <div style="padding: 16px 18px">
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <span style="display: inline-block; flex: none; width: 8px; height: 8px; animation: ntv-d1 11.4s linear infinite"></span>
+                  <p style="margin: 0; font-size: 12.5px; line-height: 1.3">Reading artwork — 6 language panels</p>
+                </div>
+                <div style="margin: 5px 0 0 16px; height: 2px; background: var(--n200)">
+                  <div style="height: 2px; width: 0; animation: ntv-f1 11.4s linear infinite"></div>
+                </div>
+              </div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <span style="display: inline-block; flex: none; width: 8px; height: 8px; animation: ntv-d2 11.4s linear infinite"></span>
+                  <p style="margin: 0; font-size: 12.5px; line-height: 1.3">Measuring character heights</p>
+                </div>
+                <div style="margin: 5px 0 0 16px; height: 2px; background: var(--n200)">
+                  <div style="height: 2px; width: 0; animation: ntv-f2 11.4s linear infinite"></div>
+                </div>
+              </div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <span style="display: inline-block; flex: none; width: 8px; height: 8px; animation: ntv-d3 11.4s linear infinite"></span>
+                  <p style="margin: 0; font-size: 12.5px; line-height: 1.3">Applying 306 rules for Germany</p>
+                </div>
+                <div style="margin: 5px 0 0 16px; height: 2px; background: var(--n200)">
+                  <div style="height: 2px; width: 0; animation: ntv-f3 11.4s linear infinite"></div>
+                </div>
+              </div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <span style="display: inline-block; flex: none; width: 8px; height: 8px; animation: ntv-d4 11.4s linear infinite"></span>
+                  <p style="margin: 0; font-size: 12.5px; line-height: 1.3">Checking claims in each language</p>
+                </div>
+                <div style="margin: 5px 0 0 16px; height: 2px; background: var(--n200)">
+                  <div style="height: 2px; width: 0; animation: ntv-f4 11.4s linear infinite"></div>
+                </div>
+              </div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <span style="display: inline-block; flex: none; width: 8px; height: 8px; animation: ntv-d5 11.4s linear infinite"></span>
+                  <p style="margin: 0; font-size: 12.5px; line-height: 1.3">Registration obligations</p>
+                </div>
+                <div style="margin: 5px 0 0 16px; height: 2px; background: var(--n200)">
+                  <div style="height: 2px; width: 0; animation: ntv-f5 11.4s linear infinite"></div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--rule); display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px">
+              <div style="border: 1px solid var(--clear); background: var(--clear-bg); padding: 8px 9px; animation: ntv-t1 11.4s ease-out infinite">
+                <div style="display: flex; align-items: center; gap: 6px">
+                  <span style="display: inline-block; flex: none; width: 10px; height: 10px; background: #0f7a4d"></span>
+                  <p style="margin: 0; font-family: var(--mono); font-size: 17px; font-weight: 500; line-height: 1; color: var(--clear)">31</p>
+                </div>
+                <p style="margin: 5px 0 0; font-size: 10.5px; line-height: 1.25; color: var(--clear)">Clear</p>
+              </div>
+              <div style="border: 1px solid var(--action); background: var(--action-bg); padding: 8px 9px; animation: ntv-t2 11.4s ease-out infinite">
+                <div style="display: flex; align-items: center; gap: 6px">
+                  <span style="display: inline-block; flex: none; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 9px solid #9e5600"></span>
+                  <p style="margin: 0; font-family: var(--mono); font-size: 17px; font-weight: 500; line-height: 1; color: var(--action)">4</p>
+                </div>
+                <p style="margin: 5px 0 0; font-size: 10.5px; line-height: 1.25; color: var(--action)">Action needed</p>
+              </div>
+              <div style="border: 1px solid var(--n400); background: var(--none-bg); padding: 8px 9px; animation: ntv-t3 11.4s ease-out infinite">
+                <div style="display: flex; align-items: center; gap: 6px">
+                  <span style="display: inline-block; flex: none; width: 10px; height: 10px; border: 1.5px solid #5f6570; border-radius: 50%"></span>
+                  <p style="margin: 0; font-family: var(--mono); font-size: 17px; font-weight: 500; line-height: 1; color: var(--none)">6</p>
+                </div>
+                <p style="margin: 5px 0 0; font-size: 10.5px; line-height: 1.25; color: var(--none)">Not assessed</p>
+              </div>
+              <div style="border: 1px solid var(--blocked); background: var(--blocked-bg); padding: 8px 9px; animation: ntv-t4 11.4s ease-out infinite">
+                <div style="display: flex; align-items: center; gap: 6px">
+                  <span style="display: inline-block; flex: none; width: 10px; height: 10px; background: #b3251f; box-shadow: inset 0 4px 0 0 #ffffff, inset 0 -4px 0 0 #b3251f"></span>
+                  <p style="margin: 0; font-family: var(--mono); font-size: 17px; font-weight: 500; line-height: 1; color: var(--blocked)">1</p>
+                </div>
+                <p style="margin: 5px 0 0; font-size: 10.5px; line-height: 1.25; color: var(--blocked)">Blocked</p>
+              </div>
+            </div>
+
+            <div style="position: relative; margin-top: 14px; height: 52px">
+              <div style="position: absolute; inset: 0; border: 1px solid var(--rule); background: var(--panel); padding: 10px 12px; animation: ntv-n1 11.4s linear infinite">
+                <p style="margin: 0; font-size: 12px; line-height: 1.4; color: var(--n700)">Reading every language panel printed on the pack — not an English original translated afterwards.</p>
+              </div>
+              <div style="position: absolute; inset: 0; border: 1px solid var(--blocked); background: var(--blocked-bg); padding: 10px 12px; opacity: 0; animation: ntv-n2 11.4s linear infinite">
+                <p style="margin: 0; font-size: 12px; line-height: 1.4; color: var(--blocked)">Texas: the label passes every rule, and the product is not registered — so it cannot be sold there.</p>
+              </div>
+              <div style="position: absolute; inset: 0; border: 1px solid var(--accent-300); background: var(--accent-100); padding: 10px 12px; opacity: 0; animation: ntv-n3 11.4s linear infinite">
+                <p style="margin: 0; font-size: 12px; line-height: 1.4; color: var(--accent-700)">6 items not assessed, each linked to what we cover in that market and what we do not.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p style="margin: 14px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">A check running, at the speed it actually runs</p>
+    </div>
+  </section>
+
+  <section style="border-bottom: 1px solid var(--ink); background: var(--ink); padding: 16px 0; overflow: hidden">
+    <div style="display: flex; width: max-content; animation: ntv-marquee 52s linear infinite">
+      <sc-for list="{{ marquee }}" as="mk" hint-placeholder-count="2">
+        <div style="display: flex; align-items: center; gap: 22px; padding-right: 22px">
+          <sc-for list="{{ mk.items }}" as="mi" hint-placeholder-count="20">
+            <span style="{{ mi.style }}">{{ mi.t }}</span>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="how" style="padding: 62px 56px 0">
+    <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px)">
+      <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">Four questions, in order</p>
+      <h2 style="margin: 14px 0 0; font-size: 34px; font-weight: 600; line-height: 1.12; letter-spacing: -0.03em; max-width: 30ch">A label check that answers the questions you actually have to answer</h2>
+      <p style="margin: 16px 0 0; font-size: 17px; line-height: 1.55; color: var(--n700); max-width: 68ch">Most tools give you a pass or a fail. Neither tells you what to do on Monday. We answer four things in sequence, and we tell you plainly which parts we could not check.</p>
+    </div>
+    <div style="margin-top: 34px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--ink)">
+      <sc-for list="{{ questions }}" as="q" hint-placeholder-count="4">
+        <div data-reveal="1" style="{{ q.style }}">
+          <p style="margin: 0; font-family: var(--mono); font-size: 34px; font-weight: 400; line-height: 1; letter-spacing: -0.02em; color: var(--accent-300)">{{ q.n }}</p>
+          <p style="margin: 12px 0 0; font-size: 20px; font-weight: 600; line-height: 1.2; letter-spacing: -0.02em">{{ q.q }}</p>
+          <p style="margin: 10px 0 0; font-size: 14.5px; line-height: 1.5; color: var(--n700)">{{ q.a }}</p>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="states" style="margin-top: 62px; padding: 58px 56px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); background: var(--ink)">
+    <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px); display: flex; align-items: flex-end; justify-content: space-between; gap: 40px">
+      <div>
+        <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: #7a99ff">The vocabulary</p>
+        <h2 style="margin: 14px 0 0; font-size: 34px; font-weight: 600; line-height: 1.12; letter-spacing: -0.03em; color: #ffffff; max-width: 26ch">Four states, and never a pass or a fail</h2>
+      </div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.55; color: var(--n400); max-width: 46ch">A pass hides the second and third of these. A fail cannot tell you which of them you are looking at. Every finding, in every market, resolves to one of the four.</p>
+    </div>
+    <div style="margin-top: 32px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr))">
+      <sc-for list="{{ states }}" as="st" hint-placeholder-count="4">
+        <div data-reveal="1" style="{{ st.style }}">
+          <div style="display: flex; align-items: center; gap: 9px">
+            <span style="{{ st.glyph }}"></span>
+            <p style="margin: 0; font-size: 18px; font-weight: 600; line-height: 1; letter-spacing: -0.02em; color: {{ st.color }}">{{ st.name }}</p>
+          </div>
+          <p style="margin: 14px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink)">{{ st.def }}</p>
+          <p style="margin: 14px 0 0; padding-top: 12px; border-top: 1px solid {{ st.color }}; font-size: 12.5px; line-height: 1.45; color: var(--n700)">{{ st.act }}</p>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin: 26px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--n400); max-width: 78ch">A market where we hold no rules can never show as Clear. Not assessed is shown as prominently as the rest, because a gap you can see is worth more than a verdict you cannot check.</p>
+  </section>
+
+  <section id="tour" style="padding: 62px 56px">
+    <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px); display: flex; align-items: flex-end; justify-content: space-between">
+      <div>
+        <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">Watch it run</p>
+        <h2 style="margin: 14px 0 0; font-size: 34px; font-weight: 600; line-height: 1.12; letter-spacing: -0.03em; max-width: 26ch">One label, three markets, and what changes between them</h2>
+      </div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.55; color: var(--n700); max-width: 40ch">The report screen, running. The language panel changes, the market changes, and the findings change with them — including the market where the label passes and the product still cannot be sold.</p>
+    </div>
+    <div style="margin-top: 28px; position: relative; border: 1px solid var(--ink); background: var(--paper)">
+      <span style="position: absolute; top: -8px; left: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+      <span style="position: absolute; top: -8px; right: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+      <span style="position: absolute; bottom: -8px; left: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+      <span style="position: absolute; bottom: -8px; right: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+
+      <div style="height: 540px; overflow: hidden; display: grid; grid-template-rows: 44px minmax(0, 1fr) 42px">
+
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 16px; border-bottom: 1px solid var(--rule)">
+          <div style="display: flex; align-items: center; gap: 12px; min-width: 0; overflow: hidden">
+            <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n500); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">Salmon &amp; rice adult 3 kg / Label report</p>
+            <div style="position: relative; width: 132px; height: 15px; flex: none">
+              <sc-for list="{{ tour }}" as="ta" hint-placeholder-count="3">
+                <p style="{{ ta.nodeStyle }}">{{ ta.node }}</p>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: flex; gap: 4px; flex: none">
+            <sc-for list="{{ tourChips }}" as="tc" hint-placeholder-count="6">
+              <span style="{{ tc.style }}">{{ tc.t }}</span>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 286px minmax(0, 1fr) 298px; min-height: 0">
+
+          <div style="border-right: 1px solid var(--rule); padding: 14px 16px; min-width: 0">
+            <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Artwork · print-ready</p>
+            <div style="margin-top: 9px; position: relative; height: 318px; border: 1px solid var(--rule); overflow: hidden">
+              <image-slot id="tour-pack" shape="rect" fit="cover" placeholder="Drop pack artwork"></image-slot>
+              <sc-for list="{{ tour }}" as="ta" hint-placeholder-count="3">
+                <div style="{{ ta.pinLayer }}">
+                  <sc-for list="{{ ta.pins }}" as="tp" hint-placeholder-count="4">
+                    <span style="{{ tp.style }}">{{ tp.n }}</span>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+            <div style="position: relative; margin-top: 12px; height: 52px">
+              <sc-for list="{{ tour }}" as="ta" hint-placeholder-count="3">
+                <div style="{{ ta.measureLayer }}">
+                  <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Geometry</p>
+                  <p style="margin: 5px 0 0; font-size: 12px; line-height: 1.35; color: var(--n700)">{{ ta.measure }}</p>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="position: relative; min-width: 0; border-right: 1px solid var(--rule)">
+            <sc-for list="{{ tour }}" as="ta" hint-placeholder-count="3">
+              <div style="{{ ta.layer }}">
+                <div style="display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 9px; border-bottom: 1px solid var(--ink)">
+                  <p style="margin: 0; font-size: 13px; font-weight: 600">Findings</p>
+                  <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--n600)">{{ ta.applied }}</p>
+                </div>
+                <sc-for list="{{ ta.findings }}" as="tf" hint-placeholder-count="4">
+                  <div style="{{ tf.rowStyle }}">
+                    <span style="{{ tf.glyph }}"></span>
+                    <div style="min-width: 0">
+                      <p style="margin: 0; font-size: 13px; line-height: 1.4">{{ tf.t }}</p>
+                      <div style="margin-top: 5px; display: flex; align-items: center; gap: 8px">
+                        <span style="{{ tf.stateStyle }}">{{ tf.state }}</span>
+                        <span style="font-family: var(--mono); font-size: 10px; color: var(--n600)">{{ tf.ref }}</span>
+                        <span style="font-family: var(--mono); font-size: 10px; color: var(--n500)">{{ tf.prov }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="position: relative; min-width: 0">
+            <sc-for list="{{ tour }}" as="ta" hint-placeholder-count="3">
+              <div style="{{ ta.layer }}">
+                <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">This market</p>
+                <div style="margin-top: 9px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px">
+                  <sc-for list="{{ ta.tiles }}" as="tt" hint-placeholder-count="4">
+                    <div style="{{ tt.style }}">
+                      <p style="margin: 0; font-family: var(--mono); font-size: 16px; font-weight: 500; line-height: 1; color: {{ tt.color }}">{{ tt.n }}</p>
+                      <p style="margin: 5px 0 0; font-size: 10px; line-height: 1.2; color: {{ tt.color }}">{{ tt.k }}</p>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="{{ ta.regStyle }}">
+                  <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: {{ ta.regColor }}">Registration</p>
+                  <p style="margin: 8px 0 0; font-size: 14px; font-weight: 600; line-height: 1.25; color: {{ ta.regColor }}">{{ ta.regState }}</p>
+                  <p style="margin: 7px 0 0; font-size: 12px; line-height: 1.45; color: var(--n700)">{{ ta.regBody }}</p>
+                </div>
+                <p style="margin: 12px 0 0; font-size: 11.5px; line-height: 1.45; color: var(--n600)">{{ ta.regFoot }}</p>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="position: relative; background: var(--ink); display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 16px">
+          <div style="position: absolute; left: 0; top: 0; height: 2px; width: 0; background: var(--accent); animation: ntv-prog 18s linear infinite"></div>
+          <div style="position: relative; flex: 1; min-width: 0; height: 14px">
+            <sc-for list="{{ tour }}" as="ta" hint-placeholder-count="3">
+              <p style="{{ ta.capStyle }}">{{ ta.caption }}</p>
+            </sc-for>
+          </div>
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n500); flex: none">Ruleset 2026.08</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding: 0 56px 62px">
+    <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px); margin-bottom: 30px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">Two real cases</p>
+      <h2 style="margin: 14px 0 0; font-size: 34px; font-weight: 600; line-height: 1.12; letter-spacing: -0.03em; max-width: 34ch">Whether the label already exists, or the product does not yet</h2>
+    </div>
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px">
+      <sc-for list="{{ paths }}" as="p" hint-placeholder-count="2">
+        <div data-reveal="1" style="{{ p.style }}">
+          <span style="position: absolute; top: -8px; left: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+          <span style="position: absolute; top: -8px; right: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+          <span style="position: absolute; bottom: -8px; left: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+          <span style="position: absolute; bottom: -8px; right: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+          <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: {{ p.accent }}">{{ p.kicker }}</p>
+          <p style="margin: 12px 0 0; font-size: 22px; font-weight: 600; line-height: 1.2; letter-spacing: -0.02em; text-wrap: pretty; min-height: 80px">{{ p.title }}</p>
+          <p style="margin: 12px 0 0; font-size: 15.5px; line-height: 1.55; color: var(--n700)">{{ p.body }}</p>
+          <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 9px">
+            <sc-for list="{{ p.steps }}" as="pstep" hint-placeholder-count="4">
+              <div style="display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 10px; align-items: baseline">
+                <span style="font-family: var(--mono); font-size: 11px; color: var(--n500)">{{ pstep.n }}</span>
+                <p style="margin: 0; font-size: 14.5px; line-height: 1.45">{{ pstep.t }}</p>
+              </div>
+            </sc-for>
+          </div>
+          <p style="margin: 22px 0 0; padding-top: 16px; border-top: 1px solid var(--rule); font-size: 13.5px; line-height: 1.5; color: var(--n700)">{{ p.out }}</p>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="stakes" style="padding: 60px 56px; border-top: 1px solid var(--ink)">
+    <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px)">
+      <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">The stakes</p>
+      <h2 style="margin: 14px 0 0; font-size: 34px; font-weight: 600; line-height: 1.12; letter-spacing: -0.03em; max-width: 30ch">How long it takes to find out, and what it costs to find out late</h2>
+    </div>
+    <div style="margin-top: 32px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 46px; align-items: start">
+      <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px)">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Time to an answer</p>
+        <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 20px">
+          <sc-for list="{{ speed }}" as="sp" hint-placeholder-count="3">
+            <div>
+              <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 14px">
+                <p style="margin: 0; font-size: 15px; font-weight: 500">{{ sp.k }}</p>
+                <p style="margin: 0; font-family: var(--mono); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--n600)">{{ sp.v }}</p>
+              </div>
+              <div style="margin-top: 8px; height: 10px; background: var(--n200)">
+                <div style="{{ sp.barStyle }}"></div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin: 24px 0 0; padding-top: 18px; border-top: 1px solid var(--rule); font-size: 14.5px; line-height: 1.55; color: var(--n700)">Basic costs €2,490 a year, or about four to eight consultant days at typical rates — and it re-checks every recipe you hold, as often as you like, in every language your labels are printed in.</p>
+      </div>
+      <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px); border: 1px solid var(--ink); border-top: 4px solid var(--blocked); padding: 26px 26px 22px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blocked)">What being wrong costs</p>
+        <div style="margin-top: 16px">
+          <sc-for list="{{ cost }}" as="co" hint-placeholder-count="4">
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 6px 18px; align-items: baseline; padding: 13px 0; border-bottom: 1px solid var(--n200)">
+              <p style="margin: 0; font-size: 15px; font-weight: 600; line-height: 1.3">{{ co.k }}</p>
+              <p style="margin: 0; font-family: var(--mono); font-size: 14px; font-weight: 500; line-height: 1.3; color: var(--blocked)">{{ co.f }}</p>
+              <p style="margin: 0; grid-column: 1 / -1; font-size: 13.5px; line-height: 1.45; color: var(--n700)">{{ co.v }}</p>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin: 18px 0 0; font-size: 12px; font-family: var(--mono); line-height: 1.5; letter-spacing: 0.03em; color: var(--n600)">Ranges are indicative, for a single mid-size line in one region.</p>
+        <p style="margin: 12px 0 0; font-size: 14px; line-height: 1.55; color: var(--n700)">Every one of these is paid for by you, and every one of them is found by somebody else — a retailer, an inspector, or a printer holding a press slot.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="report" style="padding: 60px 56px; border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); background: var(--panel)">
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 46px; align-items: start">
+      <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px)">
+        <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">The artefact</p>
+        <h2 style="margin: 14px 0 0; font-size: 34px; font-weight: 600; line-height: 1.12; letter-spacing: -0.03em; max-width: 28ch">A report you can send to a retailer, and they can check it themselves</h2>
+        <p style="margin: 18px 0 0; font-size: 17px; line-height: 1.55; color: var(--n700); max-width: 62ch">The answer is only useful once it leaves your desk. Every report is pinned to the artwork it was run against and the exact version of the rules that were in force, so whoever receives it can verify it without an account and without asking you.</p>
+        <div style="margin-top: 26px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px 28px">
+          <sc-for list="{{ reportPoints }}" as="rp" hint-placeholder-count="4">
+            <div style="border-left: 2px solid var(--accent); padding-left: 14px">
+              <p style="margin: 0; font-size: 15px; font-weight: 600; line-height: 1.3">{{ rp.k }}</p>
+              <p style="margin: 5px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--n700)">{{ rp.v }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px); position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 22px 24px">
+        <span style="position: absolute; top: -8px; left: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+        <span style="position: absolute; top: -8px; right: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+        <span style="position: absolute; bottom: -8px; left: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+        <span style="position: absolute; bottom: -8px; right: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--n400)">+</span>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span style="width: 7px; height: 7px; border-radius: 50%; background: var(--clear); animation: ntv-blink 2.4s ease-in-out infinite"></span>
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">Verification · no account needed</p>
+        </div>
+        <p style="margin: 14px 0 0; font-family: var(--mono); font-size: 12.5px; color: var(--n700)">nutrivo.ai/verify/<span style="color: var(--accent-700)">7QF2-K91M</span></p>
+        <div style="margin-top: 18px; border-top: 1px solid var(--rule)">
+          <sc-for list="{{ verifyRows }}" as="vr" hint-placeholder-count="5">
+            <div style="display: flex; justify-content: space-between; gap: 14px; align-items: baseline; border-bottom: 1px solid var(--n200); padding: 9px 0">
+              <p style="margin: 0; font-size: 12.5px; color: var(--n600)">{{ vr.k }}</p>
+              <p style="margin: 0; font-family: var(--mono); font-size: 12px; font-weight: 500; text-align: right; color: {{ vr.color }}">{{ vr.v }}</p>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin: 16px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--n700)">It never shows your composition or your findings. Only whether the report still stands.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding: 60px 56px">
+    <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px)">
+      <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">Who it is for</p>
+      <h2 style="margin: 14px 0 0; font-size: 34px; font-weight: 600; line-height: 1.12; letter-spacing: -0.03em; max-width: 32ch">Built for the person who has to decide before the artwork goes to print</h2>
+    </div>
+    <div style="margin-top: 30px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--rule)">
+      <sc-for list="{{ audiences }}" as="aud" hint-placeholder-count="3">
+        <div data-reveal="1" style="{{ aud.style }}">
+          <p style="margin: 0; font-size: 17px; font-weight: 600; line-height: 1.25">{{ aud.k }}</p>
+          <p style="margin: 10px 0 0; font-size: 14.5px; line-height: 1.5; color: var(--n700)">{{ aud.v }}</p>
+          <p style="margin: 14px 0 0; font-family: var(--mono); font-size: 10.5px; line-height: 1.45; letter-spacing: 0.06em; color: var(--accent-700)">{{ aud.job }}</p>
+        </div>
+      </sc-for>
+    </div>
+    <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px); margin-top: 22px; border: 1px solid var(--ink); background: var(--paper)">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px; padding: 14px 18px; border-bottom: 1px solid var(--rule)">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">How it works</p>
+        <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; color: var(--n500)">Four steps, on a loop</p>
+      </div>
+      <div style="display: grid; grid-template-columns: 236px minmax(0, 1fr)">
+        <div style="border-right: 1px solid var(--rule); padding: 16px; display: flex; flex-direction: column; gap: 8px">
+          <div style="border: 1px solid var(--rule); padding: 9px 11px; flex: none; display: flex; gap: 10px; align-items: baseline; animation: ntv-filmlab 20s linear infinite">
+            <span style="font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em">01</span>
+            <span style="font-size: 13px; font-weight: 500">The artwork becomes data</span>
+          </div>
+          <div style="border: 1px solid var(--rule); padding: 9px 11px; flex: none; display: flex; gap: 10px; align-items: baseline; animation: ntv-filmlab 20s linear 5s infinite">
+            <span style="font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em">02</span>
+            <span style="font-size: 13px; font-weight: 500">You name the markets</span>
+          </div>
+          <div style="border: 1px solid var(--rule); padding: 9px 11px; flex: none; display: flex; gap: 10px; align-items: baseline; animation: ntv-filmlab 20s linear 10s infinite">
+            <span style="font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em">03</span>
+            <span style="font-size: 13px; font-weight: 500">Every rule runs, per language</span>
+          </div>
+          <div style="border: 1px solid var(--rule); padding: 9px 11px; flex: none; display: flex; gap: 10px; align-items: baseline; animation: ntv-filmlab 20s linear 15s infinite">
+            <span style="font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em">04</span>
+            <span style="font-size: 13px; font-weight: 500">One answer you can send</span>
+          </div>
+          <p style="margin: auto 0 0; font-size: 12px; line-height: 1.5; color: var(--n600)">A sketch of the sequence, not a recording of the product.</p>
+        </div>
+        <div style="position: relative; height: 324px; min-width: 0; overflow: hidden; background: var(--panel)">
+
+          <div style="position: absolute; inset: 0; padding: 20px 24px; opacity: 0; animation: ntv-film 20s cubic-bezier(0.4, 0, 0.2, 1) infinite">
+            <p style="margin: 0; font-size: 15px; font-weight: 600">Every printed panel is read where it is printed</p>
+            <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.45; color: var(--n700); max-width: 46ch">Vector text, fonts, coordinates and character heights, taken from the print-ready file. Not an English original translated afterwards.</p>
+            <div style="margin-top: 16px; position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px">
+              <div style="border: 1px solid var(--rule); background: var(--paper); padding: 10px; opacity: 0; animation: ntv-in 20s ease-out 0.4s infinite">
+                <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--accent)">DE</p>
+                <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 5px">
+                  <div style="height: 6px; width: 88%; background: var(--n400)"></div>
+                  <div style="height: 6px; width: 62%; background: var(--n400)"></div>
+                  <div style="height: 6px; width: 74%; background: var(--n400)"></div>
+                  <div style="height: 6px; width: 40%; background: var(--n400)"></div>
+                </div>
+              </div>
+              <div style="border: 1px solid var(--rule); background: var(--paper); padding: 10px; opacity: 0; animation: ntv-in 20s ease-out 1s infinite">
+                <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--accent)">FR</p>
+                <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 5px">
+                  <div style="height: 6px; width: 80%; background: var(--n400)"></div>
+                  <div style="height: 6px; width: 70%; background: var(--n400)"></div>
+                  <div style="height: 6px; width: 55%; background: var(--n400)"></div>
+                  <div style="height: 6px; width: 46%; background: var(--n400)"></div>
+                </div>
+              </div>
+              <div style="border: 1px solid var(--rule); background: var(--paper); padding: 10px; opacity: 0; animation: ntv-in 20s ease-out 1.6s infinite">
+                <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: var(--accent)">EN-TX</p>
+                <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 5px">
+                  <div style="height: 6px; width: 92%; background: var(--n400)"></div>
+                  <div style="height: 6px; width: 58%; background: var(--n400)"></div>
+                  <div style="height: 6px; width: 66%; background: var(--n400)"></div>
+                  <div style="height: 6px; width: 34%; background: var(--n400)"></div>
+                </div>
+              </div>
+              <div style="position: absolute; left: 0; right: 0; top: 0; height: 2px; background: var(--accent); box-shadow: 0 0 10px 1px rgba(47, 94, 255, 0.45); animation: ntv-scan 20s ease-in-out infinite"></div>
+            </div>
+            <p style="margin: 14px 0 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; color: var(--n600)">3 language panels found · character heights measured</p>
+          </div>
+
+          <div style="position: absolute; inset: 0; padding: 20px 24px; opacity: 0; animation: ntv-film 20s cubic-bezier(0.4, 0, 0.2, 1) 5s infinite">
+            <p style="margin: 0; font-size: 15px; font-weight: 600">Markets are a tree, not a list</p>
+            <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.45; color: var(--n700); max-width: 46ch">A region is sold whole. Inside it, each member state or state is its own node, with its own language, registration and enforcement.</p>
+            <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 7px">
+              <div style="border: 1px solid var(--accent); background: var(--accent-100); padding: 8px 12px; display: flex; justify-content: space-between; align-items: baseline; opacity: 0; animation: ntv-in 20s ease-out 5.4s infinite">
+                <span style="font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em; color: var(--accent-700)">EU</span>
+                <span style="font-size: 12px; color: var(--accent-700)">27 member states · 24 languages</span>
+              </div>
+              <div style="margin-left: 26px; border: 1px solid var(--rule); background: var(--paper); padding: 8px 12px; display: flex; justify-content: space-between; align-items: baseline; opacity: 0; animation: ntv-in 20s ease-out 5.9s infinite">
+                <span style="font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em">EU · DE</span>
+                <span style="font-size: 12px; color: var(--n600)">German panel · registration none</span>
+              </div>
+              <div style="margin-left: 26px; border: 1px solid var(--rule); background: var(--paper); padding: 8px 12px; display: flex; justify-content: space-between; align-items: baseline; opacity: 0; animation: ntv-in 20s ease-out 6.3s infinite">
+                <span style="font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em">EU · FR</span>
+                <span style="font-size: 12px; color: var(--n600)">French panel · registration none</span>
+              </div>
+              <div style="margin-left: 26px; border: 1px solid var(--rule); background: var(--paper); padding: 8px 12px; display: flex; justify-content: space-between; align-items: baseline; opacity: 0; animation: ntv-in 20s ease-out 6.7s infinite">
+                <span style="font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.06em">US · TX</span>
+                <span style="font-size: 12px; color: var(--n600)">Feed registration with the state</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="position: absolute; inset: 0; padding: 20px 24px; opacity: 0; animation: ntv-film 20s cubic-bezier(0.4, 0, 0.2, 1) 10s infinite">
+            <p style="margin: 0; font-size: 15px; font-weight: 600">Each rule runs against the panel printed for that market</p>
+            <div style="margin-top: 14px; display: flex; flex-direction: column">
+              <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--n200); opacity: 0; animation: ntv-in 20s ease-out 10.4s infinite">
+                <span style="width: 11px; height: 11px; flex: none; background: var(--clear)"></span>
+                <span style="flex: 1; font-size: 13px">Product designation matches the prescribed term</span>
+                <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--n500)">RULE</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--n200); opacity: 0; animation: ntv-in 20s ease-out 10.9s infinite">
+                <span style="width: 11px; height: 11px; flex: none; background: var(--clear)"></span>
+                <span style="flex: 1; font-size: 13px">Analytical constituents complete and in order</span>
+                <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--n500)">RULE</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--n200); opacity: 0; animation: ntv-in 20s ease-out 11.4s infinite">
+                <span style="width: 0; height: 0; flex: none; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 11px solid var(--action)"></span>
+                <span style="flex: 1; font-size: 13px">Character height on the FR panel below the minimum</span>
+                <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--n500)">RULE</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--n200); opacity: 0; animation: ntv-in 20s ease-out 11.9s infinite">
+                <span style="width: 11px; height: 11px; flex: none; border: 1.5px solid var(--none); border-radius: 50%"></span>
+                <span style="flex: 1; font-size: 13px">Best-before format for chilled sub-ranges</span>
+                <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--n500)">NOT HELD</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; opacity: 0; animation: ntv-in 20s ease-out 12.4s infinite">
+                <span style="width: 11px; height: 11px; flex: none; background: var(--blocked); box-shadow: inset 0 4px 0 var(--paper), inset 0 -4px 0 var(--blocked)"></span>
+                <span style="flex: 1; font-size: 13px">Texas feed registration not filed — sale prohibited</span>
+                <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--n500)">RULE</span>
+              </div>
+            </div>
+            <div style="margin-top: 12px; height: 3px; background: var(--n200)">
+              <div style="height: 3px; background: var(--accent); animation: ntv-tick 20s linear 10s infinite"></div>
+            </div>
+          </div>
+
+          <div style="position: absolute; inset: 0; padding: 20px 24px; opacity: 0; animation: ntv-film 20s cubic-bezier(0.4, 0, 0.2, 1) 15s infinite">
+            <p style="margin: 0; font-size: 15px; font-weight: 600">Four states, every finding sourced, and what to register</p>
+            <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+              <div style="border: 1px solid var(--rule); background: var(--paper); padding: 11px; opacity: 0; animation: ntv-in 20s ease-out 15.4s infinite">
+                <p style="margin: 0; font-family: var(--mono); font-size: 22px; line-height: 1; color: var(--clear)">18</p>
+                <p style="margin: 7px 0 0; font-size: 11.5px; line-height: 1.3; color: var(--n700)">Clear</p>
+              </div>
+              <div style="border: 1px solid var(--rule); background: var(--paper); padding: 11px; opacity: 0; animation: ntv-in 20s ease-out 15.7s infinite">
+                <p style="margin: 0; font-family: var(--mono); font-size: 22px; line-height: 1; color: var(--action)">3</p>
+                <p style="margin: 7px 0 0; font-size: 11.5px; line-height: 1.3; color: var(--n700)">Action needed</p>
+              </div>
+              <div style="border: 1px solid var(--rule); background: var(--paper); padding: 11px; opacity: 0; animation: ntv-in 20s ease-out 16s infinite">
+                <p style="margin: 0; font-family: var(--mono); font-size: 22px; line-height: 1; color: var(--none)">2</p>
+                <p style="margin: 7px 0 0; font-size: 11.5px; line-height: 1.3; color: var(--n700)">Not assessed</p>
+              </div>
+              <div style="border: 1px solid var(--rule); background: var(--paper); padding: 11px; opacity: 0; animation: ntv-in 20s ease-out 16.3s infinite">
+                <p style="margin: 0; font-family: var(--mono); font-size: 22px; line-height: 1; color: var(--blocked)">1</p>
+                <p style="margin: 7px 0 0; font-size: 11.5px; line-height: 1.3; color: var(--n700)">Blocked</p>
+              </div>
+            </div>
+            <div style="margin-top: 14px; border: 1px solid var(--ink); border-left: 4px solid var(--blocked); background: var(--paper); padding: 12px 14px; opacity: 0; animation: ntv-in 20s ease-out 16.8s infinite">
+              <p style="margin: 0; font-size: 13px; font-weight: 600">US · Texas — the label passes, the product is unsellable</p>
+              <p style="margin: 5px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--n700)">Commercial feed registration with the Office of the Texas State Chemist. We name the authority, the route, the evidence list, the fee and the deadline. You file it.</p>
+            </div>
+            <p style="margin: 12px 0 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.06em; color: var(--n600)">Report pinned to ruleset version · artwork hash · timestamp</p>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="coverage" style="padding: 60px 56px; border-top: 1px solid var(--ink)">
+    <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px); display: flex; align-items: flex-end; justify-content: space-between; gap: 40px">
+      <div>
+        <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">What we cover</p>
+        <h2 style="margin: 14px 0 0; font-size: 34px; font-weight: 600; line-height: 1.12; letter-spacing: -0.03em; max-width: 26ch">We publish our depth, including what we do not hold</h2>
+      </div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.55; color: var(--n700); max-width: 44ch">Nobody in this category publishes this. It is the only way a not-assessed finding can mean anything: every gap in the product links to the row that explains it.</p>
+    </div>
+    <div style="margin-top: 30px; border: 1px solid var(--ink); background: var(--paper)">
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) 132px 132px 132px; border-bottom: 1px solid var(--ink)">
+        <p style="margin: 0; padding: 13px 18px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Rules encoded, by domain</p>
+        <p style="margin: 0; padding: 13px 18px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); text-align: center">EU</p>
+        <p style="margin: 0; padding: 13px 18px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); text-align: center">UK</p>
+        <p style="margin: 0; padding: 13px 18px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); text-align: center">US</p>
+      </div>
+      <sc-for list="{{ covDomains }}" as="cd" hint-placeholder-count="7">
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) 132px 132px 132px; border-bottom: 1px solid var(--n200)">
+          <p style="margin: 0; padding: 12px 18px; font-size: 14px; line-height: 1.35">{{ cd.k }}</p>
+          <sc-for list="{{ cd.cells }}" as="cc" hint-placeholder-count="3">
+            <div style="padding: 12px 18px; display: flex; align-items: center; justify-content: center">
+              <span style="{{ cc.style }}"></span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+      <div style="display: flex; align-items: center; gap: 24px; padding: 13px 18px">
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span style="display: inline-block; width: 9px; height: 9px; background: var(--ink)"></span>
+          <p style="margin: 0; font-size: 12.5px; color: var(--n700)">Encoded</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span style="display: inline-block; width: 9px; height: 9px; box-sizing: border-box; border: 1px solid var(--n500); background: linear-gradient(90deg, var(--ink) 50%, transparent 50%)"></span>
+          <p style="margin: 0; font-size: 12.5px; color: var(--n700)">Partly encoded — the excluded parts are named</p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px">
+          <span style="display: inline-block; width: 9px; height: 9px; box-sizing: border-box; border: 1px solid var(--n400)"></span>
+          <p style="margin: 0; font-size: 12.5px; color: var(--n700)">Not encoded — no verdict offered</p>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top: 22px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px">
+      <sc-for list="{{ covMeta }}" as="cm" hint-placeholder-count="3">
+        <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px); border: 1px solid var(--rule); border-left: 3px solid var(--accent); padding: 20px 22px">
+          <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent-700)">{{ cm.r }}</p>
+          <p style="margin: 9px 0 0; font-size: 14.5px; font-weight: 600; line-height: 1.35">{{ cm.n }}</p>
+          <p style="margin: 12px 0 0; font-size: 13px; line-height: 1.45; color: var(--n700)">{{ cm.m }}</p>
+          <p style="margin: 6px 0 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em; color: var(--n600)">{{ cm.d }}</p>
+          <p style="margin: 12px 0 0; padding-top: 11px; border-top: 1px solid var(--n200); font-size: 12.5px; line-height: 1.45; color: var(--n700)">{{ cm.g }}</p>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="compare" style="padding: 60px 56px; border-top: 1px solid var(--ink); background: var(--panel)">
+    <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px)">
+      <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">The alternatives</p>
+      <h2 style="margin: 14px 0 0; font-size: 34px; font-weight: 600; line-height: 1.12; letter-spacing: -0.03em; max-width: 30ch">What you are choosing between</h2>
+      <p style="margin: 16px 0 0; font-size: 17px; line-height: 1.55; color: var(--n700); max-width: 66ch">Three honest options, and the case for each. We are the depth option for one industry — if you need one tool across food, supplements and cosmetics, a horizontal platform is the better fit.</p>
+    </div>
+    <table style="width: 100%; border-collapse: collapse; margin-top: 28px; background: var(--paper); border: 1px solid var(--ink)">
+      <thead>
+        <tr>
+          <th style="text-align: left; font-family: var(--mono); font-weight: 400; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600); border-bottom: 1px solid var(--ink); padding: 14px 16px; width: 22%">&nbsp;</th>
+          <th style="text-align: left; font-family: var(--mono); font-weight: 500; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); border-bottom: 1px solid var(--ink); padding: 14px 16px; width: 26%">Nutrivo</th>
+          <th style="text-align: left; font-family: var(--mono); font-weight: 400; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n700); border-bottom: 1px solid var(--ink); padding: 14px 16px; width: 26%">Horizontal compliance tools</th>
+          <th style="text-align: left; font-family: var(--mono); font-weight: 400; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n700); border-bottom: 1px solid var(--ink); padding: 14px 16px">A regulatory consultant</th>
+        </tr>
+      </thead>
+      <tbody>
+        <sc-for list="{{ compare }}" as="row" hint-placeholder-count="7">
+          <tr>
+            <td style="border-bottom: 1px solid var(--n200); padding: 13px 16px; font-size: 13.5px; font-weight: 500; color: var(--n700); vertical-align: top">{{ row.k }}</td>
+            <td style="border-bottom: 1px solid var(--n200); padding: 13px 16px; font-size: 13.5px; line-height: 1.45; vertical-align: top; background: var(--accent-100)">{{ row.us }}</td>
+            <td style="border-bottom: 1px solid var(--n200); padding: 13px 16px; font-size: 13.5px; line-height: 1.45; color: var(--n700); vertical-align: top">{{ row.them }}</td>
+            <td style="border-bottom: 1px solid var(--n200); padding: 13px 16px; font-size: 13.5px; line-height: 1.45; color: var(--n700); vertical-align: top">{{ row.cons }}</td>
+          </tr>
+        </sc-for>
+      </tbody>
+    </table>
+    <p style="margin: 18px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--n700); max-width: 72ch">Comparison drawn from publicly available information in August 2026. Named competitor: Taama. We think they are good at what they do — it is simply a different shape of product.</p>
+  </section>
+
+  <section id="markets" style="padding: 60px 56px; border-top: 1px solid var(--ink)">
+    <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px); display: flex; align-items: flex-end; justify-content: space-between; gap: 40px">
+      <div>
+        <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">Markets</p>
+        <h2 style="margin: 14px 0 0; font-size: 34px; font-weight: 600; line-height: 1.12; letter-spacing: -0.03em; max-width: 28ch">A market is not a country on a list. It is a place in a rulebook.</h2>
+      </div>
+      <p style="margin: 0; font-size: 15px; line-height: 1.55; color: var(--n700); max-width: 44ch">Three regions, three different shapes. Every product is checked against the node it is actually sold in, and a parent never hides a failing child.</p>
+    </div>
+
+    <div style="margin-top: 32px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; align-items: start">
+
+      <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px)">
+        <div style="border: 1px solid var(--ink); border-top: 4px solid var(--accent); padding: 18px 20px">
+          <p style="margin: 0; font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-700)">EU</p>
+          <p style="margin: 8px 0 0; font-size: 17px; font-weight: 600; line-height: 1.25">One supranational rulebook</p>
+          <p style="margin: 8px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--n700)">Regulation 767/2009 applies everywhere. Registration, language and enforcement are national.</p>
+        </div>
+        <div style="height: 20px; width: 1px; margin-left: 26px; background: var(--n400)"></div>
+        <div style="border: 1px solid var(--rule); padding: 16px 18px">
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">27 member states · 24 official languages</p>
+          <div style="margin-top: 11px; display: flex; flex-wrap: wrap; gap: 4px">
+            <sc-for list="{{ euStates }}" as="es" hint-placeholder-count="27">
+              <span style="font-family: var(--mono); font-size: 10px; padding: 3px 6px; border: 1px solid var(--rule); color: var(--n700); white-space: nowrap">{{ es }}</span>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+
+      <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out 90ms, transform 600ms ease-out 90ms; transform: translateY(16px)">
+        <div style="border: 1px solid var(--ink); border-top: 4px solid var(--accent); padding: 18px 20px">
+          <p style="margin: 0; font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-700)">UK</p>
+          <p style="margin: 8px 0 0; font-size: 17px; font-weight: 600; line-height: 1.25">Two regimes, one country</p>
+          <p style="margin: 8px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--n700)">Since the Windsor Framework these are separate nodes, and they are drifting apart.</p>
+        </div>
+        <div style="height: 20px; width: 1px; margin-left: 26px; background: var(--n400)"></div>
+        <div style="display: flex; flex-direction: column; gap: 10px">
+          <div style="border: 1px solid var(--rule); padding: 16px 18px">
+            <p style="margin: 0; font-size: 15px; font-weight: 600">Great Britain</p>
+            <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.45; color: var(--n700)">Retained law, diverging from the EU rulebook it started as.</p>
+          </div>
+          <div style="border: 1px solid var(--rule); padding: 16px 18px">
+            <p style="margin: 0; font-size: 15px; font-weight: 600">Northern Ireland</p>
+            <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.45; color: var(--n700)">EU-aligned for goods. A pack cleared for GB is not cleared here.</p>
+          </div>
+        </div>
+      </div>
+
+      <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out 180ms, transform 600ms ease-out 180ms; transform: translateY(16px)">
+        <div style="border: 1px solid var(--ink); border-top: 4px solid var(--accent); padding: 18px 20px">
+          <p style="margin: 0; font-family: var(--mono); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent-700)">US</p>
+          <p style="margin: 8px 0 0; font-size: 17px; font-weight: 600; line-height: 1.25">Federal floor, fifty editions</p>
+          <p style="margin: 8px 0 0; font-size: 13.5px; line-height: 1.45; color: var(--n700)">Federal safety and labelling, then a model feed bill each state adopts in its own edition — and registers separately.</p>
+        </div>
+        <div style="height: 20px; width: 1px; margin-left: 26px; background: var(--n400)"></div>
+        <div style="border: 1px solid var(--rule); padding: 16px 18px">
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Federal · plus all fifty states</p>
+          <div style="margin-top: 11px; display: flex; flex-wrap: wrap; gap: 4px">
+            <sc-for list="{{ usStates }}" as="us" hint-placeholder-count="20">
+              <span style="font-family: var(--mono); font-size: 10px; padding: 3px 6px; border: 1px solid var(--rule); color: var(--n700); white-space: nowrap">{{ us }}</span>
+            </sc-for>
+            <span style="font-family: var(--mono); font-size: 10px; padding: 3px 6px; color: var(--n500); white-space: nowrap">and every other state</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 24px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px">
+      <div style="border: 1px solid var(--rule); border-left: 3px solid var(--ink); padding: 20px 22px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">The roll-up rule</p>
+        <p style="margin: 10px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--n700)">A region never shows as Clear while one of its markets is not. If Texas is blocked, the US does not read clear because the other forty-nine are — you see the failing node, named.</p>
+      </div>
+      <div style="border: 1px solid var(--rule); border-left: 3px solid var(--accent); padding: 20px 22px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-700)">Why a region is sold whole</p>
+        <p style="margin: 10px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--n700)">You cannot buy a single state or a single member state, because a state is an edition of a rulebook rather than a rulebook of its own. Buy the region and you have all of it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing" style="padding: 60px 56px; border-top: 1px solid var(--ink)">
+    <div data-reveal="1" style="opacity: 0; transition: opacity 600ms ease-out, transform 600ms ease-out; transform: translateY(16px); display: flex; align-items: flex-end; justify-content: space-between">
+      <div>
+        <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">Pricing</p>
+        <h2 style="margin: 14px 0 0; font-size: 34px; font-weight: 600; line-height: 1.12; letter-spacing: -0.03em">A region is a rulebook, and you get all of it</h2>
+        <p style="margin: 14px 0 0; font-size: 16.5px; line-height: 1.55; color: var(--n700); max-width: 60ch">Pick the EU and you have all twenty-seven member states in every official language. Pick the US and you have federal plus all fifty states. No counting countries, and we never charge you per check.</p>
+      </div>
+      <div style="display: flex; gap: 4px; padding-bottom: 6px">
+        <sc-for list="{{ billingChips }}" as="bc" hint-placeholder-count="2">
+          <button type="button" onClick="{{ bc.on }}" style="{{ bc.style }}" style-hover="border-color: var(--accent)">{{ bc.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="margin-top: 30px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; align-items: stretch">
+      <sc-for list="{{ tiers }}" as="t" hint-placeholder-count="4">
+        <div style="{{ t.style }}">
+          <sc-if value="{{ t.primary }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <span style="position: absolute; top: -8px; left: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--accent-300)">+</span>
+              <span style="position: absolute; top: -8px; right: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--accent-300)">+</span>
+              <span style="position: absolute; bottom: -8px; left: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--accent-300)">+</span>
+              <span style="position: absolute; bottom: -8px; right: -6px; font-family: var(--mono); font-size: 13px; line-height: 1; color: var(--accent-300)">+</span>
+            </div>
+          </sc-if>
+          <p style="margin: 0; font-size: 20px; font-weight: 600; line-height: 1; height: 22px">{{ t.name }}</p>
+          <p style="margin: 8px 0 0; font-size: 13.5px; line-height: 1.4; color: {{ t.whoColor }}; height: 38px">{{ t.who }}</p>
+          <p style="margin: 14px 0 0; font-size: 30px; font-weight: 600; line-height: 1.05; letter-spacing: -0.03em; min-height: 34px">{{ t.price }}</p>
+          <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--n600); min-height: 36px">{{ t.priceNote }}</p>
+          <a href="#start" style="{{ t.ctaStyle }}">{{ t.cta }}</a>
+          <div style="margin-top: 18px; border-top: 1px solid var(--ink)">
+            <sc-for list="{{ t.caps }}" as="cap" hint-placeholder-count="4">
+              <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 8px; border-bottom: 1px solid var(--n200); padding: 7px 0">
+                <p style="margin: 0; font-size: 12.5px; color: var(--n600)">{{ cap.k }}</p>
+                <p style="margin: 0; font-family: var(--mono); font-size: 12px; font-weight: 500; text-align: right">{{ cap.v }}</p>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top: 16px; min-height: 96px">
+            <sc-if value="{{ t.pick }}" hint-placeholder-val="{{ true }}">
+              <div>
+                <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Pick your region</p>
+                <div style="margin-top: 7px; display: flex; gap: 4px">
+                  <sc-for list="{{ t.chips }}" as="rchip" hint-placeholder-count="3">
+                    <button type="button" onClick="{{ rchip.on }}" style="{{ rchip.style }}" style-hover="border-color: var(--accent)">{{ rchip.label }}</button>
+                  </sc-for>
+                </div>
+                <p style="margin: 9px 0 0; font-size: 12px; line-height: 1.4; color: var(--n700)">{{ t.example }}</p>
+              </div>
+            </sc-if>
+          </div>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 6px">
+            <sc-for list="{{ t.lines }}" as="tl" hint-placeholder-count="6">
+              <p style="margin: 0; font-size: 13px; line-height: 1.4">{{ tl.t }}</p>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top: 24px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px">
+      <div style="border: 1px solid var(--rule); border-left: 3px solid var(--clear); padding: 20px 22px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--clear)">Never charged for, on any plan</p>
+        <p style="margin: 10px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--n700)">Checking and re-checking as often as you like · checking in the language your label is printed in · the four states and where each answer came from · what we could not check, and why · what you must register, with whom, by when · reading your own answer on screen</p>
+      </div>
+      <div style="border: 1px solid var(--rule); border-left: 3px solid var(--blocked); padding: 20px 22px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blocked)">What we will never do, at any price</p>
+        <p style="margin: 10px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--n700)">We do not submit a registration for you. We do not pay a fee on your behalf. We do not correspond with an authority as your representative. We do not confirm that a registration is valid, and we do not guarantee acceptance. Only the responsible operator named on the label can do those things.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="start" style="padding: 62px 56px; border-top: 1px solid var(--ink); background: var(--ink); color: #ffffff">
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 54px; align-items: center">
+      <div>
+        <h2 style="margin: 0; font-size: 38px; font-weight: 600; line-height: 1.1; letter-spacing: -0.03em; color: #ffffff; max-width: 26ch">Three labels free. See what we find.</h2>
+        <p style="margin: 18px 0 0; font-size: 17px; line-height: 1.55; color: #c3c8d0; max-width: 58ch">The whole product on your first three labels, sending included, with no card and no clock — you keep everything you check in one region for as long as you want it. No card, no questions about your company, no sales call.</p>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <a href="#start" style="background: var(--accent); color: #ffffff; font-size: 17px; font-weight: 500; padding: 17px 24px; text-align: center; border-radius: 3px; transition: background 120ms ease-out" style-hover="background: #7a99ff; color: #ffffff">Check a label free</a>
+        <a href="#pricing" style="border: 1px solid var(--n600); color: #ffffff; font-size: 16px; font-weight: 500; padding: 15px 24px; text-align: center; border-radius: 3px; transition: border-color 120ms ease-out" style-hover="border-color: #ffffff; color: #ffffff">See what a plan includes</a>
+        <p style="margin: 6px 0 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-align: center; color: var(--n500)">EU · UK · US</p>
+      </div>
+    </div>
+  </section>
+
+  <footer style="padding: 30px 56px; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--n700); background: var(--ink)">
+    <div style="display: flex; align-items: baseline; gap: 2px">
+      <span style="font-size: 16px; font-weight: 600; color: #ffffff; letter-spacing: -0.03em">nutrivo</span>
+      <span style="width: 5px; height: 5px; background: var(--accent); display: inline-block"></span>
+    </div>
+    <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--n500)">Label compliance for pet food and animal nutrition · EU · UK · US</p>
+  </footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1280}}">
+const NTV_EU = ["Austria", "Belgium", "Bulgaria", "Croatia", "Cyprus", "Czechia", "Denmark", "Estonia", "Finland", "France", "Germany", "Greece", "Hungary", "Ireland", "Italy", "Latvia", "Lithuania", "Luxembourg", "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Slovakia", "Slovenia", "Spain", "Sweden"];
+const NTV_UK = ["Great Britain", "Northern Ireland"];
+const NTV_US = ["USA federal", "Texas", "California", "Florida", "New York", "Ohio", "Illinois", "Georgia", "Michigan", "Pennsylvania", "Washington", "Colorado", "Arizona", "Oregon", "Minnesota", "Wisconsin", "Missouri", "Tennessee", "Indiana", "Massachusetts"];
+
+const NTV_MK_ITEMS = []
+  .concat([{ t: "EU", head: true }], NTV_EU.map(t => ({ t })))
+  .concat([{ t: "UK", head: true }], NTV_UK.map(t => ({ t })))
+  .concat([{ t: "US", head: true }], NTV_US.map(t => ({ t })), [{ t: "and every other state", muted: true }])
+  .map(it => ({
+    t: it.t,
+    style: it.head
+      ? "font-family: var(--mono); font-size: 11px; letter-spacing: 0.16em; color: var(--accent); border: 1px solid var(--n700); padding: 4px 9px; white-space: nowrap"
+      : "font-size: 14px; letter-spacing: -0.01em; white-space: nowrap; color: " + (it.muted ? "var(--n500)" : "#ffffff"),
+  }));
+const NTV_MARQUEE = [{ items: NTV_MK_ITEMS }, { items: NTV_MK_ITEMS }];
+
+const NTV_QUESTIONS = [
+  { n: "01", q: "Are we compliant?", a: "One answer per market, in the language your label is actually printed in. Never a pass or fail — four states, so you can see the difference between a problem and a gap." },
+  { n: "02", q: "What is missing?", a: "Every finding named, with the article it comes from and how we reached it. Including the things we could not check, and why, with a link to exactly what we cover." },
+  { n: "03", q: "What do we do?", a: "The wording that would be compliant, the character heights your artwork needs, and the ceilings you cannot design past. Written so prepress can act on it." },
+  { n: "04", q: "What must we register?", a: "The obligation, the authority, the route, the evidence list, the fee and the deadline, per market — pre-filled from what your product record already answers." },
+].map((q, i) => ({
+  n: q.n, q: q.q, a: q.a,
+  style: "opacity: 0; transform: translateY(16px); transition: opacity 600ms ease-out " + (i * 90) + "ms, transform 600ms ease-out " + (i * 90) + "ms; padding: 22px 22px 30px; border-bottom: 1px solid var(--ink); " + (i < 3 ? "border-right: 1px solid var(--rule);" : ""),
+}));
+
+const NTV_MARK = {
+  full: "display: inline-block; width: 9px; height: 9px; background: var(--ink)",
+  part: "display: inline-block; width: 9px; height: 9px; box-sizing: border-box; border: 1px solid var(--n500); background: linear-gradient(90deg, var(--ink) 50%, transparent 50%)",
+  none: "display: inline-block; width: 9px; height: 9px; box-sizing: border-box; border: 1px solid var(--n400)",
+};
+
+const NTV_STATES = [
+  { s: "clear", name: "Clear", def: "Every rule we hold for this market is satisfied, on the panel printed for that market.", act: "Nothing to do. Send the report." },
+  { s: "action", name: "Action needed", def: "A rule is not satisfied and the fix is yours to make — a wording, a missing heading, a character height, a registration to file.", act: "The finding names the article and the wording that would be compliant." },
+  { s: "none", name: "Not assessed", def: "We do not hold that rule for this market, or the artwork did not give us what the rule needs. We say so rather than guess.", act: "Follow the link to what we cover in that market, and what we do not." },
+  { s: "blocked", name: "Blocked", def: "The product cannot lawfully be sold here, whatever the label says. Most often a registration that has not been filed.", act: "The obligation, the authority, the route, the evidence list and the fee." },
+];
+
+const NTV_SPEED = [
+  { k: "A check in Nutrivo", v: "Minutes", w: "7%", c: "var(--accent)" },
+  { k: "A consultant's turnaround", v: "Days to weeks", w: "52%", c: "var(--n400)" },
+  { k: "Finding out at the printer", v: "Too late", w: "100%", c: "var(--blocked)" },
+];
+
+const NTV_COST = [
+  { k: "The artwork run is reprinted", f: "€8,000 – 25,000", v: "Per run, paid by you, in full, at short notice, and the launch slips." },
+  { k: "The batch is withdrawn", f: "€25,000 – 150,000", v: "Stock, logistics and disposal, plus the authority's attention on every other line you sell." },
+  { k: "The retailer delists the line", f: "€40,000 – 250,000", v: "A year of listing value, and shelf is hard to win back once it is gone." },
+  { k: "The launch window closes", f: "A season of sales", v: "Because a registration was filed after the shipment had already left." },
+];
+
+const NTV_COV_DOMAINS = [
+  { k: "Product designation and category", v: ["full", "full", "full"] },
+  { k: "Composition, additives and analytical constituents", v: ["full", "full", "part"] },
+  { k: "Claims and marketing wording", v: ["full", "part", "part"] },
+  { k: "Type size and panel geometry", v: ["full", "full", "part"] },
+  { k: "Feeding instructions and mandatory particulars", v: ["full", "full", "full"] },
+  { k: "Language of the printed panel", v: ["full", "full", "part"] },
+  { k: "Registration: obligation, authority, route, fee, deadline", v: ["full", "full", "full"] },
+];
+
+const NTV_COV_META = [
+  { r: "EU", n: "27 member states · 24 official languages", m: "Complete in every domain we publish", d: "Last checked 14 Aug 2026", g: "Named gap: best-before formats for chilled sub-ranges" },
+  { r: "UK", n: "Great Britain and Northern Ireland, held apart", m: "Complete, GB and NI held apart", d: "Last checked 12 Aug 2026", g: "Named gap: GB claim wording diverging from retained law" },
+  { r: "US", n: "Federal, plus all fifty states", m: "Federal complete · state editions partial, gaps named per state", d: "Last checked 14 Aug 2026", g: "Named gap: brand-name claim substantiation, and Spanish-language panels" },
+];
+
+const NTV_PATHS = [
+  { kicker: "Case one", accent: "var(--accent)", title: "Check your label: are we compliant to sell in market X, Y and Z?", body: "Upload the artwork and tell us where you sell. We read every language panel on the pack, not an English original translated afterwards.",
+    steps: [{ n: "01", t: "Upload the print-ready artwork" }, { n: "02", t: "Pick the markets you sell in" }, { n: "03", t: "We classify the product and say so, visibly" }, { n: "04", t: "A report per market, per language" }],
+    out: "You get a verdict you can act on and send, plus a registration list per market." },
+  { kicker: "Case two", accent: "var(--accent-700)", title: "Creating new products: make them compliant with the right registrations for you to grow sales", body: "Bring what you have, even if that is half a formula and a market in mind. We will not pretend to give you a verdict on something unfinished.",
+    steps: [{ n: "01", t: "Enter what exists — ingredients, claims, markets" }, { n: "02", t: "We accept partial input without guessing" }, { n: "03", t: "You get a design envelope, not a verdict" }, { n: "04", t: "Constraints, ceilings and compliant wording" }],
+    out: "You find out what is possible before the artwork exists, and what will block you later." },
+].map((p, i) => Object.assign({}, p, {
+  style: "opacity: 0; transform: translateY(16px); transition: opacity 600ms ease-out " + (i * 110) + "ms, transform 600ms ease-out " + (i * 110) + "ms; position: relative; border: 1px solid var(--ink); border-top: 4px solid " + p.accent + "; padding: 28px 28px 26px; display: flex; flex-direction: column",
+}));
+
+const NTV_REPORT_POINTS = [
+  { k: "Pinned to a moment", v: "The ruleset version in force, the hash of the artwork it read, and the date. It cannot drift." },
+  { k: "Says what it is", v: "It states on its face that it was generated automatically and attested by nobody. A signed certificate is a separate thing." },
+  { k: "Includes the gaps", v: "The not-assessed section travels with it. A report that hides what it did not check is worse than no report." },
+  { k: "Verifiable by the recipient", v: "A retailer or artwork agency can confirm it still stands without an account and without contacting you." },
+];
+
+const NTV_VERIFY = [
+  { k: "Status", v: "Current", color: "var(--clear)" },
+  { k: "Issued", v: "14 Aug 2026", color: "var(--ink)" },
+  { k: "Ruleset version", v: "2026.08", color: "var(--ink)" },
+  { k: "Market", v: "Germany", color: "var(--ink)" },
+  { k: "Not-assessed items", v: "Yes — 6", color: "var(--none)" },
+];
+
+const NTV_AUDIENCES = [
+  { k: "The person developing the product", v: "You need to know what is allowed while the recipe is still moving, not after the artwork is at the printer. Bring a half-finished formula and get constraints back.", job: "NPD · PRODUCT DEVELOPMENT · TECHNICAL", tint: true },
+  { k: "The person who signs it off", v: "You carry the risk across every recipe and every market. You need one place that shows what is current, what is stale against the rules, and what nobody has checked.", job: "REGULATORY · QUALITY · COMPLIANCE" },
+  { k: "The person selling it", v: "You want a new market and a straight answer about what it costs to get in. Including the registration that makes a compliant label sellable, or not.", job: "COMMERCIAL · FOUNDER · EXPORT" },
+].map((a, i) => ({
+  k: a.k, v: a.v, job: a.job,
+  style: "opacity: 0; transform: translateY(16px); transition: opacity 600ms ease-out " + (i * 90) + "ms, transform 600ms ease-out " + (i * 90) + "ms; padding: 26px 24px; " + (i < 2 ? "border-right: 1px solid var(--rule); " : "") + (a.tint ? "background: var(--accent-100);" : ""),
+}));
+
+const NTV_COMPARE = [
+  { k: "Scope", us: "Pet food and animal nutrition only. One industry, in depth.", them: "Food, drink, supplements and cosmetics across many markets.", cons: "Whatever they personally know well, which is often a great deal." },
+  { k: "The answer you get", us: "Four states — clear, action needed, not assessed, blocked — never a pass or a fail.", them: "An assessment per submission, with the depth held privately.", cons: "A considered opinion, in an email or a document." },
+  { k: "What is not checked", us: "Named, with a link to exactly what we cover in that market and what we do not.", them: "Coverage depth is generally not published per market.", cons: "Depends entirely on whether you ask the right question." },
+  { k: "Language", us: "Every check runs on the language your label is printed in, on every plan including free.", them: "Varies by product and market.", cons: "Usually the languages that person works in." },
+  { k: "Re-checking", us: "As often as you like. We never charge per check.", them: "Commonly priced per assessment.", cons: "Every revision is billable time." },
+  { k: "Registration", us: "The obligation, authority, route, fee and deadline named per market. We never file for you.", them: "Not typically the product's focus.", cons: "Often the strongest reason to hire one." },
+  { k: "Cost to start", us: "€0, then €249 a month. No card to begin.", them: "Quote-based, typically after a call.", cons: "Roughly €300–700 for a day." },
+];
+
+const NTV_INSIDE = {
+  EU: "All twenty-seven EU member states, in every official language.",
+  UK: "Great Britain and Northern Ireland, whose rules differ from each other.",
+  US: "USA federal, plus all fifty states and their registrations.",
+};
+
+const NTV_GLYPH = {
+  clear: "display: inline-block; flex: none; margin-top: 3px; width: 9px; height: 9px; background: #0f7a4d",
+  action: "display: inline-block; flex: none; margin-top: 3px; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 9px solid #9e5600",
+  none: "display: inline-block; flex: none; margin-top: 3px; width: 9px; height: 9px; box-sizing: border-box; border: 1.5px solid #5f6570; border-radius: 50%",
+  blocked: "display: inline-block; flex: none; margin-top: 3px; width: 9px; height: 9px; background: #b3251f; box-shadow: inset 0 3.5px 0 0 #ffffff, inset 0 -3.5px 0 0 #b3251f",
+};
+const NTV_SC = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)" };
+const NTV_SBG = { clear: "var(--clear-bg)", action: "var(--action-bg)", none: "var(--none-bg)", blocked: "var(--blocked-bg)" };
+const NTV_SL = { clear: "Clear", action: "Action needed", none: "Not assessed", blocked: "Blocked" };
+const NTV_PINC = { clear: "#0f7a4d", action: "#9e5600", none: "#5f6570", blocked: "#b3251f" };
+
+const NTV_TOUR_RAW = [
+  {
+    node: "EU · Germany", applied: "306 rules applied", measure: "Smallest mandatory type on the DE panel measured at 1.4 mm. Minimum is 1.2 mm.",
+    findings: [
+      { s: "clear", t: "Complete feed designation present on the German panel", ref: "Reg. 767/2009 Art. 15(1)(a)", prov: "rule", pin: [20, 24] },
+      { s: "action", t: "Additives are listed, but the required heading above them is absent", ref: "Art. 17(1)(f)", prov: "rule", pin: [54, 62] },
+      { s: "clear", t: "Analytical constituents given in the prescribed order", ref: "Annex VI", prov: "rule", pin: [70, 30] },
+      { s: "none", t: "Best-before format for the chilled sub-range", ref: "not encoded", prov: "coverage NTV-DE-04", pin: [38, 78] },
+    ],
+    tiles: [["clear", 42], ["action", 1], ["none", 2], ["blocked", 0]],
+    regState: "Action needed", regS: "action",
+    regBody: "Establishment notification to the Landesamt, not a product registration. Route, evidence list and fee pre-filled.",
+    regFoot: "We prepare it. Only the operator named on the label can file it.",
+    caption: "Germany · DE panel · every answer carries its source",
+  },
+  {
+    node: "EU · France", applied: "298 rules applied", measure: "FR panel type at 1.3 mm. Feeding instructions set at 1.1 mm — above the 1.0 mm floor.",
+    findings: [
+      { s: "action", t: "Printed as “aliment pour chiens”. The prescribed designation is “aliment complet pour chiens adultes”.", ref: "Art. 15(1)(a)", prov: "rule", pin: [24, 30] },
+      { s: "clear", t: "Additives carry function group and EU authorisation number", ref: "Annex VI", prov: "rule", pin: [58, 58] },
+      { s: "clear", t: "Feeding instructions present in French", ref: "Art. 15(1)(f)", prov: "rule", pin: [44, 20] },
+      { s: "none", t: "Regional claim wording not encoded for this market", ref: "partial coverage", prov: "coverage NTV-FR-02", pin: [76, 70] },
+    ],
+    tiles: [["clear", 38], ["action", 1], ["none", 1], ["blocked", 0]],
+    regState: "Clear", regS: "clear",
+    regBody: "No product registration required for complete feed. The establishment is already registered.",
+    regFoot: "Checked against the French rulebook, not a translation of the German one.",
+    caption: "France · FR panel · read in French, never translated from English",
+  },
+  {
+    node: "US · Texas", applied: "184 rules applied", measure: "Guaranteed analysis panel type at 1/16 in. Net quantity statement in the lower third.",
+    findings: [
+      { s: "clear", t: "Guaranteed analysis panel complete", ref: "AAFCO Model Bill §5", prov: "rule", pin: [20, 60] },
+      { s: "clear", t: "Nutritional adequacy statement present", ref: "AAFCO §9", prov: "rule", pin: [46, 26] },
+      { s: "blocked", t: "Product is not registered with the Texas Feed and Fertilizer Control Service", ref: "Tex. Agric. Code §141", prov: "rule", pin: [66, 68] },
+      { s: "none", t: "Brand-name claim substantiation", ref: "not encoded", prov: "coverage NTV-TX-01", pin: [82, 36] },
+    ],
+    tiles: [["clear", 27], ["action", 0], ["none", 1], ["blocked", 1]],
+    regState: "Blocked", regS: "blocked",
+    regBody: "Annual product registration, due before first sale. Until it is filed and accepted, the product cannot be sold in the state.",
+    regFoot: "The label passes every rule here. That is not the same as being sellable.",
+    caption: "Texas · the label passes every rule and the product still cannot be sold",
+  },
+];
+
+const NTV_TOUR = NTV_TOUR_RAW.map((a, ai) => {
+  const anim = " 18s linear infinite";
+  const act = "animation: ntv-act" + (ai + 1) + anim + "; opacity: " + (ai === 0 ? "1" : "0");
+  const rowDelay = (i) => (ai * 6 + 0.35 + i * 0.5).toFixed(2) + "s";
+  return {
+    node: a.node, applied: a.applied, measure: a.measure,
+    caption: a.caption, regState: a.regState, regBody: a.regBody, regFoot: a.regFoot,
+    regColor: NTV_SC[a.regS],
+    nodeStyle: "margin: 0; position: absolute; left: 0; top: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; color: var(--accent-700); white-space: nowrap; " + act,
+    capStyle: "margin: 0; position: absolute; left: 0; top: 0; font-size: 12px; line-height: 1.2; color: #ffffff; white-space: nowrap; " + act,
+    layer: "position: absolute; inset: 0; padding: 14px 16px; " + act,
+    measureLayer: "position: absolute; inset: 0; " + act,
+    pinLayer: "position: absolute; inset: 0; pointer-events: none; " + act,
+    regStyle: "margin-top: 14px; border: 1px solid " + NTV_SC[a.regS] + "; background: " + NTV_SBG[a.regS] + "; padding: 12px 13px",
+    tiles: a.tiles.map(t => ({
+      k: NTV_SL[t[0]], n: t[1], color: NTV_SC[t[0]],
+      style: "border: 1px solid " + NTV_SC[t[0]] + "; background: " + NTV_SBG[t[0]] + "; padding: 7px 9px",
+    })),
+    findings: a.findings.map((f, i) => ({
+      t: f.t, ref: f.ref, prov: f.prov, state: NTV_SL[f.s], glyph: NTV_GLYPH[f.s],
+      stateStyle: "font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; color: " + NTV_SC[f.s],
+      rowStyle: "display: flex; align-items: flex-start; gap: 9px; padding: 11px 0; border-bottom: 1px solid var(--n200); opacity: 0; animation: ntv-row 18s linear " + rowDelay(i) + " infinite",
+    })),
+    pins: a.findings.map((f, i) => ({
+      n: String(i + 1),
+      style: "position: absolute; top: " + f.pin[0] + "%; left: " + f.pin[1] + "%; width: 20px; height: 20px; margin: -10px 0 0 -10px; box-sizing: border-box; border: 1px solid " + NTV_PINC[f.s] + "; background: #ffffff; color: " + NTV_PINC[f.s] + "; font-family: var(--mono); font-size: 10px; display: flex; align-items: center; justify-content: center; opacity: 0; animation: ntv-row 18s linear " + rowDelay(i) + " infinite",
+    })),
+  };
+});
+
+const NTV_TOUR_CHIPS = [["DE", 1], ["AT-DE", 0], ["EN-GB", 0], ["FR", 2], ["NL", 0], ["EN-TX", 3]].map(c => ({
+  t: c[0],
+  style: "font-family: var(--mono); font-size: 10px; padding: 3px 6px; white-space: nowrap; flex: none; border: 1px solid " + (c[1] === 1 ? "var(--accent)" : "var(--rule)") + "; background: " + (c[1] === 1 ? "var(--accent)" : "transparent") + "; color: " + (c[1] === 1 ? "#ffffff" : "var(--n500)") + (c[1] ? "; animation: ntv-nd" + c[1] + " 18s linear infinite" : ""),
+}));
+
+class Component extends DCLogic {
+  state = { basic: "EU", standard: "EU", annual: false };
+
+  componentDidMount() {
+    const nodes = Array.prototype.slice.call(document.querySelectorAll("[data-reveal]"));
+    const show = (el) => { el.style.opacity = "1"; el.style.transform = "none"; };
+    if (!("IntersectionObserver" in window)) { nodes.forEach(show); return; }
+    this._obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { show(e.target); this._obs.unobserve(e.target); } });
+    }, { rootMargin: "0px 0px -12% 0px", threshold: 0.08 });
+    nodes.forEach(n => this._obs.observe(n));
+    this._failsafe = setTimeout(() => nodes.forEach(show), 2500);
+  }
+
+  componentWillUnmount() {
+    clearTimeout(this._failsafe);
+    if (this._obs) this._obs.disconnect();
+  }
+
+  renderVals() {
+    const chip = (label, on, handler) => ({
+      label, on: handler,
+      style: "font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; padding: 6px 12px; cursor: pointer; border: 1px solid " + (on ? "var(--accent)" : "var(--n400)") + "; background: " + (on ? "var(--accent)" : "transparent") + "; color: " + (on ? "#ffffff" : "var(--n700)") + "; transition: all 120ms ease-out; border-radius: 3px",
+    });
+    const billingChips = [
+      chip("Monthly", !this.state.annual, () => this.setState({ annual: false })),
+      chip("Annual — 2 months free", this.state.annual, () => this.setState({ annual: true })),
+    ];
+    const chipsFor = (key) => ["EU", "UK", "US"].map(r => chip(r, this.state[key] === r, () => this.setState({ [key]: r })));
+
+    const A = this.state.annual;
+    const tier = (name, who, price, priceNote, cta, caps, lines, primary, pickKey) => ({
+      name, who, price, priceNote, cta, primary: !!primary,
+      whoColor: primary ? "var(--accent-700)" : "var(--n600)",
+      caps: caps.map(c => ({ k: c[0], v: c[1] })),
+      lines: lines.map(t => ({ t })),
+      pick: !!pickKey,
+      chips: pickKey ? chipsFor(pickKey) : [],
+      example: pickKey ? NTV_INSIDE[this.state[pickKey]] : "",
+      style: "position: relative; border: 1px solid " + (primary ? "var(--ink)" : "var(--rule)") + "; border-top: 4px solid " + (primary ? "var(--accent)" : "var(--n400)") + "; padding: 24px 22px 26px; display: flex; flex-direction: column; background: " + (primary ? "var(--accent-100)" : "transparent"),
+      ctaStyle: "margin-top: 16px; display: block; text-align: center; font-size: 14.5px; font-weight: 500; padding: 12px 16px; border-radius: 3px; transition: all 120ms ease-out; " + (primary
+        ? "background: var(--accent); color: #ffffff; border: 1px solid var(--accent);"
+        : "border: 1px solid var(--n400); color: var(--ink);"),
+    });
+
+    const tiers = [
+      tier("Free", "See what we find on your first three labels.", "€0", "The whole product on three labels, sending included. No card, no clock.", "Check three labels",
+        [["Labels", "3"], ["Regions", "1"], ["People", "2"], ["Checks", "as you like"]],
+        ["Whether your label is compliant, or not", "Every problem we find, in plain terms", "Where each answer came from", "What we could not check, and why", "A note whenever a rule changes"],
+        false, null),
+      tier("Basic", "One brand, selling in one region.", A ? "€2,490" : "€249", A ? "per year — two months free" : "per month, billed monthly", "Start free",
+        [["Recipes", "10"], ["Regions", "1, whole"], ["Can edit", "3"], ["Only read", "free"]],
+        ["Everything in Free", "A report you can send", "Download it, email it, or share a link", "What you must register, with whom, by when", "Every pack size and artwork version included"],
+        true, "basic"),
+      tier("Standard", "A full range, selling in one region or two.", A ? "€4,990" : "€499", A ? "per year — two months free" : "per month, billed monthly", "Start free",
+        [["Recipes", "30"], ["Regions", "1 whole, 2 max"], ["Can edit", "5"], ["Only read", "free"]],
+        ["Everything in Basic", A ? "Add a second region? €1,990 a year" : "Add a second region? €199 a month", "Ask a supplier for a spec once, not per product", "A document pack per market, ready to send", "Your whole range on one board"],
+        false, "standard"),
+      tier("Advanced", "When someone has to put their name to a label.", A ? "from €9,990" : "from €999", A ? "per year, for the software" : "per month, for the software", "Talk to us",
+        [["Recipes", "no limit"], ["Regions", "all three"], ["People", "unlimited, free"], ["Experts", "on quotation"]],
+        ["Everything in Standard", "All three regions: EU, UK and US", "As many people as you like, all free", "A signed certificate, not just a report", "Experts and support available on quotation"],
+        false, null),
+    ];
+
+    return {
+      marquee: NTV_MARQUEE, questions: NTV_QUESTIONS, paths: NTV_PATHS,
+      reportPoints: NTV_REPORT_POINTS, verifyRows: NTV_VERIFY, audiences: NTV_AUDIENCES,
+      compare: NTV_COMPARE, billingChips, tiers,
+      tour: NTV_TOUR, tourChips: NTV_TOUR_CHIPS,
+      speed: NTV_SPEED.map(s => ({
+        k: s.k, v: s.v,
+        barStyle: "height: 10px; width: " + s.w + "; background: " + s.c,
+      })),
+      cost: NTV_COST, euStates: NTV_EU, usStates: NTV_US,
+      covMeta: NTV_COV_META,
+      states: NTV_STATES.map((s, i) => ({
+        name: s.name, def: s.def, act: s.act, color: NTV_SC[s.s], glyph: NTV_GLYPH[s.s],
+        style: "padding: 24px 22px 26px; background: " + NTV_SBG[s.s] + "; border-top: 3px solid " + NTV_SC[s.s] + (i < 3 ? "; border-right: 1px solid var(--paper)" : ""),
+      })),
+      covDomains: NTV_COV_DOMAINS.map(d => ({
+        k: d.k,
+        cells: d.v.map(v => ({ style: NTV_MARK[v] })),
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>

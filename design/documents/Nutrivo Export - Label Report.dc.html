@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="./doc-page.js"></script>
+<style>
+  :root {
+    --ink: #101216; --rule: #dde0e6; --n200: #eef0f2; --n400: #c3c8d0;
+    --accent: #1738a8; --accent-100: #eef2ff; --accent-300: #b4c6ff; --accent-900: #0d1c52;
+    --n500: #8b9098; --n600: #6b7178; --n700: #42464c;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --body: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; color: var(--ink); font-family: var(--body); }
+  doc-page, doc-page p, doc-page li, doc-page td, doc-page th, doc-page span, doc-page div, doc-page ul, doc-page table { font-family: var(--body); }
+  doc-page:not(:defined) { visibility: hidden; }
+  a { color: var(--accent); }
+  a:hover { color: var(--accent-900); }
+  h1, h2, h3 { font-family: var(--head); font-weight: 600; }
+  .kick { margin: 16pt 0 0; font-family: var(--mono); font-size: 8.5pt; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); }
+  .h2row { display: flex; align-items: baseline; gap: 9pt; border-bottom: 1px solid var(--ink); padding-bottom: 4pt; margin: 20pt 0 9pt; break-after: avoid; }
+  .h2row span { font-family: var(--mono); font-size: 8.5pt; color: var(--accent); }
+  .h2row h2 { margin: 0; font-size: 14pt; line-height: 1.1; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 8.5pt; line-height: 1.4; }
+  .tbl th { text-align: left; font-family: var(--mono); font-weight: 400; font-size: 7.5pt; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600); border-bottom: 1px solid var(--ink); padding: 5pt 7pt 5pt 0; vertical-align: bottom; }
+  .tbl td { border-bottom: 1px solid var(--rule); padding: 7pt 7pt 7pt 0; vertical-align: top; }
+  .tbl tr { break-inside: avoid; }
+  .mono { font-family: var(--mono); }
+  .box { break-inside: avoid; }
+  doc-page > *:last-child { margin-bottom: 18pt; }
+</style>
+</helmet>
+<doc-page margin="0.6in">
+
+  <div slot="header" style="display: flex; align-items: baseline; justify-content: space-between; gap: 14pt; border-bottom: 1px solid var(--ink); padding-bottom: 5pt; margin-bottom: 14pt; font-family: var(--mono); font-size: 7.5pt; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600)">
+    <span style="color: var(--accent); font-weight: 500">Nutrivo · label report · DE</span>
+    <span>Salmon &amp; Rice Adult Dry 12 kg · SKU 4471 · artwork v7</span>
+    <span>Ruleset 2026.08-b</span>
+  </div>
+
+  <div slot="footer" style="display: flex; align-items: baseline; justify-content: space-between; gap: 14pt; border-top: 1px solid var(--rule); padding-top: 5pt; font-family: var(--mono); font-size: 7.5pt; letter-spacing: 0.08em; text-transform: uppercase; color: var(--n600)">
+    <span>Generated 20 Aug 2026, 09:14 CEST by M. Feldt</span>
+    <span>One document per language · exclusions in section 05</span>
+  </div>
+
+  <p class="kick">Export · label report · Germany · German</p>
+  <h1 style="margin: 5pt 0 0; font-size: 26pt; line-height: 1.05; letter-spacing: -0.015em">Seven findings on the<br />sheet that goes to press</h1>
+  <p style="margin: 10pt 0 0; font-size: 11pt; line-height: 1.5; max-width: 74ch">Checked on the German artwork as it will print, not on an English source translated afterwards. Character heights are measured from the vector outlines in the supplied PDF; each finding carries a coordinate, a legal basis, and the value that was measured against the value required.</p>
+
+  <div style="margin-top: 16pt; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10pt" class="box">
+    <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="4">
+      <div style="border: 1px solid var(--rule); border-top: 2.5pt solid {{ t.color }}; background: {{ t.bg }}; padding: 9pt 10pt">
+        <p style="margin: 0; font-family: var(--head); font-size: 22pt; font-weight: 600; line-height: 1; letter-spacing: -0.02em; color: {{ t.color }}">{{ t.n }}</p>
+        <p style="margin: 4pt 0 0; font-family: var(--mono); font-size: 7.5pt; letter-spacing: 0.09em; text-transform: uppercase; color: {{ t.color }}">{{ t.label }}</p>
+        <p style="margin: 4pt 0 0; font-size: 8.5pt; line-height: 1.4; color: var(--n700)">{{ t.note }}</p>
+      </div>
+    </sc-for>
+  </div>
+
+  <div class="h2row"><span>01</span><h2>Scope and classification</h2></div>
+  <p style="margin: 0 0 9pt; font-size: 10pt; line-height: 1.5; max-width: 78ch">Which rulebook was applied, and why. Every finding below is scoped by these five determinations — if one is wrong, the findings are answering the wrong question and should be challenged here rather than argued individually.</p>
+  <table class="tbl">
+    <thead><tr><th style="width: 20%">Determination</th><th style="width: 30%">Value</th><th style="width: 32%">Basis</th><th>Provenance</th></tr></thead>
+    <tbody>
+      <sc-for list="{{ classification }}" as="c" hint-placeholder-count="5">
+        <tr>
+          <td style="font-weight: 500">{{ c.k }}</td>
+          <td>{{ c.v }}</td>
+          <td class="mono" style="font-size: 7.5pt; color: var(--n700)">{{ c.cite }}</td>
+          <td class="mono" style="font-size: 7.5pt; letter-spacing: 0.06em; text-transform: uppercase; color: {{ c.color }}">{{ c.prov }}</td>
+        </tr>
+      </sc-for>
+    </tbody>
+  </table>
+
+  <div class="h2row"><span>02</span><h2>The sheet, with findings pinned</h2></div>
+  <p style="margin: 0 0 10pt; font-size: 10pt; line-height: 1.5; max-width: 78ch">Back panel, 148 × 210 mm, vector text extracted from the print-ready PDF. Pin numbers correspond to the findings in section 03. Dashed frames mark the text blocks the extractor resolved; a block with no frame carried no applicable rule.</p>
+  <div style="border: 1px solid var(--ink); background: #fff; padding: 16pt 18pt" class="box">
+    <p class="mono" style="margin: 0 0 11pt; font-size: 7pt; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n400)">Artwork v7 · hash 4f19…c02a · 9 text blocks resolved, 0 unresolved</p>
+    <div style="display: grid; grid-template-columns: 1.15fr 1fr; gap: 16pt">
+      <div style="display: flex; flex-direction: column; gap: 12pt">
+        <sc-for list="{{ artLeft }}" as="b" hint-placeholder-count="4">
+          <div style="position: relative; border: 1px dashed {{ b.line }}; padding: 8pt 9pt">
+            <span style="position: absolute; top: -7pt; left: -7pt; width: 14pt; height: 14pt; border: 1px solid {{ b.line }}; background: {{ b.pinbg }}; color: {{ b.pinfg }}; font-family: var(--mono); font-size: 7.5pt; display: flex; align-items: center; justify-content: center">{{ b.pin }}</span>
+            <p class="mono" style="margin: 0; font-size: 6.5pt; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n500)">{{ b.label }}</p>
+            <p style="margin: 3pt 0 0; font-size: {{ b.size }}; line-height: 1.35; color: var(--n700)">{{ b.text }}</p>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 12pt">
+        <sc-for list="{{ artRight }}" as="b" hint-placeholder-count="4">
+          <div style="position: relative; border: 1px dashed {{ b.line }}; padding: 8pt 9pt">
+            <span style="position: absolute; top: -7pt; left: -7pt; width: 14pt; height: 14pt; border: 1px solid {{ b.line }}; background: {{ b.pinbg }}; color: {{ b.pinfg }}; font-family: var(--mono); font-size: 7.5pt; display: flex; align-items: center; justify-content: center">{{ b.pin }}</span>
+            <p class="mono" style="margin: 0; font-size: 6.5pt; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n500)">{{ b.label }}</p>
+            <p style="margin: 3pt 0 0; font-size: {{ b.size }}; line-height: 1.35; color: var(--n700)">{{ b.text }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <div class="h2row"><span>03</span><h2>Findings, each with its fix</h2></div>
+  <div style="display: flex; flex-direction: column">
+    <sc-for list="{{ findings }}" as="f" hint-placeholder-count="7">
+      <div style="border-bottom: 1px solid var(--rule); padding: 10pt 0" class="box">
+        <div style="display: flex; align-items: baseline; gap: 8pt">
+          <span style="width: 15pt; height: 15pt; flex-shrink: 0; border: 1px solid {{ f.color }}; background: {{ f.bg }}; color: {{ f.color }}; font-family: var(--mono); font-size: 8pt; display: flex; align-items: center; justify-content: center">{{ f.pin }}</span>
+          <span style="flex: 1; font-family: var(--head); font-size: 11.5pt; font-weight: 600; line-height: 1.25">{{ f.title }}</span>
+          <span class="mono" style="flex-shrink: 0; font-size: 7.5pt; letter-spacing: 0.08em; text-transform: uppercase; color: {{ f.color }}">{{ f.state }}</span>
+        </div>
+        <p style="margin: 6pt 0 0; padding-left: 23pt; font-size: 9.5pt; line-height: 1.5">{{ f.action }}</p>
+        <div style="margin: 7pt 0 0; padding-left: 23pt; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10pt">
+          <sc-for list="{{ f.facts }}" as="x" hint-placeholder-count="4">
+            <div>
+              <p class="mono" style="margin: 0; font-size: 6.5pt; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n500)">{{ x.k }}</p>
+              <p class="mono" style="margin: 2pt 0 0; font-size: 8pt; line-height: 1.35; color: {{ x.color }}">{{ x.v }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div class="h2row"><span>04</span><h2>Measurements</h2></div>
+  <p style="margin: 0 0 9pt; font-size: 10pt; line-height: 1.5; max-width: 78ch">Taken from vector outlines rather than estimated from point size, because a font's declared size and its rendered x-height are not the same number. Every element carrying a legal minimum is listed, including those that pass.</p>
+  <table class="tbl">
+    <thead><tr><th style="width: 26%">Element</th><th style="width: 10%">Pin</th><th style="width: 14%">Measured</th><th style="width: 14%">Required</th><th style="width: 16%">Basis</th><th>Result</th></tr></thead>
+    <tbody>
+      <sc-for list="{{ measurements }}" as="m" hint-placeholder-count="6">
+        <tr>
+          <td style="font-weight: 500">{{ m.el }}</td>
+          <td class="mono" style="font-size: 8pt; color: var(--n600)">{{ m.pin }}</td>
+          <td class="mono" style="font-size: 8.5pt; color: {{ m.color }}">{{ m.measured }}</td>
+          <td class="mono" style="font-size: 8.5pt; color: var(--n700)">{{ m.required }}</td>
+          <td class="mono" style="font-size: 7.5pt; color: var(--n700)">{{ m.basis }}</td>
+          <td class="mono" style="font-size: 7.5pt; letter-spacing: 0.07em; text-transform: uppercase; color: {{ m.color }}">{{ m.result }}</td>
+        </tr>
+      </sc-for>
+    </tbody>
+  </table>
+
+  <div class="h2row"><span>05</span><h2>What was not assessed</h2></div>
+  <div style="border: 1px solid var(--none); background: var(--none-bg); padding: 12pt 14pt" class="box">
+    <p style="margin: 0; font-size: 10pt; line-height: 1.55; max-width: 78ch">Two rules could not be applied to this artwork. They are not passes. An element that appears in section 02 without a finding has been checked; an element covered by a rule listed here has not.</p>
+    <table class="tbl" style="margin-top: 10pt">
+      <thead>
+        <tr>
+          <th style="width: 30%; border-bottom-color: var(--none)">Rule</th>
+          <th style="width: 34%; border-bottom-color: var(--none)">Why it could not run</th>
+          <th style="border-bottom-color: var(--none)">What would resolve it</th>
+        </tr>
+      </thead>
+      <tbody>
+        <sc-for list="{{ notAssessed }}" as="n" hint-placeholder-count="2">
+          <tr>
+            <td style="border-bottom-color: var(--n200)">
+              <span style="display: block; font-weight: 500">{{ n.rule }}</span>
+              <span class="mono" style="display: block; margin-top: 2pt; font-size: 7.5pt; color: var(--n600)">{{ n.cite }}</span>
+            </td>
+            <td style="border-bottom-color: var(--n200)">{{ n.why }}</td>
+            <td style="border-bottom-color: var(--n200)">{{ n.fix }}</td>
+          </tr>
+        </sc-for>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="h2row"><span>06</span><h2>The other eight languages</h2></div>
+  <p style="margin: 0 0 9pt; font-size: 10pt; line-height: 1.5; max-width: 78ch">This document covers German for the German market. Each language on the pack is a separate pass, because a translated particular can breach a height minimum or leave the panel even when the German original does not. Findings that recur across languages are listed once per document.</p>
+  <table class="tbl">
+    <thead><tr><th style="width: 16%">Language</th><th style="width: 18%">Market</th><th style="width: 14%">Findings</th><th style="width: 18%">State</th><th>Note</th></tr></thead>
+    <tbody>
+      <sc-for list="{{ languages }}" as="l" hint-placeholder-count="9">
+        <tr>
+          <td class="mono" style="font-size: 8.5pt; color: var(--accent)">{{ l.code }}</td>
+          <td style="font-size: 8.5pt">{{ l.market }}</td>
+          <td class="mono" style="font-size: 8.5pt; color: var(--n700)">{{ l.n }}</td>
+          <td class="mono" style="font-size: 7.5pt; letter-spacing: 0.07em; text-transform: uppercase; color: {{ l.color }}">{{ l.state }}</td>
+          <td style="font-size: 8.5pt; color: var(--n700)">{{ l.note }}</td>
+        </tr>
+      </sc-for>
+    </tbody>
+  </table>
+
+  <div class="h2row"><span>07</span><h2>Registrations this market requires</h2></div>
+  <table class="tbl">
+    <thead><tr><th style="width: 30%">Obligation</th><th style="width: 16%">Authority</th><th style="width: 20%">Legal basis</th><th style="width: 16%">Evidence</th><th>Status</th></tr></thead>
+    <tbody>
+      <sc-for list="{{ registrations }}" as="r" hint-placeholder-count="3">
+        <tr>
+          <td style="font-weight: 500">{{ r.what }}</td>
+          <td style="font-size: 8.5pt">{{ r.auth }}</td>
+          <td class="mono" style="font-size: 7.5pt; color: var(--n700)">{{ r.basis }}</td>
+          <td style="font-size: 8.5pt; color: var(--n700)">{{ r.evidence }}</td>
+          <td class="mono" style="font-size: 7.5pt; letter-spacing: 0.07em; text-transform: uppercase; color: {{ r.color }}">{{ r.status }}</td>
+        </tr>
+      </sc-for>
+    </tbody>
+  </table>
+
+  <div style="margin-top: 18pt; border-top: 1px solid var(--ink); padding-top: 9pt; display: grid; grid-template-columns: 1fr 200pt; gap: 20pt" class="box">
+    <p style="margin: 0; font-size: 8.5pt; line-height: 1.55; color: var(--n700)">A certificate cannot be issued for this pair while findings remain open. Re-running the check after revision 8 is free and unlimited; a new artwork hash requires a new check and, if signed, a new signature. This report reflects artwork v7 only.</p>
+    <p class="mono" style="margin: 0; font-size: 7.5pt; line-height: 1.7; letter-spacing: 0.05em; text-transform: uppercase; color: var(--n600); text-align: right">Export id LR-4471-DE-0820-01<br />Artwork hash 4f19…c02a<br />Term register v2026.08<br />Nutrivo GmbH · Hamburg</p>
+  </div>
+
+</doc-page>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)" };
+    const B = { clear: "var(--clear-bg)", action: "var(--action-bg)", none: "var(--none-bg)", blocked: "var(--blocked-bg)" };
+    return {
+      tiles: [
+        { n: "7", label: "Findings", note: "Five on the artwork, one on the formula, one on a date format.", color: C.action, bg: B.action },
+        { n: "1", label: "Blocking", note: "Zinc above the permitted maximum. No label change resolves it.", color: C.blocked, bg: B.blocked },
+        { n: "2", label: "Not assessed", note: "Rules that could not run against this artwork. Section 05.", color: C.none, bg: B.none },
+        { n: "9", label: "Blocks passed", note: "Text blocks carrying a rule that was applied and cleared.", color: C.clear, bg: B.clear },
+      ],
+      classification: [
+        { k: "Species", v: "Dog (Canis lupus familiaris)", cite: "Declared · SPEC-4471 rev C", prov: "Rule", color: C.clear },
+        { k: "Life stage", v: "Adult maintenance", cite: "EU 2020/354 · category assignment", prov: "Rule", color: C.clear },
+        { k: "Product class", v: "Complete feed", cite: "EU 767/2009 Art. 3(2)(i)", prov: "Judgement", color: C.action },
+        { k: "Intended use", v: "Everyday feeding, non-therapeutic", cite: "Declared on brief", prov: "Rule", color: C.clear },
+        { k: "PARNUT status", v: "Not a particular nutritional purpose", cite: "EU 2020/354 Annex · no matching entry", prov: "Rule", color: C.clear },
+      ],
+      artLeft: [
+        { pin: "1", label: "Product designation", text: "Alleinfuttermittel für ausgewachsene Hunde", size: "10pt", line: C.action, pinbg: B.action, pinfg: C.action },
+        { pin: "2", label: "Composition", text: "Lachs (26 %), Reis, Geflügelfett, Rübentrockenschnitzel, Leinsamen, Hefe…", size: "8pt", line: "var(--n200)", pinbg: "#fff", pinfg: "var(--n600)" },
+        { pin: "3", label: "Analytical constituents", text: "Rohprotein 26,0 % · Rohfett 15,0 % · Rohfaser 2,4 % · Rohasche 7,1 %", size: "7.5pt", line: C.action, pinbg: B.action, pinfg: C.action },
+        { pin: "4", label: "Additives per kg", text: "Ernährungsphysiologische Zusatzstoffe: Vitamin A 18 000 IE, Zink (Chelat) 180 mg…", size: "7.5pt", line: C.blocked, pinbg: B.blocked, pinfg: C.blocked },
+      ],
+      artRight: [
+        { pin: "5", label: "Feeding instructions", text: "Fütterungsempfehlung nach Körpergewicht. Frisches Wasser bereitstellen.", size: "8pt", line: C.action, pinbg: B.action, pinfg: C.action },
+        { pin: "6", label: "Net quantity / batch / BBD", text: "12 kg  ℮   ·   L2608-114   ·   MHD 11/2027", size: "8.5pt", line: C.action, pinbg: B.action, pinfg: C.action },
+        { pin: "7", label: "Business operator", text: "Nutrivo GmbH, Musterstraße 4, 20095 Hamburg · Zul.-Nr. αDE0114", size: "7pt", line: "var(--n200)", pinbg: "#fff", pinfg: "var(--n600)" },
+        { pin: "—", label: "Claim panel", text: "Für Haut und Fell", size: "9pt", line: "var(--n200)", pinbg: "#fff", pinfg: "var(--n600)" },
+      ],
+      findings: [
+        {
+          pin: "4", state: "Blocked", color: C.blocked, bg: B.blocked,
+          title: "Zinc declared at 180 mg/kg — above the permitted maximum",
+          action: "Reformulate to 150 mg/kg or below. The declaration is accurate; the level is not permitted. No label change resolves this, and the additive declaration will need revising once the new level is fixed.",
+          facts: [{ k: "Basis", v: "EU 1831/2003 · 3b606", color: "var(--n700)" }, { k: "Provenance", v: "Deterministic rule", color: C.clear }, { k: "Declared", v: "180 mg/kg", color: C.blocked }, { k: "Maximum", v: "150 mg/kg total", color: "var(--n700)" }],
+        },
+        {
+          pin: "3", state: "Action needed", color: C.action, bg: B.action,
+          title: "Analytical constituents heading below minimum character height",
+          action: "Increase the heading to at least 2.0 mm x-height. The same heading is under the minimum on the Austrian and British variants of this panel, so one prepress change clears three nodes.",
+          facts: [{ k: "Basis", v: "EU 767/2009 Annex II 1(b)", color: "var(--n700)" }, { k: "Provenance", v: "Deterministic rule", color: C.clear }, { k: "Measured", v: "1.91 mm", color: C.action }, { k: "Required", v: "2.00 mm", color: "var(--n700)" }],
+        },
+        {
+          pin: "1", state: "Action needed", color: C.action, bg: B.action,
+          title: "Product designation differs from the prescribed German form",
+          action: "Replace with “Alleinfuttermittel für Hunde”. The current phrasing adds an age qualifier that is not part of the prescribed designation. This is a register lookup, not a translation question — the string is fixed by the regulation.",
+          facts: [{ k: "Basis", v: "EU 767/2009 Art. 15(a)", color: "var(--n700)" }, { k: "Provenance", v: "Register lookup", color: "var(--accent)" }, { k: "On pack", v: "…für ausgewachsene Hunde", color: C.action }, { k: "Register", v: "Entry 0198 · DE", color: "var(--n700)" }],
+        },
+        {
+          pin: "5", state: "Action needed", color: C.action, bg: B.action,
+          title: "Feeding instruction table not present on the extracted panel",
+          action: "Add the feeding table by body weight. The body copy refers to a recommendation but no table geometry was found on this panel or on the front. If the table is on a sleeve or leaflet, supply that artwork so it can be checked.",
+          facts: [{ k: "Basis", v: "EU 767/2009 Art. 15(g)", color: "var(--n700)" }, { k: "Provenance", v: "Deterministic rule", color: C.clear }, { k: "Found", v: "0 table objects", color: C.action }, { k: "Required", v: "1 per pack", color: "var(--n700)" }],
+        },
+        {
+          pin: "6", state: "Action needed", color: C.action, bg: B.action,
+          title: "Best-before date format may not satisfy the GB requirement",
+          action: "Confirm whether MM/YYYY is accepted in Great Britain for this product class, or move to DD.MM.YYYY, which satisfies every node at once. Flagged here because the German artwork is shared with the GB pack.",
+          facts: [{ k: "Basis", v: "GB retained 767/2009 Art. 15", color: "var(--n700)" }, { k: "Provenance", v: "Model judgement", color: C.action }, { k: "On pack", v: "MHD 11/2027", color: C.action }, { k: "Coverage", v: "UK · GB partial", color: C.none }],
+        },
+        {
+          pin: "2", state: "Clear", color: C.clear, bg: B.clear,
+          title: "Composition list order and wording accepted",
+          action: "Ingredients are listed in descending order by weight with the salmon percentage declared, as the emphasised-ingredient rule requires. No change needed.",
+          facts: [{ k: "Basis", v: "EU 767/2009 Art. 17(1)(c)", color: "var(--n700)" }, { k: "Provenance", v: "Deterministic rule", color: C.clear }, { k: "Declared", v: "Lachs 26 %", color: C.clear }, { k: "Result", v: "Pass", color: C.clear }],
+        },
+        {
+          pin: "7", state: "Clear", color: C.clear, bg: B.clear,
+          title: "Business operator details and approval number present",
+          action: "Name, address and approval number αDE0114 are present and match the establishment registration on file with the BVL. No change needed.",
+          facts: [{ k: "Basis", v: "EU 767/2009 Art. 15(b)", color: "var(--n700)" }, { k: "Provenance", v: "Deterministic rule", color: C.clear }, { k: "On file", v: "αDE0114", color: C.clear }, { k: "Result", v: "Pass", color: C.clear }],
+        },
+      ],
+      measurements: [
+        { el: "Analytical constituents heading", pin: "3", measured: "1.91 mm", required: "2.00 mm", basis: "Annex II 1(b)", result: "Fail", color: C.action },
+        { el: "Product designation", pin: "1", measured: "4.20 mm", required: "2.00 mm", basis: "Annex II 1(b)", result: "Pass", color: C.clear },
+        { el: "Composition list", pin: "2", measured: "2.05 mm", required: "2.00 mm", basis: "Annex II 1(b)", result: "Pass", color: C.clear },
+        { el: "Additives block", pin: "4", measured: "2.01 mm", required: "2.00 mm", basis: "Annex II 1(b)", result: "Pass", color: C.clear },
+        { el: "Net quantity", pin: "6", measured: "6.10 mm", required: "6.00 mm", basis: "2009/34/EC Annex", result: "Pass", color: C.clear },
+        { el: "Business operator block", pin: "7", measured: "2.00 mm", required: "2.00 mm", basis: "Annex II 1(b)", result: "Pass · at limit", color: C.action },
+      ],
+      notAssessed: [
+        { rule: "Additive identity verification", cite: "EU 1831/2003 Annex I", why: "Premix specification SPEC-0442 expired 3 June 2026. The additives block cannot be verified against a current specification.", fix: "Current specification from Aldrich Nutrition." },
+        { rule: "Feeding table legibility", cite: "EU 767/2009 Annex II 1(b)", why: "The table itself was not found on the supplied artwork, so its character heights could not be measured.", fix: "Supply the panel or leaflet carrying the table." },
+      ],
+      languages: [
+        { code: "DE", market: "Germany", n: "7", state: "Action needed", color: C.action, note: "This document" },
+        { code: "AT-DE", market: "Austria", n: "5", state: "Action needed", color: C.action, note: "Shares findings 1, 3, 4, 5; no date-format issue" },
+        { code: "EN-GB", market: "United Kingdom · GB", n: "6", state: "Action needed", color: C.action, note: "Adds the date format finding" },
+        { code: "FR", market: "France", n: "3", state: "Blocked", color: C.blocked, note: "Mobility claim not permitted for this class" },
+        { code: "EN-NI", market: "United Kingdom · NI", n: "4", state: "Action needed", color: C.action, note: "EU-aligned for goods; date format applies" },
+        { code: "NL", market: "Netherlands", n: "0", state: "Clear", color: C.clear, note: "All applicable rules assessed and passed" },
+        { code: "BE-NL", market: "Belgium", n: "1", state: "Not assessed", color: C.none, note: "Additive rules pending the premix specification" },
+        { code: "BE-FR", market: "Belgium", n: "2", state: "Not assessed", color: C.none, note: "Second language required on pack; same premix gap" },
+        { code: "EN-TX", market: "United States · Texas", n: "2", state: "Blocked", color: C.blocked, note: "Label rules pass; product not registered in the state" },
+      ],
+      registrations: [
+        { what: "Establishment registration", auth: "BVL", basis: "EU 183/2005 Art. 9", evidence: "αDE0114 on file", status: "Satisfied", color: C.clear },
+        { what: "Notification of first placing", auth: "BVL", basis: "EU 767/2009 Art. 17", evidence: "Not required, this class", status: "N/A", color: "var(--n600)" },
+        { what: "Additive traceability record", auth: "BVL", basis: "EU 1831/2003 Art. 16", evidence: "Premix spec expired", status: "Not assessed", color: C.none },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>
