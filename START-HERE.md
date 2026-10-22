@@ -19,8 +19,9 @@ wrong. This system makes failures small, loud and quickly fixed, and keeps a per
 3. **Tools.** On the web, the session start hook installs them. On a laptop: git, gh, Node 22+, pnpm, uv, Docker
    (running), Supabase CLI, Infisical CLI, Ghostscript and Poppler; `scripts/bootstrap/check-tools.sh` lists anything
    missing with the install command.
-4. **Secrets.** Infisical holds the names in `config/secrets.yaml` for dev, staging and prod. Different names are
-   fine: Claude Code maps them in `config/secret-aliases.env` and lists anything missing by name, never by value.
+4. **Secrets.** Infisical's dev project holds the dev names in `config/secrets.yaml`; staging and prod get their own
+   projects in T-010 (docs/22 §3). Different names are fine: Claude Code maps them in `config/secret-aliases.env` and
+   lists anything missing by name, never by value.
 
 ## Start
 **On the web:** open claude.ai/code, choose `nutrivo-ai/Nutrivo` and your Nutrivo environment (docs/22 §5), and paste the
@@ -41,7 +42,7 @@ names, and tell me exactly what you need from me at each one. Report after every
 | G0 Tools | Bootstrap step 1 | Install what is missing (on the web the session start hook installs the tools; only the `claude-dev` variables in docs/22 §5 can be missing) |
 | G1 Repository import | Bootstrap step 2, if the repository has code | Approve the import pull request (old code is archived on a branch and kept in `legacy/`, never deleted) |
 | G1b GitHub settings | Bootstrap step 7, task T-004 | The settings in docs/22: collaborators, the two approval labels, rulesets, environments, Actions secrets; Claude Code cannot change them |
-| G2 Secrets | Bootstrap steps 3–4 | Add or fix the named secrets in Infisical; run the `doctor` workflow for staging and prod |
+| G2 Secrets | Bootstrap steps 3–4 (dev); T-010 (staging) and T-1101 (prod) | Add or fix the named secrets in Infisical; run the `doctor` workflow for staging and prod in those tasks |
 | G2b Research conflicts | Task T-011 | Resolve the conflicts Claude Code records in docs/14 into docs/02-decisions.md |
 | G3 Design files | Bootstrap step 6, only if the automatic download is refused | Download the Drive design folder into `design/`; on the web, upload it as a zip into the session |
 | G4 Target freeze | Task T-012 | Approve `spec/screens.yaml`: every screen Claude Code found in your designs |
