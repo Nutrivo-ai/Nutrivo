@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="./_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+  }
+  body { margin: 0; background: var(--panel); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</helmet>
+
+<div style="background: var(--panel); padding: 0 0 60px">
+  <div style="width: 100%; max-width: 1100px; margin: 0 auto; box-sizing: border-box; background: var(--paper); border-left: 1px solid var(--rule); border-right: 1px solid var(--rule)">
+
+    <div style="border-bottom: 1px solid var(--ink); padding: 34px 42px 30px">
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; flex-wrap: wrap">
+        <div>
+          <p style="margin: 0; display: flex; align-items: flex-end; gap: 5px; font-size: 26px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 8px; height: 8px; background: var(--accent); margin-bottom: 3px; flex-shrink: 0"></span></p>
+          <h1 style="margin: 18px 0 0; font-size: 36px; font-weight: 600; line-height: 1.05; max-width: 28ch">The Cobalt design set</h1>
+          <p style="margin: 13px 0 0; font-size: 15px; line-height: 1.6; color: var(--n700); max-width: 88ch">Every current Nutrivo design, and nothing else. Twenty-three UX and UI files on the Cobalt identity, plus five build documents. Superseded work, earlier brand explorations and the competitive analysis are deliberately not in this folder.</p>
+        </div>
+        <div style="flex: none; text-align: right">
+          <p style="margin: 0; font-family: var(--mono); font-size: 40px; line-height: 1; color: var(--accent)">28</p>
+          <p style="margin: 7px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; color: var(--n600)">FILES</p>
+          <p style="margin: 13px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--n600)">22 SEP 2026</p>
+        </div>
+      </div>
+
+      <div style="margin-top: 26px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); border: 1px solid var(--rule); border-right: none; border-bottom: none; overflow: hidden">
+        <sc-for list="{{ states }}" as="s" hint-placeholder-count="4">
+          <div style="{{ s.style }}">
+            <div style="display: flex; align-items: center; gap: 9px">
+              <span style="{{ s.glyph }}"></span>
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600">{{ s.k }}</p>
+            </div>
+            <p style="margin: 7px 0 0; font-size: 12px; line-height: 1.45; color: var(--n700)">{{ s.v }}</p>
+          </div>
+        </sc-for>
+      </div>
+      <p style="margin: 14px 0 0; font-size: 13px; line-height: 1.6; color: var(--n700); max-width: 96ch">Those four states appear on every screen in this folder, always with a glyph as well as a colour, and never reduced to a pass or a fail. Everything else follows from them.</p>
+    </div>
+
+    <div style="border-bottom: 1px solid var(--ink); padding: 24px 42px 26px; background: var(--accent-100)">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">How to open these</p>
+      <p style="margin: 10px 0 0; font-size: 14px; line-height: 1.65; color: var(--n800); max-width: 100ch">Each file opens directly in a browser — no server, no build step, no install. Screens with a left rail or a tab strip are live: click through them. The folder is self-contained, so it works offline once the fonts have cached.</p>
+    </div>
+
+    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="5">
+      <div style="{{ g.style }}">
+        <div style="display: flex; align-items: baseline; gap: 18px">
+          <p style="margin: 0; font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; color: var(--n500); flex: none; width: 26px">{{ g.n }}</p>
+          <div style="flex: 1; min-width: 0">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px; border-bottom: 1px solid var(--ink); padding-bottom: 9px">
+              <h2 style="margin: 0; font-size: 23px; font-weight: 600; line-height: 1.15">{{ g.k }}</h2>
+              <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--n600); white-space: nowrap">{{ g.note }}</span>
+            </div>
+            <div>
+              <sc-for list="{{ g.files }}" as="f" hint-placeholder-count="4">
+                <div style="{{ f.rowStyle }}">
+                  <div style="min-width: 0">
+                    <a href="{{ f.href }}" style="font-size: 15px; font-weight: 600; line-height: 1.3">{{ f.name }}</a>
+                    <p style="margin: 5px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">{{ f.what }}</p>
+                  </div>
+                  <span style="flex: none; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); white-space: nowrap">{{ f.meta }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+
+    <div style="border-bottom: 1px solid var(--ink); padding: 26px 42px 30px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">The identity, in one paragraph</p>
+      <h2 style="margin: 10px 0 0; font-size: 23px; font-weight: 600; line-height: 1.15">Cobalt</h2>
+      <p style="margin: 11px 0 0; font-size: 14px; line-height: 1.65; color: var(--n800); max-width: 98ch">Near-black ink with one bright blue used strictly for interaction, on white. Instrument Sans for headings and body, IBM Plex Mono as the machine layer for references, dates and codes. Square corners, hairline rules, registration marks on framed objects. The full specification is in <a href="./brand/Nutrivo Brand - Cobalt Specification.dc.html">the brand file</a>.</p>
+      <div style="margin-top: 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px">
+        <sc-for list="{{ rules }}" as="r" hint-placeholder-count="3">
+          <div style="border-left: 3px solid {{ r.bar }}; padding-left: 14px">
+            <p style="margin: 0; font-size: 13.5px; font-weight: 600; line-height: 1.25">{{ r.k }}</p>
+            <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ r.v }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="padding: 26px 42px 34px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--action)">Read before quoting anything in these files</p>
+      <h2 style="margin: 10px 0 0; font-size: 23px; font-weight: 600; line-height: 1.15">Four things in here are placeholders</h2>
+      <div style="margin-top: 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px">
+        <sc-for list="{{ placeholders }}" as="p" hint-placeholder-count="4">
+          <div style="border-left: 3px solid {{ p.bar }}; padding-left: 14px">
+            <p style="margin: 0; font-size: 13.5px; font-weight: 600; line-height: 1.25">{{ p.k }}</p>
+            <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ p.v }}</p>
+          </div>
+        </sc-for>
+      </div>
+      <p style="margin: 22px 0 0; padding-top: 16px; border-top: 1px solid var(--n200); font-size: 12px; line-height: 1.6; color: var(--n600)">Sunny Ventures AB, trading as Nutrivo.ai · Karlbergsvägen 48, 113 37 Stockholm, Sweden · Company 5594297151 · VAT SE559429715101</p>
+    </div>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)" };
+
+const f = (name, href, meta, what) => ({ name, href, meta, what });
+
+const GROUPS = [
+  { n: "01", k: "The product", note: "11 FILES · WHAT A CUSTOMER USES", files: [
+    f("Nutrivo 2.0", "./product/Nutrivo 2.0.dc.html", "34 screens · the spine", "Every in-product screen in one file, switched from the left rail: the board, the label report with artwork pins, registration packs, the jurisdiction tree, the coverage node, the term register, and the AI Compliance Worker on every screen."),
+    f("Missing surfaces", "./product/Nutrivo - Missing Surfaces.dc.html", "5 screens", "The alerts inbox, the horizon view built around a withdrawn additive authorisation, the board at 312 recipes with search and saved views, bulk re-check, and help folded into the Worker."),
+    f("Onboarding flow", "./product/Nutrivo Onboarding Flow.dc.html", "6 steps · one route", "Three fields to an account, a pre-selected region, two skippable steps, a first-run screen naming one action, plus the invited-user page and the external flag."),
+    f("Plans and checkout", "./product/Nutrivo Plans and Checkout.dc.html", "6 screens · revenue path", "The plan picker that reads the workspace, checkout with VAT, the invoice, the third-label counter, the fourth-label wall, and the five upsell moments with their copy."),
+    f("Workspace settings", "./product/Nutrivo Workspace Settings.dc.html", "6 screens", "People and roles, signing authority with Texas unassigned, workspace defaults, data and retention, the append-only audit log, and your own account."),
+    f("Billing settings", "./product/Nutrivo Billing Settings.dc.html", "4 screens", "Plan and allowance as three meters, invoices, payment method with the dunning ladder, and billing details with the four VAT treatments."),
+    f("Partner tier", "./product/Nutrivo Partner Tier.dc.html", "canonical", "€1,499 for ten client workspaces. What a firm gets, what its clients keep, the bands, and the client-workspace switcher."),
+    f("Partner upsell", "./product/Nutrivo Partner Upsell.dc.html", "conversion moment", "The fourth client workspace as the moment to offer it — shown once, to the consultant, never to their client's admin."),
+    f("Account recovery", "./product/Nutrivo Account Recovery.dc.html", "5 screens", "Forgotten password, setting a new one, an expired invitation, access removed, and a dormant workspace. None of them a dead end."),
+    f("Mobile", "./product/Nutrivo Mobile.dc.html", "6 phone screens", "Reading a verdict and photographing a pack, plus alerts — and the six things mobile deliberately cannot do."),
+    f("Empty and error states", "./product/Nutrivo Empty and Error States.dc.html", "pattern · 16 examples", "One pattern for every state on every surface: a mark, what is true, one action, a reference. Empty is never confused with withheld."),
+  ] },
+  { n: "02", k: "Public surfaces", note: "8 FILES · WHAT A STRANGER SEES", files: [
+    f("Landing page", "./public/Nutrivo Landing Page.dc.html", "one page · animated", "Four discovery questions, the four states, an animated report, the two cases, the stakes, coverage depth, the jurisdiction trees, the comparison and the ladder."),
+    f("Pricing page", "./public/Nutrivo Pricing Page.dc.html", "the current ladder", "Free entry first, four plans with a monthly and annual switch, a whole-region picker, the never-charged and never-sold lists, self-qualification, growth costs, Partner, and six answers up front."),
+    f("Coverage", "./public/Nutrivo Coverage - public.dc.html", "the honesty position", "Depth per market — complete, partial or not encoded — with the rules count, the last-checked date and every gap named. No aggregate figure."),
+    f("FAQ and About", "./public/Nutrivo FAQ and About.dc.html", "2 pages", "Who it is for, what we do, how complete the coverage is, whether a card is needed, and what happens when a rule changes. Plus the About page and the beliefs."),
+    f("Segment pages", "./public/Nutrivo Segment Pages.dc.html", "5 entry points", "NPD, product management, consultants, contract manufacturers and retailers, each entered on its own problem."),
+    f("Marketing site", "./public/Nutrivo Marketing Site.dc.html", "site structure", "The pages around the landing page and how they connect."),
+    f("Email templates", "./public/Nutrivo Email Templates.dc.html", "6 templates", "Report sent, invitation, a rule change affecting your recipe, a document expiring, the third free label, and a receipt."),
+    f("Terms, DPA and privacy", "./public/Nutrivo Legal - Terms, DPA, Privacy.dc.html", "drafts · need counsel", "Swedish law, processing in Ireland, the free allowance clauses, and the boundary stated as non-negotiable. Drafts for review, not for publication."),
+  ] },
+  { n: "03", k: "Documents that leave the building", note: "3 FILES · WHAT A CUSTOMER SENDS", files: [
+    f("Report of Check", "./documents/Nutrivo Export - Label Report.dc.html", "every paid plan", "Per language, per market, pinned to a ruleset version and an artwork hash, verifiable, attested by nobody and saying so on its face."),
+    f("Certificate of Check", "./documents/Nutrivo Export - Certificate of Check.dc.html", "Advanced only", "The same content plus a named signatory for that market, on an append-only chain. Only issued where there are no open findings."),
+    f("Action plan", "./documents/Nutrivo Export - Action Plan.dc.html", "working pack", "What to fix, in the order it has to happen."),
+  ] },
+  { n: "04", k: "Brand", note: "1 FILE · THE SPECIFICATION", files: [
+    f("Cobalt specification", "./brand/Nutrivo Brand - Cobalt Specification.dc.html", "spec of record", "Ink, cobalt, both tonal ramps, Instrument Sans with IBM Plex Mono as the machine layer, the four verdict values and their glyphs, the logo and icon set, and the three rules that stop the accent reading as a verdict."),
+  ] },
+  { n: "05", k: "For the build", note: "5 FILES · FOR ALEX", files: [
+    f("Handoff to Alex", "./build/Nutrivo - Handoff to Alex.dc.html", "start here", "Eight non-negotiable constraints, a first-pass schema with RLS and insert-only policies, the eight response shapes the screens assume, what is metered and what must never be, twelve clusters in build order, and a concrete first week."),
+    f("Backend action register", "./build/Nutrivo - Backend Action Register.dc.html", "44 actions · print-ready", "BE-01 to BE-44 across six phases, each with an acceptance test rather than a description. Seven are marked GATE — things we assert in public that are unfixable once customer data exists."),
+    f("Gap register", "./build/Nutrivo - Gap Register.dc.html", "scope", "Surfaces still undrawn, content placeholders, twelve backend clusters, the eight contracts the designs assume, and the five decisions nobody has taken."),
+    f("Full coverage requirements", "./build/Nutrivo - Full Coverage Requirements.dc.html", "what makes the claim true", "Eight clusters with scale estimates, five phases each ending in a claim that can be made without hedging, and four things no engineering closes."),
+    f("Priced ladder", "./build/Nutrivo Pricing - Priced Ladder.dc.html", "prices · spec of record", "Free, Basic, Standard, Advanced with the basis of charge per tier, the three dials, the never-metered list, and the customer wording map. Its Free row predates the three-label allowance."),
+  ] },
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      states: [
+        { k: "Clear", v: "Checked against every rule we hold for that market, and nothing is open.", g: "clear" },
+        { k: "Action needed", v: "Something specific is wrong or missing, named with what to do about it.", g: "action" },
+        { k: "Not assessed", v: "We did not check it, and we say so as prominently as anything else.", g: "none" },
+        { k: "Blocked", v: "It cannot be sold. Often the label is fine and the product is not registered.", g: "blocked" },
+      ].map((s, i) => ({
+        k: s.k, v: s.v,
+        glyph: s.g === "clear" ? "width: 12px; height: 12px; flex: none; background: var(--clear)"
+          : s.g === "action" ? "width: 0; height: 0; flex: none; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 12px solid var(--action)"
+          : s.g === "none" ? "width: 12px; height: 12px; flex: none; border: 2px solid var(--none); border-radius: 50%"
+          : "width: 12px; height: 12px; flex: none; background: var(--blocked); box-shadow: inset 0 4px 0 var(--paper), inset 0 -4px 0 var(--blocked)",
+        style: "padding: 15px 17px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule)",
+      })),
+
+      groups: GROUPS.map((g, gi) => ({
+        n: g.n, k: g.k, note: g.note,
+        style: "padding: 26px 42px 28px; border-bottom: " + (gi < GROUPS.length - 1 ? "1px solid var(--rule)" : "1px solid var(--ink)"),
+        files: g.files.map((x, i, arr) => ({
+          name: x.name, href: x.href, meta: x.meta, what: x.what,
+          rowStyle: "display: flex; align-items: baseline; justify-content: space-between; gap: 10px 22px; flex-wrap: wrap; padding: 14px 0; border-bottom: " +
+            (i < arr.length - 1 ? "1px solid var(--n200)" : "none"),
+        })),
+      })),
+
+      rules: [
+        { k: "The accent carries interaction only", v: "Cobalt is close to a conventional informational blue, so it never appears on a results surface. A verdict is never blue and a blue thing is never a verdict.", bar: C.accent },
+        { k: "Verdict colours are a reserved vocabulary", v: "Four values, never decoration. Each carries a glyph as well as a colour, so a verdict never depends on hue alone.", bar: C.clear },
+        { k: "Provenance stays typographic", v: "Where an answer came from is set in the mono face, never tinted. Colour would make it look like a fifth state.", bar: C.none },
+      ],
+
+      placeholders: [
+        { k: "Coverage cells and last-checked dates", v: "The matrix values on the coverage page and the landing page are invented. Both pages publish them as commitments, so real values must land before either goes live.", bar: C.blocked },
+        { k: "The cost of getting it wrong", v: "The stakes section on the landing page states four consequences without figures. A reprint, a delisting and a missed launch window all have numbers we do not have yet.", bar: C.blocked },
+        { k: "Founders, team and origin story", v: "Three sections of the About page carry prompts rather than content.", bar: C.action },
+        { k: "Sub-processors in the DPA", v: "Supabase on AWS Ireland, Stripe, an EU email provider and a model provider are named as plausible, not confirmed. Naming one you do not use is a contractual problem.", bar: C.action },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>
