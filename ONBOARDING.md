@@ -5,18 +5,20 @@ and per printed language panel, with the rule, citation and provenance behind ev
 Claude Code writes the software inside the guardrails in this repository; the two of us decide, approve and accept.
 
 ## Day one (about an hour)
-1. **GitHub.** Accept the invitation to collaborate on `ar835/Nutrivo`. You are a code owner: your approval merges
-   the other founder's pull requests.
+1. **GitHub.** Accept the invitation to the `nutrivo-ai` organisation (as an owner, like the other founder). The
+   repository is `nutrivo-ai/Nutrivo`. You are a code owner: your approval merges the other founder's pull requests.
 2. **Claude.** Accept the invitation to the Claude Team workspace "Nutrivo.ai". In claude.ai → Settings →
    Connectors, connect GitHub.
-3. **Infisical.** Accept the invitation to the Infisical project. Apart from the one client secret in step 4, you
-   never copy secrets by hand; sessions read them through `scripts/env/run.sh`.
+3. **Infisical.** You need no Infisical account to build: apart from the one client secret in step 4, you never copy
+   secrets by hand, and sessions read them through `scripts/env/run.sh`.
 4. **Your cloud environment.** At claude.ai/code, create an environment for Nutrivo with the network domains and the
    `claude-dev` variables in docs/22-github-and-team.md §5. Infisical shows a client secret only once, so there is
    none to look up: ar835 creates one for you (Infisical: Access Control → Machine Identities → `claude-dev` →
-   Universal Auth → Add Client Secret) and shares it with the client id through Infisical or a password manager,
-   never in a chat. Paste both straight into the environment.
-5. **First session.** Start a session on the Nutrivo repository with that environment. Every new session takes a few
+   Universal Auth → Client Secrets → Add Client Secret, described with your name) and shares it with the client id
+   through a password manager, never in a chat. Paste both straight into the environment, and if the session's
+   Infisical login fails, check them before starting another session (three failures lock `claude-dev` for five
+   minutes, for both founders).
+5. **First session.** Start a session on `nutrivo-ai/Nutrivo` with that environment. Every new session takes a few
    minutes to start (the hook installs the tools and downloads Docker images); the hook's last line says what is
    ready. Then ask Claude: "Run make verify-fast, list the open task issues and the ready ones, and tell me where the
    build stands."
@@ -33,7 +35,7 @@ Claude Code writes the software inside the guardrails in this repository; the tw
 |---|---|
 | G5 Merges | Review and approve pull requests the other founder did not push last. CI must be green first. |
 | G6 Content | Accept or reject candidate rules in /admin beside the official text (docs/12-content-ops.md), from M2. |
-| G7 Deployments | Agree the first staging and production deployments; ar835 sets the switches in docs/22 §4 (on a personal repository only the owner changes settings). |
+| G7 Deployments | Agree the first staging and production deployments; an organisation owner sets the switches in docs/22 §4. |
 | G4, G8, G9 | Target freeze, Stripe live, launch review: together with the other founder. |
 
 ## Picking up work
@@ -44,7 +46,7 @@ run on its own, label its issue `autopilot` (the GitHub autopilot; `make autopil
 Claude stops with `needs-human`, the issue says what decision it needs.
 
 ## The prompt for every task session
-Start each session on `ar835/Nutrivo` with your Nutrivo environment and paste this, changing the lanes to yours. The
+Start each session on `nutrivo-ai/Nutrivo` with your Nutrivo environment and paste this, changing the lanes to yours. The
 founders split the lanes: ar835 takes `db` and `infra`, abnutrivo `web` and `worker`; `content` is shared. ar835's
 sessions use the same prompt with `LANE=db`, then `LANE=infra`, in step 2.
 

@@ -26,7 +26,8 @@ docs/15-build-protocol.md. This page is the short version, plus how the two of y
    Dependabot pull requests need neither, as long as they only touch dependency files.
 7. **CI** must be green: `protocol`, `secrets-scan`, `database`, `worker`, `web`, `e2e`, `conformance`. Claude
    reviews against the spec automatically.
-8. **Review**: the founder who did not push last approves (gate G5). Squash merge once the branch is up to date.
+8. **Review**: the `claude-review` workflow approves when its review ends in APPROVE-READY on an unchanged head, and
+   requests changes on CHANGES-NEEDED (gate G5, D-23). Squash merge once the branch is up to date.
 9. **After the merge** the issue closes, dependants turn `status:ready`, and every merge deploys to staging once
    staging is switched on (T-010).
 
@@ -37,7 +38,7 @@ example:
 
 - "Claim the next ready task in the web lane and implement it following CLAUDE.md and docs/15."
 - In the session that opened the pull request: "CI failed on the protocol check; fix it."
-- "Review pull request #42 against its workflow specs." (Claude comments; a founder approves.)
+- "Review pull request #42 against its workflow specs." (Claude comments; only the `claude-review` workflow approves.)
 
 Claude Code pushes its session's branch and opens pull requests. It never merges, approves, deploys, or edits the
 oracle files (CLAUDE.md non-negotiables 11 and 12). Start a new session per task: the session's branch is the task's
@@ -55,7 +56,9 @@ tracker → Run workflow) instead of `make issues-sync`, and to let a ready task
   pull request. If you claim a db task by hand, first check that no other `lane:db` task is assigned.
 - **The conformance baseline is a plain list.** When two task pull requests both add IDs to
   `spec/conformance-baseline.json`, the second one conflicts: keep both sides' IDs in one sorted list.
-- **Each pull request is reviewed by the other founder.** If you pushed last, you cannot approve it.
+- **The `claude-review` workflow approves each pull request** (D-23). A founder may still review, approve or dismiss
+  its review; if you pushed last, your own approval does not count. A Dependabot pull request gets no Claude review
+  (no secrets), so a founder approves it.
 - **Decisions are written down.** If something is not in spec/, docs/workflows/ or docs/02-decisions.md, ask on the
   issue with the `needs-human` label instead of deciding in a chat. A change to the target is its own pull request.
 

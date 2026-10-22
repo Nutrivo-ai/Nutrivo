@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  button { font: inherit; color: inherit; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @keyframes ntv-slide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+
+<div style="width: 1280px; margin: 0 auto; background: var(--paper); font-size: 14px">
+
+  <header style="display: flex; align-items: center; gap: 26px; border-bottom: 1px solid var(--ink); padding: 16px 56px">
+    <p style="margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 22px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 6px; height: 6px; background: var(--accent); margin-bottom: 2px; flex-shrink: 0"></span><span style="font-size: 15px; font-weight: 400; color: var(--n600); letter-spacing: 0">.ai</span></p>
+    <div style="flex: 1; display: flex; gap: 22px">
+      <sc-for list="{{ siteNav }}" as="sn" hint-placeholder-count="4">
+        <span style="{{ sn.style }}">{{ sn.k }}</span>
+      </sc-for>
+    </div>
+    <span style="font-size: 13px; color: var(--n700)">Sign in</span>
+    <span style="background: var(--accent); color: #ffffff; padding: 9px 16px; border-radius: 3px; font-size: 13.5px; font-weight: 500">Check a label free</span>
+  </header>
+
+  <div style="border-bottom: 1px solid var(--ink); background: var(--panel); padding: 0 56px">
+    <div style="display: flex; gap: 0">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+        <button type="button" onClick="{{ t.go }}" style="{{ t.style }}" style-hover="background: var(--accent-100)">
+          <span style="display: block; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; color: {{ t.numColor }}">{{ t.n }}</span>
+          <span style="display: block; margin-top: 5px; font-size: 13.5px; font-weight: {{ t.weight }}; white-space: nowrap">{{ t.k }}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="animation: ntv-slide 260ms ease-out both">
+
+    <!-- ── HERO ── -->
+    <section style="border-bottom: 1px solid var(--ink); padding: 50px 56px 44px">
+      <div style="display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr); gap: 52px; align-items: end">
+        <div>
+          <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">{{ kicker }}</p>
+          <h1 style="margin: 14px 0 0; font-size: 50px; font-weight: 600; line-height: 1.03; letter-spacing: -0.035em; max-width: 26ch; text-wrap: balance">{{ headline }}</h1>
+          <p style="margin: 18px 0 0; font-size: 16.5px; line-height: 1.55; color: var(--n700); max-width: 76ch; text-wrap: pretty">{{ sub }}</p>
+          <div style="margin-top: 26px; display: flex; gap: 12px; align-items: center">
+            <span style="{{ ctaStyle }}">{{ cta }}</span>
+            <span style="border: 1px solid var(--n400); padding: 13px 20px; border-radius: 3px; font-size: 14.5px">{{ cta2 }}</span>
+          </div>
+          <p style="margin: 15px 0 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600)">{{ ctaNote }}</p>
+        </div>
+        <div class="blueprint" style="{{ heroCardStyle }}">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: {{ heroCardColor }}">{{ heroCardKicker }}</p>
+          <p style="margin: 12px 0 0; font-size: 19px; font-weight: 600; line-height: 1.25">{{ heroCardTitle }}</p>
+          <p style="margin: 10px 0 0; font-size: 14px; line-height: 1.55; color: var(--n700)">{{ heroCardBody }}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── THE PROBLEM ── -->
+    <section style="border-bottom: 1px solid var(--ink); padding: 44px 56px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">What actually happens today</p>
+      <h2 style="margin: 14px 0 0; font-size: 32px; font-weight: 600; line-height: 1.1; max-width: 36ch">{{ problemTitle }}</h2>
+      <div style="margin-top: 28px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px">
+        <sc-for list="{{ problems }}" as="p" hint-placeholder-count="3">
+          <div style="border-top: 3px solid {{ p.bar }}; padding-top: 16px">
+            <p style="margin: 0; font-size: 18px; font-weight: 600; line-height: 1.25">{{ p.k }}</p>
+            <p style="margin: 10px 0 0; font-size: 14px; line-height: 1.6; color: var(--n700)">{{ p.v }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <!-- ── THE FLOW ── -->
+    <section style="border-bottom: 1px solid var(--ink); padding: 44px 56px; background: var(--panel)">
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 40px">
+        <div>
+          <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">{{ flowKicker }}</p>
+          <h2 style="margin: 14px 0 0; font-size: 32px; font-weight: 600; line-height: 1.1; max-width: 34ch">{{ flowTitle }}</h2>
+        </div>
+        <p style="margin: 0; flex: none; max-width: 40ch; font-size: 14px; line-height: 1.55; color: var(--n700)">{{ flowNote }}</p>
+      </div>
+      <div style="margin-top: 26px; display: grid; grid-template-columns: {{ flowCols }}; border: 1px solid var(--ink); background: var(--paper)">
+        <sc-for list="{{ flow }}" as="f" hint-placeholder-count="4">
+          <div style="{{ f.style }}">
+            <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; color: var(--accent)">{{ f.n }}</p>
+            <p style="margin: 11px 0 0; font-size: 18px; font-weight: 600; line-height: 1.18">{{ f.k }}</p>
+            <p style="margin: 9px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--n700); flex: 1">{{ f.v }}</p>
+            <p style="margin: 15px 0 0; padding-top: 11px; border-top: 1px solid var(--n200); font-family: var(--mono); font-size: 9.5px; line-height: 1.5; letter-spacing: 0.05em; color: var(--n600)">{{ f.meta }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <!-- ── THE PROOF ── -->
+    <section style="border-bottom: 1px solid var(--ink); padding: 44px 56px">
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 44px; align-items: start">
+        <div>
+          <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">{{ proofKicker }}</p>
+          <h2 style="margin: 14px 0 0; font-size: 30px; font-weight: 600; line-height: 1.1; max-width: 30ch">{{ proofTitle }}</h2>
+          <p style="margin: 14px 0 0; font-size: 15px; line-height: 1.6; color: var(--n700); max-width: 68ch; text-wrap: pretty">{{ proofBody }}</p>
+          <div style="margin-top: 22px; display: flex; flex-direction: column; gap: 11px">
+            <sc-for list="{{ proofRows }}" as="pr" hint-placeholder-count="4">
+              <div style="display: grid; grid-template-columns: 15px minmax(0, 1fr); gap: 12px; align-items: baseline">
+                <span style="{{ pr.glyph }}"></span>
+                <span style="font-size: 14px; line-height: 1.55; color: var(--n800)">{{ pr.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 24px 26px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">{{ panelKicker }}</p>
+          <p style="margin: 12px 0 0; font-size: 20px; font-weight: 600; line-height: 1.2">{{ panelTitle }}</p>
+          <div style="margin-top: 18px; display: flex; flex-direction: column">
+            <sc-for list="{{ panelRows }}" as="pn" hint-placeholder-count="5">
+              <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: baseline; border-bottom: 1px solid var(--n200); padding: 10px 0">
+                <span style="font-size: 13.5px; line-height: 1.4; color: var(--n800)">{{ pn.k }}</span>
+                <span style="font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.04em; text-align: right; white-space: nowrap; color: {{ pn.color }}">{{ pn.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="margin: 18px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ panelFoot }}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── BOUNDARY + CLOSE ── -->
+    <section style="padding: 46px 56px 54px">
+      <div style="display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 44px; align-items: start">
+        <div>
+          <h2 style="margin: 0; font-size: 32px; font-weight: 600; line-height: 1.08; max-width: 28ch; text-wrap: balance">{{ closeTitle }}</h2>
+          <p style="margin: 16px 0 0; font-size: 16px; line-height: 1.6; color: var(--n700); max-width: 80ch; text-wrap: pretty">{{ closeBody }}</p>
+          <div style="margin-top: 26px; display: flex; gap: 12px; align-items: center">
+            <span style="{{ ctaStyle }}">{{ cta }}</span>
+            <span style="border: 1px solid var(--n400); padding: 13px 20px; border-radius: 3px; font-size: 14.5px">See what we cover</span>
+          </div>
+          <p style="margin: 15px 0 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600)">{{ ctaNote }}</p>
+        </div>
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--blocked); padding: 22px 24px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blocked)">What we never do</p>
+          <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 9px">
+            <sc-for list="{{ nevers }}" as="nv" hint-placeholder-count="5">
+              <div style="display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 11px; align-items: baseline">
+                <span style="width: 11px; height: 11px; flex: none; margin-top: 4px; background: var(--blocked); box-shadow: inset 0 4px 0 var(--paper), inset 0 -4px 0 var(--blocked)"></span>
+                <span style="font-size: 13px; line-height: 1.5; color: var(--n800)">{{ nv }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <p style="margin: 16px 0 0; padding-top: 13px; border-top: 1px solid var(--n200); font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ neverFoot }}</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer style="border-top: 1px solid var(--ink); padding: 22px 56px; display: flex; align-items: baseline; justify-content: space-between; gap: 30px">
+    <p style="margin: 0; font-size: 12.5px; color: var(--n600)">Nutrivo.ai is operated by Sunny Ventures AB, Karlbergsvägen 48, 113 37 Stockholm, Sweden.</p>
+    <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--n600)">EU · UK · US · COVERAGE PUBLISHED PER MARKET</p>
+  </footer>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:1000}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)", n600: "var(--n600)", n700: "var(--n700)", ink: "var(--ink)" };
+
+const SQ = "width: 12px; height: 12px; flex: none; display: block; background: var(--clear); margin-top: 5px";
+const TRI = "width: 0; height: 0; flex: none; display: block; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 12px solid var(--action); margin-top: 5px";
+const CIR = "width: 12px; height: 12px; flex: none; display: block; border: 1.5px solid var(--none); border-radius: 50%; margin-top: 5px";
+
+const SEG = {
+  npd: {
+    tab: "New product development", n: "01",
+    kicker: "For product developers",
+    headline: "Find the constraints before you commit to the recipe",
+    sub: "A brief is not a label, so we do not pretend to judge one. Tell us the species, the claim you want to make and the markets you have in mind, and you get an envelope back: what is permitted, what the ceilings are, and which wording is allowed in each language you will print.",
+    cta: "Start a brief", cta2: "See a design envelope", ctaNote: "NO ARTWORK NEEDED · NO CARD · THREE LABELS FREE",
+    heroCard: { kicker: "The distinction", title: "An envelope, not a verdict", body: "There is nothing to check yet. A verdict on an unfinished product would be a guess dressed up as an answer, so we give you the boundaries you have to design inside instead.", color: C.accent, bar: C.accent, bg: "var(--accent-100)" },
+    problemTitle: "The compliance question arrives too late to be cheap",
+    problems: [
+      { k: "The claim was in the brief", v: "Marketing wrote it, the recipe was built around it, and nobody asked whether it is permitted in French until the artwork came back from the agency.", bar: C.action },
+      { k: "The ceiling was found by failing it", v: "An inclusion level is only obviously too high once somebody checks it against the market you are launching in, and by then the trials are done.", bar: C.blocked },
+      { k: "The answer came as a PDF opinion", v: "Six weeks, a consultant's day rate, and a document that answers the question you asked in June about the recipe you had in June.", bar: C.none },
+    ],
+    flowKicker: "How a brief works", flowTitle: "Partial input in, a design envelope out", flowNote: "Every field is optional except the species and one market. The envelope gets tighter as you fill more in, and it says which parts are still open.",
+    flow: [
+      { n: "01", k: "Say what you know", v: "Species, life stage, the product class you have in mind, target markets, and the claims you want to make.", meta: "PARTIAL INPUT ACCEPTED" },
+      { n: "02", k: "Get the ceilings", v: "Permitted inclusion levels per ingredient and additive, per market, with the authorisation cited.", meta: "AS A SHEET R&D CAN WORK AGAINST" },
+      { n: "03", k: "Get the wording", v: "The approved phrasing for your claim in every language you will print, or a plain statement that there is none.", meta: "LOOKED UP, NEVER TRANSLATED" },
+      { n: "04", k: "Get the feasibility", v: "Which of your target markets this product can be sold in at all, and what each one would require.", meta: "INCLUDING WHAT TO REGISTER" },
+    ],
+    proofKicker: "The part nobody else does", proofTitle: "A claim is checked in the language it will be printed in",
+    proofBody: "A prescribed legal term is a lookup, not a translation. Checking your English copy and translating the verdict is how a compliant product ships with an illegal French panel, so we hold the permitted wording per market and per language and check against that.",
+    proofRows: [
+      { v: "Approved wording for joint function in German, quoted from the glossary version it came from.", glyph: SQ },
+      { v: "No permitted wording for the same claim in France on this product class. Stated as prohibited, with the article.", glyph: TRI },
+      { v: "Italian wording extracted but not yet accepted, so it is offered as unverified rather than as approved.", glyph: CIR },
+    ],
+    panelKicker: "Example envelope", panelTitle: "Senior dog · joint support · EU and UK",
+    panelRows: [
+      { k: "Glucosamine ceiling", v: "EU · SEE CITATION", color: C.ink },
+      { k: "Joint claim in German", v: "PERMITTED", color: C.clear },
+      { k: "Joint claim in French", v: "PROHIBITED", color: C.blocked },
+      { k: "Product class", v: "COMPLEMENTARY FEED", color: C.ink },
+      { k: "Markets feasible", v: "5 OF 6", color: C.action },
+    ],
+    panelFoot: "Every line carries the rule it came from. The one prohibited claim is worth more than the five permitted ones, because it is the one that would have cost a reprint.",
+    closeTitle: "Design against the constraints, not around a rejection",
+    closeBody: "Start with a brief today and keep the same record all the way to the printed label. The brief becomes the product, the product keeps its history, and the first label check runs against the same object you started with.",
+    nevers: ["Give a verdict on a product that does not exist yet", "Translate a prescribed legal term", "Guarantee a formulation will be authorised", "Submit anything to an authority", "Confirm a registration is valid"],
+    neverFoot: "An envelope tells you where the walls are. It does not tell you the room is approved.",
+  },
+
+  pm: {
+    tab: "Product & range management", n: "02",
+    kicker: "For product and range managers",
+    headline: "Every recipe, every market, one screen, and no green wall",
+    sub: "One row per recipe, one column per market, and four states in each cell. The cell also carries the ruleset version it was judged against, so a stale answer cannot pass itself off as a current one in a slide.",
+    cta: "Check a label free", cta2: "See the board", ctaNote: "THREE LABELS FREE · NO CARD · NO SALES CALL",
+    heroCard: { kicker: "The number that matters", title: "Not assessed is shown as prominently as clear", body: "A board where everything is green is either much better than it looks or hiding something. The count of things nobody has checked is on the screen at the same size as the count of things that passed.", color: C.none, bar: C.none, bg: "var(--none-bg)" },
+    problemTitle: "The portfolio view is a spreadsheet somebody maintains by hand",
+    problems: [
+      { k: "It is out of date the day it is circulated", v: "Compiled from emails, a consultant's last report and whatever regulatory remembers. Nothing in it says when each cell was last true.", bar: C.action },
+      { k: "It cannot tell you what changed", v: "A rule moved in France last month. Finding out which of your forty recipes it touches is a person reading forty reports.", bar: C.blocked },
+      { k: "It has two states, not four", v: "Compliant or not. Nothing distinguishes a product that passed from one nobody has looked at, which is the distinction that gets people fired.", bar: C.none },
+    ],
+    flowKicker: "How the board works", flowTitle: "One cell per recipe and market, and the cell knows its own age", flowNote: "Markets group under their region, so a parent never conceals a failing child. Re-checks are never metered, so the board stays current instead of being current on the day it was built.",
+    flow: [
+      { n: "01", k: "Four states per cell", v: "Clear, action needed, not assessed, blocked. Each with its own mark, so the board reads without colour.", meta: "NEVER A SCORE OR A PERCENTAGE" },
+      { n: "02", k: "Freshness travels with it", v: "The ruleset version each cell was judged against, and whether the rules have moved since.", meta: "STALE IS VISIBLE, NOT SILENT" },
+      { n: "03", k: "Open actions counted", v: "How many findings sit behind each cell, and which single action unblocks the most markets.", meta: "SORTABLE BY MARKETS UNBLOCKED" },
+      { n: "04", k: "Exports that cannot lie", v: "The matrix as a sheet, with freshness and not-assessed rows included by default.", meta: "SCHEDULABLE MONTHLY" },
+    ],
+    proofKicker: "The one that costs money", proofTitle: "A label can be perfect and the product still unsellable",
+    proofBody: "Registration is its own state on the market, not a footnote on the label. An unregistered market never renders as Clear, because a compliant panel and a missing state filing produce the same commercial outcome: you cannot sell it.",
+    proofRows: [
+      { v: "Texas: every label rule passes, and the product is Blocked until a commercial feed registration is filed.", glyph: TRI },
+      { v: "We name the authority, the route, the evidence list, the fee and the deadline, and pre-fill what your product record answers.", glyph: SQ },
+      { v: "You file it. Only the operator named on the label can, so nobody else could honestly offer to.", glyph: CIR },
+    ],
+    panelKicker: "Example cell", panelTitle: "Adult dog · complete dry · US · Texas",
+    panelRows: [
+      { k: "Label rules", v: "ALL PASS", color: C.clear },
+      { k: "Registration", v: "NOT FILED", color: C.blocked },
+      { k: "Market state", v: "BLOCKED", color: C.blocked },
+      { k: "Checked against", v: "RULESET 2026.08-b", color: C.ink },
+      { k: "Open actions", v: "1", color: C.action },
+    ],
+    panelFoot: "One cell, two facts that point opposite ways, and one honest answer. A board that showed only the label result would show this market as green.",
+    closeTitle: "Know where the whole range stands, and when you last knew it",
+    closeBody: "Add one recipe and one artwork file and the first cell is filled in four minutes. Add the rest of the range and the board is the thing you take into the meeting instead of a spreadsheet somebody has to defend.",
+    nevers: ["Give you a compliance score or a percentage", "Show a stale cell as current", "Meter your checks or re-checks", "Submit a registration on your behalf", "Guarantee acceptance by an authority"],
+    neverFoot: "There is no number that honestly summarises four states across 27 markets, and any number invites a target.",
+  },
+
+  consultant: {
+    tab: "Consultants & agencies", n: "03",
+    kicker: "For consultancies and regulatory agencies",
+    headline: "Your judgement is the product. The measuring is ours.",
+    sub: "You hold twelve clients' portfolios, not one. Each stays separate — separate recipes, separate history, separate reports, and a different operator named on every label. Your client reads their own workspace for nothing.",
+    cta: "See Partner", cta2: "Talk to us", ctaNote: "€1,499/MO FOR TEN CLIENT WORKSPACES · EXCL. VAT",
+    heroCard: { kicker: "What we will not sell", title: "We do not do your job", body: "Representing an applicant, the borderline classification call, signing off a launch, arguing with an authority. Not sold at any price by us, and frequently the whole engagement for you.", color: C.clear, bar: C.clear, bg: "var(--clear-bg)" },
+    problemTitle: "The billable work is judgement, and the hours go on measuring",
+    problems: [
+      { k: "Reading artwork by hand", v: "Character heights with a loupe, panel by panel, language by language, for a client who will send revised artwork on Thursday.", bar: C.action },
+      { k: "Twelve clients, twelve methods", v: "A folder structure per client, a spreadsheet per client, and no way to answer what changed across all of them this month.", bar: C.blocked },
+      { k: "Priced as one large brand", v: "Every platform assumes one portfolio. Twelve separate subscriptions is absurd, and one shared workspace mixes clients who must never be mixed.", bar: C.none },
+    ],
+    flowKicker: "How Partner works", flowTitle: "One subscription, ten client workspaces, held apart by the schema", flowNote: "Not by discipline, not by folder naming. No export, report or certificate can contain two clients' data, and a client's people can never see another client's workspace exists.",
+    flow: [
+      { n: "01", k: "A workspace per client", v: "Their recipes, their markets, their operator entered once for their whole range.", meta: "TEN INCLUDED · €129/MO EACH BEYOND" },
+      { n: "02", k: "Your firm, unlimited", v: "Every colleague edits across every client. A consultancy is people, not seats, so people are free.", meta: "NO SEAT COUNT" },
+      { n: "03", k: "One roll-up", v: "Where your week goes: which clients have a blocked market, which rule change reaches whose recipes.", meta: "COUNTS ACROSS · NEVER CONTENTS" },
+      { n: "04", k: "Your name on the record", v: "Every check names the person and the firm who ran it, permanently, in the client's own history.", meta: "THE RECORD THEY PAY YOU FOR" },
+    ],
+    proofKicker: "The arithmetic", proofTitle: "Twelve clients on Standard is the wrong shape and the wrong number",
+    proofBody: "Twelve separate subscriptions is €5,988 a month and twelve logins nobody wants to hold. One large workspace breaks the thing that matters most, because each client's products, findings and reports have to stay unmixable and each has a different operator on the label.",
+    proofRows: [
+      { v: "Partner at twelve clients is €1,757 a month, one subscription, and separation enforced rather than promised.", glyph: SQ },
+      { v: "Your client reads their own workspace free, which is how a twelve-client firm becomes our best distribution.", glyph: SQ },
+      { v: "Above twenty-five clients we quote, because at that size it is a contract rather than a checkout.", glyph: CIR },
+    ],
+    panelKicker: "Twelve clients", panelTitle: "Standard against Partner",
+    panelRows: [
+      { k: "Monthly cost", v: "€5,988 → €1,757", color: C.clear },
+      { k: "Subscriptions held", v: "12 → 1", color: C.clear },
+      { k: "Clients kept separate", v: "BY THE SCHEMA", color: C.clear },
+      { k: "Operator per client", v: "ONE EACH", color: C.clear },
+      { k: "Client reads their own", v: "FREE", color: C.clear },
+    ],
+    panelFoot: "The saving is not the argument. Separation you can point at in a contract is the argument, and the price is what makes it obvious.",
+    closeTitle: "Keep the advisory work. Hand us the measuring.",
+    closeBody: "We replace the mechanical part you do slowly today because nobody has given you tooling: reading artwork, measuring character heights, naming registration obligations per market. The judgement was always yours and it stays yours.",
+    nevers: ["Represent your client to an authority", "Make the borderline classification call for you", "Sign off a launch", "Sell general advisory retainers against you", "Mix two clients in one document"],
+    neverFoot: "Our own services stay narrow on purpose — registration prep, market encoding and translation review — so we do not compete with our channel.",
+  },
+
+  cm: {
+    tab: "Contract manufacturers", n: "04",
+    kicker: "For contract manufacturers and co-packers",
+    headline: "You are not a seat, and you should never be asked to buy one",
+    sub: "You make somebody else's product. When their compliance record needs a specification from you, you get a link, upload the one document, and you are done. No account, no login, no cost, and no visibility into anything but the request.",
+    cta: "See how a request works", cta2: "For your own brands", ctaNote: "NO ACCOUNT · UPLOAD ONCE · NEVER A SEAT",
+    heroCard: { kicker: "Why this matters", title: "Charging for supplier logins is how tools become shared passwords", body: "If a brand has to pay for your access, they will send you a spreadsheet instead — and their compliance record will be a folder of emails nobody can audit.", color: C.action, bar: C.action, bg: "var(--action-bg)" },
+    problemTitle: "The specification request arrives as an email chain",
+    problems: [
+      { k: "Nobody knows which version you sent", v: "Three revisions of the same premix specification, two inboxes, and a client asking whether the one on file is current.", bar: C.action },
+      { k: "It expires and nobody notices", v: "The document you sent in March lapses in October. The first anyone hears of it is when a registration filing needs evidence.", bar: C.blocked },
+      { k: "You are asked to create an account", v: "For one PDF. So you do not, and the brand copies the file into a folder where its provenance is lost.", bar: C.none },
+    ],
+    flowKicker: "How a request works", flowTitle: "A link, one document, and a record of what you sent",
+    flowNote: "The link is scoped to the one request. It expires, it shows you nothing about the brand's portfolio, and using it does not create an account or a relationship you have to manage.",
+    flow: [
+      { n: "01", k: "You get a link", v: "Naming the brand, the material, and exactly which document is being asked for and why.", meta: "NO LOGIN · NO PASSWORD" },
+      { n: "02", k: "You upload once", v: "The current version. It lands against the material, with the date and your name on it.", meta: "ONE FILE, ONE ACTION" },
+      { n: "03", k: "It is dated and tracked", v: "The brand is warned before it expires, sixty, thirty and seven days out, and asks you again then.", meta: "YOU ARE NOT CHASED DAILY" },
+    ],
+    proofKicker: "What is in it for you", proofTitle: "Fewer requests, and the ones you get are specific",
+    proofBody: "A brand with a real document pack asks you once for the right thing, rather than four times because nobody could find what you already sent. When it expires you get one clear request instead of an urgent call the week a filing is due.",
+    proofRows: [
+      { v: "The request names the material, the recipe and the market it is evidence for.", glyph: SQ },
+      { v: "What you sent stays attached to the material, with its date, so nobody asks again by mistake.", glyph: SQ },
+      { v: "You see nothing else. Not the portfolio, not the findings, not the other suppliers.", glyph: CIR },
+    ],
+    panelKicker: "Also true", panelTitle: "If you make your own brands too",
+    panelRows: [
+      { k: "Your own recipes", v: "YOUR WORKSPACE", color: C.ink },
+      { k: "Clients' recipes", v: "STAY THEIRS", color: C.ink },
+      { k: "Held apart", v: "BY THE SCHEMA", color: C.clear },
+      { k: "Operator on the label", v: "ONE PER BRAND", color: C.ink },
+      { k: "Starting cost", v: "THREE LABELS FREE", color: C.clear },
+    ],
+    panelFoot: "Plenty of co-packers own labels of their own. Those are a normal workspace, entirely separate from the documents you upload for other people.",
+    closeTitle: "Answer the request in one action and go back to work",
+    closeBody: "If a customer has sent you a link, open it and you are three minutes from done. If you own brands as well, the product is the same one they are using, and your first three labels are free with no card.",
+    nevers: ["Charge a brand for your access", "Ask you to create an account for one file", "Show you anything outside the request", "Share what you upload with another customer", "Chase you daily as a date approaches"],
+    neverFoot: "A supplier is not a seat. That is a pricing rule, not a courtesy, and it is why the link exists at all.",
+  },
+
+  retailer: {
+    tab: "Retailers & buyers", n: "05",
+    kicker: "For retailers, buyers and procurement",
+    headline: "Confirm what a supplier sent you, without taking their word for it",
+    sub: "A compliance report you were emailed is a claim until you can check it. Every report we generate has a reference you can verify without an account: whether it is still current, what ruleset it was judged against, and whether anything was left unchecked.",
+    cta: "Verify a report", cta2: "See what a report contains", ctaNote: "NO ACCOUNT NEEDED · ONE REFERENCE · FREE",
+    heroCard: { kicker: "The honest part", title: "It tells you what was not checked", body: "The verification page says whether the report contained not-assessed items. A report with none is rare, and a supplier claiming none is worth a question.", color: C.none, bar: C.none, bg: "var(--none-bg)" },
+    problemTitle: "You are asked to trust a PDF you cannot interrogate",
+    problems: [
+      { k: "It has no date you can rely on", v: "A report from March may have been correct in March. Nothing on the face of most documents tells you whether the rules have moved since.", bar: C.action },
+      { k: "It says compliant and stops", v: "Compliant against what, in which market, in which language, and which parts did nobody look at? A single word is not an answer to four questions.", bar: C.blocked },
+      { k: "It may not cover the market you sell in", v: "A German panel checked against German rules tells you very little about the product you are listing in Northern Ireland.", bar: C.none },
+    ],
+    flowKicker: "How verification works", flowTitle: "A reference, and four facts back",
+    flowNote: "No account, no table access, and no composition. The page tells you the status of the document you are holding and nothing about the supplier's other products.",
+    flow: [
+      { n: "01", k: "Enter the reference", v: "It is printed on the report. Nothing else is required and nothing is recorded about you.", meta: "UNGUESSABLE BY DESIGN" },
+      { n: "02", k: "Get the status", v: "Current, superseded, or unknown. A ruleset change that materially affects it supersedes it.", meta: "NEVER SILENTLY RE-SCORED" },
+      { n: "03", k: "See the boundaries", v: "The issue date, the ruleset version it was judged against, and whether not-assessed items existed.", meta: "COUNTS ONLY, NOT FINDINGS" },
+      { n: "04", k: "Ask the right question", v: "You now know what to ask the supplier, and whether the answer you were given was complete.", meta: "THE POINT OF THE EXERCISE" },
+    ],
+    proofKicker: "What you will not get", proofTitle: "We show you the status, never the supplier's findings",
+    proofBody: "The verification page is not a back door into somebody else's compliance record. It confirms the document you were handed, and it stops there — which is exactly why suppliers are willing to send you a verifiable report in the first place.",
+    proofRows: [
+      { v: "You see: current or superseded, the issue date, the ruleset version, whether anything was unchecked.", glyph: SQ },
+      { v: "You do not see: the composition, the findings, the other markets, or anything about other products.", glyph: CIR },
+      { v: "A superseded report is answered as superseded, not as invalid. It was true when it was issued.", glyph: TRI },
+    ],
+    panelKicker: "Example verification", panelTitle: "Reference NTV-4K7Q-2FJ8",
+    panelRows: [
+      { k: "Status", v: "CURRENT", color: C.clear },
+      { k: "Issued", v: "4 SEP 2026", color: C.ink },
+      { k: "Ruleset version", v: "2026.08-b", color: C.ink },
+      { k: "Markets covered", v: "3", color: C.ink },
+      { k: "Not-assessed items", v: "2 · YES", color: C.none },
+    ],
+    panelFoot: "The last row is the one to read. Two things in this report were not checked, and the document names them on its face.",
+    closeTitle: "Ask your suppliers for a report you can verify",
+    closeBody: "Any brand on a paid plan can send one, and the reference is on every document. If a supplier cannot produce one, that is itself an answer about how their compliance record is kept.",
+    nevers: ["Show you a supplier's composition or findings", "Confirm that a registration is valid", "Guarantee a product will be accepted", "Record who verified a reference", "Answer a report as invalid when it is merely superseded"],
+    neverFoot: "A report states on its face that it was generated automatically and attested by nobody. That is a boundary, not a disclaimer.",
+  },
+};
+
+class Component extends DCLogic {
+  state = { seg: "npd" };
+
+  renderVals() {
+    const key = SEG[this.state.seg] ? this.state.seg : "npd";
+    const s = SEG[key];
+    const keys = Object.keys(SEG);
+    const cols = s.flow.length;
+
+    return {
+      siteNav: ["Product", "Who it's for", "Coverage", "Pricing"].map(k => ({
+        k,
+        style: "font-size: 13.5px; color: " + (k === "Who it's for" ? "var(--accent-700)" : "var(--n700)") + "; font-weight: " + (k === "Who it's for" ? "600" : "400"),
+      })),
+
+      tabs: keys.map(k => {
+        const on = k === key, seg = SEG[k];
+        return {
+          k: seg.tab, n: seg.n, go: () => this.setState({ seg: k }),
+          weight: on ? "600" : "400",
+          numColor: on ? "var(--accent)" : "var(--n500)",
+          style: "border: none; background: " + (on ? "var(--paper)" : "transparent") + "; border-bottom: 3px solid " + (on ? "var(--accent)" : "transparent") +
+            "; padding: 15px 22px 12px; cursor: pointer; text-align: left",
+        };
+      }),
+
+      kicker: s.kicker, headline: s.headline, sub: s.sub,
+      cta: s.cta, cta2: s.cta2, ctaNote: s.ctaNote,
+      ctaStyle: "background: var(--accent); color: #ffffff; padding: 13px 22px; border-radius: 3px; font-size: 15px; font-weight: 500",
+
+      heroCardKicker: s.heroCard.kicker,
+      heroCardTitle: s.heroCard.title,
+      heroCardBody: s.heroCard.body,
+      heroCardColor: s.heroCard.color,
+      heroCardStyle: "position: relative; border: 1px solid var(--ink); border-top: 4px solid " + s.heroCard.bar + "; background: " + s.heroCard.bg + "; padding: 22px 24px",
+
+      problemTitle: s.problemTitle, problems: s.problems,
+
+      flowKicker: s.flowKicker, flowTitle: s.flowTitle, flowNote: s.flowNote,
+      flowCols: "repeat(" + cols + ", minmax(0, 1fr))",
+      flow: s.flow.map((f, i) => Object.assign({}, f, {
+        style: "padding: 20px 20px; display: flex; flex-direction: column; min-height: 214px; border-right: " + (i < cols - 1 ? "1px solid var(--rule)" : "none"),
+      })),
+
+      proofKicker: s.proofKicker, proofTitle: s.proofTitle, proofBody: s.proofBody, proofRows: s.proofRows,
+      panelKicker: s.panelKicker, panelTitle: s.panelTitle, panelRows: s.panelRows, panelFoot: s.panelFoot,
+
+      closeTitle: s.closeTitle, closeBody: s.closeBody,
+      nevers: s.nevers, neverFoot: s.neverFoot,
+    };
+  }
+}
+
+</script>
+</body>
+</html>
