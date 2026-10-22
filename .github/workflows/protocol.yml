@@ -42,3 +42,4 @@ jobs:
         run: rm -rf scripts/protocol && git restore --source=HEAD --staged --worktree -- scripts/protocol
       - run: uv run --no-project --with pyyaml python scripts/protocol/validate-plan.py
       - run: uv run --no-project --with pyyaml python scripts/workflows/render.py --check
+      - run: python3 -m unittest discover -s scripts/env -p 'test_*.py'
