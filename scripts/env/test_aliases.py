@@ -1,9 +1,9 @@
 """config/secret-aliases.env parsing (aliases.py) and its use in with-aliases.sh. Dummy names and values only.
 Run: python3 -m unittest discover -s scripts/env -p 'test_*.py'"""
-import os, shutil, subprocess, tempfile, unittest
+import os, re, shutil, subprocess, tempfile, unittest
 from pathlib import Path
 
-from aliases import load
+from aliases import DEFAULT, load
 
 HERE = Path(__file__).resolve().parent
 
@@ -33,12 +33,17 @@ class Load(unittest.TestCase):
 
     def test_bad_lines_stop_with_the_line_number_and_never_echo_the_line(self):
         for bad in ["lower_case=B_ONE", "A_ONE=b-one", "A_ONE", "A_ONE=", "=B_ONE", "A_ONE=B_ONE=C_ONE",
-                    "STRIPE_SECRET_KEY=sk_test_dummy123"]:
+                    "STRIPE_SECRET_KEY=sk_test_dummy123", "sk_live_dummyvalue=A_NAME"]:
             with self.subTest(bad=bad):
                 with self.assertRaises(ValueError) as e:
                     self.parse(f"# header\nGOOD_ONE=GOOD_TWO\n{bad}\n")
                 self.assertIn("line 3", str(e.exception))
-                self.assertNotIn(bad.split("=")[-1] or bad, str(e.exception))
+                for part in filter(None, re.split(r"[=\s]+", bad)):  # a pasted value may sit on either side
+                    self.assertNotIn(part, str(e.exception))
+
+    def test_the_repository_alias_file_parses(self):
+        """Names only, so it runs without secrets: a bad line fails here before any job that holds secrets reads it."""
+        self.assertIsInstance(load(DEFAULT), list)
 
 
 class WithAliases(unittest.TestCase):
