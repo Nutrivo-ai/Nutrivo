@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0 }
       - uses: ./.github/actions/infisical
         with:
@@ -21,7 +21,10 @@ jobs:
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
           domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
           env-slug: dev
-      - uses: anthropics/claude-code-action@2dca132ff0e0c4094ce6048b422c6915a071210b # v1.0.247
+      - name: Note the start of this review
+        id: started
+        run: echo "at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+      - uses: anthropics/claude-code-action@db77d4d3c98f3f6380e7cd45ffba2342a3dbde3c # v1.0.254
         with:
           anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
           allowed_bots: claude          # autopilot pull requests are opened and pushed by claude[bot]
@@ -31,4 +34,37 @@ jobs:
             the workflow specs in docs/workflows/, spec/acceptance.yaml, docs/04-contracts.md and CLAUDE.md. Use the
             spec-checker procedure; for changes under supabase/ also the rls-reviewer checklist. Post one review
             comment: a table of must-hold and failure cases with evidence (file:line) or MISSING, then any bugs,
-            security issues or design deviations. Do not push changes. Finish with APPROVE-READY or CHANGES-NEEDED.
+            security issues or design deviations. Do not push changes. The comment's last line must be exactly
+            APPROVE-READY or CHANGES-NEEDED: the next step turns it into this workflow's approval (D-23).
+      # D-23: the verdict becomes the pull request's one required approval. It reads the newest claude[bot] comment or
+      # review posted or edited since this run started, and approves only if the head is still the commit that was reviewed;
+      # dismiss_stale_reviews_on_push in the main ruleset drops the approval on any later push. No verdict: nothing.
+      - name: Approve or request changes from the verdict
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          REVIEWED_SHA: ${{ github.event.pull_request.head.sha }}
+          SINCE: ${{ steps.started.outputs.at }}
+        run: |
+          set -euo pipefail
+          body=$( {
+            gh api --paginate "repos/$REPO/issues/$PR/comments?since=$SINCE" \
+              --jq '.[] | select(.user.login == "claude[bot]") | [.updated_at, .body] | @json'
+            gh api --paginate "repos/$REPO/pulls/$PR/reviews" \
+              --jq '.[] | select(.user.login == "claude[bot]" and .body != "") | [.submitted_at, .body] | @json'
+          } | jq -rs --arg since "$SINCE" 'map(select(.[0] >= $since)) | sort_by(.[0]) | last | .[1] // ""')
+          verdict=$(printf '%s\n' "$body" | sed 's/[[:space:]*`]//g' | grep -v '^$' | tail -n 1 || true)
+          head_now=$(gh api "repos/$REPO/pulls/$PR" --jq .head.sha)
+          if [ "$head_now" != "$REVIEWED_SHA" ]; then
+            echo "::notice::head moved from $REVIEWED_SHA to $head_now during the review; the run for the new head decides"
+            exit 0
+          fi
+          case "$verdict" in
+            APPROVE-READY)
+              gh pr review "$PR" --repo "$REPO" --approve --body "Approved from the Claude review of $REVIEWED_SHA (D-23)." ;;
+            CHANGES-NEEDED)
+              gh pr review "$PR" --repo "$REPO" --request-changes --body "Changes requested by the Claude review of $REVIEWED_SHA (D-23)." ;;
+            *)
+              echo "::warning::no APPROVE-READY or CHANGES-NEEDED line in a claude[bot] comment from this run; no review submitted" ;;
+          esac

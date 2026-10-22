@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--panel); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  button { font: inherit; color: inherit; }
+  input, select { font: inherit; color: inherit; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ntv-in { width: 100%; box-sizing: border-box; border: 1px solid var(--n400); border-radius: 3px; padding: 11px 12px; font-size: 14px; background: var(--paper); }
+  .ntv-in::placeholder { color: var(--n500); }
+  @keyframes ntv-pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+  @keyframes ntv-slide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+
+<div style="min-width: 1120px; min-height: 900px; display: flex; flex-direction: column; background: var(--panel); font-size: 14px">
+
+  <header style="display: flex; align-items: center; gap: 20px; border-bottom: 1px solid var(--ink); background: var(--paper); padding: 14px 32px">
+    <p style="margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 21px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 6px; height: 6px; background: var(--accent); margin-bottom: 2px; flex-shrink: 0"></span></p>
+    <div style="flex: 1"></div>
+    <span style="font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600); border: 1px solid var(--rule); padding: 5px 9px">{{ chip }}</span>
+    <div style="display: flex; align-items: center; gap: 8px">
+      <button type="button" onClick="{{ restart }}" style="border: 1px solid var(--n400); background: var(--paper); border-radius: 3px; padding: 6px 11px; font-size: 12px; cursor: pointer; color: var(--n700)" style-hover="border-color: var(--accent); color: var(--accent-700)">Restart at step 01</button>
+      <button type="button" onClick="{{ goInvited }}" style="border: 1px solid var(--n400); background: var(--paper); border-radius: 3px; padding: 6px 11px; font-size: 12px; cursor: pointer; color: var(--n700)" style-hover="border-color: var(--accent); color: var(--accent-700)">View the invited-user page</button>
+    </div>
+  </header>
+
+  <sc-if value="{{ showRail }}" hint-placeholder-val="{{ true }}">
+    <div style="background: var(--paper); border-bottom: 1px solid var(--rule); padding: 0 32px">
+      <div style="max-width: 1040px; margin: 0 auto; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr))">
+        <sc-for list="{{ rail }}" as="r" hint-placeholder-count="5">
+          <button type="button" onClick="{{ r.go }}" style="{{ r.style }}" style-hover="background: var(--accent-100)">
+            <span style="display: flex; align-items: center; gap: 8px">
+              <span style="{{ r.dot }}">{{ r.tick }}</span>
+              <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: {{ r.numColor }}">{{ r.n }}</span>
+            </span>
+            <span style="display: block; margin-top: 6px; font-size: 13px; font-weight: {{ r.weight }}; text-align: left">{{ r.k }}</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="flex: 1; padding: 34px 32px 60px">
+    <div style="max-width: 1040px; margin: 0 auto">
+
+      <!-- 01 ACCOUNT -->
+      <sc-if value="{{ is1 }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="Step 01 account" style="animation: ntv-slide 260ms ease-out both">
+        <div style="display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 24px; align-items: start">
+          <div style="border: 1px solid var(--ink); background: var(--paper); padding: 26px 28px">
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">Step 01 of 05</p>
+            <h2 style="margin: 8px 0 0; font-size: 27px; font-weight: 600; line-height: 1.1">Create your workspace</h2>
+            <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.5; color: var(--n700)">Three fields. No card, and nobody will call you.</p>
+            <div style="margin-top: 22px; display: flex; flex-direction: column; gap: 15px">
+              <div>
+                <label for="f-email" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px">Work email</label>
+                <input id="f-email" class="ntv-in" type="email" value="j.holm@haldenpet.com" />
+              </div>
+              <div>
+                <label for="f-name" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px">Full name</label>
+                <input id="f-name" class="ntv-in" type="text" value="Johanna Holm" />
+              </div>
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 6px">
+                  <label for="f-pass" style="font-size: 12.5px; font-weight: 500">Password</label>
+                  <button type="button" onClick="{{ togglePass }}" style="background: transparent; border: none; padding: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--accent-700); cursor: pointer" style-hover="color: var(--accent)">{{ passToggleLabel }}</button>
+                </div>
+                <input id="f-pass" class="ntv-in" type="{{ passType }}" value="lattice-north-4417" />
+                <p style="margin: 6px 0 0; font-size: 12px; color: var(--n600)">One field, with a reveal. Twelve characters or more, and no rules about punctuation.</p>
+              </div>
+              <div style="border: 1px solid var(--rule); background: var(--panel); padding: 12px 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: baseline">
+                <span style="font-size: 12.5px; color: var(--n700)">Workspace will be called <strong style="font-weight: 600">Halden Pet Nutrition</strong>, from your email domain.</span>
+                <a href="#rename" style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em">RENAME</a>
+              </div>
+            </div>
+            <div style="margin-top: 24px; display: flex; align-items: center; gap: 14px">
+              <button type="button" onClick="{{ next }}" style="background: var(--accent); color: #ffffff; border: none; border-radius: 3px; padding: 12px 22px; font-size: 14.5px; font-weight: 500; cursor: pointer; transition: background 120ms ease-out" style-hover="background: var(--accent-600)">Create workspace</button>
+              <button type="button" onClick="{{ next }}" style="background: transparent; border: 1px solid var(--n400); border-radius: 3px; padding: 12px 18px; font-size: 14px; cursor: pointer" style-hover="border-color: var(--accent); color: var(--accent-700)">Continue with SSO</button>
+            </div>
+            <p style="margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--n200); font-size: 12px; line-height: 1.5; color: var(--n600)">By continuing you accept the terms. We never file a registration, pay a fee, correspond with an authority or guarantee acceptance.</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div style="border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--none)">Not asked</p>
+              <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 7px">
+                <sc-for list="{{ notAsked }}" as="na" hint-placeholder-count="6">
+                  <span style="border: 1px solid var(--n300); background: var(--panel); padding: 5px 9px; font-size: 11.5px; color: var(--n700); text-decoration: line-through; text-decoration-color: var(--n400)">{{ na }}</span>
+                </sc-for>
+              </div>
+            </div>
+            <div style="border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">Free, three labels</p>
+              <div style="margin-top: 10px">
+                <sc-for list="{{ freeRows }}" as="fr" hint-placeholder-count="4">
+                  <div style="display: flex; justify-content: space-between; gap: 12px; align-items: baseline; border-bottom: 1px solid var(--n200); padding: 8px 0">
+                    <span style="font-size: 12.5px; color: var(--n700)">{{ fr.k }}</span>
+                    <span style="font-family: var(--mono); font-size: 11.5px; font-weight: 500; text-align: right">{{ fr.v }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <p style="margin: 12px 0 0; font-size: 12px; line-height: 1.5; color: var(--n600)">Three labels, no card and no clock. Nothing is taken away when they are used.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- 02 REGION -->
+      <sc-if value="{{ is2 }}">
+      <div data-screen-label="Step 02 region" style="animation: ntv-slide 260ms ease-out both">
+        <div style="border: 1px solid var(--ink); background: var(--paper); padding: 26px 28px">
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">Step 02 of 05</p>
+          <h2 style="margin: 8px 0 0; font-size: 27px; font-weight: 600; line-height: 1.1">Where do you sell</h2>
+          <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.5; color: var(--n700); max-width: 88ch">EU is pre-selected from your email domain — change it if we guessed wrong. A region is sold whole, because a state is one edition of a national rulebook rather than a rulebook of its own. Every market inside it is checkable from the first minute.</p>
+          <div style="margin-top: 22px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+            <sc-for list="{{ regions }}" as="rg" hint-placeholder-count="3">
+              <button type="button" onClick="{{ rg.pick }}" style="{{ rg.style }}" style-hover="border-color: var(--accent)">
+                <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 10px">
+                  <span style="font-size: 24px; font-weight: 600; letter-spacing: -0.03em">{{ rg.k }}</span>
+                  <span style="{{ rg.radio }}"></span>
+                </div>
+                <span style="display: block; margin-top: 8px; font-size: 12.5px; line-height: 1.45; color: var(--n700); text-align: left">{{ rg.v }}</span>
+                <span style="display: block; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--n200); font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600); text-align: left">{{ rg.meta }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="margin-top: 20px; border: 1px solid var(--rule); background: var(--panel); padding: 16px 18px">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 14px">
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600">Inside {{ pickedName }}</p>
+              <a href="#coverage" style="font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em">READ THE COVERAGE DEPTH</a>
+            </div>
+            <div style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 7px">
+              <sc-for list="{{ pickedNodes }}" as="pn" hint-placeholder-count="4">
+                <span style="border: 1px solid var(--n300); background: var(--paper); padding: 6px 10px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em">{{ pn }}</span>
+              </sc-for>
+            </div>
+            <p style="margin: 12px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">Selling in more than one region? Pick the one you sell most in now. A second region is a plan change, not a second onboarding.</p>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- 03 RECIPE -->
+      <sc-if value="{{ is3 }}">
+      <div data-screen-label="Step 03 recipe" style="animation: ntv-slide 260ms ease-out both">
+        <div style="display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: 24px; align-items: start">
+          <div style="border: 1px solid var(--ink); background: var(--paper); padding: 26px 28px">
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">Step 03 of 05</p>
+            <h2 style="margin: 8px 0 0; font-size: 27px; font-weight: 600; line-height: 1.1">Your first recipe</h2>
+            <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.5; color: var(--n700)">The recipe, not the pack. Pack sizes and artwork versions hang off it and are never billed separately.</p>
+            <div style="margin-top: 22px; display: flex; flex-direction: column; gap: 15px">
+              <div>
+                <label for="f-rec" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px">Recipe name</label>
+                <input id="f-rec" class="ntv-in" type="text" value="Adult dog · complete dry · chicken" />
+              </div>
+              <div style="display: grid; grid-template-columns: 1fr 1fr 1.2fr; gap: 14px">
+                <div>
+                  <label for="f-an" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px">Animal</label>
+                  <select id="f-an" class="ntv-in"><option>Dog</option><option>Cat</option><option>Other</option></select>
+                </div>
+                <div>
+                  <label for="f-ls" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px">Life stage</label>
+                  <select id="f-ls" class="ntv-in"><option>Adult</option><option>Growth</option><option>Senior</option><option>All stages</option></select>
+                </div>
+                <div>
+                  <label for="f-cl" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px">What you believe it is</label>
+                  <select id="f-cl" class="ntv-in"><option>Complete feed</option><option>Complementary feed</option><option>Feed material</option><option>Additive</option><option>Supplement</option></select>
+                </div>
+              </div>
+              <div style="border-top: 1px solid var(--n200); padding-top: 16px">
+                <div style="display: flex; align-items: baseline; gap: 10px">
+                  <p style="margin: 0; font-size: 13.5px; font-weight: 600">Responsible operator, exactly as printed on the label</p>
+                  <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; color: var(--blocked)">REQUIRED</span>
+                </div>
+                <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 12px">
+                  <input class="ntv-in" type="text" value="Halden Pet Nutrition AB" aria-label="Operator name" />
+                  <input class="ntv-in" type="text" value="Industrivägen 4, 412 63 Göteborg, SE" aria-label="Operator address" />
+                  <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 12px; align-items: end">
+                    <input class="ntv-in" type="text" value="SE 14 2231 α" aria-label="Establishment or approval number" />
+                    <p style="margin: 0; font-size: 11.5px; line-height: 1.4; color: var(--n600)">Establishment number, if you hold one. Optional.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div style="border: 1px solid var(--ink); border-left: 4px solid var(--blocked); background: var(--paper); padding: 20px 22px">
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blocked)">Why the operator is required</p>
+              <p style="margin: 8px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">Only the operator named on the label can register a product. Without it we can tell you what a label says, but not what you must register, with whom, or by when — and an unregistered market never renders as Clear.</p>
+            </div>
+            <div style="border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">Your assumption, our determination</p>
+              <p style="margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700)">You say what you think this is. We read the artwork and state our own determination with the rule behind it. Where the two disagree, that is the first finding on your report.</p>
+            </div>
+            <div style="border: 1px solid var(--rule); background: var(--paper); padding: 18px 20px">
+              <p style="margin: 0; font-size: 13px; font-weight: 600">Not asked now</p>
+              <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">Full formula, ingredient percentages, supplier specs, pack sizes, recipe family. Each appears at the moment it changes an answer.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- 04 ARTWORK -->
+      <sc-if value="{{ is4 }}">
+      <div data-screen-label="Step 04 artwork" style="animation: ntv-slide 260ms ease-out both">
+        <div style="display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 24px; align-items: start">
+          <div style="border: 1px solid var(--ink); background: var(--paper); padding: 26px 28px">
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">Step 04 of 05</p>
+            <h2 style="margin: 8px 0 0; font-size: 27px; font-weight: 600; line-height: 1.1">Upload the print-ready artwork</h2>
+            <div style="margin-top: 18px; border: 1px dashed var(--n400); background: var(--panel); padding: 28px 22px; text-align: center">
+              <p style="margin: 0; font-size: 15px; font-weight: 500">Drop the PDF you send to the printer</p>
+              <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n600)">Live vector text, every language in the one file. We read fonts, coordinates and character heights from it.</p>
+            </div>
+            <div style="margin-top: 18px; border: 1px solid var(--clear); background: var(--clear-bg); padding: 11px 14px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+              <span style="font-size: 13px; font-weight: 500">halden-adult-dog-12kg-v4.pdf</span>
+              <span style="font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--clear)">READ · 3 PANELS · 412 OBJECTS</span>
+            </div>
+            <p style="margin: 18px 0 8px; font-size: 13.5px; font-weight: 600">Confirm which market each panel is printed for</p>
+            <div style="display: flex; flex-direction: column; gap: 8px">
+              <sc-for list="{{ panels }}" as="p" hint-placeholder-count="4">
+                <div style="border: 1px solid var(--n300); padding: 9px 12px; display: grid; grid-template-columns: 58px minmax(0, 1fr) 128px; gap: 12px; align-items: center">
+                  <span style="font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.04em; color: var(--accent)">{{ p.lang }}</span>
+                  <span style="font-size: 12.5px; color: var(--n700)">{{ p.node }}</span>
+                  <span style="font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.04em; text-align: right; color: {{ p.color }}">{{ p.state }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <p style="margin: 14px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">This is the one thing we will not guess at. A French panel checked against German rules is a verdict we know is invalid.</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div style="border: 1px solid var(--ink); border-left: 4px solid var(--none); background: var(--paper); padding: 20px 22px">
+              <p style="margin: 0; font-size: 14px; font-weight: 600">No artwork yet?</p>
+              <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700)">Then this step is skipped. Enter what exists — a species, a claim you want to make, a market in mind — and you get a design envelope of constraints, ceilings and permitted wording instead of a verdict.</p>
+              <button type="button" style="margin-top: 14px; background: transparent; border: 1px solid var(--n400); border-radius: 3px; padding: 9px 14px; font-size: 13px; cursor: pointer" style-hover="border-color: var(--accent); color: var(--accent-700)">Start a brief instead</button>
+            </div>
+            <div style="border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--action)">If the file cannot give us what we need</p>
+              <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 10px">
+                <sc-for list="{{ artFail }}" as="af" hint-placeholder-count="3">
+                  <div style="border-bottom: 1px solid var(--n200); padding-bottom: 9px">
+                    <p style="margin: 0; font-size: 12.5px; font-weight: 600">{{ af.k }}</p>
+                    <p style="margin: 4px 0 0; font-size: 12px; line-height: 1.45; color: var(--n700)">{{ af.v }}</p>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- 05 ANSWER -->
+      <sc-if value="{{ is5 }}">
+      <div data-screen-label="Step 05 first answer" style="animation: ntv-slide 260ms ease-out both">
+        <div style="display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr); gap: 24px; align-items: start">
+          <div style="border: 1px solid var(--ink); background: var(--paper); padding: 26px 28px">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 16px">
+              <div>
+                <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--clear)">Check complete · 2 min 14 s</p>
+                <h2 style="margin: 8px 0 0; font-size: 25px; font-weight: 600; line-height: 1.1">Adult dog · complete dry · chicken</h2>
+              </div>
+              <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600); border: 1px solid var(--rule); padding: 5px 8px; white-space: nowrap">RULESET 2026.08-b</span>
+            </div>
+            <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+              <sc-for list="{{ counts }}" as="c" hint-placeholder-count="4">
+                <div style="border: 1px solid var(--n300); padding: 12px 13px">
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <span style="{{ c.glyph }}"></span>
+                    <p style="margin: 0; font-family: var(--mono); font-size: 23px; line-height: 1; color: {{ c.color }}">{{ c.n }}</p>
+                  </div>
+                  <p style="margin: 8px 0 0; font-size: 11.5px; line-height: 1.25; color: var(--n700)">{{ c.k }}</p>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 12px">
+              <sc-for list="{{ findings }}" as="f" hint-placeholder-count="3">
+                <div style="border-left: 3px solid {{ f.bar }}; padding-left: 14px">
+                  <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+                    <p style="margin: 0; font-size: 13.5px; font-weight: 600; line-height: 1.3">{{ f.k }}</p>
+                    <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; color: var(--n500); white-space: nowrap">{{ f.prov }}</span>
+                  </div>
+                  <p style="margin: 5px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">{{ f.v }}</p>
+                </div>
+              </sc-for>
+            </div>
+            <p style="margin: 20px 0 0; padding-top: 14px; border-top: 1px solid var(--n200); font-size: 12px; line-height: 1.5; color: var(--n600)">Pinned to the ruleset version, the artwork hash and a timestamp. Generated automatically and attested by nobody.</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div style="border: 1px solid var(--ink); border-top: 4px solid var(--accent); background: var(--paper); padding: 22px 24px">
+              <p style="margin: 0; font-size: 16px; font-weight: 600">Onboarding is over</p>
+              <p style="margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700)">You have an answer. Everything from here is the product, not a setup step.</p>
+              <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 9px">
+                <button type="button" onClick="{{ goInvite }}" style="background: var(--accent); color: #ffffff; border: none; border-radius: 3px; padding: 11px 16px; font-size: 13.5px; font-weight: 500; cursor: pointer; text-align: left" style-hover="background: var(--accent-600)">Invite the person who fixes the artwork</button>
+                <button type="button" style="background: transparent; border: 1px solid var(--n400); border-radius: 3px; padding: 11px 16px; font-size: 13.5px; cursor: pointer; text-align: left" style-hover="border-color: var(--accent); color: var(--accent-700)">Add the rest of the range</button>
+                <button type="button" style="background: transparent; border: 1px solid var(--n400); border-radius: 3px; padding: 11px 16px; font-size: 13.5px; cursor: pointer; text-align: left" style-hover="border-color: var(--accent); color: var(--accent-700)">Export or send this report</button>
+              </div>
+              <p style="margin: 12px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">SENDING IS A PAID PLAN · READING IS NOT</p>
+            </div>
+            <div style="border: 1px solid var(--ink); border-left: 4px solid var(--none); background: var(--paper); padding: 18px 20px">
+              <p style="margin: 0; font-size: 13px; font-weight: 600">The two Not assessed items are the point</p>
+              <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">A clean check with nothing withheld would be the thing to distrust. Each one links to what we hold for that market and what we do not.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- 06 ADMIN INVITE -->
+      <sc-if value="{{ is6 }}">
+      <div data-screen-label="Admin invite people" style="animation: ntv-slide 260ms ease-out both">
+        <div style="display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 24px; align-items: start">
+          <div style="border: 1px solid var(--ink); background: var(--paper); padding: 26px 28px">
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">Admin · people</p>
+            <h2 style="margin: 8px 0 0; font-size: 27px; font-weight: 600; line-height: 1.1">Invite a user</h2>
+            <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.5; color: var(--n700)">You fill in three things. They fill in two. Nobody repeats the workspace setup.</p>
+            <div style="margin-top: 22px; display: flex; flex-direction: column; gap: 15px">
+              <div>
+                <label for="i-email" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px">Their work email</label>
+                <input id="i-email" class="ntv-in" type="email" placeholder="name@haldenpet.com" />
+              </div>
+              <div>
+                <p style="margin: 0 0 8px; font-size: 12.5px; font-weight: 500">Role</p>
+                <div style="display: flex; flex-direction: column; gap: 7px">
+                  <sc-for list="{{ roleOpts }}" as="ro" hint-placeholder-count="4">
+                    <button type="button" onClick="{{ ro.pick }}" style="{{ ro.style }}" style-hover="border-color: var(--accent)">
+                      <span style="{{ ro.radio }}"></span>
+                      <span style="flex: 1; text-align: left">
+                        <span style="display: block; font-size: 13.5px; font-weight: 600">{{ ro.k }}</span>
+                        <span style="display: block; margin-top: 3px; font-size: 12px; line-height: 1.4; color: var(--n700)">{{ ro.v }}</span>
+                      </span>
+                      <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: {{ ro.costColor }}; white-space: nowrap">{{ ro.cost }}</span>
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
+              <div>
+                <label for="i-scope" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px">What they can see</label>
+                <select id="i-scope" class="ntv-in"><option>The whole workspace</option><option>Adult dog · complete dry · chicken</option><option>EU markets only</option></select>
+                <p style="margin: 6px 0 0; font-size: 12px; color: var(--n600)">Scope is per product and per market. An editor outside their scope sees nothing, not a locked screen.</p>
+              </div>
+              <div style="border-top: 1px solid var(--n200); padding-top: 14px">
+                <div style="display: flex; align-items: flex-start; gap: 11px">
+                  <span style="width: 15px; height: 15px; flex: none; margin-top: 2px; border: 1px solid var(--accent); background: var(--accent); box-shadow: inset 0 0 0 3px var(--paper), inset 0 0 0 9px var(--accent)"></span>
+                  <div>
+                    <p style="margin: 0; font-size: 13px; font-weight: 600">This person is outside your company</p>
+                    <p style="margin: 5px 0 0; font-size: 12px; line-height: 1.5; color: var(--n700)">A consultant is not a separate role — they are an editor or a viewer, scoped, marked external. The flag changes four things: signing authority is never offered to them, their access can carry an end date, every event they generate reads as external in the audit log, and the seat follows the role rather than the flag. An external editor takes an editor seat; an external viewer is free.</p>
+                    <div style="margin-top: 11px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+                      <div>
+                        <label for="i-firm" style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 5px">Their company</label>
+                        <input id="i-firm" class="ntv-in" type="text" value="Reglar Consulting" />
+                      </div>
+                      <div>
+                        <label for="i-end" style="display: block; font-size: 12px; font-weight: 500; margin-bottom: 5px">Access ends <span style="font-family: var(--mono); font-size: 9.5px; color: var(--n500)">OPTIONAL</span></label>
+                        <input id="i-end" class="ntv-in" type="text" value="31 Dec 2026" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style="margin-top: 24px; display: flex; align-items: center; gap: 14px">
+              <button type="button" onClick="{{ goInvited }}" style="background: var(--accent); color: #ffffff; border: none; border-radius: 3px; padding: 12px 22px; font-size: 14.5px; font-weight: 500; cursor: pointer" style-hover="background: var(--accent-600)">Send invitation</button>
+              <span style="font-size: 12.5px; color: var(--n600)">Preview what they receive</span>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div style="border: 1px solid var(--ink); border-left: 4px solid var(--clear); background: var(--paper); padding: 20px 22px">
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600">People who only read are free</p>
+              <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700)">Viewers are unlimited on every paid plan. Only the people who edit count against the seat allowance.</p>
+            </div>
+            <div style="border: 1px solid var(--ink); border-left: 4px solid var(--none); background: var(--paper); padding: 20px 22px">
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600">Two people are not invited here</p>
+              <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700)">A supplier and a contract manufacturer get a scoped upload link instead of an account. Never price a customer for their suppliers' logins.</p>
+            </div>
+            <div style="border: 1px solid var(--ink); border-left: 4px solid var(--blocked); background: var(--paper); padding: 20px 22px">
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600">Signer is not a role</p>
+              <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700)">Signing authority attaches to a named person for named markets, granted separately in settings. An invitation cannot hand it out.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- SKIPPED · FIRST RUN -->
+      <sc-if value="{{ isSkipped }}">
+      <div data-screen-label="First run after skipping" style="animation: ntv-slide 260ms ease-out both">
+        <div style="border: 1px solid var(--ink); background: var(--paper); padding: 26px 28px">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 20px">
+            <div>
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">Halden Pet Nutrition · {{ pickedName }}</p>
+              <h2 style="margin: 8px 0 0; font-size: 27px; font-weight: 600; line-height: 1.1">Your workspace is ready and empty</h2>
+              <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.5; color: var(--n700); max-width: 78ch">Nothing has been checked yet, so there is nothing to report. One recipe and one artwork file is all that stands between here and an answer.</p>
+            </div>
+            <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600); border: 1px solid var(--rule); padding: 5px 8px; white-space: nowrap">3 FREE LABELS LEFT</span>
+          </div>
+          <div style="margin-top: 22px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+            <sc-for list="{{ emptyCounts }}" as="c" hint-placeholder-count="4">
+              <div style="border: 1px solid var(--n300); padding: 12px 13px; opacity: 0.55">
+                <div style="display: flex; align-items: center; gap: 8px">
+                  <span style="{{ c.glyph }}"></span>
+                  <p style="margin: 0; font-family: var(--mono); font-size: 23px; line-height: 1; color: var(--n500)">—</p>
+                </div>
+                <p style="margin: 8px 0 0; font-size: 11.5px; line-height: 1.25; color: var(--n700)">{{ c.k }}</p>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin-top: 20px; border: 1px solid var(--ink); border-left: 4px solid var(--accent); background: var(--accent-100); padding: 20px 22px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; align-items: center">
+            <div>
+              <p style="margin: 0; font-size: 15px; font-weight: 600">Add one recipe</p>
+              <p style="margin: 5px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700)">Six fields, two of which decide every registration answer you will get. It unlocks the four states, the findings and the register.</p>
+            </div>
+            <button type="button" onClick="{{ resume }}" style="background: var(--accent); color: #ffffff; border: none; border-radius: 3px; padding: 12px 20px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap" style-hover="background: var(--accent-600)">Pick up where I left off</button>
+          </div>
+          <div style="margin-top: 18px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+            <sc-for list="{{ meanwhile }}" as="m" hint-placeholder-count="3">
+              <div style="border: 1px solid var(--rule); background: var(--paper); padding: 16px 18px">
+                <p style="margin: 0; font-size: 13.5px; font-weight: 600; line-height: 1.25">{{ m.k }}</p>
+                <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">{{ m.v }}</p>
+                <p style="margin: 12px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--accent-700)">{{ m.cta }}</p>
+              </div>
+            </sc-for>
+          </div>
+          <p style="margin: 20px 0 0; padding-top: 16px; border-top: 1px solid var(--n200); font-size: 12.5px; line-height: 1.5; color: var(--n600)">Nothing here nags you. The recipe and the artwork wait in the sidebar until you have them, and the trial does not start counting differently because you skipped.</p>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- INVITED USER -->
+      <sc-if value="{{ isInvited }}">
+      <div data-screen-label="Invited user create account" style="animation: ntv-slide 260ms ease-out both">
+        <div style="max-width: 760px; margin: 0 auto">
+          <div style="border: 1px solid var(--ink); background: var(--paper); padding: 30px 32px">
+            <div style="display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--n200); padding-bottom: 16px">
+              <span style="width: 34px; height: 34px; flex: none; background: var(--accent); color: #ffffff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600">J</span>
+              <p style="margin: 0; font-size: 13px; line-height: 1.45; color: var(--n700)">Johanna Holm has invited you to <strong style="font-weight: 600">Halden Pet Nutrition</strong> as an editor.</p>
+            </div>
+            <p style="margin: 20px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">Create your user</p>
+            <h2 style="margin: 8px 0 0; font-size: 27px; font-weight: 600; line-height: 1.1">Two fields, then straight to the finding</h2>
+            <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.5; color: var(--n700)">The workspace is already set up. There is no region to pick, no recipe to enter and no artwork to upload.</p>
+            <div style="margin-top: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px">
+              <div>
+                <label for="n-name" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px">Full name</label>
+                <input id="n-name" class="ntv-in" type="text" placeholder="Erik Lindqvist" />
+              </div>
+              <div>
+                <label for="n-pass" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 6px">Password</label>
+                <input id="n-pass" class="ntv-in" type="password" placeholder="Choose a password" />
+              </div>
+            </div>
+            <div style="margin-top: 14px; border: 1px solid var(--rule); background: var(--panel); padding: 13px 15px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: baseline">
+              <span style="font-size: 12.5px; color: var(--n700)">m.eriksson@haldenpet.com</span>
+              <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--n600)">FROM THE INVITATION · FIXED</span>
+            </div>
+            <div style="margin-top: 22px; display: flex; align-items: center; gap: 14px">
+              <button type="button" style="background: var(--accent); color: #ffffff; border: none; border-radius: 3px; padding: 12px 22px; font-size: 14.5px; font-weight: 500; cursor: pointer" style-hover="background: var(--accent-600)">Create user and continue</button>
+              <span style="font-size: 13px; color: var(--n600)">or continue with SSO</span>
+            </div>
+            <div style="margin-top: 24px; border-top: 1px solid var(--ink); padding-top: 18px">
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">What you will land on</p>
+              <div style="margin-top: 12px; border: 1px solid var(--action); background: var(--action-bg); padding: 14px 16px">
+                <div style="display: flex; align-items: baseline; gap: 10px">
+                  <span style="width: 0; height: 0; flex: none; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 11px solid var(--action)"></span>
+                  <p style="margin: 0; font-size: 13.5px; font-weight: 600">EU · FR — character height below the minimum</p>
+                </div>
+                <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">Adult dog · complete dry · chicken. The article, the compliant height and the pinned panel on the artwork. This is what you were invited to fix.</p>
+              </div>
+              <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px">
+                <sc-for list="{{ scopeRows }}" as="sr" hint-placeholder-count="4">
+                  <div style="display: flex; justify-content: space-between; gap: 12px; align-items: baseline; border-bottom: 1px solid var(--n200); padding-bottom: 8px">
+                    <span style="font-size: 12.5px; color: var(--n700)">{{ sr.k }}</span>
+                    <span style="font-family: var(--mono); font-size: 11px; text-align: right; color: {{ sr.color }}">{{ sr.v }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <p style="margin: 16px 0 0; text-align: center; font-size: 12.5px; color: var(--n600)">Not expecting this? <a href="#decline">Decline the invitation</a> and nothing is created.</p>
+          <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--n300); text-align: center">
+            <button type="button" onClick="{{ exitInvited }}" style="background: transparent; border: 1px solid var(--n400); border-radius: 3px; padding: 9px 16px; font-size: 12.5px; cursor: pointer; color: var(--n700)" style-hover="border-color: var(--accent); color: var(--accent-700)">Back to the admin's invite screen</button>
+            <p style="margin: 8px 0 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; color: var(--n500)">REVIEW ONLY · NOT PART OF THE INVITED USER'S PAGE</p>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+
+  <sc-if value="{{ showBar }}">
+    <div style="position: sticky; bottom: 0; border-top: 1px solid var(--ink); background: var(--paper); padding: 14px 32px">
+      <div style="max-width: 1040px; margin: 0 auto; display: flex; align-items: center; gap: 16px">
+        <button type="button" onClick="{{ back }}" style="{{ backStyle }}" style-hover="border-color: var(--accent); color: var(--accent-700)">Back</button>
+        <p style="margin: 0; flex: 1; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600)">{{ barNote }}</p>
+        <sc-if value="{{ canSkip }}">
+          <button type="button" onClick="{{ skip }}" style="background: transparent; border: 1px solid var(--n400); border-radius: 3px; padding: 11px 16px; font-size: 13.5px; cursor: pointer; color: var(--n700)" style-hover="border-color: var(--accent); color: var(--accent-700)">I'll do this later — take me to the platform</button>
+        </sc-if>
+        <button type="button" onClick="{{ next }}" style="background: var(--accent); color: #ffffff; border: none; border-radius: 3px; padding: 11px 22px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background 120ms ease-out" style-hover="background: var(--accent-600)">{{ nextLabel }}</button>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:940}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)" };
+
+const REGIONS = [
+  { id: "eu", k: "EU", v: "One supranational rulebook, then national registration, language and enforcement per member state.", meta: "27 MEMBER STATES · 24 LANGUAGES", nodes: ["EU · DE", "EU · FR", "EU · NL", "EU · IT", "+ 23 more"] },
+  { id: "uk", k: "UK", v: "A dual regime. Great Britain diverges on retained law, Northern Ireland stays aligned for goods.", meta: "2 NODES · ENGLISH", nodes: ["UK · GB", "UK · NI"] },
+  { id: "us", k: "US", v: "Federal safety and labelling, then a model feed bill each state adopts in its own edition.", meta: "FEDERAL + 50 STATES", nodes: ["US · Federal", "US · TX", "US · CA", "+ 48 more"] },
+];
+
+class Component extends DCLogic {
+  state = { step: 1, region: "eu", screen: null };
+  set(k, v) { return () => this.setState({ [k]: v }); }
+  go(n) { return () => this.setState({ step: n, screen: null }); }
+
+  renderVals() {
+    const st = this.state.screen === "invited" ? 0 : this.state.step;
+    const picked = REGIONS.find(r => r.id === this.state.region) || REGIONS[0];
+    const labels = ["Account", "Where you sell", "Your first recipe", "Your artwork", "Your first answer"];
+
+    const skipped = this.state.screen === "skipped";
+
+    return {
+      chip: st === 0 ? "INVITATION · HALDEN PET NUTRITION" : "FREE · 3 LABELS · NO CARD",
+      showRail: !skipped && st >= 1 && st <= 5,
+      showBar: !skipped && st >= 1 && st <= 4,
+      isSkipped: skipped,
+      canSkip: !skipped && (st === 3 || st === 4),
+      skip: () => this.setState({ screen: "skipped" }),
+      resume: () => this.setState({ screen: null, step: 3 }),
+      togglePass: () => this.setState({ showPass: !this.state.showPass }),
+      passType: this.state.showPass ? "text" : "password",
+      passToggleLabel: this.state.showPass ? "HIDE" : "SHOW",
+      emptyCounts: [
+        { k: "Clear", glyph: "width: 11px; height: 11px; background: var(--n400); display: block" },
+        { k: "Action needed", glyph: "width: 0; height: 0; display: block; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 11px solid var(--n400)" },
+        { k: "Not assessed", glyph: "width: 11px; height: 11px; display: block; border: 1.5px solid var(--n400); border-radius: 50%" },
+        { k: "Blocked", glyph: "width: 11px; height: 11px; display: block; background: var(--n400); box-shadow: inset 0 4px 0 var(--paper), inset 0 -4px 0 var(--n400)" },
+      ],
+      meanwhile: [
+        { k: "Read what we cover in your region", v: "Rules encoded per domain, the method behind each, the last-verified date and the named gaps. Published before you commit to anything.", cta: "COVERAGE DEPTH" },
+        { k: "See what you would have to register", v: "The obligations for your region, by authority and route, before a single label exists.", cta: "OBLIGATION REGISTER" },
+        { k: "Start from a brief instead", v: "No artwork yet is not a blocker. Enter a species, a claim and a market and get an envelope of constraints back.", cta: "NEW PRODUCT BRIEF" },
+      ],
+      is1: !skipped && st === 1, is2: !skipped && st === 2, is3: !skipped && st === 3,
+      is4: !skipped && st === 4, is5: !skipped && st === 5,
+      isInvited: st === 0,
+      goInvited: () => this.setState({ screen: "invited" }),
+      restart: () => this.setState({ screen: null, step: 1 }),
+      next: this.go(Math.min(st + 1, 6)),
+      back: this.go(Math.max(st - 1, 1)),
+      nextLabel: st === 4 ? "Run the check" : "Continue",
+      barNote: ["", "Three fields, then confirm one region.", "Pre-selected from your email domain. Change it if we guessed wrong.", "Two of these six carry every registration answer.", "One print-ready file. We read every language panel on it."][st] || "",
+      backStyle: "background: transparent; border: 1px solid var(--n400); border-radius: 3px; padding: 11px 18px; font-size: 14px; cursor: pointer; opacity: " + (st === 1 ? "0.4" : "1"),
+
+      rail: labels.map((k, i) => {
+        const n = i + 1, done = st > n, active = st === n;
+        return {
+          k, n: "0" + n, go: this.go(n), tick: done ? "✓" : "",
+          weight: active ? "600" : "400",
+          numColor: active ? "var(--accent)" : "var(--n500)",
+          dot: "width: 16px; height: 16px; flex: none; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #ffffff; background: " + (done ? "var(--clear)" : active ? "var(--accent)" : "transparent") + "; border: " + (done || active ? "none" : "1.5px solid var(--n400)"),
+          style: "border: none; background: " + (active ? "var(--accent-100)" : "transparent") + "; border-bottom: 3px solid " + (active ? "var(--accent)" : "transparent") + "; padding: 14px 14px 12px; cursor: pointer; text-align: left; opacity: " + (st < n ? "0.6" : "1"),
+        };
+      }),
+
+      notAsked: ["Card details", "Company size", "Phone number", "Job title", "Number of SKUs", "How you heard about us", "A sales call"],
+      freeRows: [
+        { k: "First three labels", v: "The whole product, sending included" },
+        { k: "Region", v: "One, sold whole" },
+        { k: "Re-checks", v: "Never counted" },
+        { k: "Card", v: "None" },
+      ],
+
+      panels: [
+        { lang: "DE", node: "German panel · proposed for EU · DE", state: "CONFIRM", color: C.action },
+        { lang: "FR", node: "French panel · proposed for EU · FR", state: "CONFIRM", color: C.action },
+        { lang: "NL", node: "Dutch panel · proposed for EU · NL", state: "CONFIRMED", color: C.clear },
+        { lang: "—", node: "No panel found for EU · IT", state: "NOT ASSESSED", color: C.none },
+      ],
+      artFail: [
+        { k: "The text is outlined or flattened", v: "We cannot measure character heights from an image. The geometry check returns Not assessed and names the layer that defeated us." },
+        { k: "A language panel is missing", v: "That market gets Not assessed rather than an answer borrowed from another language." },
+        { k: "Only a photograph exists", v: "Mobile capture is a fallback with stated limits. It never carries a geometry verdict." },
+      ],
+      counts: [
+        { n: "14", k: "Clear", color: C.clear, glyph: "width: 11px; height: 11px; background: var(--clear); display: block" },
+        { n: "3", k: "Action needed", color: C.action, glyph: "width: 0; height: 0; display: block; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 11px solid var(--action)" },
+        { n: "2", k: "Not assessed", color: C.none, glyph: "width: 11px; height: 11px; display: block; border: 1.5px solid var(--none); border-radius: 50%" },
+        { n: "1", k: "Blocked", color: C.blocked, glyph: "width: 11px; height: 11px; display: block; background: var(--blocked); box-shadow: inset 0 4px 0 var(--paper), inset 0 -4px 0 var(--blocked)" },
+      ],
+      findings: [
+        { k: "EU · FR — character height below the minimum", prov: "DETERMINISTIC RULE", bar: C.action, v: "The article is named, the compliant height given, and the panel pinned on your artwork." },
+        { k: "US · TX — the label passes, the product is unsellable", prov: "DETERMINISTIC RULE", bar: C.blocked, v: "Commercial feed registration not filed. Authority, route, evidence list, fee and deadline are named. You file it; we never do." },
+        { k: "EU · IT — no Italian panel on this artwork", prov: "NOT ASSESSED", bar: C.none, v: "Nothing was checked for Italy. Read what we hold for it, and what we do not." },
+      ],
+      goInvite: this.go(6),
+      is6: !skipped && st === 6,
+      exitInvited: () => this.setState({ screen: null, step: 6 }),
+      roleOpts: [
+        { id: "editor", k: "Editor", v: "Runs checks and edits products in their scope.", cost: "SEAT" },
+        { id: "pm", k: "Portfolio manager", v: "Every product and market, and can act on any finding.", cost: "SEAT" },
+        { id: "viewer", k: "Viewer", v: "Reads answers and reports. Changes nothing.", cost: "FREE" },
+        
+        { id: "admin", k: "Admin", v: "Workspace, billing, people, and who holds signing authority.", cost: "SEAT" },
+      ].map(r => {
+        const on = (this.state.role || "editor") === r.id;
+        return {
+          k: r.k, v: r.v, cost: r.cost, pick: this.set("role", r.id),
+          costColor: r.cost === "SEAT" ? "var(--n600)" : "var(--clear)",
+          style: "display: flex; gap: 12px; align-items: flex-start; width: 100%; cursor: pointer; border: 1px solid " + (on ? "var(--accent)" : "var(--n300)") + "; background: " + (on ? "var(--accent-100)" : "var(--paper)") + "; padding: 11px 13px; transition: border-color 120ms ease-out",
+          radio: "width: 15px; height: 15px; flex: none; margin-top: 2px; border-radius: 50%; border: 1.5px solid " + (on ? "var(--accent)" : "var(--n400)") + "; background: " + (on ? "var(--accent)" : "transparent") + "; box-shadow: " + (on ? "inset 0 0 0 3px var(--paper)" : "none"),
+        };
+      }),
+      scopeRows: [
+        { k: "Workspace", v: "HALDEN PET NUTRITION", color: "var(--ink)" },
+        { k: "Your role", v: "EDITOR", color: "var(--ink)" },
+        { k: "Products in scope", v: "1 OF 1", color: "var(--ink)" },
+        { k: "Can run checks", v: "YES", color: "var(--clear)" },
+        { k: "Can send reports", v: "YES", color: "var(--clear)" },
+        { k: "Can sign a certificate", v: "NO", color: "var(--none)" },
+      ],
+
+      pickedName: picked.k,
+      pickedNodes: picked.nodes,
+      regions: REGIONS.map(r => {
+        const on = r.id === this.state.region;
+        return {
+          k: r.k, v: r.v, meta: r.meta, pick: this.set("region", r.id),
+          style: "text-align: left; cursor: pointer; border: 1px solid " + (on ? "var(--accent)" : "var(--n400)") + "; border-top: 4px solid " + (on ? "var(--accent)" : "var(--n400)") + "; background: " + (on ? "var(--accent-100)" : "var(--paper)") + "; padding: 18px 20px; display: block; width: 100%; transition: border-color 120ms ease-out",
+          radio: "width: 15px; height: 15px; flex: none; border-radius: 50%; border: 1.5px solid " + (on ? "var(--accent)" : "var(--n400)") + "; background: " + (on ? "var(--accent)" : "transparent") + "; box-shadow: " + (on ? "inset 0 0 0 3px var(--paper)" : "none"),
+        };
+      }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

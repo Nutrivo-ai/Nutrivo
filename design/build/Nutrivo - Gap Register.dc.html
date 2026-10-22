@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--panel); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</helmet>
+
+<div style="min-width: 1100px; background: var(--panel); padding: 0 0 60px">
+  <div style="max-width: 1160px; margin: 0 auto; background: var(--paper); border-left: 1px solid var(--rule); border-right: 1px solid var(--rule)">
+
+    <div style="border-bottom: 1px solid var(--ink); padding: 34px 42px 30px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">Gap register · 5 September 2026</p>
+      <h1 style="margin: 12px 0 0; font-size: 38px; font-weight: 600; line-height: 1.05; max-width: 30ch">Everything between the designs and a working product</h1>
+      <p style="margin: 14px 0 0; font-size: 15.5px; line-height: 1.6; color: var(--n700); max-width: 94ch">Read from what has actually been built. Five parts: surfaces not yet drawn, content still placeholder, backend clusters, the promises each designed screen makes that the backend has to keep, and the decisions nobody has taken yet.</p>
+      <div style="margin-top: 24px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--rule)">
+        <sc-for list="{{ tally }}" as="t" hint-placeholder-count="5">
+          <div style="{{ t.style }}">
+            <p style="margin: 0; font-family: var(--mono); font-size: 23px; line-height: 1; color: {{ t.color }}">{{ t.n }}</p>
+            <p style="margin: 8px 0 0; font-size: 12px; line-height: 1.4; color: var(--n700)">{{ t.k }}</p>
+          </div>
+        </sc-for>
+      </div>
+      <div class="blueprint" style="position: relative; margin-top: 22px; border: 1px solid var(--ink); border-left: 4px solid var(--accent); background: var(--accent-100); padding: 17px 20px">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <p style="margin: 0; font-size: 14.5px; font-weight: 600">The one-line version</p>
+        <p style="margin: 7px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n800); max-width: 100ch">The design is essentially complete and the schema decisions are settled. What stands between this and a product a customer pays for is one large content programme, one hard extraction pipeline, and about six weeks of ordinary application engineering. The content programme is the critical path and it is not an engineering hire.</p>
+      </div>
+    </div>
+
+    <sc-for list="{{ parts }}" as="pt" hint-placeholder-count="5">
+      <div style="{{ pt.style }}">
+        <div style="display: flex; align-items: baseline; gap: 18px">
+          <p style="margin: 0; font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; color: var(--accent); flex: none; width: 30px">{{ pt.n }}</p>
+          <div style="flex: 1; min-width: 0">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-wrap: wrap; border-bottom: 1px solid var(--ink); padding-bottom: 9px">
+              <h2 style="margin: 0; font-size: 25px; font-weight: 600; line-height: 1.15">{{ pt.k }}</h2>
+              <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600); white-space: nowrap">{{ pt.meta }}</span>
+            </div>
+            <p style="margin: 11px 0 0; font-size: 14px; line-height: 1.65; color: var(--n800); max-width: 96ch">{{ pt.lead }}</p>
+
+            <div class="blueprint" style="position: relative; margin-top: 20px; border: 1px solid var(--ink)">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <div style="{{ pt.headStyle }}">
+                <sc-for list="{{ pt.head }}" as="h" hint-placeholder-count="4">
+                  <p style="margin: 0; padding: 10px 14px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600)">{{ h }}</p>
+                </sc-for>
+              </div>
+              <sc-for list="{{ pt.rows }}" as="r" hint-placeholder-count="6">
+                <div style="{{ r.style }}">
+                  <div style="padding: 13px 14px">
+                    <p style="margin: 0; font-size: 13.5px; font-weight: 600; line-height: 1.3">{{ r.k }}</p>
+                    <p style="margin: 5px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ r.v }}</p>
+                  </div>
+                  <p style="margin: 0; padding: 13px 14px; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ r.b }}</p>
+                  <p style="margin: 0; padding: 13px 14px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: {{ r.tagColor }}">{{ r.tag }}</p>
+                  <p style="margin: 0; padding: 13px 14px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">{{ r.size }}</p>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+
+    <div style="padding: 30px 42px 40px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">If you do six things</p>
+      <h2 style="margin: 11px 0 0; font-size: 26px; font-weight: 600; line-height: 1.15">In this order, and why</h2>
+      <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+        <sc-for list="{{ order }}" as="o" hint-placeholder-count="6">
+          <div class="blueprint" style="{{ o.style }}">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px">
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.09em; color: var(--n500)">{{ o.n }}</p>
+              <span style="font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; color: {{ o.color }}">{{ o.tag }}</span>
+            </div>
+            <p style="margin: 10px 0 0; font-size: 15px; font-weight: 600; line-height: 1.25">{{ o.k }}</p>
+            <p style="margin: 8px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ o.v }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:1000}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)", n600: "var(--n600)", n700: "var(--n700)", ink: "var(--ink)" };
+
+const TAG = {
+  blocking: ["BLOCKS LAUNCH", C.blocked],
+  first: ["FIRST CUSTOMER", C.action],
+  scale: ["AT SCALE", C.none],
+  content: ["NEEDS YOU", C.action],
+  done: ["DECIDED", C.clear],
+};
+
+const PARTS = [
+  { n: "01", k: "Surfaces", meta: "5 OF 7 NOW DRAWN",
+    lead: "Five of the seven were drawn on 5 September in Nutrivo - Missing Surfaces: the alerts inbox, the horizon view, the board at portfolio scale, bulk re-check, and help folded into the Worker rather than built as a second surface. Two remain, and neither is urgent.",
+    head: ["Gap", "What it needs", "When it bites", "Size"],
+    rows: [
+      { k: "A notification surface in the shell", v: "DRAWN. An inbox organised around in force, coming and draft, with per-user read state, effective dates, and the recipes each change affects.", b: "Needs cluster F behind it plus per-user read state in the schema. Editorial changes must never reach it.", tag: "done", size: "DRAWN" },
+      { k: "Portfolio scale on the board", v: "DRAWN. 312 recipes with search focused on load, filters, saved views as shared workspace objects, and four grouped market columns rather than twenty-seven.", b: "Needs Postgres full-text search and a saved-view table. No new engine work.", tag: "done", size: "DRAWN" },
+      { k: "Bulk re-check after a rule change", v: "DRAWN. Multi-select with discontinued recipes excluded automatically, a progress panel, and one append-only event per recipe rather than one for the batch.", b: "Needs the applied-rule record and Realtime for progress. 58 rule evaluations rather than 38 full re-checks.", tag: "done", size: "DRAWN" },
+      { k: "In-product help", v: "DRAWN, and folded into the Worker rather than built twice. Definitions come from an authored glossary returned verbatim; contextual questions are answered from the record.", b: "Needs an eleven-entry glossary table versioned with the ruleset, and retrieval that returns it word for word rather than paraphrased.", tag: "done", size: "DRAWN" },
+      { k: "Accessibility pass", v: "Contrast and hit targets were designed for. Nobody has checked keyboard order, focus handling in the Worker panel, or how the four states read to a screen reader.", b: "A real audit against WCAG 2.2 AA, then fixes. In this category it is a procurement question, not a nicety.", tag: "first", size: "1 AUDIT" },
+      { k: "Tablet", v: "Desktop is designed at 1600 and mobile at phone width. Nothing addresses the middle, which is where a factory-floor iPad sits.", b: "Decide whether it gets the desktop layout reflowed or the mobile one widened. Probably the former.", tag: "scale", size: "DECISION FIRST" },
+      { k: "Interface localisation", v: "The setting exists in workspace settings and warns it is not the checking language. No localised design exists.", b: "String extraction, and a decision on which two or three languages ship first. Not urgent — buyers in this market work in English.", tag: "scale", size: "LATER" },
+    ] },
+
+  { n: "02", k: "Content that is still placeholder", meta: "5 ITEMS · NEEDS YOU",
+    lead: "Designed, rendering, and carrying numbers I invented. Two of these are published as commitments on public pages, which makes them the most urgent things on this register.",
+    head: ["Placeholder", "Where it appears", "What is needed", "Size"],
+    rows: [
+      { k: "Coverage cells and last-checked dates", v: "The 7×3 matrix and the per-market rules counts, methods and dates.", b: "The real state of the corpus, per market and domain. The coverage page and the landing page both publish these as commitments a customer can hold you to.", tag: "blocking", size: "REAL DATA" },
+      { k: "The cost of getting it wrong", v: "The stakes section on the landing page states four consequences with no figures.", b: "Your numbers for a reprint, a delisting and a missed launch window. It is currently the weakest block on the strongest page.", tag: "content", size: "3 FIGURES" },
+      { k: "Founders, team and origin story", v: "Three sections of the About page, marked as placeholders in the page itself.", b: "The real story, and whoever owns the regulatory method named. A buyer wants to know a person holds it rather than a model.", tag: "content", size: "COPY" },
+      { k: "Sub-processors in the DPA", v: "Supabase on AWS Ireland, Stripe, an EU email provider, a model provider under a no-training commitment.", b: "Confirmation against what is actually deployed. Naming a sub-processor you do not use is a contractual problem, not a typo.", tag: "blocking", size: "CONFIRM" },
+      { k: "Dollar list at parity", v: "Prices are euro-only across every surface.", b: "A decision on whether the US is sold in dollars at parity, and if so the three list prices as separate catalogue rows rather than a live conversion.", tag: "content", size: "DECISION" },
+    ] },
+
+  { n: "03", k: "Backend clusters", meta: "12 CLUSTERS · 2 ARE NOT ENGINEERING",
+    lead: "The full register with scale estimates is in the coverage requirements document. This is the short form, ordered by what blocks what. Clusters A to C are regulatory content operations and they are the critical path.",
+    head: ["Cluster", "What it is", "State", "Size"],
+    rows: [
+      { k: "A · The rule corpus", v: "Tens of thousands of individually evaluable rules with citations, across EU core, twenty-seven national layers, two UK regimes, US federal and fifty state editions.", b: "Not started. Everything the product claims rests on this, and rule count is not the difficulty — making each rule mechanically testable is.", tag: "blocking", size: "THE PROJECT" },
+      { k: "B · Term register and language layer", v: "Prescribed designations and mandatory particulars extracted per language from official source text, never translated. Twenty-four EU languages plus English and Spanish.", b: "Not started. One extraction pass over the EU rulebook yields all twenty-four sets, so it is the cheapest large win available.", tag: "blocking", size: "1 QUARTER + ONGOING" },
+      { k: "C · Obligation and registration register", v: "Per node: authority, legal basis, route, evidence list, fee, lead time, renewal cycle, submission language. Roughly eighty nodes.", b: "Not started. Pure research, not automatable, and the thing that lets the product say what must be registered.", tag: "blocking", size: "1 QUARTER PER REGION" },
+      { k: "D · Prepress artwork extraction", v: "Vector text, font programmes, coordinates, and character heights measured as both x-height and cap-height because regimes differ. Per language panel, with a typed failure taxonomy.", b: "Not started. The deepest engineering item and what makes this different from a text checker.", tag: "blocking", size: "2 QUARTERS" },
+      { k: "E · Rule engine and applied-rule record", v: "Deterministic evaluation with citations, model judgement marked as such, and the set of rules applied written onto every check event.", b: "Not started. The refusal has to be structural — no rule, no verdict — rather than a prompt instruction.", tag: "blocking", size: "1 QUARTER" },
+      { k: "F · Staying ahead of the law", v: "Watch every source continuously, detect a change at the level of an individual rule, and warn the customer while there is still time to act. Sources: EUR-Lex and twenty-seven national gazettes, GB and NI, the Federal Register and CVM, the annual AAFCO publication, and fifty state feed control offices.", b: "Not started, and it is a product promise rather than plumbing. Three things make it real: draft-stage monitoring so a proposal is seen before it is law, effective dates so the customer gets a horizon rather than an alarm, and the applied-rule record so an alert names their recipes.", tag: "blocking", size: "1 QUARTER + PERMANENT" },
+      { k: "G · Coverage table", v: "Rules encoded per node and domain, method, last-checked date, typed gap records with ids the engine's reason codes resolve against.", b: "Decided and small. Queried at check time and rendered live on the public page so it cannot drift.", tag: "done", size: "WEEKS" },
+      { k: "H · Auth, tenancy and roles", v: "Supabase Auth, row-level security keyed to the workspace on every table, four roles plus the external flag, signing-authority grants as a table the policies join against.", b: "Decided. The non-negotiable is that update and delete are revoked from every application role on the event and certificate tables.", tag: "done", size: "WEEKS" },
+      { k: "I · Documents and verification", v: "Report renderer pinned to ruleset version and artwork hash, share links with unguessable references, the public verification edge function, and the append-only certificate chain.", b: "Decided, not built. The verification endpoint must have no read access to customer tables from the anonymous role.", tag: "blocking", size: "1 QUARTER" },
+      { k: "J · Billing and metering", v: "Stripe, VAT by place of supply, the three dials metered, overage capped at half again list, and the free-label counter with its re-check exemption.", b: "Decided, not built. The counter must count a new artwork only — re-checks, extra markets and revised versions of the same artwork do not count.", tag: "blocking", size: "WEEKS" },
+      { k: "K · Email and notification delivery", v: "Six templates written. Delivery, per-user read state, severity classification, and the rule that editorial ruleset changes never notify.", b: "Not started, but small and unblocked. The copy already exists.", tag: "first", size: "WEEKS" },
+      { k: "L · The AI Compliance Worker", v: "Retrieval over the rule corpus and the coverage table, provenance on every answer, and the refusal behaviour: not encoded, data missing, or I do not know.", b: "Blocked on A and G. Without the coverage table it will answer anyway, which is the one thing it must never do.", tag: "blocking", size: "AFTER A AND G" },
+    ] },
+
+  { n: "04", k: "Promises the designs make", meta: "8 CONTRACTS · READ BEFORE BUILDING",
+    lead: "Each of these is something a designed screen already shows. If the backend returns a shape that does not support it, the screen has to be redesigned rather than wired up. Worth reading before the first schema is written.",
+    head: ["The screen shows", "So the backend must", "Consequence if not", "Cluster"],
+    rows: [
+      { k: "Per-language results, each with its own findings", v: "The label report has a language switcher where every panel has its own verdict and its own findings.", b: "Return one result set per language panel, not one per product. A claim check must run on the rendered target-language string.", tag: "blocking", size: "D · E" },
+      { k: "Findings pinned to the artwork", v: "Every finding sits on a coordinate on the sheet, with a measured character height next to the legal minimum.", b: "Return coordinates and measured glyph metrics per text object, with both x-height and cap-height.", tag: "blocking", size: "D" },
+      { k: "Registration as its own state", v: "The Texas case: the label passes every rule and the product is still unsellable because it is not registered.", b: "Model registration status separately from label compliance on the product-market row, and never roll an unregistered node up as Clear.", tag: "blocking", size: "C · E" },
+      { k: "Every withheld answer links to a gap", v: "A Not assessed finding is clickable and lands on the coverage record that explains it.", b: "Emit a typed reason code per withheld rule that resolves to a gap id in the coverage table.", tag: "blocking", size: "E · G" },
+      { k: "Monitoring names the affected recipes", v: "A rule change lists the specific recipes and markets it touches, not a general notice.", b: "Record the applied-rule set on every check event so the affected-object query is a join. Without it this is a full portfolio re-run.", tag: "blocking", size: "E · F" },
+      { k: "The plan picker knows this workspace", v: "It reads eight recipes, one region and three editors, and pre-selects the plan that fits.", b: "Expose live billable counts against allowances, plus what each tier would change for this workspace specifically.", tag: "first", size: "J" },
+      { k: "The audit log distinguishes external work", v: "Every event by an external person reads as external, and a revoked grant does not rewrite a signed certificate.", b: "Stamp the external flag onto the event at write time rather than joining to the person's current state.", tag: "first", size: "H" },
+      { k: "Verification survives the customer leaving", v: "A retailer's copy of a report keeps resolving after a subscription ends or a workspace goes dormant.", b: "Keep the verification record outside the subscription lifecycle, and never let a payment failure or a closure break a shared document.", tag: "blocking", size: "I · J" },
+    ] },
+
+  { n: "05", k: "Decisions nobody has taken", meta: "5 OPEN",
+    lead: "Everything else in the project is settled. These five are genuinely open, and three of them are answered by customers rather than by analysis.",
+    head: ["Open question", "Why it matters", "How it gets answered", "When"],
+    rows: [
+      { k: "Which coverage phase to target first", v: "The requirements register sequences EU core, then the member states, then the UK, then the US. Eight quarters to the complete claim.", b: "Commercial: where are the first ten customers selling? If they are EU-only, phases one and two are the whole first year.", tag: "content", size: "NOW" },
+      { k: "Basic at €249", v: "The margin is 96% either way, so this is a positioning question rather than a costing one.", b: "First ten deals. My recommendation stands: hold the price and raise the recipe cap if it stalls.", tag: "content", size: "FIRST 10 DEALS" },
+      { k: "The Standard to Advanced step", v: "Standard with two regions is €698. A third region only exists on Advanced at €999.", b: "First ten deals. If it stalls, add a third region to Standard at €199 rather than cutting the Advanced floor.", tag: "content", size: "FIRST 10 DEALS" },
+      { k: "When specialist verification comes back", v: "Erased from every live surface on your call. D7 still names it as the intended end state for prescribed terms and claim wordings.", b: "When the first specialist is hired. Until then the published method is machine extraction plus acceptance by a person, extracted twice for thresholds.", tag: "content", size: "WHEN HIRED" },
+      { k: "Legal review", v: "Terms, DPA and privacy policy are drafts carrying a review banner.", b: "A Swedish commercial lawyer on liability, warranties and the limitation period. Probably an insurer on the liability cap.", tag: "blocking", size: "BEFORE FIRST SALE" },
+    ] },
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    const grid = "display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.4fr) 128px 138px";
+
+    return {
+      tally: [
+        { n: "7", k: "Surfaces still to draw", color: C.action },
+        { n: "5", k: "Content placeholders needing you", color: C.action },
+        { n: "12", k: "Backend clusters", color: C.accent },
+        { n: "8", k: "Contracts the designs assume", color: C.blocked },
+        { n: "5", k: "Decisions still open", color: C.none },
+      ].map((t, i) => Object.assign({}, t, {
+        style: "padding: 16px 17px; border-right: " + (i < 4 ? "1px solid var(--rule)" : "none"),
+      })),
+
+      parts: PARTS.map((p, i, a) => ({
+        n: p.n, k: p.k, meta: p.meta, lead: p.lead, head: p.head,
+        headStyle: grid + "; background: var(--panel); border-bottom: 1px solid var(--ink)",
+        rows: p.rows.map((r, ri, ra) => ({
+          k: r.k, v: r.v, b: r.b, size: r.size,
+          tag: TAG[r.tag][0], tagColor: TAG[r.tag][1],
+          style: grid + "; border-bottom: " + (ri < ra.length - 1 ? "1px solid var(--n200)" : "none") +
+            "; background: " + (ri % 2 ? "var(--panel)" : "transparent"),
+        })),
+        style: "padding: 28px 42px 30px; border-bottom: " + (i < a.length - 1 ? "1px solid var(--rule)" : "1px solid var(--ink)"),
+      })),
+
+      order: [
+        { n: "01", tag: "WEEKS", color: C.accent, k: "Hire the regulatory content owner", v: "Clusters A, B and C are two thirds of the work and none of it is engineering. Every quarter without this person is a quarter of no progress on the thing the product is." },
+        { n: "02", tag: "1 QUARTER", color: C.accent, k: "EU core corpus and all 24 language sets", v: "One extraction pass over one rulebook. The cheapest large win on the register, and it makes the first sellable claim true." },
+        { n: "03", tag: "PARALLEL", color: C.accent, k: "Artwork extraction, in parallel", v: "Two quarters and independent of the corpus, so it should start at the same time rather than after. Design the failure states first — you will meet them constantly." },
+        { n: "04", tag: "WEEKS", color: C.action, k: "The engine, the coverage table and the record", v: "Clusters E, G, H and I together are the honest core: evaluation with citations, refusal by construction, insert-only history, and a verifiable document." },
+        { n: "05", tag: "WEEKS", color: C.action, k: "Billing, then the four missing surfaces", v: "Nothing converts a customer without cluster J. Then notifications, help, search and the accessibility audit — all cheap, all asked for by the first serious account." },
+        { n: "06", tag: "BEFORE SALE", color: C.blocked, k: "Coverage data, the stakes figures, and counsel", v: "The two public pages publish coverage as a commitment, so real data has to land before either goes live. Legal review before the first contract, not after." },
+      ].map(o => ({
+        n: o.n, tag: o.tag, k: o.k, v: o.v, color: o.color,
+        style: "position: relative; border: 1px solid var(--ink); border-top: 4px solid " + o.color + "; background: var(--paper); padding: 18px 20px",
+      })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

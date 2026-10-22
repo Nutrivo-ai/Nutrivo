@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--panel); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  button { font: inherit; color: inherit; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @keyframes ntv-slide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+
+<div style="min-width: 1180px; min-height: 920px; display: flex; flex-direction: column; background: var(--panel); font-size: 14px">
+
+  <header style="display: flex; align-items: center; gap: 20px; border-bottom: 1px solid var(--ink); background: var(--paper); padding: 13px 30px">
+    <p style="margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 21px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 6px; height: 6px; background: var(--accent); margin-bottom: 2px; flex-shrink: 0"></span></p>
+    <span style="font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600)">PARTNER · U22</span>
+    <div style="flex: 1"></div>
+    <div style="display: flex; gap: 1px">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+        <button type="button" onClick="{{ t.go }}" style="{{ t.style }}" style-hover="border-color: var(--accent); color: var(--accent-700)">{{ t.k }}</button>
+      </sc-for>
+    </div>
+  </header>
+
+  <div style="flex: 1; padding: 28px 30px 60px">
+    <div style="max-width: 1120px; margin: 0 auto">
+
+      <!-- ═══ THE TIER ═══ -->
+      <sc-if value="{{ isTier }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="Partner tier as sold" style="animation: ntv-slide 240ms ease-out both">
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 26px 28px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 30px">
+            <div>
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">Partner</p>
+              <h1 style="margin: 8px 0 0; font-size: 30px; font-weight: 600; line-height: 1.08; max-width: 34ch">For firms who answer for other companies' products</h1>
+              <p style="margin: 10px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--n700); max-width: 88ch">A consultancy does not have a portfolio. It has twelve of somebody else's, and each one has to stay separate — separate products, separate history, separate reports, separate operator on the label. Partner prices client workspaces, and the client reads their own for nothing.</p>
+            </div>
+            <div style="flex: none; text-align: right">
+              <p style="margin: 0; font-family: var(--mono); font-size: 34px; line-height: 1; color: var(--accent-700)">€1,499</p>
+              <p style="margin: 7px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--n600)">PER MONTH · EXCL. VAT</p>
+              <p style="margin: 3px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--n600)">€14,990 PER YEAR</p>
+            </div>
+          </div>
+          <div style="margin-top: 24px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--rule)">
+            <sc-for list="{{ headline }}" as="h" hint-placeholder-count="4">
+              <div style="{{ h.style }}">
+                <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">{{ h.k }}</p>
+                <p style="margin: 8px 0 0; font-family: var(--mono); font-size: 22px; line-height: 1; color: {{ h.color }}">{{ h.n }}</p>
+                <p style="margin: 6px 0 0; font-size: 12px; line-height: 1.4; color: var(--n700)">{{ h.v }}</p>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 18px; align-items: start">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 22px 24px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">Why Standard is the wrong shape</p>
+            <div style="margin-top: 16px; display: grid; grid-template-columns: minmax(0, 1fr) 132px 132px; border: 1px solid var(--rule)">
+              <p style="margin: 0; padding: 9px 13px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600); background: var(--panel); border-bottom: 1px solid var(--ink)">A twelve-client firm</p>
+              <p style="margin: 0; padding: 9px 13px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600); background: var(--panel); border-bottom: 1px solid var(--ink)">On Standard</p>
+              <p style="margin: 0; padding: 9px 13px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); background: var(--panel); border-bottom: 1px solid var(--ink)">On Partner</p>
+              <sc-for list="{{ compare }}" as="c" hint-placeholder-count="5">
+                <p style="margin: 0; padding: 10px 13px; font-size: 12.5px; border-bottom: 1px solid var(--n200)">{{ c.k }}</p>
+                <p style="margin: 0; padding: 10px 13px; font-family: var(--mono); font-size: 11.5px; color: {{ c.aColor }}; border-bottom: 1px solid var(--n200)">{{ c.a }}</p>
+                <p style="margin: 0; padding: 10px 13px; font-family: var(--mono); font-size: 11.5px; color: {{ c.bColor }}; border-bottom: 1px solid var(--n200)">{{ c.b }}</p>
+              </sc-for>
+            </div>
+            <p style="margin: 14px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">Twelve separate Standard subscriptions is €5,988 a month and twelve logins nobody wants to hold. One large Standard breaks the thing that matters most: a client's products, findings and reports have to stay unmixable, and each client's operator is a different company.</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">What is included</p>
+              <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px">
+                <sc-for list="{{ included }}" as="inc" hint-placeholder-count="6">
+                  <div style="display: flex; gap: 10px; align-items: baseline">
+                    <span style="width: 10px; height: 10px; flex: none; background: var(--clear); margin-top: 4px"></span>
+                    <span style="font-size: 12.5px; line-height: 1.45; color: var(--n800)">{{ inc }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--action); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 14px; font-weight: 600">Beyond ten clients</p>
+              <p style="margin: 7px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">A further client workspace is €129 a month, and the eleventh is where most firms land. Past twenty-five we quote, because at that size the firm is a distribution channel and the conversation is a contract, not a checkout.</p>
+              <div style="margin-top: 13px; display: flex; flex-direction: column; gap: 6px">
+                <sc-for list="{{ bands }}" as="b" hint-placeholder-count="3">
+                  <div style="display: flex; justify-content: space-between; gap: 12px; align-items: baseline; border-bottom: 1px solid var(--n200); padding-bottom: 6px">
+                    <span style="font-size: 12.5px; color: var(--n700)">{{ b.k }}</span>
+                    <span style="font-family: var(--mono); font-size: 11.5px; text-align: right; color: {{ b.color }}">{{ b.v }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ═══ SWITCHER ═══ -->
+      <sc-if value="{{ isSwitcher }}">
+      <div data-screen-label="Client workspace switcher" style="animation: ntv-slide 240ms ease-out both">
+        <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.55; color: var(--n700); max-width: 94ch">The one screen a consultant lives on. Twelve clients, each with its own products, its own markets and its own operator, and a roll-up that says where the firm's own attention is needed today. Nothing crosses between workspaces, including in an export.</p>
+        <div style="display: grid; grid-template-columns: 296px minmax(0, 1fr); gap: 20px; align-items: start">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 18px 20px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--n600)">Clients</p>
+              <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">12 OF 10 · 2 OVER</span>
+            </div>
+            <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 1px">
+              <sc-for list="{{ clients }}" as="c" hint-placeholder-count="7">
+                <button type="button" onClick="{{ c.pick }}" style="{{ c.style }}" style-hover="background: var(--accent-100)">
+                  <span style="{{ c.glyph }}"></span>
+                  <span style="flex: 1; text-align: left; min-width: 0">
+                    <span style="display: block; font-size: 13px; font-weight: {{ c.weight }}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ c.k }}</span>
+                    <span style="display: block; margin-top: 2px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.04em; color: var(--n600)">{{ c.meta }}</span>
+                  </span>
+                  <span style="font-family: var(--mono); font-size: 11px; color: {{ c.countColor }}">{{ c.count }}</span>
+                </button>
+              </sc-for>
+            </div>
+            <button type="button" style="margin-top: 14px; width: 100%; background: transparent; border: 1px solid var(--accent); border-radius: 3px; padding: 9px 12px; font-size: 13px; cursor: pointer; color: var(--accent-700)" style-hover="background: var(--accent-100)">Add a client · €129/mo</button>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-top: 4px solid var(--accent); background: var(--paper); padding: 22px 24px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 20px">
+                <div>
+                  <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">Now in · client workspace</p>
+                  <h2 style="margin: 7px 0 0; font-size: 24px; font-weight: 600; line-height: 1.1">{{ activeName }}</h2>
+                  <p style="margin: 7px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700)">{{ activeOperator }}</p>
+                </div>
+                <span style="flex: none; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; border: 1px solid var(--accent); background: var(--accent-100); padding: 5px 9px; color: var(--accent-700)">ACTING AS CONSULTANT</span>
+              </div>
+              <div style="margin-top: 18px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+                <sc-for list="{{ activeCounts }}" as="ac" hint-placeholder-count="4">
+                  <div style="border: 1px solid var(--n300); padding: 11px 12px">
+                    <div style="display: flex; align-items: center; gap: 8px">
+                      <span style="{{ ac.glyph }}"></span>
+                      <p style="margin: 0; font-family: var(--mono); font-size: 21px; line-height: 1; color: {{ ac.color }}">{{ ac.n }}</p>
+                    </div>
+                    <p style="margin: 7px 0 0; font-size: 11px; line-height: 1.25; color: var(--n700)">{{ ac.k }}</p>
+                  </div>
+                </sc-for>
+              </div>
+              <p style="margin: 16px 0 0; padding-top: 13px; border-top: 1px solid var(--n200); font-size: 12.5px; line-height: 1.5; color: var(--n700)">Every check you run here is recorded against this client, naming you. When they read their own workspace they see the same history, including who ran what and when — which is the record they are paying you to be able to produce.</p>
+            </div>
+
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--n600)">Across all twelve · where your attention goes today</p>
+              <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 10px">
+                <sc-for list="{{ rollup }}" as="r" hint-placeholder-count="4">
+                  <div style="border-left: 3px solid {{ r.bar }}; padding-left: 13px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: baseline">
+                    <div>
+                      <p style="margin: 0; font-size: 13.5px; font-weight: 600; line-height: 1.3">{{ r.k }}</p>
+                      <p style="margin: 4px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--n700)">{{ r.v }}</p>
+                    </div>
+                    <span style="font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600); white-space: nowrap">{{ r.who }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <p style="margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--n200); font-size: 12.5px; line-height: 1.5; color: var(--n700)">A roll-up counts across clients; it never shows one client's finding to another, and it cannot be exported as a single document. The count is yours, the contents are theirs.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ═══ BOUNDARIES ═══ -->
+      <sc-if value="{{ isRules }}">
+      <div data-screen-label="Partner boundaries" style="animation: ntv-slide 240ms ease-out both">
+        <p style="margin: 0 0 20px; font-size: 14px; line-height: 1.55; color: var(--n700); max-width: 96ch">Partner and Advanced services are opposite ends of the same work: on Advanced we sell our expertise, on Partner a consultancy sells theirs on our platform. That only stays coherent if the boundary is written down before either is sold.</p>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-top: 4px solid var(--accent); background: var(--paper); padding: 22px 24px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">What we do not take from a consultant</p>
+            <h2 style="margin: 8px 0 0; font-size: 21px; font-weight: 600; line-height: 1.2">Their judgement is the part we refuse to sell</h2>
+            <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 11px">
+              <sc-for list="{{ theirs }}" as="th" hint-placeholder-count="5">
+                <div style="border-bottom: 1px solid var(--n200); padding-bottom: 10px">
+                  <p style="margin: 0; font-size: 13.5px; font-weight: 600">{{ th.k }}</p>
+                  <p style="margin: 4px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--n700)">{{ th.v }}</p>
+                </div>
+              </sc-for>
+            </div>
+            <p style="margin: 14px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">What we replace is the mechanical part they do slowly today because nobody has given them tooling: reading artwork, measuring character heights, naming registration obligations per market. That part is ours. The judgement is theirs, and it always was.</p>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--blocked); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 14px; font-weight: 600">The channel conflict, stated plainly</p>
+              <p style="margin: 7px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">Advanced services sell specialist hours to brands. Partner sells a platform to the firms who sell specialist hours to brands. If our services grow past registration prep, node verification and translation review, we compete with our own channel — so those three are the whole list, and we refuse general retainers.</p>
+            </div>
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--n600)">Rules the workspace enforces</p>
+              <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 9px">
+                <sc-for list="{{ hardRules }}" as="hr" hint-placeholder-count="5">
+                  <div style="display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 11px; align-items: baseline">
+                    <span style="width: 11px; height: 11px; flex: none; margin-top: 4px; background: var(--blocked); box-shadow: inset 0 4px 0 var(--paper), inset 0 -4px 0 var(--blocked)"></span>
+                    <span style="font-size: 12.5px; line-height: 1.5; color: var(--n800)">{{ hr }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--clear); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 14px; font-weight: 600">Why the client reads their workspace free</p>
+              <p style="margin: 7px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">A brand that can see its own compliance record is a brand that eventually wants to run checks itself. That is not leakage from the consultancy, it is how a twelve-client firm becomes twelve accounts of our own — and the consultant keeps the advisory work either way.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ═══ SIGNUP ═══ -->
+      <sc-if value="{{ isSignup }}">
+      <div data-screen-label="Partner signup difference" style="animation: ntv-slide 240ms ease-out both">
+        <p style="margin: 0 0 20px; font-size: 14px; line-height: 1.55; color: var(--n700); max-width: 96ch">The same sequence as everybody else, with one question added and one moved. A consultant still gets to a first answer in four steps — the difference is whose product it is.</p>
+        <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--ink)">
+          <sc-for list="{{ steps }}" as="st" hint-placeholder-count="5">
+            <div style="{{ st.style }}">
+              <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 8px">
+                <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.1em; color: {{ st.numColor }}">{{ st.n }}</p>
+                <p style="margin: 0; font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; color: {{ st.tagColor }}">{{ st.tag }}</p>
+              </div>
+              <p style="margin: 10px 0 0; font-size: 17px; font-weight: 600; line-height: 1.15">{{ st.k }}</p>
+              <p style="margin: 8px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700); flex: 1">{{ st.v }}</p>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top: 20px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--accent); background: var(--accent-100); padding: 20px 22px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-size: 14.5px; font-weight: 600">The one added question</p>
+            <p style="margin: 7px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">Whose product is this? A consultant's first recipe belongs to a client, so the client workspace has to exist before the recipe does. It is one field with a create-new option, and it is the only structural difference in the whole flow.</p>
+          </div>
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-size: 14.5px; font-weight: 600">And the one moved</p>
+            <p style="margin: 7px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">The responsible operator is asked per client rather than per recipe, because a client's operator is the same across their whole range. Enter it once when you add the client, and every recipe in that workspace inherits it.</p>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1240,&quot;height&quot;:960}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)", n600: "var(--n600)", n700: "var(--n700)", ink: "var(--ink)" };
+
+const CLIENTS = [
+  { k: "Halden Pet Nutrition AB", operator: "Operator on label · Halden Pet Nutrition AB, Göteborg SE", recipes: 8, state: "action", count: "3" },
+  { k: "Vasa Djurfoder AB", operator: "Operator on label · Vasa Djurfoder AB, Malmö SE", recipes: 14, state: "blocked", count: "1" },
+  { k: "Brindle & Bark Ltd", operator: "Operator on label · Brindle & Bark Ltd, Leeds GB", recipes: 6, state: "clear", count: "—" },
+  { k: "Nordwild Feeds GmbH", operator: "Operator on label · Nordwild Feeds GmbH, Bremen DE", recipes: 22, state: "action", count: "5" },
+  { k: "Kessler Tiernahrung", operator: "Operator on label · Kessler Tiernahrung GmbH, Linz AT", recipes: 4, state: "none", count: "2" },
+  { k: "Maison Patte SAS", operator: "Operator on label · Maison Patte SAS, Lyon FR", recipes: 11, state: "clear", count: "—" },
+  { k: "Sable Ridge Pet Co", operator: "Operator on label · Sable Ridge Pet Co, Austin US", recipes: 9, state: "blocked", count: "2" },
+];
+
+class Component extends DCLogic {
+  state = { screen: "tier", client: 0 };
+  go(s) { return () => this.setState({ screen: s }); }
+
+  glyph(state, size) {
+    const px = size || 11;
+    if (state === "clear") return "width: " + px + "px; height: " + px + "px; flex: none; display: block; background: var(--clear)";
+    if (state === "action") return "width: 0; height: 0; flex: none; display: block; border-left: " + (px / 2) + "px solid transparent; border-right: " + (px / 2) + "px solid transparent; border-bottom: " + px + "px solid var(--action)";
+    if (state === "none") return "width: " + px + "px; height: " + px + "px; flex: none; display: block; border: 1.5px solid var(--none); border-radius: 50%";
+    return "width: " + px + "px; height: " + px + "px; flex: none; display: block; background: var(--blocked); box-shadow: inset 0 " + Math.round(px / 2.75) + "px 0 var(--paper), inset 0 -" + Math.round(px / 2.75) + "px 0 var(--blocked)";
+  }
+
+  renderVals() {
+    const s = this.state.screen;
+    const active = CLIENTS[this.state.client] || CLIENTS[0];
+
+    return {
+      isTier: s === "tier", isSwitcher: s === "switcher", isRules: s === "rules", isSignup: s === "signup",
+
+      tabs: [
+        ["tier", "The tier"], ["switcher", "Client switcher"],
+        ["rules", "Boundaries"], ["signup", "Signup difference"],
+      ].map(([id, k]) => ({
+        k, go: this.go(id),
+        style: "border: 1px solid " + (s === id ? "var(--accent)" : "var(--n400)") + "; background: " + (s === id ? "var(--accent-100)" : "var(--paper)") +
+          "; color: " + (s === id ? "var(--accent-700)" : "var(--n700)") + "; padding: 6px 11px; font-size: 12px; cursor: pointer; font-weight: " + (s === id ? "600" : "400"),
+      })),
+
+      headline: [
+        { k: "Client workspaces", n: "10", v: "Each fully separate. Further clients €129 a month", color: C.ink },
+        { k: "Recipes per client", n: "30", v: "Standard's allowance, in every workspace", color: C.ink },
+        { k: "People at your firm", n: "FREE", v: "Unlimited. A consultancy is people, not seats", color: C.clear },
+        { k: "Your client's own access", n: "FREE", v: "They read their workspace and its full history", color: C.clear },
+      ].map((h, i) => Object.assign({}, h, {
+        style: "padding: 16px 18px; border-right: " + (i < 3 ? "1px solid var(--rule)" : "none"),
+      })),
+
+      compare: [
+        { k: "Monthly cost", a: "€5,988", aColor: C.blocked, b: "€1,757", bColor: C.clear },
+        { k: "Subscriptions to hold", a: "12", aColor: C.blocked, b: "1", bColor: C.clear },
+        { k: "Clients kept separate", a: "Only by discipline", aColor: C.blocked, b: "By the schema", bColor: C.clear },
+        { k: "Operator per client", a: "One per workspace", aColor: C.action, b: "One per client", bColor: C.clear },
+        { k: "Client reads their own", a: "Costs them a plan", aColor: C.action, b: "Free", bColor: C.clear },
+      ],
+      included: [
+        "Ten client workspaces, each with 30 recipes and one region",
+        "Unlimited people at your firm, editing across every client",
+        "Each client reads their own workspace, its findings and its full history, at no cost to either of you",
+        "Every report and certificate carries your firm as the party who ran the check",
+        "One roll-up across all clients, so you know where the week goes",
+        "Check as often as you like, in every workspace, as everywhere else",
+      ],
+      bands: [
+        { k: "Clients 1 to 10", v: "€1,499/mo", color: C.ink },
+        { k: "Each further client", v: "€129/mo", color: C.n700 },
+        { k: "Above 25 clients", v: "QUOTED", color: C.accent },
+      ],
+
+      clients: CLIENTS.map((c, i) => {
+        const on = i === this.state.client;
+        return {
+          k: c.k, count: c.count,
+          meta: c.recipes + " recipes",
+          pick: () => this.setState({ client: i }),
+          weight: on ? "600" : "400",
+          glyph: this.glyph(c.state, 10),
+          countColor: c.state === "blocked" ? C.blocked : c.state === "action" ? C.action : c.state === "none" ? C.none : C.clear,
+          style: "display: flex; gap: 10px; align-items: center; width: 100%; border: none; border-left: 2px solid " + (on ? "var(--accent)" : "transparent") +
+            "; background: " + (on ? "var(--accent-100)" : "transparent") + "; padding: 8px 9px; cursor: pointer",
+        };
+      }),
+      activeName: active.k,
+      activeOperator: active.operator,
+      activeCounts: [
+        { n: String(active.recipes), k: "Recipes", color: C.ink, glyph: "width: 11px; height: 11px; display: block; border: 1.5px solid var(--n400)" },
+        { n: active.state === "clear" ? String(active.recipes) : String(Math.max(active.recipes - 3, 1)), k: "Clear", color: C.clear, glyph: this.glyph("clear") },
+        { n: active.count === "—" ? "0" : active.count, k: "Action needed", color: C.action, glyph: this.glyph("action") },
+        { n: active.state === "blocked" ? "1" : "0", k: "Blocked", color: C.blocked, glyph: this.glyph("blocked") },
+      ],
+      rollup: [
+        { k: "Two clients have a market blocked on registration", v: "Vasa in Texas, Sable Ridge in California. Both labels pass; neither product can be sold until the operator files.", who: "VASA · SABLE RIDGE", bar: C.blocked },
+        { k: "A prescribed wording changed in France", v: "It reaches four recipes across two clients. Both need telling, and one of them has artwork at the printer this week.", who: "MAISON PATTE · NORDWILD", bar: C.action },
+        { k: "Eleven documents expire within sixty days", v: "Spread across five clients. Each one is a supplier request you can send from their workspace without leaving this screen.", who: "5 CLIENTS", bar: C.action },
+        { k: "One client has never uploaded artwork", v: "Kessler has four recipes and no print-ready file, so nothing has been checked. They are on the brief path, not the label path.", who: "KESSLER", bar: C.none },
+      ],
+
+      theirs: [
+        { k: "Representing the applicant", v: "Only the operator named on the label can register a product. A consultant acting for them is doing something we will never do." },
+        { k: "The borderline classification call", v: "Complete feed or complementary, a supplement or an additive. We state a determination and the rule behind it; somebody has to decide what to do when it is arguable." },
+        { k: "Signing off on a launch", v: "Our report is generated and attested by nobody. A person putting their name to a decision is a different act, and it is theirs." },
+        { k: "Arguing with an authority", v: "Correspondence, submissions, follow-up. Not sold at any price by us, and frequently the whole engagement for them." },
+        { k: "Knowing the client's commercial context", v: "Which retailer, which deadline, what the brand can afford to reprint. No amount of encoded rules replaces it." },
+      ],
+      hardRules: [
+        "No export, report or certificate can contain two clients' data.",
+        "A client's people can never see another client's workspace, including its existence.",
+        "The roll-up shows counts across clients and never a finding's contents.",
+        "Removing a client from your firm leaves their workspace and history intact and readable by them.",
+        "Every check names the person and the firm who ran it, permanently and in the client's own history.",
+      ],
+
+      steps: [
+        { n: "01", tag: "SAME", k: "Account", v: "Email, name, password. Your firm is the workspace, not a client.", same: true },
+        { n: "02", tag: "MOVED", k: "Add your first client", v: "Their name and the operator exactly as it appears on their label. Once, for their whole range.", same: false },
+        { n: "03", tag: "SAME", k: "Where they sell", v: "One region per client, chosen in their workspace rather than yours.", same: true },
+        { n: "04", tag: "ADDED", k: "Whose product is this?", v: "One field on every recipe, with a create-new option. The only structural addition.", same: false },
+        { n: "05", tag: "SAME", k: "Artwork, then the answer", v: "Identical from here. Four states, provenance, registration obligations named.", same: true },
+      ].map((st, i) => Object.assign({}, st, {
+        numColor: st.same ? C.n600 : C.accent,
+        tagColor: st.same ? C.n600 : C.accent,
+        style: "padding: 18px 16px; display: flex; flex-direction: column; min-height: 190px; border-right: " + (i < 4 ? "1px solid var(--rule)" : "none") +
+          "; background: " + (st.same ? "transparent" : "var(--accent-100)") + "; border-top: 3px solid " + (st.same ? "transparent" : "var(--accent)"),
+      })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--panel); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</helmet>
+
+<div style="min-width: 1080px; background: var(--panel); padding: 0 0 60px">
+  <div style="max-width: 1140px; margin: 0 auto; background: var(--paper); border-left: 1px solid var(--rule); border-right: 1px solid var(--rule)">
+
+    <div style="border-bottom: 1px solid var(--ink); padding: 34px 42px 30px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">For Alex · 5 September 2026</p>
+      <h1 style="margin: 12px 0 0; font-size: 38px; font-weight: 600; line-height: 1.05; max-width: 28ch">What has to exist before we can claim the EU, the UK and the US</h1>
+      <p style="margin: 14px 0 0; font-size: 15.5px; line-height: 1.6; color: var(--n700); max-width: 92ch">The decision is to make the full-coverage claim true rather than to hedge it. This is the list. It is split into engineering and regulatory content on purpose, because the critical path runs through content and that is the part usually underestimated.</p>
+      <div style="margin-top: 24px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--rule)">
+        <sc-for list="{{ tally }}" as="t" hint-placeholder-count="4">
+          <div style="{{ t.style }}">
+            <p style="margin: 0; font-family: var(--mono); font-size: 24px; line-height: 1; color: {{ t.color }}">{{ t.n }}</p>
+            <p style="margin: 8px 0 0; font-size: 12.5px; line-height: 1.4; color: var(--n700)">{{ t.k }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="border-bottom: 1px solid var(--ink); padding: 28px 42px 32px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">Read this before the list</p>
+      <h2 style="margin: 11px 0 0; font-size: 26px; font-weight: 600; line-height: 1.15">Three claims, and what each one costs</h2>
+      <p style="margin: 11px 0 0; font-size: 14.5px; line-height: 1.65; color: var(--n800); max-width: 94ch">They are not the same product and they do not cost the same thing. The middle one is what this register buys.</p>
+      <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+        <sc-for list="{{ claims }}" as="c" hint-placeholder-count="3">
+          <div class="blueprint" style="{{ c.style }}">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.09em; text-transform: uppercase; color: {{ c.color }}">{{ c.tag }}</p>
+            <p style="margin: 10px 0 0; font-size: 15.5px; font-weight: 600; line-height: 1.3">{{ c.k }}</p>
+            <p style="margin: 9px 0 0; font-size: 13px; line-height: 1.6; color: var(--n700)">{{ c.v }}</p>
+            <p style="margin: 11px 0 0; padding-top: 10px; border-top: 1px solid var(--n200); font-size: 12.5px; line-height: 1.55; color: {{ c.color }}">{{ c.cost }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <sc-for list="{{ clusters }}" as="cl" hint-placeholder-count="8">
+      <div style="{{ cl.style }}">
+        <div style="display: flex; align-items: baseline; gap: 18px">
+          <p style="margin: 0; font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; color: {{ cl.kindColor }}; flex: none; width: 30px">{{ cl.n }}</p>
+          <div style="flex: 1; min-width: 0">
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-wrap: wrap; border-bottom: 1px solid var(--ink); padding-bottom: 9px">
+              <h2 style="margin: 0; font-size: 24px; font-weight: 600; line-height: 1.15">{{ cl.k }}</h2>
+              <div style="display: flex; gap: 8px; align-items: center">
+                <span style="{{ cl.kindStyle }}">{{ cl.kind }}</span>
+                <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600); white-space: nowrap">{{ cl.effort }}</span>
+              </div>
+            </div>
+            <p style="margin: 11px 0 0; font-size: 14px; line-height: 1.65; color: var(--n800); max-width: 94ch">{{ cl.lead }}</p>
+
+            <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 13px">
+              <sc-for list="{{ cl.items }}" as="it" hint-placeholder-count="4">
+                <div style="display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 13px; align-items: baseline">
+                  <span style="{{ it.dot }}"></span>
+                  <div>
+                    <p style="margin: 0; font-size: 14px; font-weight: 600; line-height: 1.35">{{ it.k }}</p>
+                    <p style="margin: 5px 0 0; font-size: 13px; line-height: 1.6; color: var(--n700); max-width: 92ch">{{ it.v }}</p>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+
+            <sc-if value="{{ cl.hasScale }}">
+              <div class="blueprint" style="position: relative; margin-top: 18px; border: 1px solid var(--ink); background: var(--panel); padding: 15px 17px">
+                <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Order of magnitude · our estimate, not a measurement</p>
+                <div style="margin-top: 11px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px">
+                  <sc-for list="{{ cl.scale }}" as="sc" hint-placeholder-count="3">
+                    <div>
+                      <p style="margin: 0; font-family: var(--mono); font-size: 17px; line-height: 1; color: var(--accent-700)">{{ sc.n }}</p>
+                      <p style="margin: 6px 0 0; font-size: 12px; line-height: 1.45; color: var(--n700)">{{ sc.k }}</p>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+
+            <div style="margin-top: 16px; border-left: 3px solid {{ cl.hardColor }}; padding-left: 14px">
+              <p style="margin: 0; font-size: 13px; line-height: 1.6; color: var(--n800)"><span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; color: {{ cl.hardColor }}">THE HARD PART · </span>{{ cl.hard }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+
+    <div style="border-bottom: 1px solid var(--ink); padding: 30px 42px 34px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">Sequence</p>
+      <h2 style="margin: 11px 0 0; font-size: 26px; font-weight: 600; line-height: 1.15">What order, and what you can sell at each point</h2>
+      <p style="margin: 11px 0 0; font-size: 14px; line-height: 1.65; color: var(--n700); max-width: 92ch">The rule that keeps this honest is the one already on record: publishable equals sellable. Each phase below ends with a claim you can make without qualifying it.</p>
+      <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 14px">
+        <sc-for list="{{ phases }}" as="ph" hint-placeholder-count="4">
+          <div class="blueprint" style="{{ ph.style }}">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div style="display: grid; grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start">
+              <div>
+                <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase; color: {{ ph.color }}">{{ ph.n }}</p>
+                <p style="margin: 7px 0 0; font-size: 15.5px; font-weight: 600; line-height: 1.25">{{ ph.k }}</p>
+                <p style="margin: 6px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">{{ ph.time }}</p>
+              </div>
+              <div>
+                <p style="margin: 0; font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">What gets built</p>
+                <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.6; color: var(--n700)">{{ ph.what }}</p>
+              </div>
+              <div>
+                <p style="margin: 0; font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: {{ ph.color }}">What you can then claim</p>
+                <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.6; color: var(--n800); font-weight: 500">{{ ph.claim }}</p>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="padding: 30px 42px 40px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--blocked)">Cannot be bought, at any price</p>
+      <h2 style="margin: 11px 0 0; font-size: 26px; font-weight: 600; line-height: 1.15">Four things no amount of engineering closes</h2>
+      <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px">
+        <sc-for list="{{ limits }}" as="li" hint-placeholder-count="4">
+          <div style="border-left: 3px solid var(--blocked); padding-left: 16px">
+            <p style="margin: 0; font-size: 14.5px; font-weight: 600; line-height: 1.25">{{ li.k }}</p>
+            <p style="margin: 7px 0 0; font-size: 13px; line-height: 1.6; color: var(--n700)">{{ li.v }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:1000}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)", n600: "var(--n600)", n700: "var(--n700)", ink: "var(--ink)" };
+
+const KIND = {
+  content: ["REGULATORY CONTENT", C.action],
+  eng: ["ENGINEERING", C.accent],
+  both: ["CONTENT + ENGINEERING", C.blocked],
+};
+
+const cl = (n, k, kind, effort, lead, items, hard, hardColor, scale) => ({ n, k, kind, effort, lead, items, hard, hardColor, scale });
+
+const CLUSTERS = [
+  cl("A", "The rule corpus itself", "both", "THE WHOLE PROJECT",
+    "This is not a database schema problem. It is tens of thousands of individual rules, each with a citation, each evaluable against a label. Everything else on this list is plumbing around it.",
+    [
+      { k: "EU core instruments", v: "Reg (EC) 767/2009 on marketing and use, Reg (EC) 1831/2003 on additives with the authorisation register behind it, Reg (EU) 68/2013 the feed materials catalogue, Reg (EU) 2020/354 on PARNUT intended uses, Dir 2002/32 on undesirable substances, Reg (EC) 1069/2009 on animal by-products, Reg (EC) 999/2001 on TSE, and Dir 76/211/EEC with the national implementations for net quantity." },
+      { k: "Twenty-seven national layers", v: "Each member state adds its own language requirement, its own registration or notification duty, its own tonnage or levy reporting, and in several cases its own claim practice. Small in rule count, large in node count, and the part a flat EU corpus silently misses." },
+      { k: "The UK as two regimes", v: "Retained law as the baseline, then GB divergence tracked instrument by instrument, then Northern Ireland following EU law for goods under the Windsor Framework. Two answers for one country, permanently." },
+      { k: "US federal plus fifty state editions", v: "FFDCA and FDA CVM guidance federally, then the AAFCO model bill and model regulations as adopted by each state in its own edition and on its own timetable, plus Pet Food Label Modernization where a state has taken it. Registration, fees and tonnage reporting are state by state." },
+      { k: "Classification before checking", v: "Species, life stage, product class, intended use and PARNUT status decide which rulebook applies. Encoded as a determination with its own citation, not as a filter, because the whole downstream check is wrong if it is wrong." },
+    ],
+    "Rule count is not the difficulty. Making each rule mechanically evaluable against a label is — a character-height minimum, a mandatory particular, a permitted claim wording and an additive condition of use are four completely different shapes of test, and each needs its own evaluator.",
+    C.blocked,
+    [{ n: "~1,500", k: "EU core rules" }, { n: "~150-300", k: "Per member state, on top" }, { n: "~2,400", k: "UK across both regimes" }, { n: "~15,000", k: "US federal plus 50 states" }]),
+
+  cl("B", "The term register and the language layer", "content", "ONE QUARTER, THEN ONGOING",
+    "The single most valuable asset in the company and the one a competitor cannot buy. It is also the one most easily faked badly, because a machine translation of a legal term looks correct to anybody who does not speak the language.",
+    [
+      { k: "Extraction, never translation", v: "EUR-Lex publishes every instrument in all twenty-four official languages. A prescribed designation is looked up from the target-language text with an article-level citation. It is never derived from the English." },
+      { k: "Twenty-four languages for the EU core", v: "One extraction pass over one rulebook yields all twenty-four language sets, which is why EU core comes first in the sequence — it is the cheapest large win available." },
+      { k: "Every entry accepted by a person", v: "Machine extraction does the volume. Thresholds and prescribed terms are extracted twice independently, with disagreement routed to a person. Nothing publishes on extraction alone." },
+      { k: "Spanish for the US in practice", v: "Not a federal requirement, but a commercial one for large parts of the market, and it needs the same treatment rather than a translation memory." },
+      { k: "Versioned with the ruleset", v: "A term changes when the instrument changes. The register carries a version so a report pinned last year still resolves against the terms that applied then." },
+    ],
+    "This needs a standing owner with a budget line, not a project. It is content operations, and every quarter it is not maintained is a quarter of quiet drift towards a coverage page that is a lie.",
+    C.blocked,
+    [{ n: "24", k: "EU official languages" }, { n: "~30", k: "Prescribed designations per language" }, { n: "~400", k: "Mandatory particular phrasings" }]),
+
+  cl("C", "The obligation and registration register", "content", "ONE QUARTER PER REGION",
+    "This is what lets you say what somebody must register, with whom, by when. It is pure research and there is no shortcut, which is also why it is a moat.",
+    [
+      { k: "Per node, seven fields minimum", v: "Competent authority with its real name, the legal basis, the route — portal, form or paper — the evidence list, the fee, the typical lead time, and the renewal cycle. Plus the language the submission must be in, which is not always the market language." },
+      { k: "Roughly eighty nodes", v: "Twenty-seven EU member states, GB, NI, US federal and fifty states. Each with several obligation classes: site or operator registration, product registration or notification, tonnage reporting, and in some cases a label pre-approval." },
+      { k: "Obligation is separate from label compliance", v: "A label can satisfy every rule and the product still be unsellable because it is not registered. The register is what makes that state expressible rather than a footnote." },
+      { k: "Pre-fill from the product record", v: "Everything the product record already answers is filled in. The customer completes and files. This is the difference between a register and a list of links." },
+    ],
+    "Fees and lead times move, authorities reorganise, and portals change. A register that is right on the day it is published and never revisited is worse than no register, because a customer will act on it.",
+    C.action,
+    [{ n: "~80", k: "Jurisdiction nodes" }, { n: "3-5", k: "Obligation classes per node" }, { n: "~300", k: "Obligation records to research" }]),
+
+  cl("D", "Prepress artwork extraction", "eng", "TWO QUARTERS",
+    "The deepest engineering item, and the one that makes the product different from a text checker. Without it there is no geometry check and no finding pinned to a coordinate.",
+    [
+      { k: "Vector text with real glyph metrics", v: "Text runs, font references, embedded font programmes, transforms, and measured character heights. The legal minimum is defined differently across regimes — some measure x-height, some cap-height — so the extractor has to produce both rather than one number." },
+      { k: "Language panel segmentation", v: "One artwork carries several language panels. Each has to be identified and checked against its own market's rules, in its own language, independently. This is what makes per-language results possible at all." },
+      { k: "Coordinates for pinning", v: "Every finding carries a position on the sheet, which is what lets a designer act on it without a phone call." },
+      { k: "A typed failure taxonomy with partial results", v: "Outlined text, rasterised panels, missing fonts, wrong colour space. Each reported as its own reason with the panels that did succeed still reported. Never a single success-or-failure for the file." },
+    ],
+    "Real print artwork is adversarial: outlined type, transparency flattening, nested groups, non-standard colour spaces. Expect the long tail to be most of the work, and design the failure states first because you will meet them constantly.",
+    C.blocked,
+    null),
+
+  cl("E", "The rule engine and the applied-rule record", "eng", "ONE QUARTER",
+    "Evaluation, provenance and the record of what was applied. Cheap relative to the corpus, and everything downstream depends on it.",
+    [
+      { k: "Deterministic first, model second, marked either way", v: "A rule with a mechanical test is evaluated mechanically and cited. Where a judgement is genuinely required the model is used and the result is marked as a judgement. The mark is part of the result, not a footer." },
+      { k: "Claims evaluated on the target-language string", v: "Never on the English and then translated. A claim permitted in English can be an unpermitted health claim in German." },
+      { k: "Applied, passed and withheld recorded per check", v: "The set of rules actually applied is written onto the check event. This is what turns the affected-object query into a join rather than a re-run, and it is what makes unlimited re-checks affordable." },
+      { k: "Withheld carries a reason code pointing at a coverage gap", v: "Not a generic message. The code resolves to the gap record that the coverage page publishes, which is what closes the loop between the engine and the honesty position." },
+    ],
+    "The temptation is to let the model answer when a rule is missing. Everything the product claims rests on it refusing to. That refusal has to be structural — no rule, no verdict — not a prompt instruction.",
+    C.blocked,
+    null),
+
+  cl("F", "Staying ahead of the law, permanently", "both", "ONE QUARTER, THEN PERMANENT",
+    "The product's real promise is not that it checks a label. It is that a customer hears about a rule change from us, with their own recipes named, while there is still time to do something about it. That is this cluster, and treating it as a phase-two nicety would make every other claim decay quietly.",
+    [
+      { k: "Sources to watch, continuously", v: "EUR-Lex for EU instruments, twenty-seven national gazettes, legislation.gov.uk for GB, the NI equivalent, the Federal Register and FDA CVM, the annual AAFCO Official Publication, and fifty state feed control offices with no common format between them." },
+      { k: "Draft stage, not just enacted law", v: "To warn somebody before it is too late you have to watch what is coming: Commission proposals and comitology drafts, EFSA opinions on additive re-authorisations, GB consultations, AAFCO committee agendas ahead of the annual publication, and state bills in session. An enacted change is often already late for an artwork cycle." },
+      { k: "Stable rule identity across versions", v: "So a change is a diff on one rule rather than a new corpus. This is the real engineering cost in this cluster, not the change detection." },
+      { k: "Every change typed by effect", v: "New obligation, tightened threshold, withdrawn authorisation, prescribed-wording change, or editorial. Editorial never alerts anybody — it is content operations, not an event." },
+      { k: "Effective dates, so the customer sees a horizon", v: "A change with a compliance date fourteen months out is a plan, not an alarm. Without dates every notice reads as urgent, and a customer who cannot tell the difference stops reading all of them." },
+      { k: "Named impact, or it is just news", v: "An alert has to say which of this customer's recipes and which markets it touches, which is why the applied-rule set is recorded on every check event. A general regulatory newsletter is something they can already get free." },
+      { k: "Withdrawn authorisations are the sharpest case", v: "An additive losing its authorisation has a sell-through deadline attached. That is the single most expensive thing to find out late, and it is the case the horizon view should be designed around." },
+    ],
+    "Two things. Fifty US state feed control offices publishing on their own schedules in their own formats is a standing operational load with no elegant solution — budget people, not a scraper. And draft-stage monitoring produces judgement calls about what is likely to pass, which means an alert has to distinguish what is law from what is coming, or the product cries wolf.",
+    C.blocked,
+    [{ n: "~80", k: "Sources to watch" }, { n: "5", k: "Change types, one of which never alerts" }, { n: "2", k: "States: coming, and in force" }]),
+
+  cl("G", "The coverage table, queried and published", "eng", "WEEKS",
+    "Small, already decided, and load-bearing. It is what lets the product be honest by construction rather than by intention.",
+    [
+      { k: "Per node and domain", v: "Rules encoded, the method, the last-checked date, and typed gap records with identifiers the engine's reason codes point at." },
+      { k: "Queried by the engine at check time", v: "So an out-of-coverage answer is a fact from the table rather than a guess. A node with no rules can never return Clear, enforced here." },
+      { k: "Rendered live on the public page", v: "The same table the engine reads. It cannot drift from the product, which is the only way a published commitment stays safe to make." },
+    ],
+    "Nothing hard technically. The hard part is the discipline of updating it in the same commit as the rules, every time, forever.",
+    C.none,
+    null),
+
+  cl("H", "Product surfaces still missing", "eng", "WEEKS",
+    "Four gaps in the designed set, named in the last review. None is large and all four will be asked for by the first serious customer.",
+    [
+      { k: "A notification surface in the shell", v: "Monitoring produces alerts with named recipe impact and the emails send them, but there is nowhere in the desktop product they land. Currently the only in-product alerts view is on mobile." },
+      { k: "Portfolio scale: search, filters, saved views", v: "Every screen is drawn against eight recipes. Advanced is sold to three hundred. The board needs search and saved views before that is usable." },
+      { k: "Bulk re-check after a ruleset move", v: "Monitoring names the forty affected recipes and then leaves the user to open them one at a time. The applied-rule record from cluster E makes the bulk action cheap." },
+      { k: "In-product help, and an accessibility pass", v: "No help surface anywhere, and nobody has checked keyboard order, focus handling in the Worker panel, or how the four states read to a screen reader. In this category accessibility is a procurement question." },
+    ],
+    "These are the cheapest items on the list and the easiest to keep postponing, because none of them blocks a demo. All four block an enterprise account.",
+    C.none,
+    null),
+];
+
+const PHASES = [
+  { n: "PHASE 1", k: "EU core", time: "TWO QUARTERS", color: C.accent,
+    what: "EU core instruments, all twenty-four language sets from one extraction pass, the engine with provenance and applied-rule recording, the coverage table, and artwork extraction to a usable standard.",
+    claim: "We hold and check the EU rulebook in every official language, and publish exactly how much of each member state we hold." },
+  { n: "PHASE 2", k: "EU member states, in full", time: "ONE QUARTER", color: C.accent,
+    what: "Twenty-seven national layers: language duties, registration and notification obligations, tonnage reporting, national claim practice. The obligation register for all twenty-seven nodes.",
+    claim: "The European Union, complete: all twenty-seven member states, every official language, and every registration you owe with the authority and the deadline." },
+  { n: "PHASE 3", k: "The United Kingdom", time: "ONE QUARTER", color: C.clear,
+    what: "Retained law as a diff against the EU corpus, GB divergence tracked instrument by instrument, and Northern Ireland following EU law for goods. Two nodes, one region.",
+    claim: "The United Kingdom, both regimes, held apart rather than averaged." },
+  { n: "PHASE 4", k: "US federal and the states", time: "THREE QUARTERS", color: C.action,
+    what: "FFDCA and CVM guidance federally, the AAFCO model bill and regulations, then each state's adopted edition, its registration route, its fees and its tonnage reporting. Fifty state monitoring sources.",
+    claim: "The United States, complete: federal plus every state, with registration named state by state." },
+  { n: "PHASE 5", k: "Staying true", time: "PERMANENT", color: C.blocked,
+    what: "Source monitoring across roughly eighty jurisdictions, rule-level diffs typed by effect, the acceptance queue running continuously, and the coverage page's last-checked dates moving every week.",
+    claim: "Current, and provably so — every market carries the date it was last checked, in public." },
+];
+
+class Component extends DCLogic {
+  renderVals() {
+    const dot = (kind) => "width: 11px; height: 11px; flex: none; margin-top: 5px; background: " +
+      (kind === "content" ? "var(--action)" : kind === "eng" ? "var(--accent)" : "var(--blocked)");
+
+    return {
+      tally: [
+        { n: "8", k: "Clusters of work", color: C.ink },
+        { n: "~80", k: "Jurisdiction nodes to hold", color: C.accent },
+        { n: "2", k: "Are regulatory content, not code", color: C.action },
+        { n: "8", k: "Quarters to the full claim", color: C.blocked },
+      ].map((t, i) => Object.assign({}, t, {
+        style: "padding: 17px 19px; border-right: " + (i < 3 ? "1px solid var(--rule)" : "none"),
+      })),
+
+      claims: [
+        { tag: "What we can say today", k: "We check against the rules we hold, and publish how much that is", color: C.clear, bar: C.clear,
+          v: "True now. Depth published per market, every gap named, no verdict where we hold nothing.",
+          cost: "Costs nothing more. It is the current position." },
+        { tag: "What this register buys", k: "We hold the rules for the EU, the UK and the US, including every state", color: C.accent, bar: C.accent,
+          v: "A full-coverage claim, made without hedging, because the corpus is actually complete and the coverage page proves it market by market.",
+          cost: "Roughly eight quarters, and a standing regulatory content team." },
+        { tag: "What it does not buy", k: "We advise you on your regulatory position", color: C.blocked, bar: C.blocked,
+          v: "Advice means a named qualified person takes responsibility for a judgement on your specific case. Software holds rules; advice needs an adviser.",
+          cost: "Qualified staff, professional indemnity, and a different business model. Not on this list." },
+      ].map(c => ({
+        tag: c.tag, k: c.k, v: c.v, cost: c.cost, color: c.color,
+        style: "position: relative; border: 1px solid var(--ink); border-top: 4px solid " + c.bar + "; background: var(--paper); padding: 20px 22px",
+      })),
+
+      clusters: CLUSTERS.map((c, i, a) => ({
+        n: c.n, k: c.k, lead: c.lead, effort: c.effort, hard: c.hard, hardColor: c.hardColor,
+        kind: KIND[c.kind][0], kindColor: KIND[c.kind][1],
+        kindStyle: "font-family: var(--mono); font-size: 9px; letter-spacing: 0.07em; border: 1px solid " + KIND[c.kind][1] + "; color: " + KIND[c.kind][1] + "; background: var(--paper); padding: 4px 7px; white-space: nowrap",
+        items: c.items.map(x => ({ k: x.k, v: x.v, dot: dot(c.kind) })),
+        hasScale: !!c.scale,
+        scale: c.scale || [],
+        style: "padding: 28px 42px 30px; border-bottom: " + (i < a.length - 1 ? "1px solid var(--rule)" : "1px solid var(--ink)"),
+      })),
+
+      phases: PHASES.map(p => ({
+        n: p.n, k: p.k, time: p.time, what: p.what, claim: p.claim, color: p.color,
+        style: "position: relative; border: 1px solid var(--ink); border-left: 4px solid " + p.color + "; background: var(--paper); padding: 20px 22px",
+      })),
+
+      limits: [
+        { k: "Whether an authority accepts your label", v: "An authority's decision is an authority's decision. A complete corpus makes the answer well-founded; it never makes it binding on anybody else." },
+        { k: "Claim substantiation", v: "Whether the evidence behind a functional claim is adequate is a scientific judgement on a dossier, not a lookup. We can tell you the wording is permitted and what substantiation is required. We cannot tell you yours is sufficient." },
+        { k: "Filing, paying and corresponding", v: "Only the operator named on the label is entitled to register a product. This is not a liability position we could relax; it is who the law permits to act." },
+        { k: "Individual advice", v: "Advice on a specific product in a specific commercial situation requires a qualified person taking responsibility for it. That is people, indemnity and a different business — worth building later, but never a claim the software makes on its own." },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>
