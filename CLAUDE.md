@@ -36,7 +36,8 @@ every result. The product is honest by construction: no rule, no verdict.
 9. Verification outlives the subscription: billing, dunning or closure never affect `public.verify_reference`.
 10. Customer data stays in the EU services in docs/02-decisions.md. Never add a vendor or sub-processor unasked.
 11. Never deploy or touch staging or production yourself: CI deploys after review. Never `supabase link`, `db push`,
-    `functions deploy` or `vercel`, and never merge or approve a pull request.
+    `functions deploy` or `vercel`, and never merge or approve a pull request: only the `claude-review` workflow
+    approves (D-23), never a session.
 12. Never edit `supabase/tests/gates/**`, `worker/tests/gates/**`, `fixtures/golden/**`, `content/accepted/**`
     or `.milestone`. They are the oracle. If one looks wrong, stop and explain why.
 

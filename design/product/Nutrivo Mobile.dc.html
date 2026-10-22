@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--panel); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  button { font: inherit; color: inherit; }
+</style>
+</helmet>
+
+<div style="min-width: 1200px; background: var(--panel); padding: 0 0 60px">
+  <div style="max-width: 1140px; margin: 0 auto; background: var(--paper); border-left: 1px solid var(--rule); border-right: 1px solid var(--rule)">
+
+    <div style="border-bottom: 1px solid var(--ink); padding: 32px 40px 28px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">Mobile · 5 September 2026</p>
+      <h1 style="margin: 10px 0 0; font-size: 34px; font-weight: 600; line-height: 1.08; max-width: 32ch">Two things people do away from a desk</h1>
+      <p style="margin: 12px 0 0; font-size: 15px; line-height: 1.6; color: var(--n700); max-width: 96ch">Read a verdict, and photograph a pack. Everything else waits for a screen with room for a table. Mobile is not a smaller version of the product; it is those two jobs plus the alerts that interrupt a day.</p>
+      <div style="margin-top: 22px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--rule)">
+        <sc-for list="{{ principles }}" as="p" hint-placeholder-count="3">
+          <div style="{{ p.style }}">
+            <p style="margin: 0; font-size: 14px; font-weight: 600; line-height: 1.25">{{ p.k }}</p>
+            <p style="margin: 7px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">{{ p.v }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <sc-for list="{{ rows }}" as="row" hint-placeholder-count="2">
+      <div style="border-bottom: 1px solid var(--rule); padding: 28px 40px 32px">
+        <div style="display: flex; align-items: baseline; gap: 16px; margin-bottom: 22px">
+          <p style="margin: 0; font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.1em; color: var(--n500); flex: none">{{ row.n }}</p>
+          <div>
+            <h2 style="margin: 0; font-size: 24px; font-weight: 600; line-height: 1.15">{{ row.k }}</h2>
+            <p style="margin: 7px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--n700); max-width: 94ch">{{ row.v }}</p>
+          </div>
+        </div>
+        <div style="display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-start">
+          <sc-for list="{{ row.phones }}" as="ph" hint-placeholder-count="3">
+            <div style="width: 300px; flex: none">
+              <div style="border: 1px solid var(--ink); border-radius: 22px; background: var(--paper); padding: 8px; box-shadow: 0 1px 0 var(--n300)">
+                <div style="border: 1px solid var(--rule); border-radius: 15px; overflow: hidden; background: var(--paper)">
+
+                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 14px 6px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.04em; color: var(--n600)">
+                    <span>09:41</span>
+                    <span>{{ ph.carrier }}</span>
+                  </div>
+
+                  <div style="display: flex; align-items: center; gap: 9px; padding: 9px 14px; border-top: 1px solid var(--n200); border-bottom: 1px solid var(--ink)">
+                    <p style="margin: 0; display: flex; align-items: flex-end; gap: 3px; font-size: 15px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 4px; height: 4px; background: var(--accent); margin-bottom: 2px"></span></p>
+                    <div style="flex: 1"></div>
+                    <span style="font-family: var(--mono); font-size: 9px; letter-spacing: 0.05em; color: var(--n600)">{{ ph.chrome }}</span>
+                  </div>
+
+                  <div style="{{ ph.bodyStyle }}">
+                    <sc-for list="{{ ph.blocks }}" as="b" hint-placeholder-count="4">
+                      <div style="{{ b.style }}">
+                        <sc-if value="{{ b.hasGlyph }}">
+                          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 7px">
+                            <span style="{{ b.glyph }}"></span>
+                            <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.07em; color: {{ b.glyphColor }}">{{ b.glyphLabel }}</span>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ b.hasKicker }}">
+                          <p style="margin: 0 0 5px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600)">{{ b.kicker }}</p>
+                        </sc-if>
+                        <sc-if value="{{ b.hasTitle }}">
+                          <p style="{{ b.titleStyle }}">{{ b.title }}</p>
+                        </sc-if>
+                        <sc-if value="{{ b.hasBody }}">
+                          <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">{{ b.body }}</p>
+                        </sc-if>
+                        <sc-if value="{{ b.hasRows }}">
+                          <div style="margin-top: 9px; display: flex; flex-direction: column; gap: 7px">
+                            <sc-for list="{{ b.rows }}" as="r" hint-placeholder-count="3">
+                              <div style="display: flex; align-items: center; gap: 9px">
+                                <span style="{{ r.glyph }}"></span>
+                                <span style="flex: 1; font-size: 12.5px; line-height: 1.35">{{ r.k }}</span>
+                                <span style="font-family: var(--mono); font-size: 10px; color: {{ r.color }}">{{ r.v }}</span>
+                              </div>
+                            </sc-for>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ b.hasBtn }}">
+                          <div style="{{ b.btnStyle }}">{{ b.btn }}</div>
+                        </sc-if>
+                      </div>
+                    </sc-for>
+                  </div>
+
+                  <div style="display: flex; border-top: 1px solid var(--ink)">
+                    <sc-for list="{{ ph.tabs }}" as="tb" hint-placeholder-count="3">
+                      <div style="{{ tb.style }}">{{ tb.k }}</div>
+                    </sc-for>
+                  </div>
+
+                </div>
+              </div>
+              <p style="margin: 12px 0 0; font-size: 13.5px; font-weight: 600; line-height: 1.25">{{ ph.label }}</p>
+              <p style="margin: 5px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">{{ ph.note }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+
+    <div style="padding: 28px 40px 36px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">What mobile deliberately cannot do</p>
+      <div style="margin-top: 18px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px">
+        <sc-for list="{{ nots }}" as="nt" hint-placeholder-count="6">
+          <div style="border-left: 3px solid {{ nt.bar }}; padding-left: 15px">
+            <p style="margin: 0; font-size: 14px; font-weight: 600; line-height: 1.25">{{ nt.k }}</p>
+            <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">{{ nt.v }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:1000}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)", n600: "var(--n600)", n700: "var(--n700)", ink: "var(--ink)" };
+
+const GL = {
+  clear: "width: 11px; height: 11px; flex: none; background: var(--clear)",
+  action: "width: 0; height: 0; flex: none; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 11px solid var(--action)",
+  none: "width: 11px; height: 11px; flex: none; border: 2px solid var(--none); border-radius: 50%",
+  blocked: "width: 11px; height: 11px; flex: none; background: var(--blocked); box-shadow: inset 0 4px 0 var(--paper), inset 0 -4px 0 var(--blocked)",
+};
+const GLC = { clear: C.clear, action: C.action, none: C.none, blocked: C.blocked };
+const GLL = { clear: "CLEAR", action: "ACTION NEEDED", none: "NOT ASSESSED", blocked: "BLOCKED" };
+
+const blk = (o) => ({
+  hasGlyph: !!o.g, glyph: o.g ? GL[o.g] : "", glyphColor: o.g ? GLC[o.g] : "", glyphLabel: o.g ? GLL[o.g] : "",
+  hasKicker: !!o.kicker, kicker: o.kicker || "",
+  hasTitle: !!o.title, title: o.title || "",
+  titleStyle: "margin: 0; font-size: " + (o.big ? "19px" : "14.5px") + "; font-weight: 600; line-height: 1.2",
+  hasBody: !!o.body, body: o.body || "",
+  hasRows: !!o.rows,
+  rows: (o.rows || []).map(r => ({ k: r.k, v: r.v, glyph: GL[r.g], color: GLC[r.g] })),
+  hasBtn: !!o.btn, btn: o.btn || "",
+  btnStyle: o.btnGhost
+    ? "margin-top: 11px; text-align: center; border: 1px solid var(--n400); border-radius: 3px; padding: 11px; font-size: 13px; color: var(--n700)"
+    : "margin-top: 11px; text-align: center; background: var(--accent); color: #ffffff; border-radius: 3px; padding: 12px; font-size: 13.5px; font-weight: 500",
+  style: "padding: 14px" + (o.tint ? "; background: " + o.tint : "") + (o.rule === false ? "" : "; border-bottom: 1px solid var(--n200)")
+    + (o.bar ? "; border-left: 4px solid " + o.bar : ""),
+});
+
+const phone = (o) => ({
+  carrier: o.carrier || "5G ▮▮▮",
+  chrome: o.chrome,
+  label: o.label,
+  note: o.note,
+  bodyStyle: "min-height: 372px; display: flex; flex-direction: column",
+  blocks: o.blocks,
+  tabs: (o.tabs || ["Recipes", "Alerts", "More"]).map((k, i) => ({
+    k,
+    style: "flex: 1; text-align: center; padding: 11px 0; font-size: 11px; border-right: " + (i < 2 ? "1px solid var(--n200)" : "none") +
+      "; color: " + (i === (o.active === undefined ? 0 : o.active) ? "var(--accent-700)" : "var(--n600)") +
+      "; font-weight: " + (i === (o.active === undefined ? 0 : o.active) ? "600" : "400") +
+      (i === (o.active === undefined ? 0 : o.active) ? "; background: var(--accent-100)" : ""),
+  })),
+});
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      principles: [
+        { k: "A verdict fits on a phone. A finding list does not.", v: "The state, the market and the one thing to do next. Everything with a table behind it says so and links to a desk." },
+        { k: "Forty-four pixels, minimum, on everything touchable", v: "This gets used in a warehouse, in a car park and on a production floor, often one-handed and often in gloves." },
+        { k: "The four states keep their glyphs", v: "Filled square, triangle, hollow circle, barred square. Colour alone never carries a verdict, least of all on a phone in daylight." },
+      ].map((p, i) => Object.assign({}, p, {
+        style: "padding: 16px 18px; border-right: " + (i < 2 ? "1px solid var(--rule)" : "none"),
+      })),
+
+      rows: [
+        { n: "01", k: "Read a verdict", v: "Somebody is asked a question they cannot answer from memory: can we ship this, and what is stopping it. Three taps at most, and the answer carries its provenance the same as on a desk.",
+          phones: [
+            phone({ chrome: "8 RECIPES", label: "Your recipes", note: "Worst open state per recipe, newest first. No counts, no charts — a list you can read at arm's length.",
+              blocks: [
+                blk({ kicker: "Halden Pet Nutrition", title: "Recipes", big: false, rule: true }),
+                blk({ rows: [
+                  { k: "Adult dog · dry · chicken", v: "TX", g: "blocked" },
+                  { k: "Puppy · wet · turkey", v: "FR", g: "action" },
+                  { k: "Senior · dry · salmon", v: "EU", g: "clear" },
+                  { k: "Adult cat · wet · fish", v: "NL", g: "clear" },
+                  { k: "Working dog · dry · lamb", v: "DE", g: "none" },
+                ], rule: true }),
+                blk({ kicker: "Filtered", body: "Showing every recipe. Tap one for its markets.", rule: false }),
+              ] }),
+            phone({ chrome: "1 OF 3 MARKETS", active: 0, label: "One recipe, its markets", note: "The roll-up rule holds: a parent never conceals a failing child, so US shows barred because Texas does.",
+              blocks: [
+                blk({ kicker: "Adult dog · complete dry · chicken", title: "Three markets", rule: true }),
+                blk({ rows: [
+                  { k: "EU · Germany", v: "CLEAR", g: "clear" },
+                  { k: "EU · France", v: "1 OPEN", g: "action" },
+                  { k: "US · federal", v: "BARRED", g: "blocked" },
+                  { k: "US · Texas", v: "BARRED", g: "blocked" },
+                ], rule: true }),
+                blk({ kicker: "Checked", body: "2 September against ruleset 2026.08-b. Current.", rule: false }),
+              ] }),
+            phone({ chrome: "US · TEXAS", active: 0, label: "The verdict", note: "The one case that matters most on a phone: the label is fine and the product still cannot be sold. Registration is its own state.",
+              blocks: [
+                blk({ g: "blocked", title: "Cannot be sold in Texas", big: true, tint: "var(--blocked-bg)", bar: C.blocked, rule: true,
+                  body: "The label passes every encoded rule. The product is not registered with the Texas Feed and Fertilizer Control Service, and sale before registration is prohibited." }),
+                blk({ kicker: "What to do", body: "Register the product. We name the authority, the route, the evidence and the fee, and pre-fill what your record answers.", btn: "Open the registration pack", rule: true }),
+                blk({ kicker: "Where this came from", body: "Deterministic rule · TX Agriculture Code §141.005. Not a model judgement.", rule: false }),
+              ] }),
+          ] },
+        { n: "02", k: "Photograph a pack", v: "The other real mobile job. A pack in hand, a phone camera, and a question about whether the artwork on the shelf matches what was approved. A photograph is never treated as artwork.",
+          phones: [
+            phone({ chrome: "CAMERA", active: 0, label: "Capture", note: "Framing guidance for the panel, and a plain statement of what a photograph can and cannot be used for.",
+              blocks: [
+                blk({ kicker: "Adult dog · complete dry · chicken", title: "Photograph the panel", rule: true,
+                  body: "Fill the frame with the printed panel and keep it flat. Good light, no flash on gloss." }),
+                blk({ kicker: "What this is for", body: "Reading the printed text so we can compare it with the approved artwork. A photograph cannot be measured for character height, so it never produces a verdict.", rule: true }),
+                blk({ btn: "Capture", rule: false }),
+              ] }),
+            phone({ chrome: "READING", active: 0, label: "Read back", note: "Extraction shown as text, with a count. Partial success is reported as partial — the same rule as the desktop extraction failure screen.",
+              blocks: [
+                blk({ g: "action", glyphLabel: "ACTION NEEDED", title: "Read 34 of 38 lines", tint: "var(--action-bg)", bar: C.action, rule: true,
+                  body: "Four lines could not be read, all in the small print at the base of the panel. The rest is below." }),
+                blk({ kicker: "Differs from approved artwork v4", rows: [
+                  { k: "Protein 26.0% · approved 27.0%", v: "DIFFERS", g: "blocked" },
+                  { k: "Operator name and address", v: "MATCHES", g: "clear" },
+                  { k: "Batch and best-before format", v: "MATCHES", g: "clear" },
+                ], rule: true }),
+                blk({ btn: "Send this to the desk", btnGhost: true, rule: false }),
+              ] }),
+            phone({ chrome: "ALERTS", active: 1, label: "Alerts", note: "The third reason to open a phone: something changed while you were away from a desk. Editorial ruleset changes never appear here, on any setting.",
+              blocks: [
+                blk({ kicker: "Today", title: "Two things changed", rule: true }),
+                blk({ g: "action", glyphLabel: "ACTION NEEDED", title: "A prescribed wording changed in France", tint: "var(--action-bg)", bar: C.action, rule: true,
+                  body: "Affects Puppy · complete wet · turkey. Effective 1 January 2027, so there is time." }),
+                blk({ kicker: "Yesterday", title: "A specification expires in 7 days", rule: true,
+                  body: "Premix PMX-118 from Nordwild Feeds. Used by three recipes." }),
+                blk({ btn: "Open the first", btnGhost: true, rule: false }),
+              ] }),
+          ] },
+      ],
+
+      nots: [
+        { k: "No checking from a photograph", v: "The geometry check needs vector text with real character heights. A photograph is a comparison tool and says so on its own screen, because a verdict from a snapshot would be a verdict we cannot stand behind.", bar: C.blocked },
+        { k: "No signing", v: "A Certificate of Check is attested by a named person, and attestation on a phone in a car park is not a standard we want to have set. It is offered at a desk or not at all.", bar: C.blocked },
+        { k: "No editing a recipe", v: "Composition and claims are typed where there is room to see the whole formula. Mobile reads them; it does not change them.", bar: C.none },
+        { k: "No board, no register, no coverage matrix", v: "All three are tables whose value is comparison across many rows. A phone shows the one row you asked for and links to the rest.", bar: C.none },
+        { k: "No plan picker or checkout", v: "A limit met on a phone says so and offers to send a link. Nobody should be choosing a €4,990 commitment on a screen this size.", bar: C.action },
+        { k: "No verdict without provenance", v: "The one desktop rule mobile keeps in full. Every state carries whether it came from a deterministic rule or a model judgement, and every withheld answer links to the coverage that explains it.", bar: C.accent },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

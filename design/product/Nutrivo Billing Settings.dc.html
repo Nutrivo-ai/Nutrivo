@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--panel); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  button { font: inherit; color: inherit; }
+  input, select { font: inherit; color: inherit; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ntv-in { width: 100%; box-sizing: border-box; border: 1px solid var(--n400); border-radius: 3px; padding: 10px 12px; font-size: 13.5px; background: var(--paper); }
+  @keyframes ntv-slide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+
+<div style="min-width: 1180px; min-height: 900px; display: grid; grid-template-columns: 216px minmax(0, 1fr); background: var(--panel); font-size: 14px">
+
+  <nav style="border-right: 1px solid var(--rule); background: var(--paper); padding-bottom: 30px">
+    <div style="padding: 16px 18px; border-bottom: 1px solid var(--ink)">
+      <p style="margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 20px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 6px; height: 6px; background: var(--accent); margin-bottom: 2px; flex-shrink: 0"></span></p>
+      <p style="margin: 4px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">Settings</p>
+    </div>
+    <div style="padding: 14px 10px 0">
+      <p style="margin: 0 0 6px; padding: 0 8px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--n600)">Workspace</p>
+      <div style="display: flex; flex-direction: column; gap: 1px; margin-bottom: 16px">
+        <sc-for list="{{ navOther }}" as="no" hint-placeholder-count="4">
+          <div style="padding: 8px; font-size: 13px; color: var(--n600)">{{ no }}</div>
+        </sc-for>
+      </div>
+      <p style="margin: 0 0 6px; padding: 0 8px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">Billing</p>
+      <div style="display: flex; flex-direction: column; gap: 1px">
+        <sc-for list="{{ nav }}" as="n" hint-placeholder-count="4">
+          <button type="button" onClick="{{ n.go }}" style="{{ n.style }}" style-hover="background: var(--accent-100)">{{ n.k }}</button>
+        </sc-for>
+      </div>
+    </div>
+  </nav>
+
+  <div style="min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 18px; border-bottom: 1px solid var(--ink); background: var(--paper); padding: 13px 28px">
+      <div style="flex: 1; min-width: 0">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.11em; text-transform: uppercase; color: var(--accent)">Billing · Halden Pet Nutrition</p>
+        <h1 style="margin: 3px 0 0; font-size: 21px; font-weight: 600; line-height: 1.1">{{ title }}</h1>
+      </div>
+      <span style="font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n800); border: 1px solid var(--clear); background: var(--clear-bg); padding: 5px 9px">STANDARD · ANNUAL · RENEWS 4 SEP 2027</span>
+    </header>
+
+    <div style="flex: 1; padding: 26px 28px 60px">
+
+      <!-- ═══ OVERVIEW ═══ -->
+      <sc-if value="{{ isPlan }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="Plan and allowance" style="animation: ntv-slide 240ms ease-out both">
+        <div style="display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: 20px; align-items: start">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 22px 24px">
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--n600)">What you are using against what you pay for</p>
+            <h2 style="margin: 8px 0 0; font-size: 22px; font-weight: 600; line-height: 1.15">Three dials, and none of them is a check</h2>
+            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 18px">
+              <sc-for list="{{ dials }}" as="d" hint-placeholder-count="3">
+                <div>
+                  <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 14px">
+                    <p style="margin: 0; font-size: 14px; font-weight: 600">{{ d.k }}</p>
+                    <p style="margin: 0; font-family: var(--mono); font-size: 12.5px; color: {{ d.color }}">{{ d.count }}</p>
+                  </div>
+                  <div style="margin-top: 8px; height: 8px; background: var(--n200); border: 1px solid var(--n300)">
+                    <div style="{{ d.bar }}"></div>
+                  </div>
+                  <p style="margin: 7px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--n700)">{{ d.v }}</p>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--n200); display: flex; flex-wrap: wrap; gap: 7px">
+              <sc-for list="{{ freeThings }}" as="ft" hint-placeholder-count="5">
+                <span style="border: 1px solid var(--clear); background: var(--clear-bg); padding: 5px 9px; font-size: 12px; color: var(--n800)">{{ ft }}</span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">Current plan</p>
+              <p style="margin: 10px 0 0; font-size: 26px; font-weight: 600; line-height: 1">Standard</p>
+              <p style="margin: 6px 0 0; font-family: var(--mono); font-size: 13px; color: var(--n700)">€4,990 per year · two months free</p>
+              <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 6px">
+                <sc-for list="{{ planRows }}" as="pr" hint-placeholder-count="4">
+                  <div style="display: flex; justify-content: space-between; gap: 12px; align-items: baseline; border-bottom: 1px solid var(--n200); padding-bottom: 6px">
+                    <span style="font-size: 12.5px; color: var(--n700)">{{ pr.k }}</span>
+                    <span style="font-family: var(--mono); font-size: 11.5px; text-align: right; color: {{ pr.color }}">{{ pr.v }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 8px">
+                <button type="button" style="background: transparent; border: 1px solid var(--accent); border-radius: 3px; padding: 10px 14px; font-size: 13.5px; cursor: pointer; color: var(--accent-700)" style-hover="background: var(--accent-100)">Add a second region · €1,990/yr</button>
+                <button type="button" style="background: transparent; border: 1px solid var(--n400); border-radius: 3px; padding: 10px 14px; font-size: 13.5px; cursor: pointer" style-hover="border-color: var(--accent); color: var(--accent-700)">Change plan</button>
+              </div>
+            </div>
+            <div style="border: 1px solid var(--ink); border-left: 4px solid var(--none); background: var(--paper); padding: 18px 20px">
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600">Downgrading is the same three clicks</p>
+              <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">No call, no retention flow, no form asking why. If a plan is bigger than the work, say so and we will move you down at the next renewal.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ═══ INVOICES ═══ -->
+      <sc-if value="{{ isInvoices }}">
+      <div data-screen-label="All invoices" style="animation: ntv-slide 240ms ease-out both">
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper)">
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="display: grid; grid-template-columns: 128px minmax(0, 1fr) 120px 108px 112px 104px; background: var(--panel); border-bottom: 1px solid var(--ink)">
+            <sc-for list="{{ invHead }}" as="ih" hint-placeholder-count="6">
+              <p style="margin: 0; padding: 10px 14px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">{{ ih }}</p>
+            </sc-for>
+          </div>
+          <sc-for list="{{ invoices }}" as="iv" hint-placeholder-count="5">
+            <div style="{{ iv.style }}">
+              <p style="margin: 0; padding: 12px 14px; font-family: var(--mono); font-size: 12px">{{ iv.ref }}</p>
+              <div style="padding: 12px 14px">
+                <p style="margin: 0; font-size: 13px; font-weight: 500">{{ iv.k }}</p>
+                <p style="margin: 3px 0 0; font-size: 11.5px; color: var(--n600)">{{ iv.sub }}</p>
+              </div>
+              <p style="margin: 0; padding: 12px 14px; font-family: var(--mono); font-size: 11.5px; color: var(--n700)">{{ iv.date }}</p>
+              <p style="margin: 0; padding: 12px 14px; font-family: var(--mono); font-size: 12px">{{ iv.amt }}</p>
+              <p style="margin: 0; padding: 12px 14px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: {{ iv.color }}">{{ iv.state }}</p>
+              <p style="margin: 0; padding: 12px 14px"><a href="#pdf" style="font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em">PDF</a></p>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px">
+          <div style="border: 1px solid var(--ink); background: var(--paper); padding: 18px 20px">
+            <p style="margin: 0; font-size: 13.5px; font-weight: 600">Every invoice is itemised the same way</p>
+            <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">The plan line, then recipes, region, seats and checks shown as included at €0.00. Nothing arrives as a surprise line, because there is no line we could add without telling you first.</p>
+          </div>
+          <div style="border: 1px solid var(--ink); background: var(--paper); padding: 18px 20px">
+            <p style="margin: 0; font-size: 13.5px; font-weight: 600">Send invoices to somebody else</p>
+            <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">A finance address receives every invoice as a PDF. It is not a seat and it does not need an account.</p>
+            <div style="margin-top: 11px"><input class="ntv-in" type="email" value="ekonomi@haldenpet.com" aria-label="Finance email" /></div>
+          </div>
+          <div style="border: 1px solid var(--rule); background: var(--paper); padding: 18px 20px">
+            <p style="margin: 0; font-size: 13.5px; font-weight: 600">Need a different format?</p>
+            <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">PEPPOL e-invoicing and 30-day terms are available on Advanced, and on annual Standard by request. Ask finance@nutrivo.ai.</p>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ═══ PAYMENT ═══ -->
+      <sc-if value="{{ isPayment }}">
+      <div data-screen-label="Payment method" style="animation: ntv-slide 240ms ease-out both">
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 22px 24px">
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--n600)">On file</p>
+            <div style="margin-top: 14px; border: 1px solid var(--ink); padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 16px">
+              <div>
+                <p style="margin: 0; font-family: var(--mono); font-size: 15px; letter-spacing: 0.06em">VISA ···· 4417</p>
+                <p style="margin: 6px 0 0; font-size: 12.5px; color: var(--n700)">Expires 04 / 2029 · Johanna Holm</p>
+              </div>
+              <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; border: 1px solid var(--clear); background: var(--clear-bg); padding: 5px 8px; color: var(--n800)">PRIMARY</span>
+            </div>
+            <div style="margin-top: 14px; display: flex; gap: 10px">
+              <button type="button" style="background: transparent; border: 1px solid var(--accent); border-radius: 3px; padding: 9px 15px; font-size: 13px; cursor: pointer; color: var(--accent-700)" style-hover="background: var(--accent-100)">Replace card</button>
+              <button type="button" style="background: transparent; border: 1px solid var(--n400); border-radius: 3px; padding: 9px 15px; font-size: 13px; cursor: pointer" style-hover="border-color: var(--accent); color: var(--accent-700)">Add a backup card</button>
+            </div>
+            <p style="margin: 18px 0 0; padding-top: 16px; border-top: 1px solid var(--n200); font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--action)">If a payment fails</p>
+            <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 9px">
+              <sc-for list="{{ dunning }}" as="dn" hint-placeholder-count="4">
+                <div style="display: grid; grid-template-columns: 74px minmax(0, 1fr); gap: 12px; align-items: baseline; border-bottom: 1px solid var(--n200); padding-bottom: 8px">
+                  <span style="font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: {{ dn.color }}">{{ dn.when }}</span>
+                  <span style="font-size: 12.5px; line-height: 1.45; color: var(--n700)">{{ dn.v }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <p style="margin: 13px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">A failed card never deletes anything and never makes a report unverifiable. Somebody outside your company may be holding one.</p>
+          </div>
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 22px 24px">
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--n600)">Who you are paying</p>
+            <div style="margin-top: 14px; border: 1px solid var(--rule); background: var(--panel); padding: 16px 18px">
+              <p style="margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 18px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 5px; height: 5px; background: var(--accent); margin-bottom: 2px"></span><span style="font-size: 13px; font-weight: 400; color: var(--n600); letter-spacing: 0">.ai</span></p>
+              <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 7px">
+                <sc-for list="{{ entity }}" as="en" hint-placeholder-count="6">
+                  <div style="display: grid; grid-template-columns: 128px minmax(0, 1fr); gap: 12px; align-items: baseline">
+                    <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600)">{{ en.k }}</span>
+                    <span style="font-size: 12.5px; line-height: 1.45; color: var(--n800)">{{ en.v }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <p style="margin: 14px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">Nutrivo.ai is the product; Sunny Ventures AB is the company on the invoice and in the terms. Both names appear on every document so a finance department never has to ask which is which.</p>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ═══ DETAILS ═══ -->
+      <sc-if value="{{ isDetails }}">
+      <div data-screen-label="Billing details" style="animation: ntv-slide 240ms ease-out both">
+        <div style="display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 20px; align-items: start">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 22px 24px">
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--n600)">Appears on your invoices</p>
+            <h2 style="margin: 8px 0 0; font-size: 22px; font-weight: 600; line-height: 1.15">Your billing details</h2>
+            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 14px">
+              <div>
+                <label for="b-name" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">Legal entity</label>
+                <input id="b-name" class="ntv-in" type="text" value="Halden Pet Nutrition AB" />
+              </div>
+              <div style="border-top: 1px solid var(--n200); padding-top: 15px">
+                <p style="margin: 0 0 10px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.11em; text-transform: uppercase; color: var(--n600)">Registered address</p>
+                <div style="display: flex; flex-direction: column; gap: 10px">
+                  <div>
+                    <label for="b-a1" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">Address line 1</label>
+                    <input id="b-a1" class="ntv-in" type="text" value="Industrivägen 4" placeholder="Street and number" />
+                  </div>
+                  <div>
+                    <label for="b-a2" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">Address line 2 <span style="font-family: var(--mono); font-size: 9.5px; color: var(--n500)">OPTIONAL</span></label>
+                    <input id="b-a2" class="ntv-in" type="text" placeholder="Floor, unit, care of" />
+                  </div>
+                  <div style="display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 10px">
+                    <div>
+                      <label for="b-zip" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">Zip code</label>
+                      <input id="b-zip" class="ntv-in" type="text" value="412 63" />
+                    </div>
+                    <div>
+                      <label for="b-city" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">City</label>
+                      <input id="b-city" class="ntv-in" type="text" value="Göteborg" />
+                    </div>
+                  </div>
+                  <div>
+                    <label for="b-country" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">Country</label>
+                    <select id="b-country" class="ntv-in"><option>Sweden</option><option>Denmark</option><option>Germany</option><option>Netherlands</option><option>United Kingdom</option><option>United States</option></select>
+                    <p style="margin: 5px 0 0; font-size: 12px; line-height: 1.45; color: var(--n600)">The country decides how VAT is charged, which is set out opposite.</p>
+                  </div>
+                </div>
+              </div>
+              <div style="border-top: 1px solid var(--n200); padding-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px">
+                <div>
+                  <label for="b-vat" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">VAT number</label>
+                  <input id="b-vat" class="ntv-in" type="text" value="SE556734112801" />
+                  <p style="margin: 5px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--clear)">VALIDATED AGAINST VIES · 4 SEP 2026</p>
+                </div>
+                <div>
+                  <label for="b-id" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">Company ID <span style="font-family: var(--mono); font-size: 9.5px; color: var(--n500)">OPTIONAL</span></label>
+                  <input id="b-id" class="ntv-in" type="text" value="556734-1128" />
+                </div>
+              </div>
+              <div>
+                <label for="b-po" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">Purchase order reference <span style="font-family: var(--mono); font-size: 9.5px; color: var(--n500)">OPTIONAL</span></label>
+                <input id="b-po" class="ntv-in" type="text" placeholder="Appears on every invoice" />
+              </div>
+            </div>
+            <button type="button" style="margin-top: 20px; background: var(--accent); color: #ffffff; border: none; border-radius: 3px; padding: 11px 20px; font-size: 14px; font-weight: 500; cursor: pointer" style-hover="background: var(--accent-600)">Save billing details</button>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+<i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">How VAT is charged</p>
+              <div style="margin-top: 12px; border: 1px solid var(--ink); background: var(--panel); padding: 13px 15px">
+                <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Applied to this workspace</p>
+                <div style="margin-top: 8px; display: flex; align-items: baseline; justify-content: space-between; gap: 14px">
+                  <p style="margin: 0; font-size: 14px; font-weight: 600">Sweden · standard rate</p>
+                  <p style="margin: 0; font-family: var(--mono); font-size: 18px; line-height: 1">25%</p>
+                </div>
+                <p style="margin: 7px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">All prices on the plan cards and in checkout are shown excluding VAT. It is added on the invoice, so €4,990 a year is billed as €6,238.</p>
+              </div>
+              <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 9px">
+                <sc-for list="{{ vatRows }}" as="vr" hint-placeholder-count="4">
+                  <div style="border-bottom: 1px solid var(--n200); padding-bottom: 9px">
+                    <div style="display: flex; justify-content: space-between; gap: 12px; align-items: baseline">
+                      <p style="margin: 0; font-size: 13px; font-weight: 600">{{ vr.k }}</p>
+                      <span style="font-family: var(--mono); font-size: 11px; color: {{ vr.color }}">{{ vr.rate }}</span>
+                    </div>
+                    <p style="margin: 4px 0 0; font-size: 12px; line-height: 1.45; color: var(--n700)">{{ vr.v }}</p>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="border: 1px solid var(--ink); border-left: 4px solid var(--none); background: var(--paper); padding: 18px 20px">
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600">Billing details are not the operator</p>
+              <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">The entity that pays us and the operator named on your label are often the same company and sometimes not. Registration obligations follow the operator on the label, never this address, so changing it here changes nothing in a report.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1240,&quot;height&quot;:940}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)", n600: "var(--n600)", n700: "var(--n700)", ink: "var(--ink)" };
+
+class Component extends DCLogic {
+  state = { screen: "plan" };
+  go(s) { return () => this.setState({ screen: s }); }
+
+  renderVals() {
+    const s = this.state.screen;
+    const titles = {
+      plan: "Plan and allowance",
+      invoices: "Invoices",
+      payment: "Payment method",
+      details: "Billing details",
+    };
+
+    const meter = (pct, color) =>
+      "height: 8px; width: " + pct + "%; background: " + color;
+
+    return {
+      isPlan: s === "plan", isInvoices: s === "invoices", isPayment: s === "payment", isDetails: s === "details",
+      title: titles[s] || titles.plan,
+
+      navOther: ["People and roles", "Signing authority", "Workspace", "Audit log"],
+      nav: [
+        ["plan", "Plan and allowance"], ["invoices", "Invoices"],
+        ["payment", "Payment method"], ["details", "Billing details"],
+      ].map(([id, k]) => ({
+        k, go: this.go(id),
+        style: "display: block; width: 100%; text-align: left; border: none; border-left: 2px solid " + (s === id ? "var(--accent)" : "transparent") +
+          "; background: " + (s === id ? "var(--accent-100)" : "transparent") + "; padding: 8px; font-size: 13px; font-weight: " + (s === id ? "600" : "400") + "; cursor: pointer",
+      })),
+
+      dials: [
+        { k: "Recipes", count: "8 of 30", color: C.ink, v: "Pack sizes, artwork versions and recipe variants hang off these and are never counted. Recipes 31 and beyond are €12 each per month, and the bill stops at €749.", bar: meter(27, "var(--accent)") },
+        { k: "Regions", count: "1 of 2", color: C.ink, v: "EU, sold whole: all 27 member states and all 24 official languages. A second region is €1,990 a year, and Advanced is the only plan with all three.", bar: meter(50, "var(--accent)") },
+        { k: "People who edit", count: "4 of 5", color: C.ink, v: "One of the four is external, and an external editor takes an editor seat like anybody else. Viewers are free whether they are yours or not, and suppliers upload by scoped link rather than by seat.", bar: meter(80, "var(--accent)") },
+      ],
+      freeThings: ["Checks and re-checks · never metered", "Viewers · free and unlimited", "Supplier upload links · not seats", "Pack sizes and artwork versions", "Reading your own answer"],
+      planRows: [
+        { k: "Term", v: "ANNUAL", color: C.clear },
+        { k: "Next renewal", v: "4 SEP 2027", color: C.n700 },
+        { k: "Saving vs monthly", v: "€998/YR", color: C.clear },
+        { k: "Minimum term", v: "NONE", color: C.n700 },
+      ],
+
+      invHead: ["Reference", "Line", "Issued", "Amount", "Status", ""],
+      invoices: [
+        { ref: "NTV-2026-0418", k: "Standard · annual", sub: "4 Sep 2026 – 3 Sep 2027 · 30 recipes · EU", date: "4 Sep 2026", amt: "€6,238", state: "PAID", color: C.clear },
+        { ref: "NTV-2026-0361", k: "Standard · monthly", sub: "4 Aug – 3 Sep 2026", date: "4 Aug 2026", amt: "€624", state: "PAID", color: C.clear },
+        { ref: "NTV-2026-0298", k: "Standard · monthly", sub: "4 Jul – 3 Aug 2026 · 2 recipes over", date: "4 Jul 2026", amt: "€654", state: "PAID", color: C.clear },
+        { ref: "NTV-2026-0241", k: "Standard · monthly", sub: "4 Jun – 3 Jul 2026", date: "4 Jun 2026", amt: "€624", state: "PAID", color: C.clear },
+        { ref: "NTV-2026-0187", k: "Basic · monthly", sub: "4 May – 3 Jun 2026 · before upgrade", date: "4 May 2026", amt: "€311", state: "PAID", color: C.clear },
+      ].map((iv, i, a) => Object.assign({}, iv, {
+        style: "display: grid; grid-template-columns: 128px minmax(0, 1fr) 120px 108px 112px 104px; border-bottom: " + (i < a.length - 1 ? "1px solid var(--n200)" : "none") +
+          "; background: " + (i % 2 ? "var(--panel)" : "transparent"),
+      })),
+
+      dunning: [
+        { when: "DAY 0", v: "We email the person who pays and the finance address, name the amount, and retry in three days. Nothing changes in the product.", color: C.n600 },
+        { when: "DAY 3", v: "Second attempt, second email. Still nothing changes in the product.", color: C.n600 },
+        { when: "DAY 7", v: "Third attempt. A banner appears for admins only — not for the people doing the work.", color: C.action },
+        { when: "DAY 14", v: "The workspace stops accepting new labels. Nothing is deleted, everything already checked stays readable, and every report already sent stays verifiable.", color: C.blocked },
+      ],
+      entity: [
+        { k: "Legal entity", v: "Sunny Ventures AB" },
+        { k: "Trading as", v: "Nutrivo.ai" },
+        { k: "Company ID", v: "5594297151" },
+        { k: "VAT number", v: "SE559429715101" },
+        { k: "Registered address", v: "Karlbergsvägen 48, 113 37 Stockholm, Sweden" },
+        { k: "Finance", v: "finance@nutrivo.ai · +46 76 347 03 92" },
+      ],
+
+      vatRows: [
+        { k: "Sweden", rate: "25%", color: C.ink, v: "Swedish VAT is charged in full. Sunny Ventures AB is registered in Sweden." },
+        { k: "EU, VAT number given", rate: "0% · REVERSE CHARGE", color: C.clear, v: "No VAT charged. The invoice states the reverse charge and your VAT number, validated against VIES." },
+        { k: "EU, no VAT number", rate: "LOCAL RATE", color: C.action, v: "VAT at your own country's rate, under the one-stop shop." },
+        { k: "Outside the EU", rate: "0%", color: C.clear, v: "No VAT charged. Any local tax on the import of services is yours to account for." },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>
