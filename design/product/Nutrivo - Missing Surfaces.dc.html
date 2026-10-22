@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--panel); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  button { font: inherit; color: inherit; }
+  input { font: inherit; color: inherit; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ntv-in { width: 100%; box-sizing: border-box; border: 1px solid var(--n400); border-radius: 3px; padding: 10px 12px; font-size: 13.5px; background: var(--paper); }
+  @keyframes ntv-slide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+
+<div style="min-width: 1240px; min-height: 940px; display: grid; grid-template-columns: 218px minmax(0, 1fr); background: var(--panel); font-size: 14px">
+
+  <nav style="border-right: 1px solid var(--rule); background: var(--paper); padding-bottom: 30px">
+    <div style="padding: 16px 18px; border-bottom: 1px solid var(--ink)">
+      <p style="margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 20px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 6px; height: 6px; background: var(--accent); margin-bottom: 2px; flex-shrink: 0"></span></p>
+      <p style="margin: 4px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">The five missing surfaces</p>
+    </div>
+    <div style="padding: 14px 10px 0">
+      <div style="display: flex; flex-direction: column; gap: 1px">
+        <sc-for list="{{ nav }}" as="n" hint-placeholder-count="5">
+          <button type="button" onClick="{{ n.go }}" style="{{ n.style }}" style-hover="background: var(--accent-100)">
+            <span style="flex: 1; text-align: left">{{ n.k }}</span>
+            <span style="font-family: var(--mono); font-size: 10px; color: {{ n.badgeColor }}">{{ n.badge }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <div style="margin-top: 20px; padding: 13px 12px; border: 1px solid var(--rule); background: var(--panel)">
+        <p style="margin: 0; font-family: var(--mono); font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600)">Why these five</p>
+        <p style="margin: 8px 0 0; font-size: 12px; line-height: 1.55; color: var(--n700)">Named in the gap register. None blocks a demo. All five block an enterprise account.</p>
+      </div>
+    </div>
+  </nav>
+
+  <div style="min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 18px; border-bottom: 1px solid var(--ink); background: var(--paper); padding: 13px 28px">
+      <div style="flex: 1; min-width: 0">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.11em; text-transform: uppercase; color: var(--accent)">{{ kicker }}</p>
+        <h1 style="margin: 3px 0 0; font-size: 21px; font-weight: 600; line-height: 1.1">{{ title }}</h1>
+      </div>
+      <span style="{{ chipStyle }}">{{ chip }}</span>
+    </header>
+
+    <div style="flex: 1; padding: 24px 28px 60px">
+
+      <!-- ═══ 01 · ALERTS INBOX ═══ -->
+      <sc-if value="{{ isAlerts }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="Alerts inbox" style="animation: ntv-slide 240ms ease-out both">
+        <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.6; color: var(--n700); max-width: 100ch">Monitoring already names the recipes a change affects, and the emails already send them. This is where they land in the product. The organising idea is the one thing a regulatory manager needs first: is this law, or is it coming.</p>
+
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) 296px; gap: 20px; align-items: start">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper)">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div style="display: flex; align-items: center; gap: 10px; padding: 14px 18px; border-bottom: 1px solid var(--ink); flex-wrap: wrap">
+              <sc-for list="{{ alertTabs }}" as="at" hint-placeholder-count="4">
+                <span style="{{ at.style }}">{{ at.k }}</span>
+              </sc-for>
+              <div style="flex: 1"></div>
+              <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">MARK ALL READ</span>
+            </div>
+            <sc-for list="{{ alerts }}" as="a" hint-placeholder-count="6">
+              <div style="{{ a.style }}">
+                <div style="display: flex; gap: 13px; align-items: flex-start">
+                  <span style="{{ a.glyph }}"></span>
+                  <div style="flex: 1; min-width: 0">
+                    <div style="display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap">
+                      <span style="{{ a.stateStyle }}">{{ a.state }}</span>
+                      <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">{{ a.when }}</span>
+                      <div style="flex: 1"></div>
+                      <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: {{ a.effColor }}">{{ a.effective }}</span>
+                    </div>
+                    <p style="margin: 8px 0 0; font-size: 14.5px; font-weight: 600; line-height: 1.3">{{ a.k }}</p>
+                    <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ a.v }}</p>
+                    <div style="margin-top: 10px; display: flex; align-items: center; gap: 9px; flex-wrap: wrap">
+                      <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.07em; color: var(--accent-700)">AFFECTS</span>
+                      <sc-for list="{{ a.affects }}" as="af" hint-placeholder-count="2">
+                        <span style="border: 1px solid var(--n300); background: var(--panel); padding: 4px 8px; font-size: 11.5px; color: var(--n800)">{{ af }}</span>
+                      </sc-for>
+                      <span style="font-family: var(--mono); font-size: 10px; color: var(--n500)">{{ a.cite }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 16px">
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--accent); background: var(--paper); padding: 17px 19px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600">Coming, and in force</p>
+              <p style="margin: 7px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">Every alert says which it is, and carries the date. A change fourteen months out is a plan. Without the distinction every notice reads as urgent and people stop reading them.</p>
+            </div>
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 17px 19px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Rules for this surface</p>
+              <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 11px">
+                <sc-for list="{{ alertRules }}" as="ar" hint-placeholder-count="4">
+                  <div style="border-left: 3px solid {{ ar.bar }}; padding-left: 12px">
+                    <p style="margin: 0; font-size: 12.5px; font-weight: 600; line-height: 1.3">{{ ar.k }}</p>
+                    <p style="margin: 4px 0 0; font-size: 12px; line-height: 1.5; color: var(--n700)">{{ ar.v }}</p>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ═══ 02 · HORIZON ═══ -->
+      <sc-if value="{{ isHorizon }}">
+      <div data-screen-label="Horizon" style="animation: ntv-slide 240ms ease-out both">
+        <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.6; color: var(--n700); max-width: 100ch">The screen that makes "before it is too late" real. Everything known to be coming, on a timeline, with your recipes against it. Designed around the worst case: an additive losing its authorisation, because that carries a sell-through deadline and cannot be fixed with a wording change.</p>
+
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--blocked); background: var(--blocked-bg); padding: 20px 24px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 26px; flex-wrap: wrap">
+            <div style="flex: 1; min-width: 400px">
+              <div style="display: flex; align-items: center; gap: 10px">
+                <span style="width: 13px; height: 13px; flex: none; background: var(--blocked); box-shadow: inset 0 5px 0 var(--blocked-bg), inset 0 -5px 0 var(--blocked)"></span>
+                <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blocked)">Withdrawn authorisation · sell-through deadline</p>
+              </div>
+              <p style="margin: 11px 0 0; font-size: 21px; font-weight: 600; line-height: 1.25; max-width: 46ch">Ethoxyquin loses its feed additive authorisation for all species</p>
+              <p style="margin: 9px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n800); max-width: 88ch">Placing on the market ends 1 April 2027. Existing stock may be sold through to 1 October 2027. Two of your recipes carry it at declared inclusion, and both need reformulation rather than a label change — which is a development cycle, not an artwork cycle.</p>
+            </div>
+            <div style="flex: none">
+              <p style="margin: 0; font-family: var(--mono); font-size: 30px; line-height: 1; color: var(--blocked)">208</p>
+              <p style="margin: 6px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--n700)">DAYS TO REFORMULATE</p>
+              <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 7px">
+                <span style="background: var(--accent); color: #ffffff; border-radius: 3px; padding: 10px 15px; font-size: 13px; font-weight: 500; text-align: center">Open the two recipes</span>
+                <span style="border: 1px solid var(--n400); border-radius: 3px; padding: 10px 15px; font-size: 13px; text-align: center; color: var(--n700)">See the instrument</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 20px; align-items: start">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper)">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div style="padding: 15px 18px; border-bottom: 1px solid var(--ink)">
+              <p style="margin: 0; font-size: 16px; font-weight: 600">Everything coming, in date order</p>
+              <p style="margin: 4px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">DRAFTS AND ENACTED CHANGES NOT YET IN FORCE · 6 ITEMS</p>
+            </div>
+            <sc-for list="{{ horizon }}" as="h" hint-placeholder-count="6">
+              <div style="{{ h.style }}">
+                <div style="display: grid; grid-template-columns: 104px minmax(0, 1fr) 128px; gap: 16px; align-items: baseline">
+                  <div>
+                    <p style="margin: 0; font-family: var(--mono); font-size: 12px; color: {{ h.dateColor }}">{{ h.date }}</p>
+                    <p style="margin: 4px 0 0; font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em; color: {{ h.stageColor }}">{{ h.stage }}</p>
+                  </div>
+                  <div>
+                    <p style="margin: 0; font-size: 13.5px; font-weight: 600; line-height: 1.3">{{ h.k }}</p>
+                    <p style="margin: 5px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">{{ h.v }}</p>
+                    <p style="margin: 6px 0 0; font-family: var(--mono); font-size: 10px; color: var(--n500)">{{ h.cite }}</p>
+                  </div>
+                  <div style="text-align: right">
+                    <p style="margin: 0; font-family: var(--mono); font-size: 15px; line-height: 1; color: {{ h.impactColor }}">{{ h.impact }}</p>
+                    <p style="margin: 5px 0 0; font-size: 11px; line-height: 1.35; color: var(--n600)">{{ h.impactLabel }}</p>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 16px">
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 17px 19px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent)">What we watch ahead of law</p>
+              <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 9px">
+                <sc-for list="{{ watching }}" as="w" hint-placeholder-count="5">
+                  <div style="display: flex; justify-content: space-between; gap: 10px; align-items: baseline; border-bottom: 1px solid var(--n200); padding-bottom: 8px">
+                    <span style="font-size: 12.5px; color: var(--n800)">{{ w.k }}</span>
+                    <span style="font-family: var(--mono); font-size: 10px; color: var(--n600); white-space: nowrap">{{ w.v }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--none); background: var(--paper); padding: 17px 19px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600">A draft is marked as a draft</p>
+              <p style="margin: 7px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">Anything not yet law says so and carries no countdown, because a proposal that fails would make a countdown a lie. It earns a date only when it is adopted.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ═══ 03 · PORTFOLIO AT SCALE ═══ -->
+      <sc-if value="{{ isScale }}">
+      <div data-screen-label="Portfolio at scale" style="animation: ntv-slide 240ms ease-out both">
+        <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.6; color: var(--n700); max-width: 100ch">Every product screen was drawn against eight recipes. Advanced is sold at three hundred. At that size the board is only useful with search, saved views, and a column strategy that survives more than six markets.</p>
+
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper)">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="padding: 14px 18px; border-bottom: 1px solid var(--ink); display: flex; gap: 12px; align-items: center; flex-wrap: wrap">
+            <div style="flex: 1; min-width: 260px; display: flex; align-items: center; gap: 9px; border: 1px solid var(--n400); border-radius: 3px; padding: 8px 11px">
+              <span style="font-family: var(--mono); font-size: 11px; color: var(--n500)">/</span>
+              <span style="flex: 1; font-size: 13.5px; color: var(--n800)">chicken</span>
+              <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">41 OF 312</span>
+            </div>
+            <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+              <span style="{{ f.style }}">{{ f.k }}</span>
+            </sc-for>
+          </div>
+          <div style="padding: 11px 18px; border-bottom: 1px solid var(--n200); display: flex; gap: 9px; align-items: center; flex-wrap: wrap; background: var(--panel)">
+            <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600)">Saved views</span>
+            <sc-for list="{{ views }}" as="v" hint-placeholder-count="4">
+              <span style="{{ v.style }}">{{ v.k }}</span>
+            </sc-for>
+            <div style="flex: 1"></div>
+            <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--accent-700)">SAVE THIS VIEW</span>
+          </div>
+          <div style="display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(4, 96px) 118px; background: var(--panel); border-bottom: 1px solid var(--ink)">
+            <sc-for list="{{ boardHead }}" as="bh" hint-placeholder-count="6">
+              <p style="margin: 0; padding: 10px 14px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600)">{{ bh }}</p>
+            </sc-for>
+          </div>
+          <sc-for list="{{ boardRows }}" as="br" hint-placeholder-count="7">
+            <div style="{{ br.style }}">
+              <div style="padding: 11px 14px">
+                <p style="margin: 0; font-size: 13px; font-weight: 500">{{ br.k }}</p>
+                <p style="margin: 3px 0 0; font-size: 11px; color: var(--n600)">{{ br.sub }}</p>
+              </div>
+              <sc-for list="{{ br.cells }}" as="cl" hint-placeholder-count="4">
+                <div style="padding: 11px 14px; display: flex; align-items: center; gap: 7px">
+                  <span style="{{ cl.glyph }}"></span>
+                  <span style="font-family: var(--mono); font-size: 10px; color: var(--n600)">{{ cl.n }}</span>
+                </div>
+              </sc-for>
+              <p style="margin: 0; padding: 11px 14px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: {{ br.freshColor }}">{{ br.fresh }}</p>
+            </div>
+          </sc-for>
+          <div style="padding: 12px 18px; border-top: 1px solid var(--ink); display: flex; align-items: center; gap: 14px; background: var(--panel)">
+            <span style="font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n700)">SHOWING 7 OF 41 MATCHES · 312 RECIPES IN THE PORTFOLIO</span>
+            <div style="flex: 1"></div>
+            <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">4 MARKET COLUMNS SHOWN OF 27 · GROUPED BY REGION</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px">
+          <sc-for list="{{ scaleNotes }}" as="sn" hint-placeholder-count="3">
+            <div class="blueprint" style="{{ sn.style }}">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600; line-height: 1.25">{{ sn.k }}</p>
+              <p style="margin: 7px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ sn.v }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ═══ 04 · BULK RE-CHECK ═══ -->
+      <sc-if value="{{ isBulk }}">
+      <div data-screen-label="Bulk re-check" style="animation: ntv-slide 240ms ease-out both">
+        <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.6; color: var(--n700); max-width: 100ch">A ruleset moves and names forty affected recipes. Today the user opens forty screens. The applied-rule record makes this almost free, because we already know exactly which rules to re-run and against which markets.</p>
+
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper)">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div style="padding: 15px 18px; border-bottom: 1px solid var(--ink); display: flex; align-items: center; gap: 12px; flex-wrap: wrap">
+              <span style="width: 15px; height: 15px; flex: none; border: 1px solid var(--accent); background: var(--accent); box-shadow: inset 0 0 0 3px var(--paper), inset 0 0 0 9px var(--accent)"></span>
+              <div>
+                <p style="margin: 0; font-size: 15px; font-weight: 600">38 of 41 selected</p>
+                <p style="margin: 3px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">3 EXCLUDED · DISCONTINUED RECIPES ARE NEVER RE-CHECKED</p>
+              </div>
+              <div style="flex: 1"></div>
+              <span style="background: var(--accent); color: #ffffff; border-radius: 3px; padding: 10px 17px; font-size: 13.5px; font-weight: 500">Re-check 38 recipes</span>
+            </div>
+            <div style="padding: 14px 18px; border-bottom: 1px solid var(--n200); background: var(--accent-100)">
+              <p style="margin: 0; font-size: 13px; line-height: 1.6; color: var(--n800)">Only the rules that changed will be re-run, against only the markets they apply to. Fifty-eight rule evaluations rather than a full re-check of thirty-eight recipes across twenty-seven markets, which is why this is free.</p>
+            </div>
+            <sc-for list="{{ bulkRows }}" as="bk" hint-placeholder-count="6">
+              <div style="{{ bk.style }}">
+                <div style="display: grid; grid-template-columns: 22px minmax(0, 1fr) 120px 110px; gap: 14px; align-items: center">
+                  <span style="{{ bk.box }}"></span>
+                  <div>
+                    <p style="margin: 0; font-size: 13px; font-weight: 500">{{ bk.k }}</p>
+                    <p style="margin: 3px 0 0; font-size: 11.5px; color: var(--n600)">{{ bk.sub }}</p>
+                  </div>
+                  <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; color: var(--n700)">{{ bk.markets }}</p>
+                  <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: {{ bk.stateColor }}">{{ bk.state }}</p>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 16px">
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--accent); background: var(--paper); padding: 18px 20px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent)">In progress</p>
+              <div style="margin-top: 13px; display: flex; flex-direction: column; gap: 11px">
+                <sc-for list="{{ progress }}" as="pg" hint-placeholder-count="3">
+                  <div>
+                    <div style="display: flex; justify-content: space-between; gap: 10px; align-items: baseline">
+                      <span style="font-size: 12.5px; color: var(--n800)">{{ pg.k }}</span>
+                      <span style="font-family: var(--mono); font-size: 11px; color: {{ pg.color }}">{{ pg.v }}</span>
+                    </div>
+                    <div style="margin-top: 6px; height: 6px; background: var(--n200); border: 1px solid var(--n300)">
+                      <div style="{{ pg.bar }}"></div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <p style="margin: 14px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">You can leave this screen. Results land on the board as they finish, and one notification says when all thirty-eight are done.</p>
+            </div>
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--none); background: var(--paper); padding: 18px 20px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600">A bulk re-check is still one event per check</p>
+              <p style="margin: 7px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">Each recipe gets its own append-only check event with its own applied-rule set. Nothing about the record changes because thirty-eight were started at once, and any certificate affected is marked superseded individually.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ═══ 05 · HELP IN THE WORKER ═══ -->
+      <sc-if value="{{ isHelp }}">
+      <div data-screen-label="Help in the Worker" style="animation: ntv-slide 240ms ease-out both">
+        <p style="margin: 0 0 18px; font-size: 14px; line-height: 1.6; color: var(--n700); max-width: 104ch">There is no separate help panel. The Compliance Worker is already docked on every screen and already reads the current object, so help belongs there rather than in a second surface. One thing is added: a small authored glossary the Worker returns <strong style="font-weight: 600">verbatim</strong> instead of in its own words.</p>
+
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--accent); background: var(--accent-100); padding: 18px 22px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <p style="margin: 0; font-size: 15px; font-weight: 600">Two kinds of question, answered two different ways</p>
+          <p style="margin: 8px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n800); max-width: 106ch">"Why is this Not assessed?" is a question about this finding, and the Worker answers it from the record. "What does Not assessed mean?" is a definition, and a model paraphrasing it differently each time would be a liability in a compliance tool. Definitions come from an authored glossary, versioned with the ruleset, returned word for word and marked as authored.</p>
+        </div>
+
+        <div style="margin-top: 20px; display: grid; grid-template-columns: minmax(0, 1fr) 396px; gap: 20px; align-items: start">
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent)">How somebody confused gets in</p>
+              <p style="margin: 9px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n700); max-width: 78ch">A blank chat box is a bad answer for a person who does not yet know what to ask. So the entry points are affordances on the thing they are confused about, and each one pre-fills a question rather than opening an empty panel.</p>
+              <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 11px">
+                <sc-for list="{{ helpTriggers }}" as="ht" hint-placeholder-count="4">
+                  <div style="border-left: 3px solid {{ ht.bar }}; padding-left: 14px">
+                    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+                      <p style="margin: 0; font-size: 13.5px; font-weight: 600">{{ ht.k }}</p>
+                      <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; color: {{ ht.bar }}; white-space: nowrap">{{ ht.tag }}</span>
+                    </div>
+                    <p style="margin: 5px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ ht.v }}</p>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">The authored glossary · returned verbatim, never paraphrased</p>
+              <div style="margin-top: 14px; border: 1px solid var(--rule)">
+                <sc-for list="{{ glossary }}" as="gl" hint-placeholder-count="5">
+                  <div style="{{ gl.style }}">
+                    <div style="display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 16px; align-items: baseline">
+                      <p style="margin: 0; font-size: 13px; font-weight: 600; line-height: 1.3">{{ gl.k }}</p>
+                      <p style="margin: 0; font-size: 12.5px; line-height: 1.6; color: var(--n700)">{{ gl.v }}</p>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <p style="margin: 14px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--n700)">Eleven entries in total, versioned with the ruleset and reviewed by whoever owns the regulatory method. They are the same words the report, the coverage page and the terms use, which is the point.</p>
+            </div>
+          </div>
+
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper)">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div style="padding: 14px 17px; border-bottom: 1px solid var(--ink); display: flex; align-items: baseline; gap: 12px">
+              <div>
+                <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent)">Compliance Worker</p>
+                <p style="margin: 5px 0 0; font-size: 15px; font-weight: 600">Adult dog · dry · EU · France</p>
+              </div>
+              <div style="flex: 1"></div>
+              <span style="font-family: var(--mono); font-size: 13px; color: var(--n500)">×</span>
+            </div>
+
+            <div style="padding: 14px 17px; border-bottom: 1px solid var(--n200); background: var(--panel)">
+              <p style="margin: 0; font-family: var(--mono); font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600)">Suggested, from what is on screen</p>
+              <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 7px">
+                <sc-for list="{{ suggested }}" as="sg" hint-placeholder-count="3">
+                  <span style="border: 1px solid var(--n400); background: var(--paper); border-radius: 3px; padding: 8px 11px; font-size: 12.5px; color: var(--n800)">{{ sg }}</span>
+                </sc-for>
+              </div>
+            </div>
+
+            <sc-for list="{{ thread }}" as="th" hint-placeholder-count="4">
+              <div style="{{ th.style }}">
+                <div style="display: flex; align-items: baseline; gap: 9px">
+                  <span style="font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; color: {{ th.whoColor }}">{{ th.who }}</span>
+                  <div style="flex: 1"></div>
+                  <sc-if value="{{ th.hasMark }}">
+                    <span style="{{ th.markStyle }}">{{ th.mark }}</span>
+                  </sc-if>
+                </div>
+                <p style="margin: 7px 0 0; font-size: 13px; line-height: 1.6; color: {{ th.textColor }}">{{ th.text }}</p>
+                <sc-if value="{{ th.hasCite }}">
+                  <p style="margin: 8px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.04em; color: var(--n600)">{{ th.cite }}</p>
+                </sc-if>
+              </div>
+            </sc-for>
+
+            <div style="padding: 13px 17px; border-top: 1px solid var(--ink)">
+              <div style="border: 1px solid var(--n400); border-radius: 3px; padding: 10px 12px; display: flex; align-items: center; gap: 9px">
+                <span style="flex: 1; font-size: 13px; color: var(--n500)">Ask about this report…</span>
+                <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--accent-700)">SEND</span>
+              </div>
+              <p style="margin: 9px 0 0; font-size: 11.5px; line-height: 1.5; color: var(--n600)">Every answer carries a mark: a rule we hold, a judgement, or an authored definition. It proposes actions and never signs anything.</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px">
+          <sc-for list="{{ helpRules }}" as="hr" hint-placeholder-count="3">
+            <div class="blueprint" style="{{ hr.style }}">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600; line-height: 1.25">{{ hr.k }}</p>
+              <p style="margin: 7px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ hr.v }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1300,&quot;height&quot;:960}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)", n500: "var(--n500)", n600: "var(--n600)", n700: "var(--n700)", ink: "var(--ink)" };
+
+const GL = {
+  clear: "width: 12px; height: 12px; flex: none; background: var(--clear)",
+  action: "width: 0; height: 0; flex: none; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 12px solid var(--action)",
+  none: "width: 12px; height: 12px; flex: none; border: 2px solid var(--none); border-radius: 50%",
+  blocked: "width: 12px; height: 12px; flex: none; background: var(--blocked); box-shadow: inset 0 4px 0 var(--paper), inset 0 -4px 0 var(--blocked)",
+};
+
+const SCREENS = {
+  alerts: ["Alerts", "Notification inbox", "Where monitoring lands in the product", ["12 UNREAD", C.action]],
+  horizon: ["Horizon", "Horizon", "Everything coming, with your recipes against it", ["1 SELL-THROUGH DEADLINE", C.blocked]],
+  scale: ["Portfolio at scale", "Portfolio at scale", "312 recipes, 27 markets", ["41 MATCHES", C.n600]],
+  bulk: ["Bulk re-check", "Bulk re-check", "One ruleset move, thirty-eight recipes", ["38 SELECTED", C.accent]],
+  help: ["Help, in the Worker", "Help lives in the Worker", "No second surface — one panel, with an authored glossary", ["11 DEFINITIONS", C.accent]],
+};
+const ORDER = ["alerts", "horizon", "scale", "bulk", "help"];
+const BADGE = { alerts: ["12", C.action], horizon: ["6", C.blocked], scale: ["312", C.n600], bulk: ["38", C.accent], help: ["", C.n600] };
+
+class Component extends DCLogic {
+  state = { screen: "alerts" };
+  go(s) { return () => this.setState({ screen: s }); }
+
+  renderVals() {
+    const s = this.state.screen;
+    const d = SCREENS[s] || SCREENS.alerts;
+
+    const pill = (k, on, color) =>
+      "border: 1px solid " + (on ? color : "var(--n400)") + "; background: " + (on ? "var(--accent-100)" : "var(--paper)") +
+      "; color: " + (on ? "var(--accent-700)" : "var(--n700)") + "; border-radius: 3px; padding: 7px 12px; font-size: 12px; font-weight: " + (on ? "600" : "400");
+
+    return {
+      isAlerts: s === "alerts", isHorizon: s === "horizon", isScale: s === "scale", isBulk: s === "bulk", isHelp: s === "help",
+      kicker: d[2], title: d[1],
+      chip: d[3][0],
+      chipStyle: "font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; white-space: nowrap; border: 1px solid " + d[3][1] + "; color: " + d[3][1] + "; padding: 5px 9px",
+
+      nav: ORDER.map((id, i) => ({
+        k: (i + 1 < 10 ? "0" : "") + (i + 1) + " · " + SCREENS[id][0],
+        badge: BADGE[id][0], badgeColor: BADGE[id][1],
+        go: this.go(id),
+        style: "display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: none; border-left: 2px solid " + (s === id ? "var(--accent)" : "transparent") +
+          "; background: " + (s === id ? "var(--accent-100)" : "transparent") + "; padding: 9px 8px; font-size: 13px; font-weight: " + (s === id ? "600" : "400") + "; cursor: pointer",
+      })),
+
+      // ── alerts ──
+      alertTabs: [["All", true], ["In force", false], ["Coming", false], ["Documents", false]].map(([k, on]) => ({ k, style: pill(k, on, "var(--accent)") })),
+      alerts: [
+        { g: "blocked", state: "IN FORCE", stateColor: C.blocked, when: "2 DAYS AGO", effective: "APPLIES NOW",
+          effColor: C.blocked, k: "Ethoxyquin authorisation withdrawn for all species",
+          v: "Placing on the market ends 1 April 2027 with sell-through to 1 October. Reformulation is required — this cannot be resolved on the label.",
+          affects: ["Working dog high energy", "Senior salmon dry"], cite: "REG (EU) 2027/118 · ART. 2", unread: true },
+        { g: "action", state: "COMING", stateColor: C.action, when: "5 DAYS AGO", effective: "IN FORCE 1 JAN 2027",
+          effColor: C.action, k: "Prescribed wording for complete feed changes in France",
+          v: "The designation phrase gains a species qualifier. A wording change on the French panel, and the character height is unaffected.",
+          affects: ["Puppy complete wet", "Adult cat wet"], cite: "JORF · ARRÊTÉ DU 12 AOÛT 2026", unread: true },
+        { g: "action", state: "DRAFT", stateColor: C.none, when: "1 WEEK AGO", effective: "NO DATE YET",
+          effColor: C.none, k: "Draft revision to analytical constituent tolerances under discussion",
+          v: "A comitology draft, not law. Two of your recipes declare values near a band edge and would be affected if it passes as drafted.",
+          affects: ["Adult dog complete dry", "Grain free adult"], cite: "COMMISSION DRAFT · SANTE/2026/4471", unread: true },
+        { g: "action", state: "IN FORCE", stateColor: C.blocked, when: "2 WEEKS AGO", effective: "APPLIED 1 SEP 2026",
+          effColor: C.n600, k: "Texas registration fee increased and the form changed",
+          v: "The obligation register is updated. Your outstanding Texas registration now uses the revised form and the fee is $120.",
+          affects: ["Adult dog complete dry"], cite: "TX FEED & FERTILIZER · SEP 2026", unread: false },
+        { g: "none", state: "DOCUMENT", stateColor: C.none, when: "3 WEEKS AGO", effective: "EXPIRES IN 7 DAYS",
+          effColor: C.action, k: "Premix specification PMX-118 is about to expire",
+          v: "Nordwild Feeds has not returned the current version. Three recipes rely on it, and a lapse does not invalidate checks made while it was current.",
+          affects: ["3 recipes"], cite: "SUPPLIER DOCUMENT", unread: false },
+      ].map((a, i, arr) => ({
+        k: a.k, v: a.v, when: a.when, effective: a.effective, effColor: a.effColor, affects: a.affects, cite: a.cite, state: a.state,
+        glyph: GL[a.g],
+        stateStyle: "font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.07em; border: 1px solid " + a.stateColor + "; color: " + a.stateColor + "; background: var(--paper); padding: 3px 7px",
+        style: "padding: 16px 18px; border-bottom: " + (i < arr.length - 1 ? "1px solid var(--n200)" : "none") +
+          "; background: " + (a.unread ? "var(--paper)" : "var(--panel)") + "; border-left: 3px solid " + (a.unread ? "var(--accent)" : "transparent"),
+      })),
+      alertRules: [
+        { k: "Editorial changes never appear here", v: "A corrected typo in an instrument is content operations, not an event. If they appeared, nobody would read the inbox.", bar: C.blocked },
+        { k: "An alert names recipes or it is not sent", v: "A change with no impact on this portfolio is recorded in the ruleset history and shown nowhere else.", bar: C.accent },
+        { k: "Unread state is per person", v: "Reading an alert does not mark it read for a colleague. Two people are responsible for different markets.", bar: C.none },
+        { k: "Nothing here is a paywall", v: "An alert for a region the plan does not hold still says a change exists and which recipes it would affect. It just cannot open the finding.", bar: C.clear },
+      ],
+
+      // ── horizon ──
+      horizon: [
+        { date: "1 JAN 2027", stage: "ADOPTED", stageColor: C.action, k: "France · prescribed wording gains a species qualifier",
+          v: "A wording change on the French panel. No effect on geometry.", cite: "JORF · ARRÊTÉ DU 12 AOÛT 2026", impact: "2", impactLabel: "recipes affected", impactColor: C.action, dateColor: C.ink },
+        { date: "1 APR 2027", stage: "ADOPTED", stageColor: C.blocked, k: "Ethoxyquin · placing on the market prohibited",
+          v: "Reformulation required. Sell-through of existing stock permitted to 1 October 2027.", cite: "REG (EU) 2027/118 · ART. 2", impact: "2", impactLabel: "recipes to reformulate", impactColor: C.blocked, dateColor: C.blocked },
+        { date: "1 JUL 2027", stage: "ADOPTED", stageColor: C.action, k: "Great Britain · claim wording diverges from retained law",
+          v: "Four wordings we currently treat as EU-aligned become GB-specific.", cite: "GB CONSULTATION OUTCOME · JUL 2026", impact: "6", impactLabel: "recipes affected", impactColor: C.action, dateColor: C.ink },
+        { date: "1 OCT 2027", stage: "ADOPTED", stageColor: C.blocked, k: "Ethoxyquin · sell-through of existing stock ends",
+          v: "After this date the product cannot lawfully be sold, whatever the label says.", cite: "REG (EU) 2027/118 · ART. 3", impact: "2", impactLabel: "recipes blocked", impactColor: C.blocked, dateColor: C.blocked },
+        { date: "JAN 2028", stage: "AAFCO AGENDA", stageColor: C.none, k: "US · Pet Food Label Modernization on the committee agenda",
+          v: "Not adopted anywhere yet. If it passes, state adoption is staggered and we will track it state by state.", cite: "AAFCO COMMITTEE · PROPOSED", impact: "312", impactLabel: "whole portfolio, if adopted", impactColor: C.none, dateColor: C.n600 },
+        { date: "NO DATE", stage: "DRAFT", stageColor: C.none, k: "EU · analytical constituent tolerance bands under revision",
+          v: "A comitology draft. Carries no countdown because a proposal that fails would make one a lie.", cite: "COMMISSION DRAFT · SANTE/2026/4471", impact: "2", impactLabel: "recipes near a band edge", impactColor: C.none, dateColor: C.n600 },
+      ].map((h, i, a) => Object.assign({}, h, {
+        style: "padding: 15px 18px; border-bottom: " + (i < a.length - 1 ? "1px solid var(--n200)" : "none") + "; background: " + (i % 2 ? "var(--panel)" : "transparent"),
+      })),
+      watching: [
+        { k: "Commission proposals and comitology drafts", v: "EU" },
+        { k: "EFSA opinions on additive re-authorisation", v: "EU" },
+        { k: "National gazettes", v: "27 STATES" },
+        { k: "GB consultations and NI alignment notices", v: "UK" },
+        { k: "Federal Register, CVM guidance", v: "US" },
+        { k: "AAFCO committee agendas", v: "US · ANNUAL" },
+        { k: "State bills in session", v: "50 STATES" },
+      ],
+
+      // ── scale ──
+      filters: [["State: any", false], ["Region: EU", true], ["Freshness: stale", false], ["Open actions > 0", true]].map(([k, on]) => ({ k, style: pill(k, on, "var(--accent)") })),
+      views: [["Everything", false], ["Blocked or stale", true], ["My markets", false], ["Awaiting a supplier", false], ["Ready to print", false]].map(([k, on]) => ({ k, style: pill(k, on, "var(--accent)") })),
+      boardHead: ["Recipe", "EU · DE", "EU · FR", "EU · NL", "US · TX", "Freshness"],
+      boardRows: [
+        { k: "Adult dog · complete dry · chicken", sub: "4 pack sizes · family ADC", cells: [["clear", "0"], ["action", "1"], ["clear", "0"], ["blocked", "1"]], fresh: "STALE", freshColor: C.action },
+        { k: "Adult dog · complete dry · chicken · light", sub: "2 pack sizes · family ADC", cells: [["clear", "0"], ["action", "1"], ["clear", "0"], ["none", "—"]], fresh: "CURRENT", freshColor: C.clear },
+        { k: "Puppy · complete wet · chicken", sub: "3 pack sizes · family PCW", cells: [["clear", "0"], ["action", "2"], ["clear", "0"], ["none", "—"]], fresh: "CURRENT", freshColor: C.clear },
+        { k: "Working dog · high energy · chicken", sub: "2 pack sizes · family WDH", cells: [["blocked", "1"], ["clear", "0"], ["clear", "0"], ["none", "—"]], fresh: "STALE", freshColor: C.action },
+        { k: "Adult cat · complete dry · chicken", sub: "5 pack sizes · family ACD", cells: [["clear", "0"], ["clear", "0"], ["clear", "0"], ["clear", "0"]], fresh: "CURRENT", freshColor: C.clear },
+        { k: "Senior dog · complete dry · chicken", sub: "3 pack sizes · family SDC", cells: [["action", "1"], ["action", "1"], ["none", "—"], ["none", "—"]], fresh: "CURRENT", freshColor: C.clear },
+        { k: "Grain free · adult · chicken", sub: "4 pack sizes · family GFA", cells: [["clear", "0"], ["clear", "0"], ["action", "1"], ["none", "—"]], fresh: "STALE", freshColor: C.action },
+      ].map((r, i, a) => ({
+        k: r.k, sub: r.sub, fresh: r.fresh, freshColor: r.freshColor,
+        cells: r.cells.map(([g, n]) => ({ glyph: GL[g], n })),
+        style: "display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(4, 96px) 118px; border-bottom: " +
+          (i < a.length - 1 ? "1px solid var(--n200)" : "none") + "; background: " + (i % 2 ? "var(--panel)" : "transparent"),
+      })),
+      scaleNotes: [
+        { k: "Search is the primary navigation at this size", v: "Nobody scrolls three hundred rows. The search field is focused on load, matches recipe name, family, market and rule id, and the count updates as you type.", bar: C.accent },
+        { k: "Four market columns, grouped, not twenty-seven", v: "Columns are chosen by the view rather than by the subscription. A grouped header keeps EU · DE next to EU · FR so a region reads as a block.", bar: C.accent },
+        { k: "A saved view is a shared object", v: "\"Blocked or stale\" is the view a portfolio manager opens every morning. Saving it for the workspace means two people are looking at the same list.", bar: C.clear },
+      ].map(n => ({
+        k: n.k, v: n.v,
+        style: "position: relative; border: 1px solid var(--ink); border-top: 4px solid " + n.bar + "; background: var(--paper); padding: 18px 20px",
+      })),
+
+      // ── bulk ──
+      bulkRows: [
+        { on: true, k: "Adult dog · complete dry · chicken", sub: "Applied rule EU-767-ART17-TOLERANCE", markets: "EU · DE, FR", state: "QUEUED", stateColor: C.n600 },
+        { on: true, k: "Grain free · adult · chicken", sub: "Applied rule EU-767-ART17-TOLERANCE", markets: "EU · NL", state: "RUNNING", stateColor: C.accent },
+        { on: true, k: "Puppy · complete wet · chicken", sub: "Applied rule EU-767-ART17-TOLERANCE", markets: "EU · DE, FR, BE", state: "DONE · CLEAR", stateColor: C.clear },
+        { on: true, k: "Senior dog · complete dry · salmon", sub: "Applied rule EU-767-ART17-TOLERANCE", markets: "EU · DE", state: "DONE · 1 OPEN", stateColor: C.action },
+        { on: false, k: "Ocean fish adult 2 kg", sub: "Discontinued 30 Jun 2026", markets: "—", state: "EXCLUDED", stateColor: C.n500 },
+        { on: false, k: "Lamb & rice puppy 12 kg", sub: "Discontinued 18 May 2026", markets: "—", state: "EXCLUDED", stateColor: C.n500 },
+      ].map((b, i, a) => ({
+        k: b.k, sub: b.sub, markets: b.markets, state: b.state, stateColor: b.stateColor,
+        box: b.on
+          ? "width: 15px; height: 15px; flex: none; border: 1px solid var(--accent); background: var(--accent); box-shadow: inset 0 0 0 3px var(--paper), inset 0 0 0 9px var(--accent)"
+          : "width: 15px; height: 15px; flex: none; border: 1px solid var(--n400); background: var(--paper)",
+        style: "padding: 12px 18px; border-bottom: " + (i < a.length - 1 ? "1px solid var(--n200)" : "none") +
+          "; background: " + (b.on ? "transparent" : "var(--panel)") + "; opacity: " + (b.on ? "1" : "0.62"),
+      })),
+      progress: [
+        { k: "Recipes re-checked", v: "11 of 38", color: C.accent, pct: 29 },
+        { k: "Rule evaluations", v: "17 of 58", color: C.accent, pct: 29 },
+        { k: "Certificates marked superseded", v: "2", color: C.action, pct: 100 },
+      ].map(p => Object.assign({}, p, {
+        bar: "height: 6px; width: " + p.pct + "%; background: " + p.color,
+      })),
+
+      // ── help ──
+      helpTriggers: [
+        { k: "Any state name, anywhere", tag: "DEFINITION", bar: C.accent, v: "Clear, Action needed, Not assessed and Blocked are all clickable wherever they appear. Opens the Worker with the authored definition already answered." },
+        { k: "A Not assessed finding", tag: "CONTEXTUAL", bar: C.clear, v: "Pre-fills \u201cwhy is this not assessed?\u201d. The Worker answers from the record — which rule, which market, which gap — rather than explaining the concept." },
+        { k: "A measured character height", tag: "CONTEXTUAL", bar: C.clear, v: "Pre-fills a question about the measurement. The answer says what was measured, which definition this market uses, and why both x-height and cap-height are reported." },
+        { k: "The ? in the header, on any screen", tag: "ORIENTATION", bar: C.none, v: "For somebody who does not know what to ask at all. Opens the Worker with three suggested questions about the screen they are on." },
+      ],
+      glossary: [
+        { k: "Not assessed", v: "Nothing was checked for this point. It does not mean it passed. Either no rule is held for it in this market, or the text could not be read from the artwork." },
+        { k: "Blocked", v: "The product cannot lawfully be sold in this market. Most often because it is not registered, which is separate from whether the label is correct." },
+        { k: "Ruleset version", v: "The state of the rules at the moment a check ran. Every report is pinned to one, so a later change never alters an answer already sent." },
+        { k: "Provenance", v: "Whether an answer came from a rule we hold, from a judgement about wording, or from nothing because the point was not assessed." },
+        { k: "Superseded", v: "A rule the document relied on has materially changed since it was issued. The document remains genuine; it is no longer current." },
+      ].map((g, i, a) => Object.assign({}, g, {
+        style: "padding: 12px 14px; border-bottom: " + (i < a.length - 1 ? "1px solid var(--n200)" : "none") + "; background: " + (i % 2 ? "var(--panel)" : "transparent"),
+      })),
+      suggested: [
+        "Why is the regional claim wording not assessed?",
+        "What does Not assessed mean?",
+        "Which findings would stop me printing this?",
+      ],
+      thread: [
+        { who: "YOU", whoColor: C.n600, text: "What does Not assessed mean?", textColor: C.ink, mark: "", cite: "" },
+        { who: "WORKER", whoColor: C.accent, mark: "AUTHORED DEFINITION", markColor: C.accent,
+          text: "Nothing was checked for this point. It does not mean it passed. Either no rule is held for it in this market, or the text could not be read from the artwork.",
+          cite: "GLOSSARY V2026.08 · RETURNED VERBATIM" },
+        { who: "YOU", whoColor: C.n600, text: "Why is the regional claim wording not assessed here?", textColor: C.ink, mark: "", cite: "" },
+        { who: "WORKER", whoColor: C.accent, mark: "FROM THE RECORD", markColor: C.clear,
+          text: "France is a partial node. Regional claim wording is not encoded for it, so the check withheld rather than guessing. The gap is recorded and dated, and it is the only withheld item on this report.",
+          cite: "COVERAGE NTV-FR-02 · LAST CHECKED 14 AUG 2026" },
+        { who: "WORKER", whoColor: C.accent, mark: "PROPOSES AN ACTION", markColor: C.action,
+          text: "If that wording matters commercially, I can draft the question to send to a French consultant with the label extract and the article attached. You would send it, not me.",
+          cite: "" },
+      ].map((t, i, a) => ({
+        who: t.who, whoColor: t.whoColor, text: t.text, cite: t.cite || "",
+        hasCite: !!t.cite, hasMark: !!t.mark, mark: t.mark || "",
+        textColor: t.who === "YOU" ? "var(--ink)" : "var(--n800)",
+        markStyle: t.mark
+          ? "font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.07em; border: 1px solid " + t.markColor + "; color: " + t.markColor + "; background: var(--paper); padding: 3px 7px; white-space: nowrap"
+          : "display: none",
+        style: "padding: 13px 17px; border-bottom: " + (i < a.length - 1 ? "1px solid var(--n200)" : "none") +
+          "; background: " + (t.who === "YOU" ? "var(--panel)" : "transparent"),
+      })),
+      helpRules: [
+        { k: "A definition is never generated", v: "The eleven glossary entries are returned word for word and marked as authored. Everything the product says about its own vocabulary has to be identical in the report, the coverage page, the terms and the Worker.", bar: C.accent },
+        { k: "No second surface to maintain", v: "One panel, one place to ask, one thing to teach a new user. A separate help centre would drift out of step with the product within a quarter, and nobody would notice.", bar: C.clear },
+        { k: "A blank box is not a help surface", v: "Every entry point pre-fills a question about the thing the person is looking at. Somebody confused should never have to work out the phrasing before they can get an answer.", bar: C.none },
+      ].map(h => ({
+        k: h.k, v: h.v,
+        style: "position: relative; border: 1px solid var(--ink); border-top: 4px solid " + h.bar + "; background: var(--paper); padding: 18px 20px",
+      })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

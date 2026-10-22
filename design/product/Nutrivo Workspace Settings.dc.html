@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--panel); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  button { font: inherit; color: inherit; }
+  input, select { font: inherit; color: inherit; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ntv-in { width: 100%; box-sizing: border-box; border: 1px solid var(--n400); border-radius: 3px; padding: 10px 12px; font-size: 13.5px; background: var(--paper); }
+  @keyframes ntv-slide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+
+<div style="min-width: 1200px; min-height: 920px; display: grid; grid-template-columns: 216px minmax(0, 1fr); background: var(--panel); font-size: 14px">
+
+  <nav style="border-right: 1px solid var(--rule); background: var(--paper); padding-bottom: 30px">
+    <div style="padding: 16px 18px; border-bottom: 1px solid var(--ink)">
+      <p style="margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 20px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 6px; height: 6px; background: var(--accent); margin-bottom: 2px; flex-shrink: 0"></span></p>
+      <p style="margin: 4px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">Settings</p>
+    </div>
+    <div style="padding: 14px 10px 0">
+      <p style="margin: 0 0 6px; padding: 0 8px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">Workspace</p>
+      <div style="display: flex; flex-direction: column; gap: 1px; margin-bottom: 16px">
+        <sc-for list="{{ nav }}" as="n" hint-placeholder-count="4">
+          <button type="button" onClick="{{ n.go }}" style="{{ n.style }}" style-hover="background: var(--accent-100)">
+            <span style="flex: 1; text-align: left">{{ n.k }}</span>
+            <span style="font-family: var(--mono); font-size: 10px; color: var(--n500)">{{ n.badge }}</span>
+          </button>
+        </sc-for>
+      </div>
+      <p style="margin: 0 0 6px; padding: 0 8px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--n600)">Billing</p>
+      <div style="display: flex; flex-direction: column; gap: 1px; margin-bottom: 16px">
+        <sc-for list="{{ navBilling }}" as="nb" hint-placeholder-count="4">
+          <div style="padding: 8px; font-size: 13px; color: var(--n600)">{{ nb }}</div>
+        </sc-for>
+      </div>
+      <p style="margin: 0 0 6px; padding: 0 8px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--n600)">You</p>
+      <div style="display: flex; flex-direction: column; gap: 1px">
+        <sc-for list="{{ navAccount }}" as="na" hint-placeholder-count="1">
+          <button type="button" onClick="{{ na.go }}" style="{{ na.style }}" style-hover="background: var(--accent-100)">{{ na.k }}</button>
+        </sc-for>
+      </div>
+    </div>
+  </nav>
+
+  <div style="min-width: 0; display: flex; flex-direction: column">
+    <header style="display: flex; align-items: center; gap: 18px; border-bottom: 1px solid var(--ink); background: var(--paper); padding: 13px 28px">
+      <div style="flex: 1; min-width: 0">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.11em; text-transform: uppercase; color: var(--accent)">Halden Pet Nutrition</p>
+        <h1 style="margin: 3px 0 0; font-size: 21px; font-weight: 600; line-height: 1.1">{{ title }}</h1>
+      </div>
+      <span style="{{ chipStyle }}">{{ chip }}</span>
+    </header>
+
+    <div style="flex: 1; padding: 26px 28px 60px">
+
+      <!-- ═══ PEOPLE ═══ -->
+      <sc-if value="{{ isPeople }}" hint-placeholder-val="{{ true }}">
+      <div data-screen-label="People and roles" style="animation: ntv-slide 240ms ease-out both">
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper)">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 20px; border-bottom: 1px solid var(--ink)">
+            <div>
+              <p style="margin: 0; font-size: 16px; font-weight: 600">People in this workspace</p>
+              <p style="margin: 4px 0 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600)">4 OF 5 EDITOR SEATS USED · 2 VIEWERS, FREE · 2 EXTERNAL</p>
+            </div>
+            <button type="button" style="background: var(--accent); color: #ffffff; border: none; border-radius: 3px; padding: 10px 18px; font-size: 13.5px; font-weight: 500; cursor: pointer" style-hover="background: var(--accent-600)">Invite a person</button>
+          </div>
+          <div style="display: grid; grid-template-columns: minmax(0, 1.3fr) 156px minmax(0, 1fr) 118px 96px; background: var(--panel); border-bottom: 1px solid var(--ink)">
+            <sc-for list="{{ peopleHead }}" as="ph" hint-placeholder-count="5">
+              <p style="margin: 0; padding: 10px 15px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">{{ ph }}</p>
+            </sc-for>
+          </div>
+          <sc-for list="{{ people }}" as="p" hint-placeholder-count="5">
+            <div style="{{ p.style }}">
+              <div style="padding: 12px 15px">
+                <p style="margin: 0; font-size: 13.5px; font-weight: 500">{{ p.name }}<span style="{{ p.extStyle }}">EXTERNAL</span></p>
+                <p style="margin: 3px 0 0; font-size: 11.5px; color: var(--n600)">{{ p.email }}</p>
+              </div>
+              <p style="margin: 0; padding: 12px 15px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em">{{ p.role }}</p>
+              <p style="margin: 0; padding: 12px 15px; font-size: 12.5px; line-height: 1.45; color: var(--n700)">{{ p.scope }}</p>
+              <p style="margin: 0; padding: 12px 15px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: {{ p.costColor }}">{{ p.cost }}</p>
+              <p style="margin: 0; padding: 12px 15px; font-size: 11.5px; color: var(--n600)">{{ p.last }}</p>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top: 20px; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 20px; align-items: start">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">Four roles</p>
+            <div style="margin-top: 13px; display: flex; flex-direction: column; gap: 9px">
+              <sc-for list="{{ roles }}" as="r" hint-placeholder-count="4">
+                <div style="display: grid; grid-template-columns: 128px minmax(0, 1fr) 66px; gap: 12px; align-items: baseline; border-bottom: 1px solid var(--n200); padding-bottom: 9px">
+                  <span style="font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em">{{ r.k }}</span>
+                  <span style="font-size: 12.5px; line-height: 1.45; color: var(--n700)">{{ r.v }}</span>
+                  <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; text-align: right; color: {{ r.color }}">{{ r.cost }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <p style="margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--ink); font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">And one flag: external</p>
+            <p style="margin: 9px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">A consultant is not a fifth role. They are an editor or a viewer, scoped, marked external. Being outside your company is a fact about the person, not a set of permissions, and it changes four things.</p>
+            <div style="margin-top: 13px; display: flex; flex-direction: column; gap: 9px">
+              <sc-for list="{{ external }}" as="ex" hint-placeholder-count="4">
+                <div style="border-left: 3px solid var(--accent); padding-left: 13px">
+                  <p style="margin: 0; font-size: 13px; font-weight: 600">{{ ex.k }}</p>
+                  <p style="margin: 4px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--n700)">{{ ex.v }}</p>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--clear); background: var(--paper); padding: 18px 20px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600">A supplier is not a person here at all</p>
+              <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700)">Suppliers and contract manufacturers get a scoped upload link with no account, so they are not on this screen and not marked external. You are never charged for their access, and they never see anything but the request.</p>
+            </div>
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--blocked); background: var(--paper); padding: 18px 20px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600">Signer is not a role either</p>
+              <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700)">Signing authority attaches to a named person for named markets and is granted on its own screen. Changing somebody's role never grants or removes it, and an external person is never offered it.</p>
+            </div>
+            <div class="blueprint" style="position: relative; border: 1px solid var(--rule); background: var(--paper); padding: 18px 20px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 13px; font-weight: 600">Removing somebody</p>
+              <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">Their access ends immediately. Their name stays on every check they ran and every document they signed, because the history is append-only and a record with a hole in it is not a record.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ═══ SIGNING ═══ -->
+      <sc-if value="{{ isSigning }}">
+      <div data-screen-label="Signing authority" style="animation: ntv-slide 240ms ease-out both">
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--blocked); background: var(--blocked-bg); padding: 18px 22px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="display: flex; align-items: center; gap: 14px">
+            <span style="width: 12px; height: 12px; flex: none; background: var(--blocked); box-shadow: inset 0 4px 0 var(--blocked-bg), inset 0 -4px 0 var(--blocked)"></span>
+            <div style="flex: 1">
+              <p style="margin: 0; font-size: 15px; font-weight: 600">Nobody holds signing authority for US · Texas</p>
+              <p style="margin: 5px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700)">A Certificate of Check cannot be issued for a market without a named signatory, so the Texas registration evidence pack cannot be signed. Reports of Check are unaffected — they are attested by nobody by design.</p>
+            </div>
+            <button type="button" style="flex: none; background: var(--accent); color: #ffffff; border: none; border-radius: 3px; padding: 10px 16px; font-size: 13px; font-weight: 500; cursor: pointer" style-hover="background: var(--accent-600)">Grant Texas authority</button>
+          </div>
+        </div>
+
+        <div style="margin-top: 20px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr); gap: 20px; align-items: start">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper)">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--ink)">
+              <p style="margin: 0; font-size: 16px; font-weight: 600">Grants</p>
+              <p style="margin: 4px 0 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600)">A GRANT IS A ROW, NOT A JOB TITLE</p>
+            </div>
+            <sc-for list="{{ grants }}" as="g" hint-placeholder-count="4">
+              <div style="{{ g.style }}">
+                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px">
+                  <div>
+                    <p style="margin: 0; font-size: 14px; font-weight: 600">{{ g.name }}</p>
+                    <p style="margin: 3px 0 0; font-size: 12px; color: var(--n600)">{{ g.role }}</p>
+                  </div>
+                  <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600); white-space: nowrap">{{ g.granted }}</p>
+                </div>
+                <div style="margin-top: 11px; display: flex; flex-wrap: wrap; gap: 6px">
+                  <sc-for list="{{ g.markets }}" as="m" hint-placeholder-count="4">
+                    <span style="{{ m.style }}">{{ m.k }}</span>
+                  </sc-for>
+                </div>
+                <p style="margin: 10px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--n700)">{{ g.note }}</p>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">What a signature adds</p>
+              <div style="margin-top: 13px; display: flex; flex-direction: column; gap: 12px">
+                <sc-for list="{{ artefacts }}" as="a" hint-placeholder-count="2">
+                  <div style="border-left: 3px solid {{ a.bar }}; padding-left: 13px">
+                    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+                      <p style="margin: 0; font-size: 13.5px; font-weight: 600">{{ a.k }}</p>
+                      <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; color: {{ a.tagColor }}; white-space: nowrap">{{ a.tag }}</span>
+                    </div>
+                    <p style="margin: 5px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">{{ a.v }}</p>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--none); background: var(--paper); padding: 18px 20px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600">The wording we have earned</p>
+              <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700)">A Certificate of Check is an internal attestation by a named person in your own company. It is not a qualified electronic signature and it makes no claim under eIDAS. An artefact that looks like a certificate and is not one is worse than no artefact.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ═══ WORKSPACE ═══ -->
+      <sc-if value="{{ isWorkspace }}">
+      <div data-screen-label="Workspace" style="animation: ntv-slide 240ms ease-out both">
+        <div style="display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr); gap: 20px; align-items: start">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 22px 24px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">This workspace</p>
+            <h2 style="margin: 8px 0 0; font-size: 21px; font-weight: 600; line-height: 1.15">Name, defaults and language</h2>
+            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 15px">
+              <div>
+                <label for="w-name" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">Workspace name</label>
+                <input id="w-name" class="ntv-in" type="text" value="Halden Pet Nutrition" />
+              </div>
+              <div style="border-top: 1px solid var(--n200); padding-top: 15px">
+                <div style="display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px">
+                  <label for="w-op" style="font-size: 12.5px; font-weight: 500">Default responsible operator</label>
+                  <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; color: var(--n500)">PRE-FILLS NEW RECIPES</span>
+                </div>
+                <input id="w-op" class="ntv-in" type="text" value="Halden Pet Nutrition AB" />
+                <div style="margin-top: 10px"><input class="ntv-in" type="text" value="Industrivägen 4, 412 63 Göteborg, SE" aria-label="Default operator address" /></div>
+                <p style="margin: 6px 0 0; font-size: 12px; line-height: 1.45; color: var(--n600)">Exactly as printed on the label. Every recipe can override it, and changing it here never alters a recipe that already exists.</p>
+              </div>
+              <div style="border-top: 1px solid var(--n200); padding-top: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px">
+                <div>
+                  <label for="w-region" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">Region</label>
+                  <select id="w-region" class="ntv-in"><option>EU · all 27 member states</option><option>UK · GB and NI</option><option>US · federal and all states</option></select>
+                </div>
+                <div>
+                  <label for="w-lang" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">Interface language</label>
+                  <select id="w-lang" class="ntv-in"><option>English</option><option>Deutsch</option><option>Svenska</option></select>
+                </div>
+              </div>
+              <p style="margin: 0; font-size: 12px; line-height: 1.5; color: var(--n600)">The interface language is not the checking language. A label is always checked in the language it is printed in, whatever this is set to.</p>
+            </div>
+            <button type="button" style="margin-top: 20px; background: var(--accent); color: #ffffff; border: none; border-radius: 3px; padding: 11px 20px; font-size: 14px; font-weight: 500; cursor: pointer" style-hover="background: var(--accent-600)">Save workspace</button>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">Notifications</p>
+              <div style="margin-top: 13px; display: flex; flex-direction: column; gap: 10px">
+                <sc-for list="{{ notifs }}" as="nf" hint-placeholder-count="5">
+                  <div style="display: grid; grid-template-columns: minmax(0, 1fr) 74px; gap: 14px; align-items: center; border-bottom: 1px solid var(--n200); padding-bottom: 9px">
+                    <div>
+                      <p style="margin: 0; font-size: 13px; font-weight: 500">{{ nf.k }}</p>
+                      <p style="margin: 3px 0 0; font-size: 11.5px; line-height: 1.4; color: var(--n600)">{{ nf.v }}</p>
+                    </div>
+                    <span style="{{ nf.style }}">{{ nf.state }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <p style="margin: 13px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">Editorial changes to a ruleset never notify anyone, on any setting. They are content operations, not events.</p>
+            </div>
+
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">Recipes no longer sold</p>
+              <p style="margin: 10px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">Six recipes are discontinued. They are excluded from counts, freshness and monitoring, and they are not deleted, because certificates issued against them still have to resolve.</p>
+              <a href="#disc" style="display: inline-block; margin-top: 11px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em">SEE DISCONTINUED RECIPES</a>
+            </div>
+
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--blocked); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blocked)">Closing this workspace</p>
+              <p style="margin: 10px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">It goes dormant rather than being deleted. Nobody can sign in, nothing new can be checked, and every report already sent stays verifiable — because somebody outside your company may still be holding one.</p>
+              <button type="button" style="margin-top: 13px; background: transparent; border: 1px solid var(--blocked); border-radius: 3px; padding: 9px 15px; font-size: 13px; cursor: pointer; color: var(--blocked)" style-hover="background: var(--blocked-bg)">Close workspace</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ═══ DATA AND RETENTION ═══ -->
+      <sc-if value="{{ isData }}">
+      <div data-screen-label="Data and retention" style="animation: ntv-slide 240ms ease-out both">
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--clear); background: var(--clear-bg); padding: 18px 22px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <p style="margin: 0; font-size: 15px; font-weight: 600">How long we keep things, and why some of it is permanent</p>
+          <p style="margin: 7px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n800); max-width: 106ch">A report you sent may be held by a retailer, an authority or an artwork agency who has no account with us. If our record of it could be deleted, their copy would become unverifiable, so the parts a report was pinned to are kept for good.</p>
+        </div>
+
+        <div style="margin-top: 20px; display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr); gap: 20px; align-items: start">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper)">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--ink)">
+              <p style="margin: 0; font-size: 16px; font-weight: 600">Retention</p>
+              <p style="margin: 4px 0 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600)">STATED PER KIND OF RECORD · NOT ONE BLANKET PERIOD</p>
+            </div>
+            <sc-for list="{{ retention }}" as="rt" hint-placeholder-count="6">
+              <div style="padding: 15px 20px; border-bottom: 1px solid var(--n200)">
+                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px">
+                  <p style="margin: 0; font-size: 14px; font-weight: 600">{{ rt.k }}</p>
+                  <span style="{{ rt.tagStyle }}">{{ rt.tag }}</span>
+                </div>
+                <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">{{ rt.v }}</p>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">Take it with you</p>
+              <div style="margin-top: 13px; display: flex; flex-direction: column; gap: 14px">
+                <sc-for list="{{ exports }}" as="ex" hint-placeholder-count="2">
+                  <div style="border-left: 3px solid var(--accent); padding-left: 13px">
+                    <p style="margin: 0; font-size: 13.5px; font-weight: 600">{{ ex.k }}</p>
+                    <p style="margin: 5px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">{{ ex.v }}</p>
+                    <button type="button" style="margin-top: 10px; background: transparent; border: 1px solid var(--accent); border-radius: 3px; padding: 8px 14px; font-size: 12.5px; cursor: pointer; color: var(--accent-700)" style-hover="background: var(--accent-100)">{{ ex.btn }}</button>
+                  </div>
+                </sc-for>
+              </div>
+              <p style="margin: 15px 0 0; padding-top: 13px; border-top: 1px solid var(--n200); font-size: 12.5px; line-height: 1.5; color: var(--n700)">Your data is yours and exporting it is free on every plan, including the free one. A tool that holds your compliance history hostage is not one you should trust with it.</p>
+            </div>
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--none); background: var(--paper); padding: 18px 20px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600">Where it is held</p>
+              <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">In the EU, in one database, with your workspace separated from every other at the row level rather than by application code. Sub-processors are listed in the terms and we tell you before one changes.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ═══ YOUR ACCOUNT ═══ -->
+      <sc-if value="{{ isAccount }}">
+      <div data-screen-label="Your account" style="animation: ntv-slide 240ms ease-out both">
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 22px 24px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">You</p>
+            <h2 style="margin: 8px 0 0; font-size: 21px; font-weight: 600; line-height: 1.15">Name, sign-in and password</h2>
+            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 15px">
+              <div>
+                <label for="a-name" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">Full name</label>
+                <input id="a-name" class="ntv-in" type="text" value="Johanna Holm" />
+                <p style="margin: 5px 0 0; font-size: 12px; line-height: 1.45; color: var(--n600)">This name appears on every check you run and every certificate you sign, so it should be the name you would use on a document.</p>
+              </div>
+              <div>
+                <label for="a-email" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">Email address</label>
+                <input id="a-email" class="ntv-in" type="email" value="j.holm@haldenpet.com" />
+                <p style="margin: 5px 0 0; font-size: 12px; line-height: 1.45; color: var(--n600)">Changing it sends a confirmation to the new address. The old one keeps working until you confirm, so a typo cannot lock you out.</p>
+              </div>
+              <div style="border-top: 1px solid var(--n200); padding-top: 15px">
+                <label for="a-pw" style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">New password</label>
+                <input id="a-pw" class="ntv-in" type="password" placeholder="At least twelve characters" />
+                <div style="margin-top: 10px"><input class="ntv-in" type="password" placeholder="Type it again" aria-label="Confirm new password" /></div>
+              </div>
+              <div style="border-top: 1px solid var(--n200); padding-top: 15px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px">
+                <div>
+                  <p style="margin: 0; font-size: 13.5px; font-weight: 600">Two-step sign-in</p>
+                  <p style="margin: 5px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">A code from an authenticator app in addition to your password. Required for anybody holding signing authority.</p>
+                </div>
+                <span style="flex: none; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; border: 1px solid var(--clear); background: var(--clear-bg); color: var(--clear); padding: 5px 8px">ON</span>
+              </div>
+            </div>
+            <button type="button" style="margin-top: 20px; background: var(--accent); color: #ffffff; border: none; border-radius: 3px; padding: 11px 20px; font-size: 14px; font-weight: 500; cursor: pointer" style-hover="background: var(--accent-600)">Save changes</button>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 18px">
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">What you get told about</p>
+              <div style="margin-top: 13px; display: flex; flex-direction: column; gap: 10px">
+                <sc-for list="{{ myNotifs }}" as="mn" hint-placeholder-count="4">
+                  <div style="display: grid; grid-template-columns: minmax(0, 1fr) 108px; gap: 14px; align-items: baseline; border-bottom: 1px solid var(--n200); padding-bottom: 9px">
+                    <span style="font-size: 13px">{{ mn.k }}</span>
+                    <span style="{{ mn.style }}">{{ mn.state }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <p style="margin: 13px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">Your own settings, not the workspace's. An admin sets what the workspace sends; you decide which of it reaches you.</p>
+            </div>
+
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">Where you are signed in</p>
+              <div style="margin-top: 13px; display: flex; flex-direction: column; gap: 11px">
+                <sc-for list="{{ sessions }}" as="se" hint-placeholder-count="3">
+                  <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 14px; border-bottom: 1px solid var(--n200); padding-bottom: 10px">
+                    <div>
+                      <p style="margin: 0; font-size: 13px; font-weight: 500">{{ se.k }}</p>
+                      <p style="margin: 3px 0 0; font-size: 11.5px; color: var(--n600)">{{ se.v }}</p>
+                    </div>
+                    <span style="{{ se.tagStyle }}">{{ se.tag }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <button type="button" style="margin-top: 13px; background: transparent; border: 1px solid var(--n400); border-radius: 3px; padding: 9px 15px; font-size: 12.5px; cursor: pointer" style-hover="border-color: var(--accent); color: var(--accent-700)">Sign out everywhere else</button>
+            </div>
+
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--action); background: var(--paper); padding: 18px 20px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600">Leaving this workspace</p>
+              <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">You are the only admin, so somebody else has to be made admin before you can leave. Your name stays on the work you did either way.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ═══ AUDIT ═══ -->
+      <sc-if value="{{ isAudit }}">
+      <div data-screen-label="Audit log" style="animation: ntv-slide 240ms ease-out both">
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--accent); background: var(--accent-100); padding: 18px 22px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <p style="margin: 0; font-size: 15px; font-weight: 600">Nothing on this screen can be edited or deleted, including by us</p>
+          <p style="margin: 7px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n800); max-width: 108ch">The events and certificate tables accept inserts and nothing else. Update and delete are revoked from every application role, and a database trigger rejects them outright. If the application could rewrite this history, a Certificate of Check would be a claim rather than a record.</p>
+        </div>
+
+        <div style="margin-top: 20px; display: flex; gap: 8px; align-items: center">
+          <sc-for list="{{ filters }}" as="f" hint-placeholder-count="5">
+            <span style="{{ f.style }}">{{ f.k }}</span>
+          </sc-for>
+          <div style="flex: 1"></div>
+          <span style="font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600)">2,418 EVENTS · SINCE 4 MAY 2026</span>
+          <span style="border: 1px solid var(--n400); border-radius: 3px; padding: 7px 13px; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em">EXPORT</span>
+        </div>
+
+        <div class="blueprint" style="position: relative; margin-top: 16px; border: 1px solid var(--ink); background: var(--paper)">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="display: grid; grid-template-columns: 148px 128px minmax(0, 1fr) minmax(0, 0.7fr); background: var(--panel); border-bottom: 1px solid var(--ink)">
+            <sc-for list="{{ auditHead }}" as="ah" hint-placeholder-count="4">
+              <p style="margin: 0; padding: 10px 15px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">{{ ah }}</p>
+            </sc-for>
+          </div>
+          <sc-for list="{{ events }}" as="e" hint-placeholder-count="9">
+            <div style="{{ e.style }}">
+              <p style="margin: 0; padding: 11px 15px; font-family: var(--mono); font-size: 11px; color: var(--n700)">{{ e.when }}</p>
+              <p style="margin: 0; padding: 11px 15px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: {{ e.kindColor }}">{{ e.kind }}</p>
+              <p style="margin: 0; padding: 11px 15px; font-size: 12.5px; line-height: 1.45">{{ e.what }}</p>
+              <p style="margin: 0; padding: 11px 15px; font-size: 12px; color: var(--n600)">{{ e.who }}</p>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px">
+          <sc-for list="{{ auditNotes }}" as="an" hint-placeholder-count="3">
+            <div class="blueprint" style="{{ an.style }}">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 13.5px; font-weight: 600; line-height: 1.25">{{ an.k }}</p>
+              <p style="margin: 7px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ an.v }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1260,&quot;height&quot;:940}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)", n600: "var(--n600)", n700: "var(--n700)", ink: "var(--ink)" };
+
+class Component extends DCLogic {
+  state = { screen: "people" };
+  go(s) { return () => this.setState({ screen: s }); }
+
+  renderVals() {
+    const s = this.state.screen;
+    const titles = { people: "People and roles", signing: "Signing authority", workspace: "Workspace", data: "Data and retention", audit: "Audit log", account: "Your account" };
+    const chips = {
+      people: ["4 OF 5 EDITOR SEATS", C.n600],
+      signing: ["TEXAS UNASSIGNED", C.blocked],
+      workspace: ["EU · 27 MARKETS IN REACH", C.n600],
+      data: ["NOTHING IS EVER DELETED", C.clear],
+      audit: ["APPEND-ONLY · INSERTS ONLY", C.accent],
+      account: ["JOHANNA HOLM · ADMIN", C.n600],
+    };
+    const chip = chips[s] || chips.people;
+
+    const pill = (label, color) =>
+      "border: 1px solid " + color + "; color: " + color + "; background: var(--paper); padding: 4px 8px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em";
+
+    return {
+      isPeople: s === "people", isSigning: s === "signing", isWorkspace: s === "workspace",
+      isData: s === "data", isAudit: s === "audit", isAccount: s === "account",
+      title: titles[s] || titles.people,
+      chip: chip[0],
+      chipStyle: "font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; white-space: nowrap; border: 1px solid " + chip[1] + "; color: " + chip[1] + "; padding: 5px 9px",
+
+      nav: [
+        ["people", "People and roles", "6"], ["signing", "Signing authority", "2"],
+        ["workspace", "Workspace", ""], ["data", "Data and retention", ""], ["audit", "Audit log", ""],
+      ].map(([id, k, badge]) => ({
+        k, badge, go: this.go(id),
+        style: "display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: none; border-left: 2px solid " + (s === id ? "var(--accent)" : "transparent") +
+          "; background: " + (s === id ? "var(--accent-100)" : "transparent") + "; padding: 8px; font-size: 13px; font-weight: " + (s === id ? "600" : "400") + "; cursor: pointer",
+      })),
+      navBilling: ["Plan and allowance", "Invoices", "Payment method", "Billing details"],
+      navAccount: [{ k: "Your account", go: this.go("account"), on: s === "account" }].map(a => ({
+        k: a.k, go: a.go,
+        style: "display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; border: none; border-left: 2px solid " + (a.on ? "var(--accent)" : "transparent") +
+          "; background: " + (a.on ? "var(--accent-100)" : "transparent") + "; padding: 8px; font-size: 13px; font-weight: " + (a.on ? "600" : "400") + "; cursor: pointer",
+      })),
+
+      retention: [
+        { k: "Checks, findings and reports", v: "Kept for as long as the workspace exists, and beyond it while any report is still resolvable. A check is an event in an append-only store, so it cannot be edited or removed by anyone including us.", tag: "PERMANENT", color: C.clear },
+        { k: "Certificates of Check", v: "Permanent, in a chain that only accepts inserts. A material ruleset change marks a certificate superseded; it never makes one disappear.", tag: "PERMANENT", color: C.clear },
+        { k: "Artwork files you upload", v: "Held while the recipe is active and for two years after it is discontinued. The extracted text, the geometry and the artwork hash are kept permanently, because that is what a report was pinned to.", tag: "2 YEARS AFTER", color: C.action },
+        { k: "Supplier documents and specifications", v: "Held while the document is current and for six years after its expiry, which is the span most audits reach back over.", tag: "6 YEARS", color: C.n600 },
+        { k: "Recipes marked discontinued", v: "Never deleted. Excluded from counts, freshness and monitoring, and kept resolvable because certificates were issued against them.", tag: "PERMANENT", color: C.clear },
+        { k: "People who have left", v: "Their access ends at once. Their name stays on every check they ran and every document they signed, for the same reason the history is append-only.", tag: "NAME KEPT", color: C.n600 },
+      ].map(r => ({
+        k: r.k, v: r.v, tag: r.tag,
+        tagStyle: "flex: none; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; border: 1px solid " + r.color + "; color: " + r.color + "; background: var(--paper); padding: 4px 7px; white-space: nowrap",
+      })),
+      exports: [
+        { k: "Everything, as files", v: "Recipes, checks, findings, reports, certificates and documents, with the ruleset version on every row. Prepared within a day and downloadable for seven.", btn: "Request a full export" },
+        { k: "The audit stream only", v: "Every event as a file, for an auditor who asked what you knew and when.", btn: "Export events" },
+      ],
+      sessions: [
+        { k: "This browser · Göteborg, SE", v: "Chrome on macOS · signed in 4 Sep, 08:12", tag: "CURRENT", color: C.clear },
+        { k: "iPhone · Göteborg, SE", v: "Safari on iOS · last active 2 Sep", tag: "ACTIVE", color: C.n600 },
+        { k: "Unknown browser · Stockholm, SE", v: "Firefox on Windows · last active 18 Aug", tag: "END IT", color: C.action },
+      ].map(x => ({
+        k: x.k, v: x.v, tag: x.tag,
+        tagStyle: "flex: none; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; border: 1px solid " + x.color + "; color: " + x.color + "; background: var(--paper); padding: 4px 7px; white-space: nowrap",
+      })),
+      myNotifs: [
+        { k: "A rule changed that affects my recipes", state: "EMAIL + IN APP", on: true },
+        { k: "A document I own is expiring", state: "EMAIL + IN APP", on: true },
+        { k: "Somebody verified a report I sent", state: "IN APP ONLY", on: true },
+        { k: "A check I started has finished", state: "OFF", on: false },
+      ].map(n => Object.assign({}, n, {
+        style: "font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.05em; text-align: right; color: " + (n.on ? C.clear : C.n600),
+      })),
+
+      peopleHead: ["Person", "Role", "Scope", "Seat", "Last active"],
+      people: [
+        { name: "Johanna Holm", email: "j.holm@haldenpet.com", role: "Admin", ext: false, /* internal */ scope: "The whole workspace", cost: "SEAT", costColor: C.n600, last: "Just now" },
+        { name: "Marit Feldt", email: "m.feldt@haldenpet.com", role: "Portfolio manager", ext: false, scope: "Every recipe and market", cost: "SEAT", costColor: C.n600, last: "12 min ago" },
+        { name: "Erik Lindqvist", email: "e.lindqvist@haldenpet.com", role: "Editor", ext: false, scope: "Adult dog · complete dry · chicken", cost: "SEAT", costColor: C.n600, last: "Yesterday" },
+        { name: "Katrin Reuter", email: "k.reuter@reglar.eu", role: "Editor", ext: true, scope: "9 recipes · EU markets only · until 31 Dec 2026", cost: "SEAT", costColor: C.n600, last: "5 hours ago" },
+        { name: "Petra Salo", email: "p.salo@haldenpet.com", role: "Viewer", ext: false, scope: "Reads answers and reports", cost: "FREE", costColor: C.clear, last: "3 days ago" },
+        { name: "Anders Kvist", email: "a.kvist@haldenpet.com", role: "Viewer", ext: true, scope: "Adult range only · no end date", cost: "FREE", costColor: C.clear, last: "2 weeks ago" },
+      ].map((p, i, a) => Object.assign({}, p, {
+        extStyle: p.ext
+          ? "margin-left: 7px; border: 1px solid var(--n400); color: var(--n700); background: var(--paper); padding: 2px 5px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em"
+          : "display: none",
+        style: "display: grid; grid-template-columns: minmax(0, 1.3fr) 156px minmax(0, 1fr) 118px 96px; border-bottom: " +
+          (i < a.length - 1 ? "1px solid var(--n200)" : "none") + "; background: " + (i % 2 ? "var(--panel)" : "transparent"),
+      })),
+      roles: [
+        { k: "Admin", v: "Workspace, billing, people, and who holds signing authority.", cost: "SEAT", color: C.n600 },
+        { k: "Portfolio manager", v: "Every recipe and market, and can act on any finding.", cost: "SEAT", color: C.n600 },
+        { k: "Editor", v: "Runs checks and edits recipes in their scope.", cost: "SEAT", color: C.n600 },
+        { k: "Viewer", v: "Reads answers and reports. Changes nothing.", cost: "FREE", color: C.clear },
+      ],
+      external: [
+        { k: "Does not consume a seat differently", v: "An external editor takes an editor seat; an external viewer is free. The flag never changes what somebody costs — the role does that." },
+        { k: "Cannot be granted signing authority", v: "A Certificate of Check is attested by a person inside the company named on the label. The grant screen will not offer an external person." },
+        { k: "Can be given an end date", v: "Access ends on the date without anybody remembering to remove them. Optional, and the default is no end date." },
+        { k: "Reads as external in the audit log", v: "Every event they generate carries the flag, so a reviewer can tell in-house work from delegated work without knowing the names." },
+      ],
+
+      grants: [
+        { name: "Marit Feldt", role: "Portfolio manager", granted: "GRANTED 6 AUG 2026 BY J. HOLM",
+          note: "Has signed four Certificates of Check, all within these markets. A grant cannot be applied retrospectively to a certificate issued before it.",
+          markets: [["EU · DE", C.clear], ["EU · AT", C.clear], ["EU · NL", C.clear], ["EU · BE", C.clear]] },
+        { name: "Johanna Holm", role: "Admin", granted: "GRANTED 4 MAY 2026 AT SETUP",
+          note: "Admin does not imply signing authority. This grant was made explicitly and can be revoked without changing the role.",
+          markets: [["UK · GB", C.clear], ["UK · NI", C.clear]] },
+        { name: "US · Texas", role: "No holder", granted: "NEVER GRANTED",
+          note: "Certificates for this market cannot be issued. The registration evidence pack is otherwise complete and waiting on a signatory.",
+          markets: [["UNASSIGNED", C.blocked]] },
+      ].map((g, i, a) => ({
+        name: g.name, role: g.role, granted: g.granted, note: g.note,
+        markets: g.markets.map(([k, color]) => ({ k, style: pill(k, color) })),
+        style: "padding: 16px 20px; border-bottom: " + (i < a.length - 1 ? "1px solid var(--n200)" : "none"),
+      })),
+      artefacts: [
+        { k: "Report of Check", tag: "EVERY PAID PLAN", tagColor: C.accent, bar: C.accent,
+          v: "Generated and pinned to a ruleset version, an artwork hash and a timestamp. It states on its face that it was generated automatically and attested by nobody. No signature involved, and none needed." },
+        { k: "Certificate of Check", tag: "ADVANCED ONLY", tagColor: C.n600, bar: C.clear,
+          v: "The same content plus a named person who holds authority for that market, entered into an append-only chain. Only offered where there are no open findings, so it can never be screenshotted out of context." },
+      ],
+
+      notifs: [
+        { k: "A rule changed that affects your recipes", v: "Material changes only, batched daily", state: "ON", on: true },
+        { k: "A document is about to expire", v: "At sixty, thirty and seven days", state: "ON", on: true },
+        { k: "A report you sent was verified", v: "When a recipient checks the reference", state: "ON", on: true },
+        { k: "A check finished", v: "Only for checks you started yourself", state: "OFF", on: false },
+        { k: "Weekly portfolio summary", v: "Monday morning, counts only", state: "OFF", on: false },
+      ].map(n => Object.assign({}, n, {
+        style: "font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-align: center; border: 1px solid " + (n.on ? "var(--clear)" : "var(--n400)") +
+          "; background: " + (n.on ? "var(--clear-bg)" : "transparent") + "; color: " + (n.on ? "var(--clear)" : "var(--n600)") + "; padding: 5px 0",
+      })),
+
+      filters: ["All events", "Checks", "Documents", "People and access", "Certificates"].map((k, i) => ({
+        k,
+        style: "border: 1px solid " + (i === 0 ? "var(--accent)" : "var(--n400)") + "; background: " + (i === 0 ? "var(--accent-100)" : "var(--paper)") +
+          "; color: " + (i === 0 ? "var(--accent-700)" : "var(--n700)") + "; border-radius: 3px; padding: 7px 13px; font-size: 12.5px; font-weight: " + (i === 0 ? "600" : "400"),
+      })),
+      auditHead: ["When", "Kind", "What happened", "Who"],
+      events: [
+        { when: "4 Sep · 09:41", kind: "CHECK", kindColor: C.accent, what: "Adult dog · complete dry · chicken checked against ruleset 2026.08-b for 3 markets", who: "J. Holm" },
+        { when: "4 Sep · 09:38", kind: "ARTWORK", kindColor: C.n600, what: "Artwork v4 uploaded · 3 language panels read · 412 text objects", who: "J. Holm" },
+        { when: "3 Sep · 16:02", kind: "ACCESS", kindColor: C.action, what: "K. Reuter (external) scope reduced from 12 recipes to 9 · access ends 31 Dec 2026", who: "J. Holm" },
+        { when: "3 Sep · 11:20", kind: "DOCUMENT", kindColor: C.n600, what: "PMX-118 premix specification requested from Nordwild Feeds by scoped link", who: "M. Feldt" },
+        { when: "2 Sep · 14:55", kind: "REPORT", kindColor: C.accent, what: "Report NTV-4K7Q-2FJ8 sent to k.reuter@reglar.eu", who: "M. Feldt" },
+        { when: "2 Sep · 09:14", kind: "CHECK", kindColor: C.accent, what: "Puppy · complete wet checked for EU · FR", who: "K. Reuter (external)" },
+        { when: "2 Sep · 14:12", kind: "CERTIFICATE", kindColor: C.clear, what: "Certificate of Check issued for EU · DE · signed by M. Feldt under grant of 6 Aug", who: "M. Feldt" },
+        { when: "1 Sep · 08:30", kind: "RULESET", kindColor: C.action, what: "Ruleset 2026.08-b applied · 1 material change affecting 2 recipes · 14 changes affecting none", who: "System" },
+        { when: "29 Aug · 17:44", kind: "ACCESS", kindColor: C.action, what: "Erik Lindqvist accepted an invitation as editor", who: "E. Lindqvist" },
+        { when: "28 Aug · 10:05", kind: "RECIPE", kindColor: C.n600, what: "Senior salmon · complete dry marked discontinued · excluded from counts and monitoring", who: "J. Holm" },
+      ].map((e, i, a) => Object.assign({}, e, {
+        style: "display: grid; grid-template-columns: 148px 128px minmax(0, 1fr) minmax(0, 0.7fr); border-bottom: " +
+          (i < a.length - 1 ? "1px solid var(--n200)" : "none") + "; background: " + (i % 2 ? "var(--panel)" : "transparent"),
+      })),
+      auditNotes: [
+        { k: "Every check records the rules it applied", v: "Applied, passed and withheld. That is what makes \"which recipes does this rule change affect\" a query rather than a re-run of the whole portfolio.", bar: C.accent },
+        { k: "A revoked grant does not rewrite the past", v: "A certificate signed under a grant stays signed by the person who held it at the time, with the grant date on the record. Removing somebody changes their access, never the history.", bar: C.none },
+        { k: "Export it for an audit", v: "The full event stream as a file, with the ruleset version on every row. An auditor asking what you knew and when should not need our help to answer it.", bar: C.clear },
+      ].map(n => ({
+        k: n.k, v: n.v,
+        style: "position: relative; border: 1px solid var(--ink); border-top: 4px solid " + n.bar + "; background: var(--paper); padding: 18px 20px",
+      })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>
