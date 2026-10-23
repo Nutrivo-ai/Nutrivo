@@ -82,5 +82,8 @@ Toast · EmptyState and ErrorState (from the Empty and Error States file).
     with their own images in `tests/visual/kit/`, all within spec/nfr.yaml's 2% (`--update-snapshots` rewrites
     the kit's images only).
   - It also runs axe on both pages and checks the dialog by keyboard.
+  - Both Playwright configs launch Chromium with `tests/visual/render.ts`: no font hinting, greyscale antialiasing
+    and an sRGB profile. The design baselines were captured with exactly these flags, and without them a stock
+    ubuntu runner draws hinted, subpixel text that differs from the baselines by 3–4%.
 - **Left to the screen tasks.** The Shell with left rail, LanguageSwitcher and RegionTree go to T-102 and the screens
   that use them; ArtworkViewer goes to T-404.
