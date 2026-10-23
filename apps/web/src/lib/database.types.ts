@@ -1207,6 +1207,9 @@ isOneToOne: false
               "node_id": string,"product_id": string,"workspace_id": string
             }[]
                            },
+"change_member":
+{ Args: { "p_access_ends_at": string,"p_is_external": boolean,"p_membership": string,"p_role": string,"p_scope_family_ids": (string)[],"p_scope_node_ids": (string)[] }; Returns: string
+                           },
 "create_workspace":
 { Args: { "p_name": string }; Returns: string
                            },
@@ -1219,14 +1222,26 @@ isOneToOne: false
 "live_billable_counts":
 { Args: { "p_ws": string }; Returns: Json
                            },
+"my_ended_access":
+{ Args: { "p_ws": string }; Returns: Json
+                           },
 "register_artwork":
 { Args: { "p_file_name"?: string,"p_mime"?: string,"p_product": string,"p_sha256": string,"p_storage_path": string }; Returns: string
+                           },
+"remove_member":
+{ Args: { "p_membership": string,"p_reason"?: string }; Returns: string
                            },
 "request_check":
 { Args: { "p_nodes"?: (string)[],"p_product": string }; Returns: string
                            },
+"revoke_invitation":
+{ Args: { "p_invitation": string }; Returns: string
+                           },
 "rollup_state":
 { Args: { "p_node": string,"p_product": string }; Returns: string
+                           },
+"set_default_operator":
+{ Args: { "p_operator": Json,"p_ws": string }; Returns: string
                            }
           }
           Enums: {

@@ -21,6 +21,18 @@ then promoted. Signed URLs are short-lived (minutes for viewing, 7 days for expo
 ## Authentication
 Email and password or magic link with email confirmation; TOTP MFA. Signing requires `aal2`, checked in the
 database (P0292). Removing a member ends the membership, revokes grants and signs out their sessions.
+- **Sign-in (T-103).** `/sign-in`; email links (confirmation, sign-in link, reset) return to `/auth/callback` and become
+  a session there.
+- **Never revealing an account.** A sign-in link is created only for an existing account (`shouldCreateUser: false`).
+  The answers to sign-in, sign-in link and reset never say whether an address has an account.
+- **Links.** Every expired or used link lands on `/auth/forgot?link=expired`.
+- **Two-step.** A person with a verified TOTP factor is challenged to `aal2` before reaching a workspace. A person
+  holding a signing grant with no factor enrols first (`/auth/mfa`).
+- **Password reset.** It ends every other session (`signOut({scope: 'others'})`).
+- **Audit.** Sign-ins and password changes are audited by database triggers on `auth.sessions` and `auth.users`;
+  the password, its hash and every token stay out of the audit, logs and Sentry.
+- **Sessions.** The proxy refreshes the session cookie on every request and checks it with Supabase Auth, so a
+  revoked session stops at once.
 
 ## Secrets and logs
 Secrets in Infisical per environment. The service-role key never reaches the browser. Logs and Sentry events carry
