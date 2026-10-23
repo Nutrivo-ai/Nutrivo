@@ -146,29 +146,42 @@ Checked only whether each cited provision covers the named subject, against 0200
    which Stripe Tax tier applies through Billing.
 4. The consolidated versions in §6 on the EUR-Lex pages themselves; the Feed Additives Register's download format.
 5. Haiku 4.5's retirement date on Bedrock (its earliest end-of-life date has passed).
+6. Whether Haiku 5.5 runs with Bedrock retention `none` (T-014). Its model card, checked 23 Oct 2026, gives
+   `eu.anthropic.claude-haiku-5-5`, Frankfurt through the EU profile only, and EOL no sooner than 7 Oct 2027. The
+   data-retention page names only the Fable models as needing `aws_review` and does not list Haiku 5.5
+   (docs.aws.amazon.com/bedrock/latest/userguide/model-card-anthropic-claude-haiku-5-5.html, …/data-retention.html).
 
 ## Conflicts for the founders
-Found on 21 Oct 2026. No decision has been changed.
+Found on 21 Oct 2026. Decided by abnutrivo on 23 Oct 2026; how each was resolved is in the bracket at its end.
+Enforcement is T-014.
 1. **D-02 and D-11 (Bedrock in eu-central-1).** None of the three planned models runs in-Region in Frankfurt. From
    eu-central-1 they are reachable only through the `eu.` cross-Region profile, which may process requests in
    Stockholm, Milan, Spain, Ireland or Paris (all EU). Decide whether the EU profile is acceptable and say so in D-02,
    D-11 and the DPA; never use `global.` profiles (an AWS organisation policy can block them). Set Bedrock retention
    to `none` per Region.
+   [Decided 23 Oct 2026: the EU profile is accepted; D-02, D-11.]
 2. **D-11 fallback and non-negotiable 10 (Anthropic API under ZDR).** ZDR requires a contract with Anthropic sales,
    and the API offers no EU processing or storage (inference `global` or `us`; storage `us`). As written, the fallback
    would send customer data outside the EU. Decide: drop the fallback, restrict it to non-customer data, or accept
    it with a DPA change.
+   [Decided 23 Oct 2026: no fallback for customer data; the API stays in dev; D-11.]
 3. **D-11 (Haiku 4.5 for triage).** Its earliest Bedrock end-of-life date (16 Oct 2026) has passed; Haiku 5.5 is
    available through the EU profile and lists at a tenth of Haiku 4.5's price. Model ids live in config, so this is a
    choice, not a migration.
+   [Decided 23 Oct 2026: Haiku 5.5 once it runs with retention `none` and passes the triage evaluation; D-11.]
 4. **D-17 / D-02 (co-located EU services).** Langfuse EU (`cloud.langfuse.com`) is in Ireland, not Frankfurt. Still
    EU; the DPA should name the right region.
+   [Decided 23 Oct 2026: accepted; the DPA names Ireland; D-17, docs/09.]
 5. **docs/11 event dates (a plan, not a decision).** Slush is 18–19 Nov 2026 (not December); TechArena is 3–4 Feb
    2027 (not January); Breakit's October event is 22 Oct 2026, the day after this check.
+   [Done 23 Oct 2026: docs/11.]
 6. **content/sources.yaml (T-202 input).** The Feed Additives Register has no "current edition" any more; it is an
    online database since 5 April 2023, so the importer needs a different source shape.
+   [Done 23 Oct 2026: content/sources.yaml; the export format is checked in T-202.]
 7. **content/candidates/eu-core.yaml.** Seven article references are wrong or incomplete (§7). They are candidates,
    not accepted content; the correction belongs to a content-lane task and to K01/K02 acceptance by a person.
+   [Done 23 Oct 2026: references corrected in content/candidates/eu-core.yaml; a person still confirms them at acceptance.]
 8. **Supabase grants (non-negotiable 1, D-05).** Supabase's custom-schema guide grants `ALL` on exposed schemas to
    anon and authenticated, and "Expose Queues via PostgREST" grants authenticated full queue access. Neither may be
    followed; the hosted project needs a minimal-grant setup for `app` and `ref` and Queues left unexposed.
+   [Decided 23 Oct 2026: D-26.]
