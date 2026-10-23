@@ -44,6 +44,9 @@ Every failure is seen within minutes, every model call can be explained later, a
   `plan_started`.
 - **Feature flags as kill switches:** `ff_claim_judgement`, `ff_supplier_upload`, `ff_exports`. Session replay
   is off.
+- **Only these events are sent (D-25):** `posthog-js` starts with `autocapture`, `capture_pageview`,
+  `capture_pageleave`, heatmaps, dead-click capture and session recording all off, so nothing on screen (label
+  text, names, emails) reaches PostHog by itself. Event properties carry ids and enums, never free text.
 
 ## Correlation
 A `request_id` is created at the web edge and passed to RPCs (as a setting), into job payloads, Sentry tags,
