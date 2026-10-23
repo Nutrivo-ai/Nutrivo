@@ -8,6 +8,7 @@
 | Worker unit and handler tests | worker/tests/ | `make test` | Claude Code |
 | Rule fixtures | ref.rule_fixtures | `nutrivo fixtures run --ruleset <id>` | Drafted by Claude Code, confirmed by the accepting person |
 | Synthetic labels | fixtures/synth/ | `make fixtures` | Generator in the repository |
+| Demo seed (Halden Pet Nutrition) | supabase/tests/app/fixtures/demo_halden.psql; tests in 10_demo_seed | `supabase/seed/demo/load.sh` | Claude Code |
 | Golden labels | fixtures/golden/ | Release gate from 30 labels | People only |
 | Claims evaluations | worker/evals/claims/ | Before any claim rule joins a ruleset | Labels by people |
 | Web unit and end-to-end | apps/web | `pnpm test`, `pnpm e2e` | Claude Code |
