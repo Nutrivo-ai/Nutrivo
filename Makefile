@@ -5,6 +5,8 @@ LANE ?= any
 PY := uv run --no-project --with pyyaml python
 RUN = scripts/env/run.sh $(ENV) --
 TYPES := apps/web/src/lib/database.types.ts
+# Vitest with a JUnit report in reports/web.xml, as CI's web job writes it for conformance.
+WEB_TEST = pnpm --dir apps/web test --reporter=default --reporter=junit --outputFile.junit=$(CURDIR)/reports/web.xml
 # psql is optional on laptops (scripts/bootstrap/check-tools.sh): without it, use the one in the local stack's container.
 PSQL = $(if $(shell command -v psql),psql -Atq postgresql://postgres:postgres@127.0.0.1:54322/postgres,docker exec -i supabase_db_nutrivo psql -Atq -U postgres)
 
@@ -75,11 +77,11 @@ gates: ## all database tests: supabase/tests/gates and supabase/tests/app (and r
 	@$(MAKE) --no-print-directory db-tap
 db-tap: ## per-file TAP of the database tests into reports/database.tap, as CI writes it for conformance
 	@mkdir -p reports && for f in $$(find supabase/tests -name '*.sql' | sort); do $(PSQL) < "$$f"; done > reports/database.tap
-test: ## worker tests (JUnit in reports/worker.xml) and web unit tests
+test: ## worker tests (JUnit in reports/worker.xml) and web unit tests (reports/web.xml)
 	@[ -d fixtures/synth/out ] || $(MAKE) fixtures
 	@mkdir -p reports
 	cd worker && uv run pytest -q --junitxml=../reports/worker.xml
-	@if [ -f apps/web/package.json ]; then pnpm --dir apps/web test; fi
+	@if [ -f apps/web/package.json ]; then $(WEB_TEST); fi
 verify-fast: ## what the Claude Code Stop hook runs
 	@supabase status >/dev/null 2>&1 || supabase start
 	@$(MAKE) --no-print-directory db-migrate
@@ -87,9 +89,10 @@ verify-fast: ## what the Claude Code Stop hook runs
 	@[ -d fixtures/synth/out ] || $(MAKE) fixtures
 	@mkdir -p reports
 	cd worker && uv run ruff check . && uv run pytest -q --junitxml=../reports/worker.xml
-	@if [ -f apps/web/package.json ]; then pnpm --dir apps/web lint && pnpm --dir apps/web typecheck && pnpm --dir apps/web test; fi
+	@if [ -f apps/web/package.json ]; then pnpm --dir apps/web lint && pnpm --dir apps/web typecheck && $(WEB_TEST); fi
 	$(PY) scripts/protocol/validate-plan.py
 	$(PY) -m unittest discover -s scripts/protocol -p 'test_*.py'
+	$(PY) -m unittest discover -s scripts/conformance -p 'test_*.py'
 	$(PY) scripts/workflows/render.py --check
 	python3 -m unittest discover -s scripts/env -p 'test_*.py'
 	python3 -m unittest discover -s scripts/doctor -p 'test_*.py'

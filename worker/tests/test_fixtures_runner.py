@@ -1,12 +1,12 @@
 """T-206: `nutrivo fixtures run --ruleset <id>`. No rule, no verdict: until the engine (T-403) registers evaluators,
 every item is withheld with a reason and the run does not pass."""
 import json
-import os
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
 import psycopg
 import pytest
+from pgtest import connect_or_skip
 
 from nutrivo_worker import cli, db
 from nutrivo_worker import fixtures_runner as fr
@@ -241,15 +241,9 @@ def test_cli_text_output_names_every_withhold(cli_env, monkeypatch, capsys):
 
 # ── Postgres ──────────────────────────────────────────────────────────────────────────────────────────
 
-DSN = os.environ.get("NUTRIVO_TEST_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:54322/postgres")
-
-
 @pytest.fixture
 def pg():
-    try:
-        conn = db.connect(DSN)
-    except psycopg.OperationalError:
-        pytest.skip("no local database (the CI worker job has none until T-009); run make db-start")
+    conn = connect_or_skip(db.connect)
     yield conn
     conn.close()
 
