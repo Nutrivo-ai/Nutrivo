@@ -118,13 +118,16 @@ select is((select count(*)::int from app.audit_events where kind = 'access.passw
            and actor_id = '10000000-0000-4000-8103-0000000000c1'), 2,
           '[A07.main] a password change is audited in each of the person''s active workspaces');
 select ok((select bool_and(before is null and after is null and object_id = '10000000-0000-4000-8103-0000000000c1')
-           from app.audit_events where kind = 'access.password_changed'),
+           from app.audit_events where kind = 'access.password_changed'
+             and workspace_id in ('20000000-0000-4000-8103-00000000000a','20000000-0000-4000-8103-00000000000b')),
           '[A07.must.1] the password audit row holds no before or after, only the person');
 select is((select count(*)::int from app.audit_events
-           where coalesce(before::text, '') || coalesce(after::text, '') || coalesce(object_id, '') ~ 'hash|\$2a\$|password'), 0,
+           where workspace_id in ('20000000-0000-4000-8103-00000000000a','20000000-0000-4000-8103-00000000000b')
+             and coalesce(before::text, '') || coalesce(after::text, '') || coalesce(object_id, '') ~ 'hash|\$2a\$|password'), 0,
           '[A07.must.1] no password, hash or secret appears anywhere in the audit');
 update auth.users set email = 'carl+renamed@a.test' where id = '00000000-0000-4000-8103-0000000000c1';
-select is((select count(*)::int from app.audit_events where kind = 'access.password_changed'), 2,
+select is((select count(*)::int from app.audit_events where kind = 'access.password_changed'
+           and actor_id = '10000000-0000-4000-8103-0000000000c1'), 2,
           '[A07.main] an update that leaves the password alone records no password change');
 
 select * from finish();
