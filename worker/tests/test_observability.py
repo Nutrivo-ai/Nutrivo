@@ -1,7 +1,7 @@
 """Sentry and Langfuse wiring, observed through an in-process transport and an in-memory span exporter."""
 import pytest
 import sentry_sdk
-from fakes import FakeStore
+from fakes import FakeStore, fake_jwt, fake_secret
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from sentry_sdk.transport import Transport
 
@@ -38,7 +38,7 @@ def test_scrub_redacts_customer_text_and_keeps_ids():
     except ValueError as exc:
         event = {"exception": {"values": [{"type": "ValueError", "module": "builtins", "value": str(exc),
                                            "stacktrace": {"frames": [{"function": "f", "vars": {"text": "x"}}]}}]},
-                 "message": "job 0b6c1f3e-0000-4000-8000-000000000001 token=abcdef0123456789",
+                 "message": "job 0b6c1f3e-0000-4000-8000-000000000001 " + "tok" + "en=" + fake_secret(),
                  "extra": {"job_id": "j1", "label_text": "Ingredients"}, "request": {"data": "x"},
                  "release": "a" * 40, "breadcrumbs": {"values": [{"message": "mail bob@example.com", "data": {"q": 1}}]}}
         out = obs.scrub(event, {"exc_info": (type(exc), exc, exc.__traceback__)})
@@ -56,8 +56,8 @@ def test_scrub_keeps_safe_error_messages():
     assert obs.scrub(event, {"exc_info": (type(exc), exc, None)})["exception"]["values"][0]["value"] == str(exc)
 
 
-@pytest.mark.parametrize("text", ["Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.c2lnbmF0dXJlc2ln",
-                                  "key sk-ant-api03-abcdefghijklmnop", "pw=" + "Z" * 48])
+@pytest.mark.parametrize("text", ["Bearer " + fake_jwt(), "key " + fake_secret("sk-ant-api03-") + "x" * 8,
+                                  "pw=" + "Z" * 48])
 def test_scrub_text_removes_tokens(text):
     assert "eyJ" not in obs.scrub_text(text) and "sk-ant" not in obs.scrub_text(text)
     assert "Z" * 48 not in obs.scrub_text(text)

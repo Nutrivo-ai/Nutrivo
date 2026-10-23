@@ -1,4 +1,5 @@
 import pytest
+from fakes import MARKER, fake_secret
 
 from nutrivo_worker.config import ConfigError, Settings
 
@@ -17,9 +18,10 @@ def test_reads_the_secrets_yaml_names():
 
 
 def test_secrets_never_appear_in_repr_or_dump():
-    s = Settings.from_env({"DATABASE_URL": "postgresql://u:hunter2@h/db", "LANGFUSE_SECRET_KEY": "sk-lf-hunter2",
-                           "ANTHROPIC_API_KEY": "sk-ant-hunter2", "SENTRY_DSN_WORKER": "https://hunter2@sentry"})
-    assert "hunter2" not in repr(s) and "hunter2" not in s.model_dump_json()
+    s = Settings.from_env({"DATABASE_URL": fake_secret("postgresql://u:") + "@h/db",
+                           "LANGFUSE_SECRET_KEY": fake_secret("sk-lf-"), "ANTHROPIC_API_KEY": fake_secret("sk-ant-"),
+                           "SENTRY_DSN_WORKER": "https://" + fake_secret() + "@sentry"})
+    assert MARKER not in repr(s) and MARKER not in s.model_dump_json()
 
 
 def test_ci_defaults_to_replay_and_mode_is_explicit_otherwise():

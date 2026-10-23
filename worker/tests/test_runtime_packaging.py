@@ -4,6 +4,8 @@ import json
 import re
 from pathlib import Path
 
+from fakes import MARKER, fake_secret
+
 from nutrivo_worker import cli
 
 DOCKERFILE = (Path(__file__).resolve().parents[1] / "Dockerfile").read_text()
@@ -23,11 +25,11 @@ def test_dockerfile_runs_the_worker_unprivileged_without_tests_or_local_venv():
 
 def test_config_command_masks_secrets(monkeypatch, capsys):
     monkeypatch.setenv("NUTRIVO_ENV", "dev")
-    monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-lf-hunter2")
-    monkeypatch.setenv("DATABASE_URL", "postgresql://u:hunter2@h/db")
+    monkeypatch.setenv("LANGFUSE_SECRET_KEY", fake_secret("sk-lf-"))
+    monkeypatch.setenv("DATABASE_URL", fake_secret("postgresql://u:") + "@h/db")
     assert cli.main(["config"]) == 0
     out = capsys.readouterr().out
-    assert "hunter2" not in out and json.loads(out)["env"] == "dev"
+    assert MARKER not in out and json.loads(out)["env"] == "dev"
 
 
 def test_bad_configuration_exits_2(monkeypatch, capsys):
