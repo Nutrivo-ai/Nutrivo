@@ -1,8 +1,9 @@
 """Milestone gating: a test marked @pytest.mark.milestone(n) runs once the repo's .milestone file is >= n.
 Bump .milestone only when a milestone starts (docs/11-milestones.md). Never lower it to make CI pass.
 
-Required database: with NUTRIVO_REQUIRE_DB=1 (CI's `worker` job), a test that skips for want of a database
-(tests/pgtest.py) fails instead, so the Postgres-backed acceptance tests cannot pass CI unrun."""
+Required local stack: with NUTRIVO_REQUIRE_DB=1 (CI's `worker` job), a test that skips for want of a local service
+(a reason starting "no local ", tests/pgtest.py) fails instead, so the database and Mailpit acceptance tests cannot
+pass CI unrun."""
 import os
 from pathlib import Path
 

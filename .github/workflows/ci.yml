@@ -45,18 +45,20 @@ jobs:
         if: always()
         with: { name: reports-database, path: reports/ }
 
-  # The Postgres-backed worker tests (tests/pgtest.py) run against the local database with its migrations and pgmq.
-  # NUTRIVO_REQUIRE_DB=1 makes a test that would skip for want of a database fail instead (worker/tests/conftest.py).
+  # The worker tests on the local stack (tests/pgtest.py) run against the database, with its migrations and pgmq, and
+  # Mailpit. NUTRIVO_REQUIRE_DB=1 makes a test that would skip for want of a local service ("no local ...") fail
+  # instead (worker/tests/conftest.py). Only what the worker tests use is started.
   worker:
     runs-on: ubuntu-24.04
     env:
       NUTRIVO_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      MAILPIT_URL: http://127.0.0.1:54324
       NUTRIVO_REQUIRE_DB: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with: { version: 2.120.0 }
-      - run: bash scripts/ci/supabase-start.sh db start
+      - run: bash scripts/ci/supabase-start.sh start -x studio,logflare,vector,supavisor,imgproxy,edge-runtime,realtime
       - run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - run: cd worker && uv sync

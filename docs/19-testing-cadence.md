@@ -42,11 +42,12 @@ in the task's PR, from that list.
   - To record by hand on dev, run `scripts/env/run.sh dev -- env MODELS_MODE=record <command>` from `worker/`.
   - Cassettes hold the model's output and token counts, never the inputs.
   - `worker/tests/cassettes/smoke/` is a real Bedrock response, recorded on 23 Oct 2026, that the suite replays.
-- **Database in worker tests.** Postgres-backed worker tests (`test_jobs_pg.py`, `test_sources_pg.py`, the
-  fixtures runner's store) connect through `worker/tests/pgtest.py`: the local Supabase database with real pgmq
-  (`make verify-fast` starts it), or `NUTRIVO_TEST_DATABASE_URL`. Without one they skip locally. The CI `worker` job
-  starts the database and sets `NUTRIVO_REQUIRE_DB=1`, and `conftest.py` turns such a skip into a failure, so a
-  database test never passes CI unrun. New database tests use `connect_or_skip` (or `skip_no_database`).
+- **Local stack in worker tests.** Worker tests on Postgres or Mailpit (`test_jobs_pg.py`, `test_sources_pg.py`,
+  the fixtures runner's store) use `worker/tests/pgtest.py`: the local Supabase database with real pgmq and its
+  Mailpit (`make verify-fast` starts them), or `NUTRIVO_TEST_DATABASE_URL` and `MAILPIT_URL`. Without them they skip
+  locally, with a reason starting `no local ` (`connect_or_skip`, `skip_no_database`, `skip_no_service("Mailpit")`).
+  The CI `worker` job starts the database and Mailpit and sets `NUTRIVO_REQUIRE_DB=1`, and `conftest.py` turns such a
+  skip into a failure, so these tests never pass CI unrun.
 - **Email.** Mail goes to Mailpit in the local Supabase stack; tests read it through Mailpit's API at `MAILPIT_URL`
   (`scripts/ci/e2e.sh` exports it from `supabase status`).
 - **Stripe.** Test mode. Webhooks are posted to the local function signed with the test secret.
