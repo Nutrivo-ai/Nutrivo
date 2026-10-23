@@ -42,4 +42,9 @@
 - `make env-check ENV=<env>` lists names present and missing, never values.
 - `make doctor ENV=<env>` proves each service works with the stored keys.
 - Stripe keys are test mode in dev and staging, and live only in prod after gate G8.
+- Email (D-16): the worker sends through SES in eu-central-1 only when `NUTRIVO_ENV` is staging or prod, and through
+  the local stack's Mailpit (`MAILPIT_URL`, default `http://127.0.0.1:54324`) everywhere else. `EMAIL_MODE` may only
+  confirm that pairing: the worker refuses to start on any other. SES needs `SES_FROM_ADDRESS` and the platform's AWS
+  credentials; links use `APP_BASE_URL` (https in staging and prod). A missing one fails the `notify` jobs, visibly,
+  rather than the worker.
 - Rotate keys quarterly or on any suspicion, then run the doctor.

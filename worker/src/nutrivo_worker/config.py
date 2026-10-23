@@ -8,13 +8,16 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 
 WORKER_ROOT = Path(__file__).resolve().parents[2]
 
 Env = Literal["local", "dev", "ci", "staging", "prod"]
 ModelsMode = Literal["live", "record", "replay"]
 ModelClass = Literal["judgement", "triage", "extraction"]
+EmailMode = Literal["ses", "mailpit"]
+
+DEPLOYED: tuple[Env, ...] = ("staging", "prod")
 
 
 class ConfigError(ValueError):
@@ -57,6 +60,29 @@ class Settings(BaseModel):
     anthropic_models: dict[ModelClass, str] = Field(default_factory=dict)
     model_timeout_s: float = 120.0
     model_max_retries: int = 2
+
+    # Email (D-16): SES eu-central-1 in staging and prod, Mailpit everywhere else, so no other environment can reach
+    # a real inbox. APP_BASE_URL builds the links in emails. What SES needs is checked when the mailer is built, so a
+    # missing sender address fails the notify jobs visibly instead of stopping every other kind.
+    email_mode_override: EmailMode | None = None
+    ses_from_address: str | None = None
+    mailpit_url: str = "http://127.0.0.1:54324"
+    app_base_url: str | None = None
+
+    @model_validator(mode="after")
+    def _email_matches_env(self) -> Settings:
+        if self.email_mode_override and self.email_mode_override != self.email_mode_for_env:
+            raise ConfigError(f"EMAIL_MODE={self.email_mode_override} is refused in {self.env}: "
+                              f"staging and prod send through SES, every other environment through Mailpit")
+        return self
+
+    @property
+    def email_mode_for_env(self) -> EmailMode:
+        return "ses" if self.env in DEPLOYED else "mailpit"
+
+    @property
+    def email_mode(self) -> EmailMode:
+        return self.email_mode_override or self.email_mode_for_env
 
     @field_validator("bedrock_models")
     @classmethod
@@ -106,6 +132,11 @@ class Settings(BaseModel):
             "anthropic_api_key": secret("ANTHROPIC_API_KEY"),
             "anthropic_models": models("ANTHROPIC_MODEL_"),
         }
+        values["email_mode_override"] = get("EMAIL_MODE")
+        for field, name in (("ses_from_address", "SES_FROM_ADDRESS"), ("mailpit_url", "MAILPIT_URL"),
+                            ("app_base_url", "APP_BASE_URL")):
+            if get(name):
+                values[field] = get(name)
         if get("LANGFUSE_BASE_URL"):
             values["langfuse_base_url"] = get("LANGFUSE_BASE_URL")
         if get("MODELS_CASSETTE_DIR"):
@@ -119,6 +150,14 @@ class Settings(BaseModel):
             raise
         except ValueError as exc:
             raise ConfigError(str(exc)) from exc
+
+    def require_app_base_url(self) -> str:
+        url = (self.app_base_url or ("" if self.env in DEPLOYED else "http://localhost:3000")).rstrip("/")
+        if not url:
+            raise ConfigError("APP_BASE_URL is not set")
+        if self.env in DEPLOYED and not url.startswith("https://"):
+            raise ConfigError("APP_BASE_URL must be an https URL in staging and prod")
+        return url
 
     def require_database(self) -> str:
         if not self.database_url:

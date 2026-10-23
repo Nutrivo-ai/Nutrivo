@@ -34,6 +34,14 @@ redesign rather than wiring.
 bytes, size ≤ 25 MB; writes to the quarantine bucket) · `stripe-webhook` (POST; verifies the signature; writes
 `app.payment_events` idempotently by event id).
 
+## Worker jobs
+Payloads hold ids only; outcomes land in `app.jobs.progress` (ids, counts and an `outcome` code, never names, emails
+or tokens).
+| Kind | Payload | Does | `progress.outcome` |
+|---|---|---|---|
+| `notify` (template `invitation`) | `{template, invitation_id}` | A03: mints a 32-byte token, stores its SHA-256 in `app.invitations.token_hash` while the invitation is pending, emails `${APP_BASE_URL}/invite/<token>` (Template 02). Never sends twice once `progress.email = sent`; a retry after a failed send mints a new token that replaces the undelivered one | `sent` · `already_sent` · `skipped_revoked` · `skipped_accepted` · `skipped_expired` · `skipped_not_pending` |
+| `session_revoke` | `{membership_id, person_id}` | A06: deletes the person's `auth.sessions` created before the membership ended (refresh tokens cascade); `progress.sessions_revoked` counts them | `revoked` · `skipped_active` · `skipped_no_user` |
+
 ## Realtime and storage
 Progress: subscribe to Postgres changes on `app.jobs` filtered by id (RLS applies). Storage buckets (all private):
 artwork, documents, reports, exports, sources, quarantine. Paths start with the workspace id:
