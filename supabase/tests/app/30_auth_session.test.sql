@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(22);
+select plan(24);
 set local client_min_messages = warning;
 
 -- ─── Workspaces A and B. Alice admins A, Carl edits A and B and signs for EU-SE in A, Erin's access to A has
@@ -21,13 +21,13 @@ from auth.users u where u.id::text like '00000000-0000-4000-8103-%';
 insert into app.workspaces (id, name, created_by) values
   ('20000000-0000-4000-8103-00000000000a','Workspace A','10000000-0000-4000-8103-0000000000a1'),
   ('20000000-0000-4000-8103-00000000000b','Workspace B',null);
-insert into app.memberships (id, workspace_id, person_id, role, is_external, access_ends_at, ended_at, ended_reason) values
-  ('50000000-0000-4000-8103-0000000000a1','20000000-0000-4000-8103-00000000000a','10000000-0000-4000-8103-0000000000a1','admin',false,null,null,null),
-  ('50000000-0000-4000-8103-0000000000c1','20000000-0000-4000-8103-00000000000a','10000000-0000-4000-8103-0000000000c1','editor',false,null,null,null),
-  ('50000000-0000-4000-8103-0000000000c2','20000000-0000-4000-8103-00000000000b','10000000-0000-4000-8103-0000000000c1','viewer',true,null,null,null),
-  ('50000000-0000-4000-8103-0000000000e1','20000000-0000-4000-8103-00000000000a','10000000-0000-4000-8103-0000000000e1','viewer',true,'2026-01-31 12:00+00',null,null),
-  ('50000000-0000-4000-8103-0000000000f1','20000000-0000-4000-8103-00000000000a','10000000-0000-4000-8103-0000000000f1','editor',false,null,'2026-02-28 09:00+00','removed by an admin'),
-  ('50000000-0000-4000-8103-0000000000b1','20000000-0000-4000-8103-00000000000b','10000000-0000-4000-8103-0000000000b1','admin',false,null,null,null);
+insert into app.memberships (id, workspace_id, person_id, role, is_external, access_ends_at, ended_at, ended_reason, created_at) values
+  ('50000000-0000-4000-8103-0000000000a1','20000000-0000-4000-8103-00000000000a','10000000-0000-4000-8103-0000000000a1','admin',false,null,null,null,'2025-06-01 09:00+00'),
+  ('50000000-0000-4000-8103-0000000000c1','20000000-0000-4000-8103-00000000000a','10000000-0000-4000-8103-0000000000c1','editor',false,null,null,null,'2025-06-01 09:00+00'),
+  ('50000000-0000-4000-8103-0000000000c2','20000000-0000-4000-8103-00000000000b','10000000-0000-4000-8103-0000000000c1','viewer',true,null,null,null,'2025-06-01 09:00+00'),
+  ('50000000-0000-4000-8103-0000000000e1','20000000-0000-4000-8103-00000000000a','10000000-0000-4000-8103-0000000000e1','viewer',true,'2026-01-31 12:00+00',null,null,'2025-06-01 09:00+00'),
+  ('50000000-0000-4000-8103-0000000000f1','20000000-0000-4000-8103-00000000000a','10000000-0000-4000-8103-0000000000f1','editor',false,null,'2026-02-28 09:00+00','removed by an admin','2025-06-01 09:00+00'),
+  ('50000000-0000-4000-8103-0000000000b1','20000000-0000-4000-8103-00000000000b','10000000-0000-4000-8103-0000000000b1','admin',false,null,null,null,'2025-06-01 09:00+00');
 insert into app.families (id, workspace_id, name) values
   ('30000000-0000-4000-8103-00000000000a','20000000-0000-4000-8103-00000000000a','Family A');
 insert into app.products (id, workspace_id, family_id, name) values
@@ -79,6 +79,22 @@ select is(app.my_ended_access('20000000-0000-4000-8103-00000000000a'),
           jsonb_build_object('workspace_name','Workspace A','ended_on','2026-02-28 09:00+00'::timestamptz,
                              'admin_name','Alice Test','admin_email','alice@a.test'),
           '[A02.fail.1] a removed member reads the workspace name, the day access ended and the admin to ask');
+reset role;
+-- Bob becomes an admin of A after Rhea left, and Alice steps down: Rhea is never told about Bob.
+insert into app.memberships (workspace_id, person_id, role)
+values ('20000000-0000-4000-8103-00000000000a','10000000-0000-4000-8103-0000000000b1','admin');
+update app.memberships set role = 'editor' where id = '50000000-0000-4000-8103-0000000000a1';
+set local role authenticated;
+select ok((app.my_ended_access('20000000-0000-4000-8103-00000000000a') ->> 'admin_email') is null
+          and (app.my_ended_access('20000000-0000-4000-8103-00000000000a') ->> 'workspace_name') = 'Workspace A',
+          '[A02.fail.1] an admin appointed after access ended is never named: no new name or email reaches a former member');
+reset role;
+update app.memberships set role = 'admin' where id = '50000000-0000-4000-8103-0000000000a1';
+delete from app.memberships where workspace_id = '20000000-0000-4000-8103-00000000000a'
+  and person_id = '10000000-0000-4000-8103-0000000000b1';
+set local role authenticated;
+select is(app.my_ended_access('20000000-0000-4000-8103-00000000000a') ->> 'admin_name', 'Alice Test',
+          '[A02.fail.1] the admin named is one who was in the workspace while the person was');
 select ok(not (app.my_ended_access('20000000-0000-4000-8103-00000000000a') ? 'ended_reason'),
           '[A02.fail.1] it never says whether an admin removed them or an end date passed');
 select is(app.my_ended_access('20000000-0000-4000-8103-00000000000b'), null,

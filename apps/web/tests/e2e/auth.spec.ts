@@ -148,6 +148,8 @@ test.describe("A02 sign in and start a session", () => {
   test("[A02.must.1] [A02.fail.1] an expired membership reads nothing and shows Access removed (S-REC-004)", async ({ page, context, baseURL }) => {
     const { who: owner, ws } = await member("a02-owner", `pass ${randomUUID()}`, "Halden Pet Nutrition");
     await admin().schema("app").from("people").update({ display_name: "Johanna Holm" }).eq("user_id", owner.userId);
+    // Johanna ran the workspace before the leaver's access ended: only such an admin is named to a former member.
+    await admin().schema("app").from("memberships").update({ created_at: "2025-06-01T09:00:00Z" }).eq("workspace_id", ws!);
     const leaver = await person("a02-leaver");
     // The design's own case: an external member whose end date passed (31 December, a year earlier than drawn).
     await join(leaver, ws!, "editor", { is_external: true, access_ends_at: "2025-12-31T12:00:00Z" });

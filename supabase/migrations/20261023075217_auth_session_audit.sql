@@ -66,11 +66,13 @@ begin
     and (m.ended_at is not null or m.access_ends_at <= now());
   if v_ended is null then return null; end if;
   select * into v_ws from app.workspaces w where w.id = p_ws;
-  -- The admin to ask: the workspace's creator while still an active admin, otherwise its longest-standing one.
+  -- The admin to ask: an active admin who was already in the workspace before the caller's access ended, so the
+  -- name and email are ones the caller could read while a member (shares_workspace), never a later admin's. The
+  -- creator first, otherwise the longest-standing; none, and the screen offers the person's other workspaces.
   select p.* into v_admin
   from app.memberships m join app.people p on p.id = m.person_id
   where m.workspace_id = p_ws and m.role = 'admin' and m.ended_at is null and p.tombstoned_at is null
-    and (m.access_ends_at is null or m.access_ends_at > now())
+    and (m.access_ends_at is null or m.access_ends_at > now()) and m.created_at < v_ended
   order by (p.id = v_ws.created_by) desc, m.created_at, m.id
   limit 1;
   return jsonb_build_object('workspace_name', v_ws.name, 'ended_on', v_ended,
