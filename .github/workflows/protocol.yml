@@ -45,3 +45,4 @@ jobs:
       - run: uv run --no-project --with pyyaml python scripts/workflows/render.py --check
       # The repository scripts' own tests, including that config/secret-aliases.env parses (names only, no secrets).
       - run: python3 -m unittest discover -s scripts/env -p 'test_*.py'
+      - run: python3 -m unittest discover -s scripts/doctor -p 'test_*.py'

@@ -186,18 +186,38 @@ def c_sentry(env):
     return f"round-trip ok: {a}, {b}"
 
 
+def _otlp_span(trace_id, span_id, start_ns, env):
+    """One finished OTLP/JSON span (ids in hex, times as decimal nanosecond strings, as OTLP/JSON requires)."""
+    attr = lambda k, v: {"key": k, "value": {"stringValue": v}}  # noqa: E731
+    span = {"traceId": trace_id, "spanId": span_id, "name": "nutrivo-doctor", "kind": 1,
+            "startTimeUnixNano": str(start_ns), "endTimeUnixNano": str(start_ns + 1_000_000),
+            "attributes": [attr("env", env), attr("source", "doctor")]}
+    return {"resourceSpans": [{"resource": {"attributes": [attr("service.name", "nutrivo-doctor")]},
+                               "scopeSpans": [{"scope": {"name": "nutrivo-doctor"}, "spans": [span]}]}]}
+
+
 def c_langfuse(env):
+    # Langfuse Cloud retires the v3 ingestion API on 2026-11-16 and already answers 410 to GET /api/public/traces/{id}
+    # for new projects (#13): write through its OpenTelemetry endpoint, read back through v2 observations.
     need("LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "LANGFUSE_BASE_URL")
     base = E("LANGFUSE_BASE_URL").rstrip("/")
-    auth = {"Authorization": "Basic " + base64.b64encode(f"{E('LANGFUSE_PUBLIC_KEY')}:{E('LANGFUSE_SECRET_KEY')}".encode()).decode()}
-    trace_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc).isoformat()
-    s, _ = http("POST", f"{base}/api/public/ingestion", auth,
-                {"batch": [{"id": str(uuid.uuid4()), "type": "trace-create", "timestamp": now,
-                            "body": {"id": trace_id, "name": "nutrivo-doctor", "metadata": {"env": env, "source": "doctor"}}}]})
-    assert s in (200, 207), f"ingestion returned {s}"
-    assert poll(lambda: http("GET", f"{base}/api/public/traces/{trace_id}", auth)[0] == 200), "trace not readable within 90 s"
-    return "round-trip ok"
+    auth = {"Authorization": "Basic " + base64.b64encode(f"{E('LANGFUSE_PUBLIC_KEY')}:{E('LANGFUSE_SECRET_KEY')}".encode()).decode(),
+            "x-langfuse-ingestion-version": "4"}  # without it, OTLP data can take up to 10 minutes to become readable
+    trace_id, span_id, start = uuid.uuid4().hex, uuid.uuid4().hex[:16], time.time_ns()
+    s, b = http("POST", f"{base}/api/public/otel/v1/traces", auth, _otlp_span(trace_id, span_id, start, env))
+    assert s == 200, f"OTLP ingestion returned {s}"
+    rejected = int((json.loads(b or b"{}").get("partialSuccess") or {}).get("rejectedSpans") or 0)
+    assert not rejected, "OTLP ingestion rejected the span"
+    iso = lambda ns: datetime.fromtimestamp(ns / 1e9, timezone.utc).isoformat(timespec="milliseconds")  # noqa: E731
+    query = urllib.parse.urlencode({"traceId": trace_id, "fromStartTime": iso(start - 60 * 10**9),
+                                    "toStartTime": iso(start + 600 * 10**9), "limit": 10})
+
+    def readable():
+        s, b = http("GET", f"{base}/api/public/v2/observations?{query}", auth)
+        return s == 200 and any(o.get("id") == span_id for o in json.loads(b).get("data") or [])
+
+    assert poll(readable, seconds=120), "span not readable through /api/public/v2/observations within 120 s"
+    return "round-trip ok (OTLP write, v2 observations read)"
 
 
 def c_posthog(env):
