@@ -25,8 +25,13 @@ Every failure is seen within minutes, every model call can be explained later, a
   - p95 latency over the budgets in spec/nfr.yaml.
 
 ## Langfuse: every model call, explainable
+- **Transport.** The worker uses the Langfuse Python SDK v4, which exports OpenTelemetry spans to
+  `/api/public/otel/v1/traces` with `x-langfuse-ingestion-version: 4`. Nothing uses the v3 ingestion API, which
+  Langfuse Cloud retires on 2026-11-16, or the retired v3 trace reads. Langfuse's AI features stay off in the
+  organisation (issue #17).
 - **Traces.** One trace per job (`job:<kind>:<id>`) and one generation per model call: model id, prompt version,
-  input hash, tokens, cost, latency. The same ids go to `app.model_calls`.
+  input hash, tokens, cost, latency. The trace id is derived from the job, so retries of a job share one trace. The
+  same ids go to `app.model_calls`.
 - **Scores.**
   - The accepting person's decision in the review queue is stored as a score on the extraction generation.
   - Claim-judgement evaluations run as Langfuse dataset runs (docs/07-ai.md).
@@ -50,6 +55,21 @@ Langfuse trace metadata and log lines. Any incident can be followed from click t
 ## Logs
 JSON lines on stdout (Render's log stream). Fields: ts, level, msg, request_id, job_id, job_kind, workspace hash,
 release. Never label text, never secrets.
+
+## Worker specifics (T-008)
+- **Exceptions.** A log line gives only an exception's type. Sentry and `app.jobs.last_error` keep the message only
+  for `SafeError` subclasses (`nutrivo_worker.errors`), whose messages hold ids and reason codes. Any other exception
+  message is redacted, because it can carry label text.
+- **Scrubber.** `before_send` also:
+  - drops local variables, request data, users and breadcrumb data;
+  - keeps only allow-listed `extra` keys;
+  - replaces emails, JWTs, provider keys and long opaque tokens with `[redacted]`.
+- **Check-ins.**
+  - `worker-heartbeat` is sent from the job loop every minute. Its schedule is `* * * * *`, and an issue opens after 5
+    missed check-ins.
+  - `job-reaper` is sent around each reaper pass (`*/5 * * * *`) as in_progress, then ok or error.
+- **Without keys.** Sentry is off when `SENTRY_DSN_WORKER` is unset; Langfuse tracing is off when either key is unset
+  (CI and local runs).
 
 ## Proving it works
 `make doctor ENV=<env>` performs a round-trip for each service:

@@ -46,3 +46,7 @@ jobs:
       # The repository scripts' own tests, including that config/secret-aliases.env parses (names only, no secrets).
       - run: python3 -m unittest discover -s scripts/env -p 'test_*.py'
       - run: python3 -m unittest discover -s scripts/doctor -p 'test_*.py'
+      # The Stripe catalogue script (config/pricing.ts) against an in-memory Stripe: Node 22 strips the types.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 22 }
+      - run: node --no-warnings --test scripts/stripe/*.test.ts
