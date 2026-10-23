@@ -10,7 +10,8 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "e2e": "sh -c 'if [ -n \"$CI\" ]; then playwright install --with-deps chromium; fi; exec playwright test \"$@\"' --"
+    "e2e": "sh -c 'if [ -n \"$CI\" ]; then playwright install --with-deps chromium; fi; exec playwright test \"$@\"' --",
+    "baselines": "playwright test -c playwright.baselines.config.ts"
   },
   "dependencies": {
     "@sentry/nextjs": "11.8.0",
@@ -31,7 +32,8 @@
     "eslint-config-next": "16.4.2",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "5.0.5"
+    "vitest": "5.0.5",
+    "yaml": "2.8.1"
   },
   "packageManager": "pnpm@10.28.0",
   "engines": {
