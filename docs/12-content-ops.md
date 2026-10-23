@@ -75,21 +75,26 @@ imported. Tests replay `worker/tests/recordings/register` and `worker/tests/reco
   bucket at `register/feed-additives/{endpoint}/{sha256}.json` with a `ref.sources` row (kind `register`, url,
   `retrieved_at`, sha256, licence `eu_reuse`); the same body again is `unchanged`.
 - **What becomes a row of `ref.feed_additives`.** Only an entry the register lets us write without guessing: its
-  identification number is present and on no other entry, no authorisation has a deletion date, and no linked act
-  withdraws, repeals, denies or suspends it (a link type the importer does not know also skips the entry). Every
-  other entry is reported `skipped` with its reason (`no_identification_number`, `ambiguous_identification_number`,
-  `deleted`, `withdrawn`, `unknown_legislation_type`, `unknown_legislation`, `no_name`) and stays in the stored pull.
+  identification number is present and on no other entry (compared without spaces, dots or case: the register
+  prints `4d3` and `4d 3`, `E 160a` and `E 160 a`), no authorisation has a deletion date, no linked act withdraws,
+  repeals, denies or suspends it (a link type the importer does not know also skips the entry), every authorisation
+  ends on the same date (a null expiry would read as unlimited for a species whose authorisation has ended), and the
+  functional group is one the register labels. Every other entry is reported `skipped` with its reason
+  (`no_identification_number`, `ambiguous_identification_number`, `deleted`, `withdrawn`, `unknown_legislation_type`,
+  `unknown_legislation`, `differing_expiry`, `unknown_functional_group`, `no_name`) and stays in the stored pull.
   A row holds the name and functional group as served, each authorisation's species string unsplit, the "Primary"
-  act's title as `authorising_act`, `expiry` only when every authorisation gives the same date, and `source_id` of the
-  entries pull. **`max_content`, `conditions` and `category` are never written**: the register does not serve the
+  act's title as `authorising_act`, the expiry all its authorisations share, and `source_id` of the entries pull. **`max_content`, `conditions` and `category` are never written**: the register does not serve the
   first two (they are in each authorising act). A row an earlier import wrote that the current pull does not support
-  is reported `stale` and left in place. On 23 Oct 2026: 2,026 entries, 1,055 rows.
+  is reported `stale` and left in place. On 23 Oct 2026: 2,026 entries, 1,028 rows.
 - **The catalogue.** The latest consolidated text of Regulation (EU) No 68/2013 dated on or before today, fetched and
-  stored in every launch language exactly as `nutrivo sources fetch` does. Annex Part C is read from each language:
-  `names` holds each language's name from its own text and leaves a language out where that text has no entry
-  (reported `language_missing`; 5.41.1 has no Danish entry in 02013R0068-20220724). Footnote references and the
-  consolidation markers (`►M1`, `◄`) are dropped by their markup; `description` and `compulsory_declarations` (one
-  item per printed line) come from the English text, and `source_id` is the English text's row.
+  stored in every launch language exactly as `nutrivo sources fetch` does. Without a consolidated version the import
+  fails (`no_consolidation`): it never falls back to the 2013 act, whose annex the amendments replaced. Annex Part C
+  is read from each language: `names` holds each language's name from its own text and leaves a language out where
+  that text has no readable entry (reported `language_missing`). A row with a name but no readable number is
+  reported `unreadable_number`, never matched by position: in 02013R0068-20220724 the Danish 5.41.1 is printed with
+  `(` in its number cell, so its Danish name is withheld. Footnote references and the consolidation markers (`►M1`,
+  `◄`) are dropped by their markup; `description` and `compulsory_declarations` (one item per printed line) come from
+  the English text, null where the English text has no such entry, and `source_id` is the English text's row.
 - **Open (issue #32, needs-human).** Holding the register per authorisation with a status, removing stale rows,
   per-language provenance for `ref.feed_materials`, and where maximum contents and conditions come from.
 

@@ -7,8 +7,9 @@ legislation it cites, and the reference labels. Each pull is stored byte for byt
 'register'); a ruleset pins that snapshot.
 
 A row is written only where the register lets us write it without guessing (docs/18, withhold rather than guess):
-the identification number is present and on one register entry only, no authorisation carries a deletion date, and
-no linked act withdraws, repeals, denies or suspends it. Everything else is reported as skipped with a reason and
+the identification number is present and on one register entry only (compared without spaces, dots or case), no
+authorisation carries a deletion date, no linked act withdraws, repeals, denies or suspends it, every authorisation
+ends on the same date, and the functional group is one the register labels. Everything else is reported as skipped with a reason and
 stays in the stored pull. The register does not serve maximum contents or conditions (they are in each authorising
 act), so those columns, and `category`, are never written here."""
 from __future__ import annotations
@@ -204,11 +205,17 @@ def parse_refdata(pull: Pull) -> tuple[dict[str, str], dict[str, str]]:
             {str(k): " ".join(str(v).split()) for k, v in types.items()})
 
 
+def number_key(code: str) -> str:
+    """An identification number as compared for ambiguity: the register prints one number several ways
+    (`4d3` and `4d 3`, `E 160a` and `E 160 a`, `51763` and `5 1 763`)."""
+    return "".join(ch for ch in code if not ch.isspace() and ch != ".").casefold()
+
+
 # ── deciding what may be written ───────────────────────────────────────────────────────────────────
 def plan(entries: list[Entry], titles: dict[str, str], groups: dict[str, str],
          link_types: dict[str, str]) -> tuple[list[tuple[Entry, AdditiveRow]], list[Outcome]]:
     """Rows to write, and a skipped outcome for every entry that cannot be written without a guess."""
-    uses = Counter(e.code for e in entries)
+    uses = Counter(number_key(e.code) for e in entries)
     rows, skipped = [], []
 
     def skip(e: Entry, reason: str, note: str | None = None) -> None:
@@ -218,8 +225,9 @@ def plan(entries: list[Entry], titles: dict[str, str], groups: dict[str, str],
         labels = [link_types.get(t) if t else None for a in e.authorisations for t, _ in a.links]
         if not any(ch.isalnum() for ch in e.code):
             skip(e, "no_identification_number")
-        elif uses[e.code] > 1:
-            skip(e, "ambiguous_identification_number", f"{uses[e.code]} register entries carry this number")
+        elif uses[number_key(e.code)] > 1:
+            skip(e, "ambiguous_identification_number",
+                 f"{uses[number_key(e.code)]} register entries carry this number (ignoring spaces, dots and case)")
         elif not e.name:
             skip(e, "no_name")
         elif any(a.deleted_on for a in e.authorisations):
@@ -230,6 +238,10 @@ def plan(entries: list[Entry], titles: dict[str, str], groups: dict[str, str],
             skip(e, "withdrawn", "linked act: " + ", ".join(sorted({lb for lb in labels if lb in ENDING})))
         elif any(lid and lid not in titles for a in e.authorisations for _, lid in a.links):
             skip(e, "unknown_legislation")
+        elif len({a.expiry for a in e.authorisations}) > 1:
+            skip(e, "differing_expiry", "authorisations of this entry end on different dates (issue #32)")
+        elif e.functional_group and e.functional_group not in groups:
+            skip(e, "unknown_functional_group")
         else:
             rows.append((e, _row(e, titles, groups, link_types)))
     return rows, skipped
@@ -239,13 +251,12 @@ def _row(e: Entry, titles: dict[str, str], groups: dict[str, str], link_types: d
     species = list(dict.fromkeys(a.animal for a in e.authorisations if a.animal))
     primary = [titles[lid] for a in e.authorisations for t, lid in a.links
                if lid and t and link_types.get(t) in PRIMARY]
-    expiries = {a.expiry for a in e.authorisations}
     return AdditiveRow(
         id=e.code, name=e.name or "",
-        functional_group=groups.get(e.functional_group) if e.functional_group else None,
+        functional_group=groups[e.functional_group] if e.functional_group else None,
         species=species,
         authorising_act="; ".join(dict.fromkeys(primary)) or None,
-        expiry=next(iter(expiries)) if len(expiries) == 1 else None)   # differing expiries: not one date
+        expiry=e.authorisations[0].expiry if e.authorisations else None)   # plan() skips differing expiries
 
 
 # ── writing ────────────────────────────────────────────────────────────────────────────────────────

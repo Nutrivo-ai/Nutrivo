@@ -104,7 +104,7 @@ def test_register_rows_point_at_the_stored_entries_pull():
     outcomes = run_register(store, table)
     entries_pull = next(o for o in outcomes if o.kind == "pull" and o.item == "policy-items")
     imported = [o for o in outcomes if o.kind == "additive" and o.status == "imported"]
-    assert len(imported) == len(table.rows) == 1055
+    assert len(imported) == len(table.rows) == 1028
     assert {sid for _, sid in table.rows.values()} == {entries_pull.source_id}
 
 
@@ -121,16 +121,26 @@ def test_register_dry_run_plans_every_entry_and_writes_nothing():
     outcomes = run_register()
     assert summary(outcomes) == {
         "pull": {"fetched": 3},
-        "additive": {"importable": 1055, "skipped:ambiguous_identification_number": 399,
+        "additive": {"importable": 1028, "skipped:ambiguous_identification_number": 404,
                      "skipped:no_identification_number": 473, "skipped:withdrawn": 70, "skipped:deleted": 23,
+                     "skipped:differing_expiry": 18, "skipped:unknown_functional_group": 4,
                      "skipped:unknown_legislation_type": 6}}
     assert len(by_status(outcomes, "additive")) == 2026        # every register entry ends visibly
 
 
 def test_register_number_shared_by_several_entries_is_never_written():
     outcomes = run_register(FakePullStore(), table := FakeTable())
-    ambiguous = {o.id for o in outcomes if o.reason == "ambiguous_identification_number"}
-    assert ambiguous and not ambiguous & set(table.rows)
+    ambiguous = {register.number_key(o.id) for o in outcomes if o.reason == "ambiguous_identification_number"}
+    assert ambiguous and not ambiguous & {register.number_key(i) for i in table.rows}
+    # spacing variants of one number in the 23 Oct pull (review of PR #118)
+    assert {"4d3", "e160a", "51763"} <= ambiguous
+
+
+def test_register_spacing_dots_and_case_variants_of_one_number_are_ambiguous():
+    rows, skipped = plan(entry(code="4d3", item="A"), entry(code="4d 3", item="B"), entry(code="4D.3", item="C"),
+                         entry(code="9z902", item="D"))
+    assert [r.id for _, r in rows] == ["9z902"]
+    assert [(o.item, o.reason) for o in skipped] == [(i, "ambiguous_identification_number") for i in "ABC"]
 
 
 AUTH = Authorisation("Cats; Dogs", date(2030, 1, 1), None, (("t_primary", "L1"),))
@@ -154,6 +164,7 @@ def plan(*entries):
     (entry(auths=[Authorisation("Cats", None, None, (("t_new", "L1"),))]), "unknown_legislation_type"),
     (entry(auths=[Authorisation("Cats", None, None, ((None, "L1"),))]), "unknown_legislation_type"),
     (entry(auths=[Authorisation("Cats", None, None, (("t_primary", "L9"),))]), "unknown_legislation"),
+    (entry(group="g9"), "unknown_functional_group"),
 ])
 def test_register_entry_that_needs_a_guess_is_skipped_with_its_reason(e, reason):
     rows, skipped = plan(e)
@@ -168,11 +179,15 @@ def test_register_row_keeps_the_register_values_as_served():
                               expiry=date(2030, 1, 1))
 
 
-def test_register_expiry_is_written_only_when_every_authorisation_agrees():
-    differing = [AUTH, Authorisation("Horses", date(2031, 1, 1), None, (("t_primary", "L1"),))]
+def test_register_entry_whose_authorisations_end_on_different_dates_is_skipped():
+    """Null reads as an unlimited authorisation, so an expired species must never ride on a null expiry."""
+    differing = [AUTH, Authorisation("Pigs", date(2024, 11, 11), None, (("t_primary", "L1"),))]
     missing = [AUTH, Authorisation("Horses", None, None, (("t_primary", "L1"),))]
-    assert plan(entry(auths=differing))[0][0][1].expiry is None
-    assert plan(entry(auths=missing))[0][0][1].expiry is None
+    for auths in (differing, missing):
+        rows, skipped = plan(entry(auths=auths))
+        assert rows == [] and [o.reason for o in skipped] == ["differing_expiry"]
+    agreeing = [AUTH, Authorisation("Horses", date(2030, 1, 1), None, (("t_primary", "L1"),))]
+    assert plan(entry(auths=agreeing))[0][0][1].expiry == date(2030, 1, 1)
 
 
 def test_register_rows_that_this_pull_no_longer_supports_are_reported_stale_not_removed():
@@ -249,12 +264,15 @@ def test_catalogue_names_come_from_each_language_version(imported):
     assert len(table.rows) == 655
 
 
-def test_catalogue_language_without_the_entry_is_left_out_and_reported(imported):
+def test_catalogue_entry_with_an_unreadable_number_is_withheld_and_reported(imported):
+    """Danish 5.41.1 is printed with `(` in its number cell: the row is reported, never matched by position."""
     outcomes, _, table = imported
     row, _ = table.rows["5.41.1"]
     assert "da" not in row.names and set(row.names) == {"en", "sv", "fi", "de"}
     missing = [(o.item, o.languages_missing) for o in outcomes if o.reason == "language_missing"]
     assert missing == [("5.41.1", ["da"])]
+    unreadable = [(o.item, o.language, o.status) for o in outcomes if o.reason == "unreadable_number"]
+    assert unreadable == [("Granatæblekage", "da", "skipped")]
 
 
 def test_catalogue_footnote_references_and_consolidation_markers_are_dropped(imported):
@@ -285,13 +303,14 @@ def test_catalogue_import_twice_is_unchanged():
     store, table = FakeStore(), FakeTable()
     run_catalogue(store, table)
     again = run_catalogue(store, table)
-    assert {o.status for o in again} == {"unchanged"}
+    assert {o.status for o in again if o.reason != "unreadable_number"} == {"unchanged"}
     assert len(store.rows) == 5
 
 
 def test_catalogue_dry_run_writes_nothing():
     outcomes = run_catalogue()
-    assert summary(outcomes) == {"pull": {"fetched": 5}, "material": {"importable": 655}}
+    assert summary(outcomes) == {"pull": {"fetched": 5},
+                                 "material": {"importable": 655, "skipped:unreadable_number": 1}}
 
 
 def test_catalogue_language_that_fails_its_check_stops_the_import_before_any_write():
@@ -304,7 +323,7 @@ def test_catalogue_language_that_fails_its_check_stops_the_import_before_any_wri
 def test_catalogue_numbers_printed_with_a_trailing_period_are_read():
     body = ("<html><body><table><tr><td><p>1.2.3.</p></td><td><p>Name <a href='#n1'>(<span class='superscript'>1"
             "</span>)</a></p></td><td><p>Desc</p></td><td><p>A</p><p>B</p></td></tr></table></body></html>")
-    entries = catalogue.parse_part_c(body.encode(), "da")
+    entries = catalogue.parse_part_c(body.encode(), "da").entries
     assert entries["1.2.3"] == catalogue.CatalogueEntry("1.2.3", "Name", "Desc", ["A", "B"])
 
 
@@ -317,6 +336,32 @@ def test_catalogue_text_of_an_unexpected_shape_fails(rows):
     with pytest.raises(Exception) as err:
         catalogue.parse_part_c(f"<html><body><table>{rows}</table></body></html>".encode(), "en")
     assert getattr(err.value, "reason", None) == "unexpected_shape"
+
+
+def test_catalogue_without_a_consolidated_version_fails_and_never_falls_back_to_the_base_act():
+    store, table = FakeStore(), FakeTable()
+    empty = Response(200, {"content-type": "application/sparql-results+json"},
+                     b'{"head": {"vars": ["celex"]}, "results": {"bindings": []}}', "u")
+    outcomes = run_catalogue(store, table, Scripted(empty))
+    assert [(o.status, o.item, o.reason) for o in outcomes] == [("failed", "32013R0068", "no_consolidation")]
+    assert store.rows == {} and table.rows == {}
+
+
+def test_catalogue_entry_missing_from_the_english_text_has_no_declarations_rather_than_none_required():
+    entry_sv = catalogue.CatalogueEntry("1.2.3", "Namn", None, ["Råprotein"])
+    entry_en = catalogue.CatalogueEntry("1.2.4", "Name", None, [])
+    rows = catalogue.plan({"en": {"1.2.4": entry_en}, "sv": {"1.2.3": entry_sv, "1.2.4": entry_en}})
+    assert [(r.number, r.compulsory_declarations, r.languages_missing) for r in rows] == [
+        ("1.2.3", None, ["en"]), ("1.2.4", [], [])]
+
+
+def test_catalogue_number_cell_without_a_number_is_reported_not_dropped():
+    rows = ("<tr><td><p>(</p></td><td><p>Navn</p></td><td/><td/></tr>"
+            "<tr><td><p>1.2.3</p></td><td><p>A</p></td><td/><td/></tr>"
+            "<tr><td><p>12</p></td><td><p>Process</p></td><td/><td/></tr>"
+            "<tr><td><p>Nummer</p></td><td><p>Navn</p></td><td/><td/></tr>")
+    part = catalogue.parse_part_c(f"<html><body><table>{rows}</table></body></html>".encode(), "da")
+    assert list(part.entries) == ["1.2.3"] and part.unreadable == ["Navn"]
 
 
 # ── the command ────────────────────────────────────────────────────────────────────────────────────

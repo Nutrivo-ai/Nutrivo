@@ -1,13 +1,17 @@
 """The Catalogue of feed materials (Reg. (EU) No 68/2013 as amended) → ref.feed_materials (T-202, docs/12).
 
 The latest consolidated text dated on or before today is fetched in every launch language through the T-201 path
-(CELLAR, language check, stored byte for byte with sha256). Annex Part C is read from each language version: an
+(CELLAR, language check, stored byte for byte with sha256); without a consolidated version the import fails
+(`no_consolidation`) and never falls back to the 2013 act. Annex Part C is read from each language version: an
 entry is a table row of four cells whose first cell is a catalogue number (`1.1.1`; some versions print `1.1.1.`).
-`names` takes each language's name from that language's own text, never from another language; a language that
-has no entry for a number is left out of `names` and reported. Footnote references are dropped by their markup
-(an `<a href="#…">` anchor, or a superscript printed alone in parentheses, as in `expeller (<sup>5</sup>)`), and so
-are the consolidation markers EUR-Lex adds around amended text (`►M1`, `►C3`, `◄`); nothing else is changed. `description` and `compulsory_declarations` are taken from the
-English text as printed (one paragraph per declaration line); `source_id` is the English text's ref.sources row.
+A four-cell row with a name but an unreadable number (Danish 5.41.1 prints its number as `(`) is reported as
+`unreadable_number`, never matched by position. `names` takes each language's name from that language's own text,
+never from another language; a language without a readable entry for a number is left out of `names` and reported.
+Footnote references are dropped by their markup (an `<a href="#…">` anchor, or a superscript printed alone in
+parentheses, as in `expeller (<sup>5</sup>)`), and so are the consolidation markers EUR-Lex adds around amended text
+(`►M1`, `►C3`, `◄`); nothing else is changed. `description` and `compulsory_declarations` are taken from the English
+text as printed (one paragraph per declaration line), and are null where the English text has no such entry;
+`source_id` is the English text's ref.sources row.
 
 Every language must be fetched and read before anything is written: a partial catalogue is never imported."""
 from __future__ import annotations
@@ -54,7 +58,7 @@ class MaterialRow:
     number: str
     names: dict[str, str]
     description: str | None
-    compulsory_declarations: list[str]
+    compulsory_declarations: list[str] | None
     languages_missing: list[str] = field(default_factory=list)
 
 
@@ -92,7 +96,10 @@ class _Rows(HTMLParser):
             frame["cell"].append("")
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag == "br" and self._stack and self._stack[-1].get("cell") is not None:
+        if tag in ("td", "th"):                     # an empty cell written as <td/>
+            self.handle_starttag(tag, attrs)
+            self.handle_endtag(tag)
+        elif tag == "br" and self._stack and self._stack[-1].get("cell") is not None:
             self._stack[-1]["cell"].append("")
 
     def handle_endtag(self, tag: str) -> None:
@@ -126,16 +133,27 @@ def _clean(text: str) -> str:
     return " ".join(_MARKERS.sub("", _SUP_REF.sub("", text)).replace(_SUP, "").split())
 
 
-def parse_part_c(body: bytes, language: str) -> dict[str, CatalogueEntry]:
+@dataclass(frozen=True)
+class PartC:
+    entries: dict[str, CatalogueEntry]
+    unreadable: list[str]               # names of four-cell rows whose number cell is not a catalogue number
+
+
+def parse_part_c(body: bytes, language: str) -> PartC:
     parser = _Rows()
     parser.feed(body.decode("utf-8"))
     parser.close()
     out: dict[str, CatalogueEntry] = {}
+    unreadable: list[str] = []
     for cells in parser.rows:
         if len(cells) != 4 or len(cells[0]) != 1:
             continue
         m = _NUMBER.match(cells[0][0])
         if not m:
+            # Part B's numbered processes (`12`) and the column headings carry a digit or a letter; a number cell
+            # with neither beside a name is an entry whose number did not come through.
+            if cells[1] and not any(ch.isalnum() for ch in cells[0][0]):
+                unreadable.append(" ".join(cells[1]))
             continue
         number = m.group(1)
         if number in out:
@@ -146,7 +164,7 @@ def parse_part_c(body: bytes, language: str) -> dict[str, CatalogueEntry]:
         out[number] = CatalogueEntry(number, name, "\n".join(cells[2]) or None, cells[3])
     if not out:
         raise SourceError(f"no catalogue entries found in the {language} text", "unexpected_shape")
-    return out
+    return PartC(out, unreadable)
 
 
 def _key(number: str) -> tuple[tuple[int, str], ...]:
@@ -164,7 +182,7 @@ def plan(by_language: dict[str, dict[str, CatalogueEntry]]) -> list[MaterialRow]
             number=n,
             names={lang: by_language[lang][n].name for lang in languages if n in by_language[lang]},
             description=base.description if base else None,
-            compulsory_declarations=base.declarations if base else [],
+            compulsory_declarations=base.declarations if base else None,   # not "none required"
             languages_missing=[lang for lang in languages if n not in by_language[lang]]))
     return rows
 
@@ -208,16 +226,23 @@ def run(client: PoliteClient, store: SourceStore | None, table: MaterialTable | 
         current, _later = eurlex.pick(eurlex.consolidations(client, ACT), today)
     except Exception as exc:  # noqa: BLE001
         return [failed("pull", ACT, exc, register=REGISTER)]
-    celex = current.celex if current else ACT
-    full_title = f"{title} · consolidated text {current.consolidated_on.isoformat()}" if current else title
+    if current is None:     # the base act would overwrite the amended annex: never fall back to it
+        return [failed("pull", ACT, SourceError(f"no consolidated version of {ACT} dated on or before {today}",
+                                                "no_consolidation"), register=REGISTER)]
+    celex, full_title = current.celex, f"{title} · consolidated text {current.consolidated_on.isoformat()}"
 
     outcomes: list[Outcome] = []
     docs: dict[str, eurlex.Document] = {}
     parsed: dict[str, dict[str, CatalogueEntry]] = {}
+    unreadable: list[Outcome] = []
     for lang in languages:
         try:
             docs[lang] = eurlex.fetch(client, celex, lang)
-            parsed[lang] = parse_part_c(docs[lang].body, lang)
+            part_c = parse_part_c(docs[lang].body, lang)
+            parsed[lang] = part_c.entries
+            unreadable += [Outcome("material", name, "skipped", language=lang, reason="unreadable_number",
+                                   note="a Part C row whose number cell is not a catalogue number")
+                           for name in part_c.unreadable]
         except Exception as exc:  # noqa: BLE001  visible; nothing is written unless every language is read
             outcomes.append(failed("pull", celex, exc, register=REGISTER, language=lang))
     if len(parsed) != len(languages) or BASE_LANGUAGE not in parsed:
@@ -229,7 +254,7 @@ def run(client: PoliteClient, store: SourceStore | None, table: MaterialTable | 
                      for lang, d in docs.items()]
         return outcomes + [Outcome("material", r.number, "importable", id=r.number,
                                    reason="language_missing" if r.languages_missing else None,
-                                   languages_missing=r.languages_missing) for r in rows]
+                                   languages_missing=r.languages_missing) for r in rows] + unreadable
 
     pull_outcomes, written = [], []
     try:
@@ -252,4 +277,4 @@ def run(client: PoliteClient, store: SourceStore | None, table: MaterialTable | 
         return outcomes + [failed("pull", celex, exc, register=REGISTER)]
     if stale:
         log.warning("catalogue rows not in this text", extra=kv(register=REGISTER, stale=len(stale)))
-    return outcomes + pull_outcomes + written + stale
+    return outcomes + pull_outcomes + written + unreadable + stale
