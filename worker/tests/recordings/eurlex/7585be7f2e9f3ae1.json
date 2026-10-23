@@ -1,0 +1,15 @@
+{
+  "method": "GET",
+  "url": "https://publications.europa.eu/resource/cellar/fc8262cb-2926-11e9-8d04-01aa75ed71a1.0003.03/DOC_1",
+  "request_headers": {
+    "accept": "application/xhtml+xml",
+    "accept-language": "dan"
+  },
+  "status": 200,
+  "headers": {
+    "content-type": "application/xhtml+xml;charset=UTF-8",
+    "etag": "\"Con-20191119212130000\"",
+    "last-modified": "Tue, 19 Nov 2019 20:21:30 GMT"
+  },
+  "body_sha256": "bacf828805efd43ff19348e32a07027260204c909b5c8d298444599eba7ca4ad"
+}
