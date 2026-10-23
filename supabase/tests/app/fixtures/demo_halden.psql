@@ -100,7 +100,9 @@ begin
     (ws, p_lindq,  'editor',            false, array[f_salmon], null, null, '2026-08-29 17:44+02'),
     -- "9 recipes · EU markets only · until 31 Dec 2026" (the design's count; the seed has seven live dog and cat recipes)
     (ws, p_reuter, 'editor',            true,  array[f_salmon, f_pupchk, f_pupslm, f_senior, f_urin, f_indoor, f_work],
-                                               array['EU'], '2026-12-31 23:59:59+01', '2026-06-15 11:30+02'),
+                                               -- the design's end date while it is ahead; afterwards always 90 days ahead
+                                               array['EU'], greatest(timestamptz '2026-12-31 23:59:59+01', now() + interval '90 days'),
+                                               '2026-06-15 11:30+02'),
     (ws, p_salo,   'viewer',            false, null, null, null, '2026-05-20 08:45+02'),
     -- "Adult range only · no end date"
     (ws, p_kvist,  'viewer',            true,  array[f_salmon, f_urin, f_indoor, f_work], null, null, '2026-07-01 13:05+02');
@@ -221,7 +223,8 @@ begin
   ) as t(ord, txt, bbox, pt, xh, ch);
 
   -- ─── Checks (Label report, Portfolio board, Product × node) ─────────────────────────────────────
-  -- One job per product, keyed as app.request_check keys it, so a real re-check with the same inputs reuses it.
+  -- One job per product. The key is the request_check shape under a 'demo-seed:' prefix, so a real re-check is never
+  -- answered by a seeded job: it runs.
   for r in
     select av.product_id, av.id as av_id, av.file_sha256, av.created_at,
            case when av.uploaded_by = p_holm then p_holm else p_feldt end as actor
@@ -232,7 +235,7 @@ begin
     insert into app.jobs (id, workspace_id, kind, idempotency_key, status, payload, progress, attempts,
                           requested_by, created_at, updated_at)
     values (md5('halden-demo:job:' || r.av_id)::uuid, ws, 'check',
-            format('check:%s:%s:%s:%s:%s', r.product_id, r.file_sha256, baseline, '-',
+            format('demo-seed:check:%s:%s:%s:%s:%s', r.product_id, r.file_sha256, baseline, '-',
                    array_to_string(array(select n from unnest(board_nodes) n order by n), ',')),
             'succeeded',
             jsonb_build_object('product_id', r.product_id, 'artwork_version_id', r.av_id, 'ruleset_version', baseline,
