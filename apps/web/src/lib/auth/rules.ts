@@ -58,13 +58,25 @@ export type Assurance = { currentLevel: string | null; nextLevel: string | null 
 
 export type MfaGate = "ok" | "challenge" | "enrol";
 
+/** Where a reset link goes when the account has a verified factor: two-step first, then the new password. */
+export const RESET_AFTER_MFA = `/auth/mfa?next=${encodeURIComponent("/auth/reset")}`;
+
+/**
+ * True when the session must prove its second factor first. Supabase Auth refuses a password change below aal2 once a
+ * factor is verified (insufficient_aal), and a reset link only ever signs in at aal1, so every person with two-step,
+ * every signer among them, proves it before choosing the new password.
+ */
+export function needsStepUp(assurance: Assurance): boolean {
+  return assurance.nextLevel === "aal2" && assurance.currentLevel !== "aal2";
+}
+
 /**
  * A02 step 4, A02.fail.2 and A02.must.2. A person with a verified factor proves it at sign-in (aal2) before reaching
  * any workspace. A person holding signing authority with no factor at all enrols first ("Two-step is offered here,
  * not later"). Everybody else may work at aal1; signing itself is refused below aal2 by the database (P0292).
  */
 export function mfaGate(assurance: Assurance, holdsSigningGrant: boolean): MfaGate {
-  if (assurance.nextLevel === "aal2" && assurance.currentLevel !== "aal2") return "challenge";
+  if (needsStepUp(assurance)) return "challenge";
   if (holdsSigningGrant && assurance.nextLevel !== "aal2") return "enrol";
   return "ok";
 }

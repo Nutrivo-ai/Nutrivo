@@ -9,7 +9,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { REQUEST_ID_HEADER } from "@/lib/observability/request-id";
-import { CONTINUE, EXPIRED_LINK, PASSWORD_PROBLEM, checkPassword, safeNext } from "./rules";
+import { CONTINUE, EXPIRED_LINK, PASSWORD_PROBLEM, RESET_AFTER_MFA, checkPassword, safeNext } from "./rules";
 import { landingPath, sessionGate } from "./session";
 
 export type FormState =
@@ -125,6 +125,8 @@ export async function setNewPassword(_: FormState, form: FormData): Promise<Form
     if (error.code === "same_password") {
       return { status: "problem", problem: "That is the password you have now. Choose a new one." };
     }
+    // Two-step was verified after this page loaded, or the page was reached around the callback: prove it first.
+    if (error.code === "insufficient_aal") redirect(RESET_AFTER_MFA);
     if (error.code === "weak_password") {
       return { status: "problem", problem: "That password is too easy to guess. A passphrase of four words is stronger." };
     }

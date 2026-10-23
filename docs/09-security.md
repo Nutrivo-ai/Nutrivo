@@ -28,8 +28,11 @@ database (P0292). Removing a member ends the membership, revokes grants and sign
 - **Never revealing an account.** A sign-in link is created only for an existing account (`shouldCreateUser: false`).
   The answers to sign-in, sign-in link and reset never say whether an address has an account.
 - **Links.** Every expired or used link lands on `/auth/forgot?link=expired`.
-- **Two-step.** A person with a verified TOTP factor is challenged to `aal2` before reaching a workspace. A person
-  holding a signing grant with no factor enrols first (`/auth/mfa`).
+- **Two-step.** In the web app, a person with a verified TOTP factor is challenged to `aal2` before reaching a
+  workspace or setting a new password through a reset link, and a person holding a signing grant with no factor enrols
+  first (`/auth/mfa`). The database enforces `aal2` only for signing (P0292). A token at `aal1` for an account with a
+  factor still reads and writes under RLS through the API, outside the web app; whether to require `aal2` in the
+  database for such accounts is an open question for a founder (#25, question 7).
 - **Password reset.** It ends every other session (`signOut({scope: 'others'})`).
 - **Audit.** Sign-ins and password changes are audited by database triggers on `auth.sessions` and `auth.users`;
   the password, its hash and every token stay out of the audit, logs and Sentry.

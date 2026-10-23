@@ -292,6 +292,51 @@ test.describe("A07 change or reset a password", () => {
     expect(errors).toEqual([]);
   });
 
+  test("[A07.main] [A02.must.2] a signer with two-step resets the password: the code first, then the new password", async ({ page }) => {
+    test.setTimeout(120_000); // waits once for the next 30-second TOTP window
+    const oldPassword = `old ${randomUUID()}`;
+    const newPassword = `amber harbour quiet lantern ${randomUUID().slice(0, 8)}`;
+    const { who: owner, ws } = await member("a07-owner", oldPassword, "Signer Reset Workspace");
+    const signer = await member("a07-signer", oldPassword);
+    const signerId = await join(signer.who, ws!, "editor");
+    const granted = await admin().schema("app").from("signing_grants")
+      .insert({ workspace_id: ws!, person_id: signerId, node_id: "EU-SE", granted_by: await personIdOf(owner) });
+    if (granted.error) throw granted.error;
+    // The signer enrolled TOTP earlier, as A02.fail.2 requires of every signer.
+    const app = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    expect((await app.auth.signInWithPassword({ email: signer.who.email, password: oldPassword })).error).toBeNull();
+    const enrolled = await app.auth.mfa.enroll({ factorType: "totp" });
+    if (enrolled.error) throw enrolled.error;
+    const secret = enrolled.data.totp.secret;
+    const verified = await app.auth.mfa.challengeAndVerify({ factorId: enrolled.data.id, code: totp(secret) });
+    if (verified.error) throw verified.error;
+
+    const errors = watch(page);
+    await page.goto("/auth/forgot");
+    await page.getByLabel("Email address").fill(signer.who.email);
+    await page.getByRole("button", { name: "Send the link" }).click();
+    await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
+    await page.goto(await linkFromEmail(signer.who.email));
+    await expect(page).toHaveURL(/\/auth\/mfa\?next=%2Fauth%2Freset$/);
+    await expect(page.getByRole("heading", { name: "Type your two-step code" })).toBeVisible();
+    // Going around the code to the reset page leads back to it.
+    await page.goto("/auth/reset");
+    await expect(page).toHaveURL(/\/auth\/mfa\?next=%2Fauth%2Freset$/);
+    await page.waitForTimeout(31_000 - (Date.now() % 30_000)); // a code is used once per window
+    await page.getByLabel("Six-digit code").fill(totp(secret));
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page).toHaveURL(/\/auth\/reset$/);
+    await page.getByLabel("New password", { exact: true }).fill(newPassword);
+    await page.getByLabel("Type it again").fill(newPassword);
+    await page.getByRole("button", { name: "Set the password and sign in" }).click();
+    await expect(page).toHaveURL(new RegExp(`/w/${ws}$`));
+    expect((await app.auth.signInWithPassword({ email: signer.who.email, password: newPassword })).error).toBeNull();
+    expect(await auditOf(signerId, "access.password_changed")).toHaveLength(1);
+    expect(errors).toEqual([]);
+  });
+
   test("[A07.fail.1] a reset link used once lands on the Account Recovery page the second time", async ({ page }) => {
     const { who } = await member("a07-expired", `pass ${randomUUID()}`, "Expired Link Workspace");
     await page.goto("/auth/forgot");

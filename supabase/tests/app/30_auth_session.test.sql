@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(24);
+select plan(31);
 set local client_min_messages = warning;
 
 -- ─── Workspaces A and B. Alice admins A, Carl edits A and B and signs for EU-SE in A, Erin's access to A has
@@ -62,17 +62,40 @@ select ok(not has_function_privilege('authenticated', 'private.audit_session_sta
           and not has_function_privilege('authenticated', 'private.active_workspaces_of(uuid)', 'execute'),
           '[A02.main] the audit triggers cannot be called by a client, so access events cannot be forged');
 
+-- An audit that fails (here: a temporary trigger that rejects every insert) loses the row, never the sign-in.
+create function public.t103_reject_audit() returns trigger language plpgsql as $$
+begin raise exception 'audit unavailable'; end $$;
+create trigger t103_reject_audit before insert on app.audit_events
+  for each row execute function public.t103_reject_audit();
+insert into auth.sessions (id, user_id, aal, created_at)
+values ('60000000-0000-4000-8103-0000000000c9','00000000-0000-4000-8103-0000000000c1','aal1',now());
+select ok(exists (select 1 from auth.sessions where id = '60000000-0000-4000-8103-0000000000c9'),
+          '[A02.main] a failing audit never stands in the way of the sign-in itself');
+select is((select count(*)::int from app.audit_events where object_id = '60000000-0000-4000-8103-0000000000c9'), 0,
+          '[A02.main] the failed audit wrote nothing half-way');
+update auth.users set encrypted_password = '$2a$10$carl-interim-hash' where id = '00000000-0000-4000-8103-0000000000c1';
+select ok((select encrypted_password = '$2a$10$carl-interim-hash' from auth.users
+           where id = '00000000-0000-4000-8103-0000000000c1')
+          and not exists (select 1 from app.audit_events where kind = 'access.password_changed'),
+          '[A07.main] a failing audit never stands in the way of the password change itself');
+drop trigger t103_reject_audit on app.audit_events;
+drop function public.t103_reject_audit();
+
 -- ─── A02.must.1 · an expired or ended membership gives no access (BE-03) ──────────────────────────────────
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8103-0000000000e1","role":"authenticated","aal":"aal1"}', true);
 set local role authenticated;
 select is((select count(*)::int from app.workspaces), 0, '[A02.must.1] an expired membership reads no workspace');
 select is((select count(*)::int from app.products), 0, '[A02.must.1] an expired membership reads no product');
 select is((select count(*)::int from app.memberships), 0, '[A02.must.1] an expired membership reads no membership');
+select is((select array_agg(id::text) from app.people), array['10000000-0000-4000-8103-0000000000e1'],
+          '[A02.must.1] an expired membership reads no colleague: only the person''s own row in app.people');
 reset role;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8103-0000000000f1","role":"authenticated","aal":"aal1"}', true);
 set local role authenticated;
 select is((select count(*)::int from app.workspaces) + (select count(*)::int from app.products)
           + (select count(*)::int from app.reports), 0, '[A02.must.1] an ended membership reads nothing in the workspace');
+select is((select array_agg(id::text) from app.people), array['10000000-0000-4000-8103-0000000000f1'],
+          '[A02.must.1] an ended membership reads no colleague: only the person''s own row in app.people');
 
 -- ─── A02.fail.1 · the Access removed page reads its name, date and admin, and nothing more ───────────────────
 select is(app.my_ended_access('20000000-0000-4000-8103-00000000000a'),
@@ -108,6 +131,22 @@ select is(app.my_ended_access('20000000-0000-4000-8103-00000000000a') ->> 'ended
           to_jsonb('2026-01-31 12:00+00'::timestamptz) #>> '{}',
           '[A02.fail.1] an expired end date reads as the day access ended');
 reset role;
+-- Erin is tidied away by an admin on 15 March, after her access expired on 31 January; Bob became admin in between.
+update app.memberships set ended_at = '2026-03-15 10:00+00', ended_reason = 'removed by an admin'
+where id = '50000000-0000-4000-8103-0000000000e1';
+insert into app.memberships (workspace_id, person_id, role, created_at)
+values ('20000000-0000-4000-8103-00000000000a','10000000-0000-4000-8103-0000000000b1','admin','2026-02-10 09:00+00');
+update app.memberships set role = 'editor' where id = '50000000-0000-4000-8103-0000000000a1';
+set local role authenticated;
+select is(app.my_ended_access('20000000-0000-4000-8103-00000000000a') ->> 'ended_on',
+          to_jsonb('2026-01-31 12:00+00'::timestamptz) #>> '{}',
+          '[A02.fail.1] access that expired before it was removed ended on the expiry, not on the removal');
+select ok((app.my_ended_access('20000000-0000-4000-8103-00000000000a') ->> 'admin_email') is null,
+          '[A02.fail.1] an admin appointed between expiry and removal is never named');
+reset role;
+update app.memberships set role = 'admin' where id = '50000000-0000-4000-8103-0000000000a1';
+delete from app.memberships where workspace_id = '20000000-0000-4000-8103-00000000000a'
+  and person_id = '10000000-0000-4000-8103-0000000000b1';
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8103-0000000000c1","role":"authenticated","aal":"aal1"}', true);
 set local role authenticated;
 select is(app.my_ended_access('20000000-0000-4000-8103-00000000000a'), null,

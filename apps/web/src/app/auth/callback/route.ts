@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import * as Sentry from "@sentry/nextjs";
-import { EXPIRED_LINK, callbackFailure, linkType, safeNext } from "@/lib/auth/rules";
+import { EXPIRED_LINK, RESET_AFTER_MFA, callbackFailure, linkType, needsStepUp, safeNext } from "@/lib/auth/rules";
 import { sessionGate } from "@/lib/auth/session";
 import { REQUEST_ID_HEADER } from "@/lib/observability/request-id";
 import { createClient } from "@/lib/supabase/server";
@@ -31,8 +31,11 @@ export async function GET(request: NextRequest) {
     }
     return to(EXPIRED_LINK);
   }
-  // A reset link signs the person in only to choose a new password.
-  if (type === "recovery" || next === "/auth/reset") return to("/auth/reset");
+  // A reset link signs the person in only to choose a new password, at aal1: two-step comes first when they have it.
+  if (type === "recovery" || next === "/auth/reset") {
+    const { data: level } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    return to(level && needsStepUp(level) ? RESET_AFTER_MFA : "/auth/reset");
+  }
 
   const { data } = await supabase.auth.getUser();
   if (!data.user) return to(EXPIRED_LINK);

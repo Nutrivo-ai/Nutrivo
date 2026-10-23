@@ -60,7 +60,7 @@ language plpgsql stable security definer set search_path = '' as $$
 declare v_person uuid := private.person_id(); v_ended timestamptz; v_ws app.workspaces; v_admin app.people;
 begin
   if v_person is null or p_ws is null or private.is_member(p_ws) then return null; end if;
-  select max(coalesce(m.ended_at, m.access_ends_at)) into v_ended
+  select max(least(m.ended_at, m.access_ends_at)) into v_ended  -- the earlier of removal and expiry
   from app.memberships m
   where m.workspace_id = p_ws and m.person_id = v_person
     and (m.ended_at is not null or m.access_ends_at <= now());

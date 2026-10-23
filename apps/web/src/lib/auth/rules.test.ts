@@ -7,6 +7,8 @@ import {
   linkType,
   mfaGate,
   minutesLeft,
+  needsStepUp,
+  RESET_AFTER_MFA,
   safeNext,
   signInHref,
 } from "./rules";
@@ -67,6 +69,19 @@ describe("mfaGate: two-step at sign-in", () => {
 
   it("a person without signing authority or a factor is not forced to enrol", () => {
     expect(mfaGate({ currentLevel: "aal1", nextLevel: "aal1" }, false)).toBe("ok");
+  });
+});
+
+describe("needsStepUp: a reset for an account with two-step", () => {
+  it("[A07.main] a reset link's aal1 session proves the second factor before setting a password", () => {
+    expect(needsStepUp({ currentLevel: "aal1", nextLevel: "aal2" })).toBe(true);
+    expect(RESET_AFTER_MFA).toBe("/auth/mfa?next=%2Fauth%2Freset");
+    expect(safeNext("/auth/reset")).toBe("/auth/reset");
+  });
+
+  it("goes straight to the new password without a factor, or once at aal2", () => {
+    expect(needsStepUp({ currentLevel: "aal1", nextLevel: "aal1" })).toBe(false);
+    expect(needsStepUp({ currentLevel: "aal2", nextLevel: "aal2" })).toBe(false);
   });
 });
 
