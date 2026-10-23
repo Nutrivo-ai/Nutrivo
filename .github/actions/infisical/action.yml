@@ -26,11 +26,9 @@ runs:
     - name: Secret aliases (config/secret-aliases.env)
       shell: bash
       run: |
-        f="$GITHUB_WORKSPACE/config/secret-aliases.env"
-        [ -f "$f" ] || exit 0
-        while IFS='=' read -r canonical alias; do
-          canonical="${canonical// /}"; alias="${alias// /}"
-          { [ -z "$canonical" ] || [ "${canonical:0:1}" = "#" ] || [ -z "$alias" ]; } && continue
+        pairs="$(python3 "$GITHUB_WORKSPACE/scripts/env/aliases.py" "$GITHUB_WORKSPACE/config/secret-aliases.env")" || exit 1
+        while read -r canonical alias; do
+          [ -n "$canonical" ] || continue
           if [ -z "${!canonical:-}" ] && [ -n "${!alias:-}" ]; then
             # Already masked by the Infisical step; masked again line by line in case of a multi-line value.
             while IFS= read -r line; do if [ -n "$line" ]; then echo "::add-mask::$line"; fi; done <<< "${!alias}"
@@ -38,4 +36,4 @@ runs:
             { echo "$canonical<<$d"; printf '%s\n' "${!alias}"; echo "$d"; } >> "$GITHUB_ENV"
             echo "alias: $canonical from $alias"
           fi
-        done < "$f"
+        done <<< "$pairs"

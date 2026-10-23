@@ -66,7 +66,7 @@ Any task may touch docs/. Anything else outside the task's lanes fails the proto
 ## Required checks and what each one stops
 | Check | Stops |
 |---|---|
-| protocol | Work without a task; out-of-lane changes; edits to protected files; edited or out-of-order migrations; stale generated specs; an invalid plan |
+| protocol | Work without a task; out-of-lane changes; edits to protected files; edited or out-of-order migrations; stale generated specs; an invalid plan; a failing repository-script test or an unparsable `config/secret-aliases.env` |
 | secrets-scan | Secrets committed to the repository |
 | database | Any gate or app pgTAP failure |
 | worker | Unit, handler and extraction-gate failures; lint |
