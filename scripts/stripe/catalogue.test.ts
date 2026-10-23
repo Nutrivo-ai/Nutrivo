@@ -82,8 +82,8 @@ test("only test-mode keys are used; live keys are refused", () => {
   assert.throws(() => assertTestKey("rk_live_abc"), /refusing a live Stripe key/);
   assert.throws(() => assertTestKey("pk_test_abc"), /not a test-mode secret/);
   assert.throws(() => assertTestKey(undefined), /not set/);
-  // The message never echoes the key.
-  try { assertTestKey("sk_live_SECRETVALUE"); } catch (e) { assert.doesNotMatch((e as Error).message, /SECRETVALUE/); }
+  // The message never echoes the key (kept short so secret scanners do not take it for one).
+  try { assertTestKey("sk_live_zz9q"); } catch (e) { assert.doesNotMatch((e as Error).message, /zz9q/); }
 });
 
 test("the catalogue maps config/pricing.ts: one product per paid plan and add-on, a price per term and plan", () => {

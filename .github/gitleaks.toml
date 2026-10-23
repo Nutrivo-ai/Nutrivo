@@ -6,3 +6,7 @@ useDefault = true
 description = "Rule keys in regulatory content (key: EU.767.NET_QUANTITY) are identifiers, not secrets"
 regexTarget = "match"
 regexes = ['''key:\s*[A-Z]{2}\.[0-9A-Z-]+\.[A-Z0-9_.]+''']
+
+[[allowlists]]
+description = "T-701 (#102): a placeholder live-key string in a test, removed by the next commit; squash-merged, so never on main"
+commits = ["15b93094416fa06b2904d2e054b9360feb5e276f"]
