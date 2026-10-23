@@ -6,7 +6,7 @@
 | Database app tests | supabase/tests/app/ | `make gates` | Claude Code |
 | Worker gates | worker/tests/gates/ | `make test` (active from `.milestone` 3) | People only |
 | Worker unit and handler tests | worker/tests/ | `make test` | Claude Code |
-| Rule fixtures | ref.rule_fixtures | `nutrivo fixtures run --ruleset <id>` | Drafted by Claude Code, confirmed by the accepting person |
+| Rule fixtures | ref.rule_fixtures, plus the synthetic and golden labels | `nutrivo fixtures run --ruleset <id>` (docs/05 §Fixtures; JSON and JUnit for CI) | Drafted by Claude Code, confirmed by the accepting person |
 | Synthetic labels | fixtures/synth/ | `make fixtures` | Generator in the repository |
 | Golden labels | fixtures/golden/ | Release gate from 30 labels | People only |
 | Claims evaluations | worker/evals/claims/ | Before any claim rule joins a ruleset | Labels by people |
