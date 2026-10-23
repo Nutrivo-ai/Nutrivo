@@ -70,6 +70,20 @@ def api(path, *args):
     return gh_json("api", f"repos/{repo()}/{path}", *args)
 
 
+# D-24: a Claude Code session acts through the Claude GitHub App on its founder's own account, so a label it applies is
+# that founder's. Any other app, and every bot account (the autopilot is claude[bot]), never counts as a person.
+SESSION_APPS = {"claude"}
+
+
+def label_applier(event):
+    """The login of the person behind an issue event, or None when a bot or an app outside SESSION_APPS made it."""
+    actor = event.get("actor") or {}
+    app = (event.get("performed_via_github_app") or {}).get("slug")
+    if actor.get("type") != "User" or (app is not None and app not in SESSION_APPS):
+        return None
+    return actor.get("login")
+
+
 def gh_failure(e):
     """A failed gh or git call as a message for sys.exit, with gh's own words instead of a traceback."""
     why = (e.stderr or "").strip() or f"exit {e.returncode}"

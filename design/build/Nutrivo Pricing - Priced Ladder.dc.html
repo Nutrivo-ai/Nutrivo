@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-700: #1738a8; --accent-900: #0d1c52;
+    --n200: #eef0f2; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c;
+    --head: 'Instrument Sans', system-ui, sans-serif; --body: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; color: var(--ink); background: var(--paper); font-family: var(--body); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); font-weight: 600; letter-spacing: -0.025em; }
+  a { color: var(--accent-700); }
+  a:hover { color: var(--accent); }
+  .kick { margin: 0; font-family: var(--mono); font-size: 8.5pt; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); }
+  .h2row { display: flex; align-items: baseline; gap: 9pt; border-bottom: 1px solid var(--ink); padding-bottom: 4pt; margin: 26pt 0 10pt; break-after: avoid; }
+  .h2row span { font-family: var(--mono); font-size: 8.5pt; color: var(--accent); }
+  .h2row h2 { margin: 0; font-size: 15pt; line-height: 1.1; }
+  .h2row em { margin-left: auto; font-family: var(--mono); font-size: 8pt; font-style: normal; letter-spacing: 0.06em; color: var(--n600); }
+  .lead { margin: 0 0 12pt; font-size: 10.5pt; line-height: 1.55; max-width: 86ch; color: var(--n700); }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 9pt; line-height: 1.45; }
+  .tbl th { text-align: left; font-family: var(--mono); font-weight: 400; font-size: 7.5pt; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600); border-bottom: 1px solid var(--ink); padding: 0 8pt 5pt 0; vertical-align: bottom; }
+  .tbl td { border-bottom: 1px solid var(--n200); padding: 7pt 8pt 7pt 0; vertical-align: top; }
+  .tbl td.nm { font-weight: 500; }
+  .mono { font-family: var(--mono); }
+  .box { break-inside: avoid; }
+</style>
+</helmet>
+
+<div style="max-width: 1020px; margin: 0 auto; padding: 40pt 44pt 70pt; font-size: 10pt">
+
+  <p class="kick">Nutrivo · priced ladder · regions pass · internal</p>
+  <h1 style="margin: 6pt 0 0; font-size: 30pt; line-height: 1.05">Free · Basic · Standard · Advanced</h1>
+  <p style="margin: 12pt 0 0; font-size: 11.5pt; line-height: 1.5; max-width: 82ch">A region now means the whole region. Pick the EU and you have all twenty-seven member states in every official language; pick the US and you have federal plus all fifty states. Nobody counts countries on the pricing page any more — three things are priced: <span style="font-weight: 600">recipes</span>, <span style="font-weight: 600">regions</span>, and <span style="font-weight: 600">people who can edit</span>. §06 shows why selling a region whole is affordable rather than reckless.</p>
+
+  <div style="margin-top: 16pt; border: 1px solid var(--ink); background: var(--accent-100); padding: 13pt 15pt" class="box">
+    <p style="margin: 0; font-family: var(--mono); font-size: 8pt; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">The rule for the whole product</p>
+    <p style="margin: 6pt 0 0; font-size: 10.5pt; line-height: 1.55; max-width: 92ch"><span style="font-weight: 600">Where a wrong word costs money, use the exact one. Everywhere else, use the plain one.</span> Inside a report the vocabulary stays precise, because that is what makes it usable as evidence: the four states keep their names, an article number is an article number, and provenance is stated. A pricing page is not evidence. Its only job is to let someone work out which row is theirs and what they will be charged, without asking us.</p>
+  </div>
+
+  <div style="margin-top: 16pt; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10pt; align-items: stretch">
+    <sc-for list="{{ tiers }}" as="t" hint-placeholder-count="4">
+      <div style="{{ t.style }}" class="box">
+        <p style="margin: 0; font-family: var(--head); font-size: 16pt; font-weight: 600; line-height: 1.05; height: 18pt">{{ t.name }}</p>
+        <p style="margin: 4pt 0 0; font-size: 8.5pt; line-height: 1.4; color: {{ t.whoColor }}; height: 26pt">{{ t.who }}</p>
+        <p style="margin: 8pt 0 0; font-family: var(--head); font-size: 21pt; font-weight: 600; line-height: 1.15; letter-spacing: -0.03em; min-height: 33pt; text-wrap: balance">{{ t.mo }}</p>
+        <p style="margin: 4pt 0 0; font-size: 8pt; line-height: 1.4; color: var(--n600); height: 24pt">{{ t.moNote }}</p>
+        <p style="margin: 6pt 0 0; padding-top: 7pt; border-top: 1px solid var(--rule); font-family: var(--head); font-size: 13pt; font-weight: 600; line-height: 1.15; color: var(--accent-700); min-height: 20pt; white-space: nowrap">{{ t.yr }}</p>
+        <p style="margin: 4pt 0 0; font-size: 8pt; line-height: 1.4; color: var(--n600); height: 22pt">{{ t.yrNote }}</p>
+        <div style="margin-top: 8pt; border-top: 1px solid var(--ink)">
+          <sc-for list="{{ t.caps }}" as="c" hint-placeholder-count="4">
+            <div style="display: flex; gap: 6pt; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--n200); height: 16pt">
+              <p style="margin: 0; font-size: 8pt; color: var(--n600)">{{ c.k }}</p>
+              <p style="margin: 0; font-family: var(--mono); font-size: 8pt; font-weight: 500; text-align: right">{{ c.v }}</p>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin-top: 9pt; min-height: 74pt">
+          <sc-if value="{{ t.pick }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <p style="margin: 0; font-family: var(--mono); font-size: 6.5pt; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Pick your region</p>
+              <div style="margin-top: 4pt; display: flex; gap: 3pt">
+                <sc-for list="{{ t.chips }}" as="c" hint-placeholder-count="3">
+                  <button type="button" onClick="{{ c.on }}" style="{{ c.style }}" style-hover="border-color: var(--accent)">{{ c.label }}</button>
+                </sc-for>
+              </div>
+              <p style="margin: 5pt 0 0; font-size: 8pt; line-height: 1.4; color: var(--n700)">{{ t.example }}</p>
+            </div>
+          </sc-if>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; gap: 3pt">
+          <sc-for list="{{ t.lines }}" as="l" hint-placeholder-count="6">
+            <p style="margin: 0; font-size: 8.5pt; line-height: 1.35">{{ l.t }}</p>
+          </sc-for>
+        </div>
+        <p style="margin: 10pt 0 0; padding-top: 7pt; border-top: 1px solid var(--rule); font-size: 8pt; line-height: 1.45; color: var(--n700); min-height: 40pt">{{ t.wall }}</p>
+      </div>
+    </sc-for>
+  </div>
+
+  <div class="h2row"><span>01</span><h2>The three regions</h2><em>a region is a rulebook, and you get all of it</em></div>
+  <p class="lead">You cannot buy Texas on its own, and you should not be able to. A state is not a rulebook — it is one edition of a national one, and a brand shipping into the US has obligations in every state it sells to whether it has thought about them or not. So a region is sold whole: the rulebook, every country or state inside it, and every official language a label is printed in there.</p>
+  <table class="tbl">
+    <thead><tr><th style="width: 14%">Region</th><th style="width: 28%">What is inside it</th><th style="width: 12%">Add / mo</th><th style="width: 12%">Add / yr</th><th>What it costs us to hold current</th></tr></thead>
+    <tbody>
+      <sc-for list="{{ regions }}" as="r" hint-placeholder-count="3">
+        <tr>
+          <td class="nm">{{ r.k }}</td>
+          <td style="font-size: 8.5pt">{{ r.gets }}</td>
+          <td class="mono" style="font-size: 9pt; color: var(--accent-700)">{{ r.mo }}</td>
+          <td class="mono" style="font-size: 9pt; color: var(--accent-700)">{{ r.yr }}</td>
+          <td style="font-size: 8.5pt; color: var(--n700)">{{ r.why }}</td>
+        </tr>
+      </sc-for>
+    </tbody>
+  </table>
+  <div style="margin-top: 12pt; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12pt">
+    <sc-for list="{{ regionRules }}" as="r" hint-placeholder-count="3">
+      <div style="border-top: 2.5pt solid {{ r.color }}; padding-top: 8pt" class="box">
+        <p style="margin: 0; font-family: var(--head); font-size: 10.5pt; font-weight: 600; line-height: 1.25">{{ r.k }}</p>
+        <p style="margin: 4pt 0 0; font-size: 9pt; line-height: 1.5; color: var(--n700)">{{ r.v }}</p>
+      </div>
+    </sc-for>
+  </div>
+
+  <div class="h2row"><span>02</span><h2>Adding more</h2><em>two things, and a ceiling on one of them</em></div>
+  <table class="tbl">
+    <thead><tr><th style="width: 26%">&nbsp;</th><th style="width: 15%">Basic</th><th style="width: 15%">Standard</th><th style="width: 14%">Advanced</th><th>&nbsp;</th></tr></thead>
+    <tbody>
+      <sc-for list="{{ expansion }}" as="e" hint-placeholder-count="6">
+        <tr>
+          <td class="nm">{{ e.k }}</td>
+          <td class="mono" style="font-size: 8.5pt">{{ e.b }}</td>
+          <td class="mono" style="font-size: 8.5pt">{{ e.s }}</td>
+          <td class="mono" style="font-size: 8.5pt">{{ e.a }}</td>
+          <td style="font-size: 8.5pt; color: var(--n700)">{{ e.rule }}</td>
+        </tr>
+      </sc-for>
+    </tbody>
+  </table>
+  <div style="margin-top: 12pt; border: 1px solid var(--ink); background: var(--accent-100); padding: 12pt 14pt" class="box">
+    <p style="margin: 0; font-family: var(--mono); font-size: 8pt; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">On the page, word for word</p>
+    <p style="margin: 6pt 0 0; font-size: 11pt; line-height: 1.55; max-width: 88ch">"Adding recipes will never push your bill more than half above your plan price. When you get there we will tell you, because the next plan up is cheaper."</p>
+    <p style="margin: 7pt 0 0; font-size: 9pt; line-height: 1.5; color: var(--n700)">Internally: recipe overage caps at 50% of list — €374 on Basic, €749 on Standard — then the system offers the tier above. A region sits outside that cap deliberately. It is a decision the customer makes once, not a bill that creeps.</p>
+  </div>
+
+  <div class="h2row"><span>03</span><h2>Free</h2><em>fourteen days, then it stays</em></div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12pt">
+    <div style="border: 1px solid var(--ink); border-top: 2.5pt solid var(--accent); padding: 12pt 14pt" class="box">
+      <p style="margin: 0; font-family: var(--head); font-size: 12pt; font-weight: 600">The first two weeks</p>
+      <p style="margin: 6pt 0 0; font-size: 9.5pt; line-height: 1.55">Everything Basic has: ten recipes across a whole region, reports you can send, and a note whenever a rule changes. No card, no questions about your company, no call.</p>
+      <p style="margin: 8pt 0 0; font-family: var(--mono); font-size: 8pt; color: var(--n600)">COSTS US ≈ €13 FOR THE FORTNIGHT</p>
+    </div>
+    <div style="border: 1px solid var(--rule); border-top: 2.5pt solid var(--n400); padding: 12pt 14pt" class="box">
+      <p style="margin: 0; font-family: var(--head); font-size: 12pt; font-weight: 600">After that</p>
+      <p style="margin: 6pt 0 0; font-size: 9.5pt; line-height: 1.55">Nothing is deleted and nothing expires. You keep one recipe in one region, with the full answer on screen and a note whenever a rule changes. Check it as often as you like. If you do not come back for three months we pause the automatic re-checking; opening it starts again.</p>
+      <p style="margin: 8pt 0 0; font-family: var(--mono); font-size: 8pt; color: var(--n600)">COSTS US ≈ €1.60 / MONTH · NOTHING WHEN DORMANT</p>
+    </div>
+  </div>
+  <p class="lead" style="margin-top: 14pt">Five upsell moments. Each one is the customer reaching for something they already want, so the sentence is a price and a reason, said once, in place. No banners, no countdown, no email sequence.</p>
+  <table class="tbl">
+    <thead><tr><th style="width: 27%">They reach for</th><th style="width: 33%">We say, on the spot</th><th>Why this moment</th></tr></thead>
+    <tbody>
+      <sc-for list="{{ upsells }}" as="u" hint-placeholder-count="5">
+        <tr><td class="nm">{{ u.k }}</td><td style="font-size: 9pt; color: var(--accent-700)">{{ u.say }}</td><td style="font-size: 8.5pt">{{ u.why }}</td></tr>
+      </sc-for>
+    </tbody>
+  </table>
+
+  <div class="h2row"><span>04</span><h2>Advanced</h2><em>the platform, then our people</em></div>
+  <p class="lead">On the page this tier is two paragraphs, not a feature list. The software price is fixed and the expert work is quoted, because we are selling days of our own regulatory team and we cannot know in advance how many a customer needs.</p>
+  <table class="tbl">
+    <thead><tr><th style="width: 30%">What you are buying</th><th style="width: 24%">What it costs</th><th>What it does not include</th></tr></thead>
+    <tbody>
+      <sc-for list="{{ advanced }}" as="a" hint-placeholder-count="7">
+        <tr><td class="nm">{{ a.k }}</td><td class="mono" style="font-size: 8.5pt; color: var(--accent-700)">{{ a.v }}</td><td style="font-size: 8.5pt">{{ a.bound }}</td></tr>
+      </sc-for>
+    </tbody>
+  </table>
+  <div style="margin-top: 12pt; border: 1px solid var(--ink); padding: 12pt 14pt" class="box">
+    <p style="margin: 0; font-family: var(--mono); font-size: 8pt; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">The paragraph that goes on the page</p>
+    <p style="margin: 6pt 0 0; font-size: 11pt; line-height: 1.6; max-width: 88ch">"Advanced is for companies where someone has to put their name to a label. You get all three regions, unlimited recipes, and as many people as you like at no charge. Someone in your company holds signing authority market by market, so a certificate carries a name rather than a claim. Where you want our regulatory team as well — preparing a registration, reviewing a translation, running a whole range of artwork through at once — that is quoted separately, because we will not pretend to know how many days you need before we have seen the work."</p>
+  </div>
+  <div style="margin-top: 12pt; border: 1px solid var(--rule); border-left: 2.5pt solid var(--action); padding: 11pt 13pt" class="box">
+    <p style="margin: 0; font-family: var(--mono); font-size: 8pt; letter-spacing: 0.1em; text-transform: uppercase; color: var(--action)">Two consequences of the €999 floor, for the record</p>
+    <p style="margin: 6pt 0 0; font-size: 9.5pt; line-height: 1.55; max-width: 92ch">The rates in the table above are our internal guide; the page says only <span style="font-style: italic">on quotation</span>, which is right — we are selling days of a named person's time and the scope decides the number. But at €999 the software carries a much smaller share of the contract than it did at €2,750, so the specialist capacity has to be there before we sell it, and every quote now has to earn the services revenue rather than lean on the platform fee. And with people free and recipes unlimited, the only remaining dial on this tier is expert time — which makes Advanced growth a hiring plan more than a pricing one.</p>
+  </div>
+
+  <p class="lead" style="margin-top: 18pt">Yes — "from €999" is a floor, and the quote scales with the size of the range. It should not scale by feel, though, or two customers of the same size get two different numbers and the first one to compare notes is a problem. One marginal rate, published internally, does the work: <span class="mono" style="color: var(--accent-700)">€7.50 per recipe per month above the first hundred</span>. It is set to hold the software margin near 78% at any size, which is where the rest of the ladder sits.</p>
+  <table class="tbl">
+    <thead><tr><th style="width: 20%">Range size</th><th style="width: 18%">Software / mo</th><th style="width: 18%">Software / yr</th><th style="width: 16%">Costs us / mo</th><th>Margin</th></tr></thead>
+    <tbody>
+      <sc-for list="{{ bands }}" as="b" hint-placeholder-count="4">
+        <tr>
+          <td class="nm">{{ b.k }}</td>
+          <td class="mono" style="font-size: 9pt; color: var(--accent-700)">{{ b.mo }}</td>
+          <td class="mono" style="font-size: 9pt; color: var(--accent-700)">{{ b.yr }}</td>
+          <td class="mono" style="font-size: 8.5pt; color: var(--clear)">{{ b.cost }}</td>
+          <td style="font-size: 8.5pt">{{ b.gm }}</td>
+        </tr>
+      </sc-for>
+    </tbody>
+  </table>
+  <p style="margin: 10pt 0 0; font-size: 9.5pt; line-height: 1.5; max-width: 90ch; color: var(--n700)">Expert work is quoted on top of whichever band applies, and it is where most of the contract value sits. The alternative is a flat €999 at any size, with the people revenue carrying the margin — a legitimate land-cheap strategy, and the one to choose if we would rather compete on the software price and sell days afterwards. I would not: at three hundred recipes a flat €999 is a forty-per-cent software margin, and a customer that large is not buying on price.</p>
+
+  <div class="h2row"><span>05</span><h2>Plain words, and the ones they replace</h2><em>keep both · never mix them</em></div>
+  <p class="lead">The left column is what a customer reads. The right is what we say to each other, what the database calls it, and what the report keeps saying — because in a report the precision is the product.</p>
+  <table class="tbl">
+    <thead><tr><th style="width: 25%">On the page</th><th style="width: 25%">Ours, and the product's</th><th>Why we do not say the second one to a customer</th></tr></thead>
+    <tbody>
+      <sc-for list="{{ glossary }}" as="g" hint-placeholder-count="15">
+        <tr>
+          <td class="nm">{{ g.plain }}</td>
+          <td class="mono" style="font-size: 8pt; color: var(--n700)">{{ g.ours }}</td>
+          <td style="font-size: 8.5pt">{{ g.why }}</td>
+        </tr>
+      </sc-for>
+    </tbody>
+  </table>
+  <div style="margin-top: 12pt; border: 1px solid var(--ink); border-left: 4pt solid var(--blocked); padding: 12pt 14pt" class="box">
+    <p style="margin: 0; font-family: var(--mono); font-size: 8pt; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blocked)">Words that are never simplified</p>
+    <p style="margin: 6pt 0 0; font-size: 10pt; line-height: 1.55; max-width: 92ch">The four states keep their exact names everywhere, including on the pricing page: <span style="font-weight: 600">Clear</span>, <span style="font-weight: 600">Action needed</span>, <span style="font-weight: 600">Not assessed</span>, <span style="font-weight: 600">Blocked</span>. Not assessed in particular is the one word we must never soften — the whole position rests on saying plainly what we did not check. The same applies to the boundary sentences: we do not file, pay, correspond with an authority, confirm a registration is valid or guarantee acceptance. Those are said in full, in the plainest possible language, and never abbreviated to fit a card.</p>
+  </div>
+
+  <div class="h2row"><span>06</span><h2>Why a whole region is affordable</h2><em>internal · not on any page</em></div>
+  <div style="border: 1px solid var(--ink); background: var(--accent-100); padding: 13pt 15pt" class="box">
+    <p style="margin: 0; font-family: var(--mono); font-size: 8pt; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">The load-bearing fact</p>
+    <p style="margin: 6pt 0 0; font-size: 10.5pt; line-height: 1.55; max-width: 92ch">A check costs what the <span style="font-weight: 600">customer's own artwork</span> costs, not what our coverage costs. A brand with a German pack and a French pack is two language panels to read whether we hold three member states or twenty-seven. The part that scales with our breadth — registration obligations, authorities, fees, deadlines, state by state — is a lookup against a register we maintain anyway, and it is close to free at check time. Selling all fifty US states therefore adds obligations to the answer, not passes to the compute bill.</p>
+    <p style="margin: 8pt 0 0; font-size: 10.5pt; line-height: 1.55; max-width: 92ch">Holding fifty states current is a real cost, but it is fixed and shared: every US customer pays into the same encoded ruleset. That is precisely why we are an eighty-five-per-cent-margin business and not a fifty-two-per-cent one — and it is also why the earlier per-market price list was solving a problem we do not have.</p>
+  </div>
+  <table class="tbl" style="margin-top: 14pt">
+    <thead><tr><th style="width: 17%">Tier at cap</th><th style="width: 15%">Revenue / mo</th><th style="width: 17%">Compute + platform</th><th style="width: 13%">Gross margin</th><th>Note</th></tr></thead>
+    <tbody>
+      <sc-for list="{{ margins }}" as="m" hint-placeholder-count="5">
+        <tr>
+          <td class="nm">{{ m.k }}</td>
+          <td class="mono" style="font-size: 8.5pt">{{ m.rev }}</td>
+          <td class="mono" style="font-size: 8.5pt; color: var(--clear)">{{ m.cost }}</td>
+          <td class="mono" style="font-size: 9pt; font-weight: 500; color: {{ m.color }}">{{ m.gm }}</td>
+          <td style="font-size: 8.5pt">{{ m.note }}</td>
+        </tr>
+      </sc-for>
+    </tbody>
+  </table>
+  <p style="margin: 12pt 0 0; font-size: 10pt; line-height: 1.55; max-width: 90ch; font-weight: 500">Free, Basic and Standard sit well above the 60-79% band for AI-enabled software and far above the 52% category average. Advanced at the €999 floor sits at the very top of that band rather than above it, and it is the one tier where recipe count can erode the software margin — worth a soft internal ceiling. Scoped re-checks matter less than they did under per-market pricing, because language count is now the driver rather than market count, but they still take Standard from 77% to 93%, so the engineering commitment stands.</p>
+
+  <div class="h2row"><span>07</span><h2>Four real accounts</h2><em>the sanity check</em></div>
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10pt">
+    <sc-for list="{{ accounts }}" as="a" hint-placeholder-count="4">
+      <div style="border: 1px solid var(--rule); border-top: 2.5pt solid {{ a.color }}; padding: 11pt 12pt; display: flex; flex-direction: column" class="box">
+        <p style="margin: 0; font-family: var(--head); font-size: 12pt; font-weight: 600; line-height: 1.15">{{ a.k }}</p>
+        <p style="margin: 5pt 0 0; font-size: 8pt; line-height: 1.5; color: var(--n600)">{{ a.shape }}</p>
+        <p style="margin: 10pt 0 0; font-family: var(--head); font-size: 18pt; font-weight: 600; line-height: 1; letter-spacing: -0.02em; color: {{ a.color }}">{{ a.mo }}</p>
+        <p style="margin: 2pt 0 0; font-family: var(--mono); font-size: 7.5pt; color: var(--n600)">{{ a.yr }}</p>
+        <p style="margin: 8pt 0 0; padding-top: 7pt; border-top: 1px solid var(--rule); font-size: 8.5pt; line-height: 1.45; color: var(--n700)">{{ a.math }}</p>
+      </div>
+    </sc-for>
+  </div>
+
+  <div class="h2row"><span>08</span><h2>Still open</h2><em>three things this does not answer</em></div>
+  <ol style="margin: 0; padding-left: 18pt; font-size: 10pt; line-height: 1.6; max-width: 90ch">
+    <sc-for list="{{ open }}" as="o" hint-placeholder-count="3">
+      <li style="margin-bottom: 6pt"><span style="font-weight: 600">{{ o.k }}</span> {{ o.v }}</li>
+    </sc-for>
+  </ol>
+
+  <footer style="margin-top: 30pt; border-top: 1px solid var(--rule); padding-top: 12pt; font-family: var(--mono); font-size: 7.5pt; letter-spacing: 0.06em; text-transform: uppercase; color: var(--n600)">
+    <p style="margin: 0">Nutrivo · priced ladder, regions pass · 26 august 2026 · internal · euro, vat excluded · basic and standard prices set by alex retzlik; region prices, recipe caps and the advanced floor proposed</p>
+  </footer>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;: {&quot;width&quot;: 1120}}">
+class Component extends DCLogic {
+  state = { basic: "EU", standard: "EU" };
+
+  renderVals() {
+    const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)" };
+    const ORDER = ["EU", "UK", "US"];
+    const INSIDE = {
+      EU: "All twenty-seven EU member states, in every official language they are printed in.",
+      UK: "Great Britain and Northern Ireland, whose rules differ from each other.",
+      US: "USA federal, plus all fifty states and their registrations.",
+    };
+
+    const chipsFor = (key) => ORDER.map(r => {
+      const on = this.state[key] === r;
+      return {
+        label: r, on: () => this.setState({ [key]: r }),
+        style: "font-family: var(--mono); font-size: 7.5pt; letter-spacing: 0.06em; padding: 3pt 8pt; cursor: pointer; border: 1px solid " + (on ? "var(--accent)" : "var(--n400)") + "; background: " + (on ? "var(--accent)" : "transparent") + "; color: " + (on ? "#ffffff" : "var(--n700)") + "; transition: all 120ms ease-out",
+      };
+    });
+
+    const tier = (name, who, mo, moNote, yr, yrNote, caps, lines, wall, primary, pickKey) => ({
+      name, who, mo, moNote, yr, yrNote, wall,
+      whoColor: primary ? "var(--accent-700)" : "var(--n600)",
+      caps: caps.map(c => ({ k: c[0], v: c[1] })),
+      lines: lines.map(t => ({ t })),
+      pick: !!pickKey,
+      chips: pickKey ? chipsFor(pickKey) : [],
+      example: pickKey ? INSIDE[this.state[pickKey]] : "",
+      style: "border: 1px solid " + (primary ? "var(--ink)" : "var(--rule)") + "; border-top: 3pt solid " + (primary ? "var(--accent)" : "var(--n400)") + "; padding: 13pt 14pt; display: flex; flex-direction: column; background: " + (primary ? "var(--accent-100)" : "transparent"),
+    });
+
+    const tiers = [
+      tier("Free", "See what we find on one of your labels.", "€0", "Full product for two weeks, then narrowed", "—", "No card. Never expires.",
+        [["Recipes", "1"], ["Regions", "1"], ["People", "1"], ["Checks", "as you like"]],
+        ["Whether your label is compliant, or not", "Every problem we find, in plain terms", "Where each answer came from", "What we could not check, and why", "Your print-ready artwork, type sizes included", "A note whenever a rule changes"],
+        "You can read your answer. You cannot send it to anyone.", false, null),
+      tier("Basic", "One brand, selling in one region.", "€249", "per month", "€2,490", "per year — two months free",
+        [["Recipes", "10"], ["Regions", "1, whole"], ["People who can edit", "3"], ["People who only read", "free"]],
+        ["Everything in Free", "A report you can send", "Download it, email it, or share a link", "Whoever receives it can check it is real", "What you must register, with whom, by when", "Your certificates and supplier specs in one place", "Every pack size and artwork version included"],
+        "You outgrow it at a second region, thirty recipes, a fourth editor, or your first supplier.", true, "basic"),
+      tier("Standard", "A full range, selling in one region or two.", "€499", "per month", "€4,990", "per year — two months free",
+        [["Recipes", "30"], ["Regions", "1 whole, 2 max"], ["People who can edit", "5"], ["People who only read", "free"]],
+        ["Everything in Basic", "Add a second region? €199 a month", "Ask a supplier for a spec once, not per product", "A document pack per market, ready to send", "Give a consultant or co-packer only what they need", "Your whole range on one board", "A complete history you can export and nobody can edit", "Priority support"],
+        "You move up when you are to enter 3 regions, or when someone has to sign for a label.", false, "standard"),
+      tier("Advanced", "When someone has to put their name to a label.", "from €999", "per month, for the software", "from €9,990", "per year — two months free",
+        [["Recipes", "no limit"], ["Regions", "all three"], ["People", "unlimited, free"], ["Experts", "on quotation"]],
+        ["Everything in Standard", "All three regions: EU, UK and US", "As many people as you like, all free", "A signed certificate, not just a report", "Someone in your company signs, market by market", "Single sign-on and an audit-ready history", "Experts and support available on quotation"],
+        "The top of the ladder. It grows by expert days and signatures.", false, null),
+    ];
+
+    const regions = [
+      { k: "EU", gets: "All twenty-seven member states, every official language, and each country's own registration and language rules on top of the EU rulebook.", mo: "€199", yr: "€1,990", why: "One rulebook encoded once, then twenty-seven national layers and twenty-four language sets. Our largest single body of work, and the one that amortises best." },
+      { k: "UK", gets: "Great Britain and Northern Ireland as separate markets, because GB is diverging on retained law and NI stays EU-aligned for goods.", mo: "€199", yr: "€1,990", why: "Two regimes, no shared parent to amortise against. Smaller than the EU but disproportionately expensive per market." },
+      { k: "US", gets: "Federal labelling and safety, plus all fifty states — each one's edition of the model feed law, its registration, its fees and its tonnage reporting.", mo: "€199", yr: "€1,990", why: "One federal baseline plus fifty state editions, each maintained separately. The registration layer is most of the work and none of the compute." },
+    ];
+    const regionRules = [
+      { k: "One region, all of it", color: C.accent, v: "\"Pick the EU and you have all twenty-seven member states. Pick the US and you have every state. There is no counting and no per-country charge.\"" },
+      { k: "One region, two, or all three", color: C.clear, v: "\"Basic covers one region. Standard covers one or two — a second is €199 a month. Selling across all three puts you on Advanced, where they are all included.\"" },
+      { k: "We only sell what we publish", color: C.action, v: "\"We will only sell a region once we have published exactly how deeply we cover every market in it, including the parts we do not.\"" },
+    ];
+
+    const expansion = [
+      { k: "One more recipe", b: "€15 / mo", s: "€12 / mo", a: "included", rule: "Or €150 and €120 a year. Pack sizes and new artwork are always free." },
+      { k: "A second region", b: "not on Basic", s: "€199 / mo", a: "all three included", rule: "€1,990 a year, either of the other two, whole. Basic holds one region only — a second one is the move to Standard." },
+      { k: "A third region", b: "not on Basic", s: "not on Standard", a: "all three included", rule: "Standard holds two regions at most. All three is Advanced, which starts at €999 — cheaper than Standard plus two regions would have been." },
+      { k: "One more person who can edit", b: "€50 / mo", s: "€50 / mo", a: "free", rule: "Or €500 a year. Beyond the three or five included. Advanced has no seat count at all." },
+      { k: "Someone who only reads", b: "free", s: "free", a: "free", rule: "Always, and as many as you like. Suppliers and consultants get a scoped link with no account at all." },
+    ];
+
+    const upsells = [
+      { k: "Presses Download, Email or Share", say: "\u201cSending this report needs Basic — €249 a month, or €2,490 a year.\u201d", why: "The moment the answer stops being theirs and becomes someone else's problem. Highest intent in the whole product, and the reason the wall is here rather than at the verdict." },
+      { k: "Adds a second recipe", say: "\u201cBasic covers ten recipes, with every pack size included.\u201d", why: "They have a range, not a question. A range is what we price." },
+      { k: "Checks a label for a second region", say: "\u201cYou have the EU. Britain as well means Standard, at €499 a month, plus €199 for the UK region.\u201d", why: "A second region means they are exporting, so the budget already exists. It is also the cleanest Basic-to-Standard trigger we have: one brand, one region — a range, more than one." },
+      { k: "Invites a colleague", say: "\u201cColleagues who only need to read are free on any paid plan.\u201d", why: "An upsell that sounds like a gift, because it is one. Never charge for the invitation — it is how the report travels." },
+      { k: "A rule changes in a region they do not have", say: "\u201cThis change affects Great Britain. You are not covering the UK yet.\u201d", why: "The one unprompted message worth sending a free account. It is true, it is dated, and it shows them the monitoring they are not paying for." },
+    ];
+
+    const advanced = [
+      { k: "The software, all three regions", v: "from €999 / mo · €9,990 / yr", bound: "Unlimited recipes, as many people as you like at no charge, the EU, UK and US in full, signed certificates, single sign-on, exportable history." },
+            { k: "Help preparing a registration", v: "€1,200 per market", bound: "We name the authority, the route, the evidence, the fee and the deadline, and fill in everything your product record already answers. We do not file it, pay it, or speak to the authority." },
+      { k: "Our regulatory team, by the day", v: "€1,400 a day", bound: "Agreed scope, agreed days. Not an open-ended retainer, and not a substitute for your own responsible person." },
+      { k: "Translation review", v: "from €650 per language", bound: "For your own wording. The legally prescribed terms are looked up, never translated, and that is free on every plan." },
+      { k: "A bulk artwork pass", v: "quoted", bound: "For a rebrand or a pack redesign across a whole range." },
+      { k: "Signing authority", v: "included above the floor", bound: "It attaches to a named person in your company, for named markets. We build the record; you sign it. We never sign on your behalf." },
+    ];
+
+    const bands = [
+      { k: "Up to 100 recipes", mo: "from €999", yr: "€9,990", cost: "≈ €211", gm: "79% — the published floor, and the number on the page." },
+      { k: "101 to 250", mo: "from €2,124", yr: "€21,240", cost: "≈ €448", gm: "79% — €999 plus 150 recipes at €7.50." },
+      { k: "251 to 500", mo: "from €3,999", yr: "€39,990", cost: "≈ €845", gm: "79% — the same rate, so the quote is arithmetic rather than judgement." },
+      { k: "Above 500", mo: "quoted", yr: "quoted", gm: "Hold the €7.50 rate as the opening position and concede on term, never on rate.", cost: "≈ €1.51 / recipe" },
+    ];
+    const glossary = [
+      { plain: "Region", ours: "regime · parent node", why: "The customer needs to know which rulebook they are on. They should never need to know it is a tree." },
+      { plain: "Market", ours: "jurisdiction node", why: "\u201cNode\u201d is from our data model. It now appears only inside the product, never on a price." },
+      { plain: "Recipe", ours: "product family", why: "\u201cFamily\u201d is our name for the thing that groups pack sizes. The customer calls it a recipe, so we bill in recipes." },
+      { plain: "Pack size · artwork version", ours: "product record (SKU)", why: "Correct in the database, per D2. But a customer who counts eight recipes and sees twenty-four products assumes a trick." },
+      { plain: "A report you can send", ours: "Report of Check", why: "Keep the name inside the product, where it is a document with a reference. On a price page it needs a verb." },
+      { plain: "A signed certificate", ours: "Certificate of Check", why: "Same reason. The thing that sells it is that a person signed it, so lead with that." },
+      { plain: "Where each answer came from", ours: "provenance", why: "The idea is essential and the word is not. \u201cA rule we hold\u201d or \u201cour system's judgement\u201d says it better." },
+      { plain: "What we could not check, and why", ours: "withheld result + coverage link", why: "\u201cWithheld\u201d sounds like we are keeping something back. We are admitting a gap, and it should read that way." },
+      { plain: "Reviewed by a named specialist", ours: "verified node", why: "\u201cVerified\u201d has been used by everyone to mean nothing. A name and a date cannot be faked as easily as a badge." },
+      { plain: "Checked by our system", ours: "machine-extracted", why: "Honest and unglamorous, and it is what every market says today." },
+      { plain: "What you must register, with whom, by when", ours: "obligation register", why: "\u201cRegister\u201d as a noun means nothing to a customer. As a verb it is the whole point." },
+      { plain: "A note when a rule changes", ours: "ruleset version · rule-level diff", why: "They care that something changed and whether it touches them. Version numbers belong in the record." },
+      { plain: "Check as often as you like", ours: "unlimited scoped re-checks · hourly fair use", why: "Scoping is our engineering problem and rate limiting is our cost control. Neither belongs in a customer's sentence." },
+      { plain: "People who can edit · people who only read", ours: "editor seats · viewer seats", why: "\u201cSeat\u201d is procurement language. \u201cWho can change something\u201d is the actual distinction." },
+      { plain: "Your document pack for a market", ours: "dossier completeness", why: "\u201cDossier\u201d is fine in the EU and unfamiliar in the US. \u201cPack\u201d works in both." },
+    ];
+
+    const margins = [
+      { k: "Free, narrowed", rev: "€0", cost: "≈ €1.60 / mo", gm: "n/a", color: C.none, note: "About €19 a year per active free account. At ten thousand of them, €190k a year — which is why dormancy and hourly fair use are not optional." },
+      { k: "Free, in trial", rev: "€0", cost: "≈ €13 / fortnight", gm: "n/a", color: C.none, note: "Acquisition cost, and a good one against €200-700 for a sales-assisted SMB customer." },
+      { k: "Basic at cap", rev: "€249", cost: "≈ €10 / mo", gm: "96%", color: C.clear, note: "10 recipes, three language panels each. The region could be all twenty-seven EU states and this number would not move." },
+      { k: "Standard at cap", rev: "€499", cost: "≈ €37 / mo", gm: "93%", color: C.clear, note: "30 recipes, about six language panels each. Unscoped re-checks would take it to €117 and 77%." },
+      { k: "Advanced at the floor", rev: "€999 software", cost: "≈ €211 / mo", gm: "79% software · ~48% services", color: C.action, note: "100 recipes across twelve languages and all three regions. At €999 the software margin is the thinnest on the ladder, so watch recipe counts: 300 recipes at this price is 40%. Services reported separately." },
+    ];
+
+    const accounts = [
+      { k: "Single-brand start-up", color: C.clear, shape: "8 recipes, 3 pack sizes each · EU region · one person", mo: "€249 / mo", yr: "€2,490 / yr", math: "Basic, nothing added. Eight recipes inside ten, the whole EU whether they sell in two countries or ten. Costs us about €8 a month." },
+      { k: "Growing brand, entering the US", color: C.clear, shape: "14 recipes · EU region plus the US region", mo: "€698 / mo", yr: "€6,980 / yr", math: "The second region puts them on Standard: €499 plus €199 for the US region — federal and every state they might ship to. Their fourteen recipes sit well inside the thirty." },
+      { k: "Established range", color: C.action, shape: "30 recipes · EU region plus the UK region · two editors", mo: "€598 / mo", yr: "€5,980 / yr", math: "Standard €499 plus the UK region at €99, which brings Great Britain and Northern Ireland. Thirty recipes at the cap, readers free." },
+      { k: "Group that signs", color: C.blocked, shape: "100+ recipes · all three regions · unlimited people · ~10 days of expert work", mo: "≈ €2,875 / mo", yr: "≈ €34,500 / yr", math: "€9,990 of software at the floor, €18,000 of specialist market reviews, about €6,500 of registration and advisory days. Now roughly a quarter software, three quarters people." },
+    ];
+
+    const open = [
+      { k: "A plan for consultancies.", v: "Not in these four. A firm with twelve clients still prices absurdly on Standard, and consultancies are our best route to brands. Proposal stands at €1,499 a month for ten client workspaces, but it needs two real conversations before it goes on a page." },
+      { k: "Dollars for US buyers.", v: "These are euro prices. A US brand should see dollars at parity — $269 Basic, $549 Standard, $1,099 Advanced, and $219 for a region — set once a year and never converted mid-year." },
+      { k: "Whether a whole region is priced high enough.", v: "All fifty US states for €199 a month is a great deal of coverage for the money, and it is the number I am least sure of. It is right if regions are how customers expand; if most customers only ever buy one, it should move up." },
+      { k: "The Standard-to-Advanced step is now large.", v: "Standard with two regions is €698 a month; the third region is only available on Advanced at €999. That is a €301 jump for one region, softened by unlimited recipes and free people — but a brand that sells in all three regions and has twelve recipes will feel it. Worth watching whether it stalls deals; if it does, the answer is a third region on Standard at €199 rather than a cheaper Advanced." },
+    ];
+
+    return { tiers, regions, regionRules, expansion, upsells, advanced, bands, glossary, margins, accounts, open };
+  }
+}
+</script>
+</body>
+</html>

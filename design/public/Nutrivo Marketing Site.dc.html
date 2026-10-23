@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css">
+<script src="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #101216; --ground: #ffffff; --panel: #f4f5f7; --rule: #dde0e6;
+    --cobalt: #2f5eff; --cobalt-100: #eef2ff; --cobalt-200: #d8e2ff; --cobalt-600: #1f49d9; --cobalt-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+  body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  a { color: var(--cobalt-700); text-decoration: none; }
+  a:hover { color: var(--cobalt-600); }
+  button { font: inherit; color: inherit; }
+  *:focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }
+  .mk { position: absolute; width: 7px; height: 7px; color: var(--n400); }
+  .mk::before { content: ""; position: absolute; left: 0; top: 3px; width: 7px; height: 1px; background: currentColor; }
+  .mk::after { content: ""; position: absolute; left: 3px; top: 0; width: 1px; height: 7px; background: currentColor; }
+  .tl { left: -4px; top: -4px; } .tr { right: -4px; top: -4px; } .bl { left: -4px; bottom: -4px; } .br { right: -4px; bottom: -4px; }
+</style>
+</helmet>
+
+<div style="max-width: 1180px; margin: 0 auto; padding: 0 32px 90px">
+
+  <header style="display: flex; align-items: center; gap: 28px; padding: 20px 0; border-bottom: 1px solid var(--rule)">
+    <span style="display: flex; align-items: flex-end; gap: 4px; font-size: 21px; font-weight: 600; letter-spacing: -0.045em">nutrivo<span style="width: 6px; height: 6px; background: var(--cobalt); margin-bottom: 3px"></span><span style="font-family: var(--mono); font-size: 11px; font-weight: 400; color: var(--n600); letter-spacing: 0; margin-bottom: 2px; margin-left: 1px">.ai</span></span>
+    <nav style="display: flex; gap: 22px; font-size: 14px; color: var(--n700)">
+      <a href="#who">Who it&rsquo;s for</a><a href="#product">Product</a><a href="#language">Language</a><a href="#coverage">Coverage</a><a href="#pricing">Pricing</a>
+    </nav>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 14px">
+      <a href="#pricing" style="font-size: 14px">Sign in</a>
+      <span style="background: var(--cobalt); color: #fff; font-size: 13.5px; font-weight: 500; padding: 9px 16px; border-radius: 3px">Start free</span>
+    </div>
+  </header>
+
+  <section style="display: grid; grid-template-columns: 1.06fr 0.94fr; gap: 56px; padding: 72px 0 60px; align-items: start">
+    <div>
+      <p style="margin: 0 0 18px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cobalt-700)">Feed and pet food label compliance</p>
+      <h1 style="margin: 0; font-family: var(--head); font-size: 58px; font-weight: 600; line-height: 1.02; letter-spacing: -0.045em; text-wrap: balance">Checked in the language it&rsquo;s printed&nbsp;in.</h1>
+      <p style="margin: 22px 0 0; font-size: 17.5px; line-height: 1.55; color: var(--n700); max-width: 46ch; text-wrap: pretty">A prescribed feed designation is a legal string, not a translation. We hold the register per market and per language, measure character heights on the artwork after the text gets longer, and tell you which rules we did not apply and why.</p>
+      <div style="display: flex; align-items: center; gap: 10px; margin: 30px 0 0">
+        <span style="flex: 1; max-width: 268px; border: 1px solid var(--n300); border-radius: 3px; padding: 11px 13px; font-size: 14px; color: var(--n600)">you@company.com</span>
+        <span style="background: var(--cobalt); color: #fff; font-size: 14px; font-weight: 500; padding: 12px 20px; border-radius: 3px; white-space: nowrap">Check one product free</span>
+      </div>
+      <p style="margin: 12px 0 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; color: var(--n600)">No card. No expiry. No sales call.</p>
+    </div>
+
+    <div style="position: relative; border: 1px solid var(--ink); background: var(--ground)">
+      <i class="mk tl"></i><i class="mk tr"></i><i class="mk bl"></i><i class="mk br"></i>
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 11px 14px; border-bottom: 1px solid var(--rule); background: var(--panel)">
+        <span style="font-size: 13px; font-weight: 600; letter-spacing: -0.02em">Salmon &amp; Rice Adult Dry &middot; 12 kg</span>
+        <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; color: var(--n600)">RULESET 2026.08-b</span>
+      </div>
+      <div style="display: flex; border-bottom: 1px solid var(--rule)">
+        <sc-for list="{{ heroStates }}" as="s" hint-placeholder-count="4">
+          <div style="flex: 1; padding: 11px 12px; border-right: 1px solid var(--rule); background: {{ s.bg }}">
+            <p style="margin: 0; font-family: var(--head); font-size: 22px; font-weight: 600; line-height: 1; letter-spacing: -0.03em; color: {{ s.color }}">{{ s.n }}</p>
+            <p style="margin: 4px 0 0; font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.07em; text-transform: uppercase; color: {{ s.color }}">{{ s.label }}</p>
+          </div>
+        </sc-for>
+      </div>
+      <sc-for list="{{ heroFindings }}" as="f" hint-placeholder-count="3">
+        <div style="padding: 11px 14px; border-bottom: 1px solid var(--n200); display: flex; gap: 10px; align-items: flex-start">
+          <span style="width: 17px; height: 17px; flex-shrink: 0; border: 1px solid {{ f.color }}; color: {{ f.color }}; font-family: var(--mono); font-size: 9.5px; display: flex; align-items: center; justify-content: center; margin-top: 1px">{{ f.pin }}</span>
+          <div style="min-width: 0">
+            <p style="margin: 0; font-size: 12.5px; line-height: 1.45">{{ f.text }}</p>
+            <p style="margin: 3px 0 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.04em; color: var(--n600)">{{ f.prov }}</p>
+          </div>
+          <span style="margin-left: auto; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; color: {{ f.color }}; white-space: nowrap">{{ f.market }}</span>
+        </div>
+      </sc-for>
+      <div style="padding: 11px 14px; display: flex; align-items: center; gap: 8px">
+        <span style="width: 9px; height: 9px; border: 2px solid var(--none); border-radius: 50%; flex-shrink: 0"></span>
+        <span style="font-size: 12px; color: var(--n700)">5 rules withheld &mdash; three ingredients unmatched, cantonal variation not encoded</span>
+        <a href="#coverage" style="margin-left: auto; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; white-space: nowrap">WHY &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <section style="display: flex; align-items: center; gap: 30px; padding: 20px 0 46px; border-bottom: 1px solid var(--rule)">
+    <sc-for list="{{ proof }}" as="p" hint-placeholder-count="3">
+      <div style="flex: 1">
+        <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">{{ p.k }}</p>
+        <p style="margin: 5px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700)">{{ p.v }}</p>
+      </div>
+    </sc-for>
+  </section>
+
+  <section id="who" style="padding: 60px 0 0">
+    <div style="display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap">
+      <h2 style="margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.1">Three people open this for different reasons</h2>
+      <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">Same engine &middot; different first question</p>
+    </div>
+    <div style="display: flex; gap: 0; margin: 26px 0 0; border-bottom: 1px solid var(--ink)">
+      <sc-for list="{{ segs }}" as="s" hint-placeholder-count="3">
+        <button type="button" onClick="{{ s.pick }}" style="{{ s.tabStyle }}" style-hover="background: var(--cobalt-100)">
+          <span style="display: block; font-family: var(--mono); font-size: 9px; letter-spacing: 0.13em; text-transform: uppercase; opacity: 0.7">{{ s.tag }}</span>
+          <span style="display: block; margin-top: 4px; font-size: 15px; font-weight: 600; letter-spacing: -0.025em">{{ s.role }}</span>
+        </button>
+      </sc-for>
+    </div>
+
+    <div style="position: relative; border: 1px solid var(--ink); border-top: 0; display: grid; grid-template-columns: 1.02fr 0.98fr">
+      <i class="mk bl"></i><i class="mk br"></i>
+      <div style="padding: 30px 32px 32px; border-right: 1px solid var(--rule)">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--cobalt-700)">{{ seg.tag }}</p>
+        <h3 style="margin: 12px 0 0; font-size: 30px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.08; text-wrap: balance">{{ seg.usp }}</h3>
+        <p style="margin: 14px 0 0; font-size: 15.5px; line-height: 1.6; color: var(--n700); max-width: 46ch; text-wrap: pretty">{{ seg.body }}</p>
+        <div style="margin: 22px 0 0; border-top: 1px solid var(--rule)">
+          <p style="margin: 14px 0 6px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">Costs today</p>
+          <p style="margin: 0; font-size: 14px; line-height: 1.55; color: var(--n700)">{{ seg.pain }}</p>
+        </div>
+      </div>
+      <div style="padding: 30px 32px 32px">
+        <div style="display: flex; flex-direction: column; gap: 0">
+          <sc-for list="{{ seg.value }}" as="v" hint-placeholder-count="3">
+            <div style="padding: 0 0 15px; margin-bottom: 15px; border-bottom: 1px solid var(--n200)">
+              <p style="margin: 0; font-size: 14.5px; font-weight: 600; letter-spacing: -0.02em">{{ v.k }}</p>
+              <p style="margin: 4px 0 0; font-size: 13.5px; line-height: 1.5; color: var(--n700)">{{ v.body }}</p>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display: flex; gap: 22px; align-items: flex-start">
+          <div style="flex: 1">
+            <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">Opens with</p>
+            <p style="margin: 5px 0 0; font-size: 13px; line-height: 1.5">{{ seg.opens }}</p>
+          </div>
+          <div style="flex: 1">
+            <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">Hands over</p>
+            <p style="margin: 5px 0 0; font-size: 13px; line-height: 1.5">{{ seg.hands }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="product" style="padding: 66px 0 0">
+    <h2 style="margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.1">Two ways in, depending on whether the product exists yet</h2>
+    <p style="margin: 16px 0 40px; font-size: 16px; line-height: 1.6; color: var(--n700); max-width: 66ch; text-wrap: pretty">Both run every market you sell in from one upload, in the same pass. Both accept partial input: give us a formula without artwork and we run what can be run, then state precisely what the missing file prevented.</p>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 26px">
+      <sc-for list="{{ paths }}" as="p" hint-placeholder-count="2">
+        <div style="position: relative; border: 1px solid var(--ink); padding: 24px 24px 26px">
+          <i class="mk tl"></i><i class="mk tr"></i><i class="mk bl"></i><i class="mk br"></i>
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--cobalt-700)">{{ p.kicker }}</p>
+          <h3 style="margin: 9px 0 0; font-size: 22px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.15">{{ p.title }}</h3>
+          <p style="margin: 10px 0 18px; font-size: 14.5px; line-height: 1.55; color: var(--n700)">{{ p.body }}</p>
+          <div style="display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--rule)">
+            <sc-for list="{{ p.items }}" as="i" hint-placeholder-count="4">
+              <div style="display: flex; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--n200)">
+                <span style="font-family: var(--mono); font-size: 9.5px; color: var(--n600); padding-top: 2px">{{ i.n }}</span>
+                <div>
+                  <p style="margin: 0; font-size: 13.5px; font-weight: 500">{{ i.q }}</p>
+                  <p style="margin: 2px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--n600)">{{ i.a }}</p>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section style="padding: 66px 0 0">
+    <h2 style="margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.1">Four states. Never a pass or a fail.</h2>
+    <p style="margin: 16px 0 34px; font-size: 16px; line-height: 1.6; color: var(--n700); max-width: 64ch; text-wrap: pretty">A tool that cannot say <i>not assessed</i> has to infer a pass from silence. Ours says it, counts it, and links to the reason. Every result also carries how it was reached: a deterministic rule, a model judgement, or nothing at all.</p>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px">
+      <sc-for list="{{ states }}" as="s" hint-placeholder-count="4">
+        <div style="border-top: 3px solid {{ s.color }}; padding: 14px 0 0">
+          <div style="display: flex; align-items: center; gap: 8px">
+            <span style="{{ s.glyph }}"></span>
+            <p style="margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -0.02em; color: {{ s.color }}">{{ s.k }}</p>
+          </div>
+          <p style="margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700)">{{ s.body }}</p>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <section id="language" style="padding: 66px 0 0">
+    <div style="display: grid; grid-template-columns: 0.92fr 1.08fr; gap: 48px; align-items: start">
+      <div>
+        <h2 style="margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.1">A translated legal term is still a defect</h2>
+        <p style="margin: 16px 0 0; font-size: 16px; line-height: 1.6; color: var(--n700); text-wrap: pretty">On-pack text is legal text, and in most of our markets it has to be legal text in the local language. So we do not translate it. Prescribed designations and mandatory particulars are looked up from the rulebook for that market and language, cited to the article they come from.</p>
+        <p style="margin: 14px 0 0; font-size: 16px; line-height: 1.6; color: var(--n700); text-wrap: pretty">Then the artwork is measured again. German runs about thirty per cent longer than English, and a particular that was compliant can breach a minimum character height or leave the panel entirely. The geometry pass runs per language, on the rendered file.</p>
+      </div>
+      <div style="position: relative; border: 1px solid var(--ink)">
+        <i class="mk tl"></i><i class="mk tr"></i><i class="mk bl"></i><i class="mk br"></i>
+        <div style="padding: 10px 14px; border-bottom: 1px solid var(--ink); background: var(--panel); display: flex; justify-content: space-between">
+          <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Text class</span>
+          <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">How it is produced</span>
+        </div>
+        <sc-for list="{{ textClasses }}" as="t" hint-placeholder-count="5">
+          <div style="display: grid; grid-template-columns: 0.72fr 1.28fr; gap: 14px; padding: 12px 14px; border-bottom: 1px solid var(--n200)">
+            <span style="font-size: 13px; font-weight: 500">{{ t.k }}</span>
+            <span style="font-size: 12.5px; line-height: 1.45; color: var(--n700)">{{ t.how }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding: 66px 0 0">
+    <h2 style="margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.1">Label-ready is not the same as sellable</h2>
+    <p style="margin: 16px 0 34px; font-size: 16px; line-height: 1.6; color: var(--n700); max-width: 68ch; text-wrap: pretty">A label can be fully compliant and the product still cannot be sold, because it is not registered in that jurisdiction. Registration is its own state on the board, so a product clear on every label check but unregistered in eleven states reads as not ready &mdash; with the eleven named.</p>
+    <div style="position: relative; border: 1px solid var(--ink)">
+      <i class="mk tl"></i><i class="mk tr"></i><i class="mk bl"></i><i class="mk br"></i>
+      <div style="display: grid; grid-template-columns: 1.5fr repeat(5, 1fr); border-bottom: 1px solid var(--rule); background: var(--panel)">
+        <span style="padding: 9px 13px 5px"></span>
+        <sc-for list="{{ boardGroups }}" as="g" hint-placeholder-count="3">
+          <span style="grid-column: span {{ g.span }}; padding: 9px 8px 5px; border-left: 1px solid var(--rule); font-family: var(--mono); font-size: 9px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--n700)">{{ g.k }}</span>
+        </sc-for>
+      </div>
+      <div style="display: grid; grid-template-columns: 1.5fr repeat(5, 1fr); border-bottom: 1px solid var(--ink); background: var(--panel)">
+        <span style="padding: 5px 13px 10px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Product</span>
+        <sc-for list="{{ boardCols }}" as="c" hint-placeholder-count="5">
+          <span style="padding: 5px 8px 10px; border-left: 1px solid var(--rule); font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.07em; color: var(--n600)">{{ c }}</span>
+        </sc-for>
+      </div>
+      <sc-for list="{{ boardRows }}" as="r" hint-placeholder-count="4">
+        <div style="display: grid; grid-template-columns: 1.5fr repeat(5, 1fr); border-bottom: 1px solid var(--n200); align-items: stretch">
+          <span style="padding: 11px 13px; font-size: 13px">{{ r.name }}</span>
+          <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="5">
+            <span style="padding: 11px 8px; border-left: 1px solid var(--n200); background: {{ c.bg }}; display: flex; align-items: center; gap: 6px">
+              <span style="{{ c.glyph }}"></span>
+              <span style="font-family: var(--mono); font-size: 9px; letter-spacing: 0.04em; color: {{ c.color }}">{{ c.tag }}</span>
+            </span>
+          </sc-for>
+        </div>
+      </sc-for>
+      <div style="padding: 11px 13px; display: flex; gap: 18px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; color: var(--n600)">
+        <span>REG = registration outstanding</span><span>GEO = character height</span><span>TERM = designation unmatched</span>
+      </div>
+    </div>
+  </section>
+
+  <section id="coverage" style="padding: 66px 0 0">
+    <div style="display: grid; grid-template-columns: 0.92fr 1.08fr; gap: 48px; align-items: start">
+      <div>
+        <h2 style="margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.1">We publish how deep we go, per jurisdiction</h2>
+        <p style="margin: 16px 0 0; font-size: 16px; line-height: 1.6; color: var(--n700); text-wrap: pretty">Not a market count. Every jurisdiction node states how many rules are encoded, how they were verified, who verified them, when, and what is knowingly missing. Where we hold nothing, it says so and no verdict is offered.</p>
+        <p style="margin: 14px 0 0; font-size: 16px; line-height: 1.6; color: var(--n700); text-wrap: pretty">This is the same table the engine queries during a check, so the page cannot drift from the product. It is also why a withheld rule in your report can name the specific gap behind it.</p>
+        <p style="margin: 20px 0 0"><a href="#coverage" style="font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase">Full coverage table &rarr;</a></p>
+      </div>
+      <div style="position: relative; border: 1px solid var(--ink)">
+        <i class="mk tl"></i><i class="mk tr"></i><i class="mk bl"></i><i class="mk br"></i>
+        <sc-for list="{{ coverage }}" as="c" hint-placeholder-count="5">
+          <div style="display: grid; grid-template-columns: 1.15fr 0.5fr 1fr; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--n200); align-items: baseline">
+            <div>
+              <p style="margin: 0; font-size: 13px; font-weight: 500">{{ c.node }}</p>
+              <p style="margin: 2px 0 0; font-family: var(--mono); font-size: 9.5px; color: var(--n600)">{{ c.method }}</p>
+            </div>
+            <span style="font-family: var(--mono); font-size: 12px; color: var(--n700)">{{ c.rules }}</span>
+            <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: {{ c.color }}">{{ c.state }}</span>
+          </div>
+        </sc-for>
+        <div style="padding: 11px 14px; font-size: 12px; color: var(--n600)">Every node carries its own date. A stale node says so.</div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding: 66px 0 0">
+    <div style="position: relative; border: 1px solid var(--ink); border-top: 3px solid var(--cobalt); padding: 30px 32px">
+      <i class="mk bl"></i><i class="mk br"></i>
+      <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--cobalt-700)">What we will not do</p>
+      <p style="margin: 12px 0 0; font-size: 20px; line-height: 1.45; max-width: 76ch; text-wrap: pretty">We name every registration you owe &mdash; the authority, the route, the evidence, the fee, the deadline &mdash; and pre-fill everything your product record already answers. We do not submit it, pay it, or correspond with the authority. Only the operator named on your label can do that, and any tool that implies otherwise is selling you a risk.</p>
+    </div>
+  </section>
+
+  <section id="pricing" style="padding: 66px 0 0">
+    <h2 style="margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.1">Priced on what you manage, never on what you run</h2>
+    <p style="margin: 16px 0 36px; font-size: 16px; line-height: 1.6; color: var(--n700); max-width: 66ch; text-wrap: pretty">Checks and re-checks are unlimited on every tier, including free. Metering them would charge you for the one habit that makes labels safer. Language-correct checking is never a tier either: if you are subscribed to a market, we check in that market&rsquo;s language.</p>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; align-items: stretch">
+      <sc-for list="{{ tiers }}" as="t" hint-placeholder-count="4">
+        <div style="position: relative; border: 1px solid {{ t.border }}; border-top: 3px solid {{ t.accent }}; padding: 20px 18px 22px; display: flex; flex-direction: column">
+          <i class="mk bl"></i><i class="mk br"></i>
+          <p style="margin: 0; font-size: 19px; font-weight: 600; letter-spacing: -0.03em">{{ t.k }}</p>
+          <p style="margin: 5px 0 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--n600)">{{ t.who }}</p>
+          <p style="margin: 14px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700)">{{ t.body }}</p>
+          <div style="margin: 14px 0 0; display: flex; flex-direction: column; gap: 6px">
+            <sc-for list="{{ t.lines }}" as="l" hint-placeholder-count="4">
+              <span style="font-size: 12.5px; line-height: 1.4; color: var(--n700); padding-left: 12px; text-indent: -12px">&middot;&nbsp;&nbsp;{{ l }}</span>
+            </sc-for>
+          </div>
+          <p style="margin: 16px 0 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; color: var(--n600)">{{ t.price }}</p>
+          <span style="margin-top: auto; display: block; text-align: center; padding: 10px; border-radius: 3px; font-size: 13px; font-weight: 500; margin-top: 18px; background: {{ t.ctaBg }}; color: {{ t.ctaFg }}; border: 1px solid {{ t.ctaBorder }}">{{ t.cta }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="margin: 26px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 26px; border-top: 1px solid var(--rule); padding-top: 22px">
+      <div>
+        <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">Never metered, on any tier</p>
+        <p style="margin: 8px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--n700)">Checks and re-checks &middot; checking in the printed language &middot; the four states and their provenance &middot; the coverage link behind a withheld rule &middot; the registrations you owe, named.</p>
+      </div>
+      <div>
+        <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blocked)">Not sold at any price</p>
+        <p style="margin: 8px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--n700)">Submitting a registration, paying a fee, corresponding with an authority, confirming a registration is valid, or guaranteeing that a filing will be accepted.</p>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding: 66px 0 0">
+    <div style="display: grid; grid-template-columns: 1.35fr 0.65fr; gap: 40px; border-top: 1px solid var(--rule); padding-top: 38px">
+      <div>
+        <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">Customer &middot; text to be supplied</p>
+        <p style="margin: 12px 0 0; font-size: 21px; line-height: 1.45; letter-spacing: -0.02em; max-width: 52ch; text-wrap: pretty">{{ quote }}</p>
+        <p style="margin: 12px 0 0; font-size: 13px; color: var(--n600)">{{ quoteAttr }}</p>
+      </div>
+      <div>
+        <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">Who builds it &middot; names to be supplied</p>
+        <div style="margin: 12px 0 0; display: flex; flex-direction: column; gap: 9px">
+          <sc-for list="{{ team }}" as="t" hint-placeholder-count="3">
+            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: var(--n700)">{{ t }}</p>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="padding: 58px 0 0">
+    <div style="border: 1px solid var(--ink); padding: 34px 34px 36px; display: flex; align-items: center; gap: 36px">
+      <div style="flex: 1">
+        <h2 style="margin: 0; font-size: 28px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.12">Start with one product</h2>
+        <p style="margin: 10px 0 0; font-size: 15px; line-height: 1.55; color: var(--n700); max-width: 56ch">Up to three jurisdictions, the full report, one artwork version with its geometry pass, and unlimited re-checks. You will know inside ten minutes whether we hold your markets.</p>
+      </div>
+      <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0">
+        <span style="border: 1px solid var(--n300); border-radius: 3px; padding: 11px 13px; font-size: 14px; color: var(--n600); width: 210px">you@company.com</span>
+        <span style="background: var(--cobalt); color: #fff; font-size: 14px; font-weight: 500; padding: 12px 20px; border-radius: 3px; white-space: nowrap">Start free</span>
+      </div>
+    </div>
+  </section>
+
+  <footer style="margin-top: 58px; border-top: 1px solid var(--rule); padding-top: 22px; display: flex; gap: 26px; align-items: baseline">
+    <span style="display: flex; align-items: flex-end; gap: 3px; font-size: 14px; font-weight: 600; letter-spacing: -0.04em">nutrivo<span style="width: 4px; height: 4px; background: var(--cobalt); margin-bottom: 3px"></span></span>
+    <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--n600)">EU &middot; UK &middot; USA &nbsp;|&nbsp; RULESET 2026.08-b</span>
+    <span style="margin-left: auto; display: flex; gap: 20px; font-size: 13px; color: var(--n600)">
+      <a href="#coverage">Coverage</a><a href="#pricing">Pricing</a><a href="#language">Language layer</a>
+    </span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1260,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { seg: 0 };
+  segments() {
+    return [
+      {
+        tag: "NPD · formulation", role: "I am developing it",
+        usp: "Find the ceiling before you lock the formula.",
+        body: "Bring a draft formula and a market list — no artwork needed. You get the envelope you have to design inside: inclusion ceilings per market, which additives are authorised for this species and life stage, and the exact designations your ingredients must be declared under.",
+        pain: "A formula signs off, then regulatory returns it three weeks later. The substitution changes the palatability trial, and the launch slips a quarter for a limit that was knowable on day one.",
+        value: [
+          { k: "Ceilings, not rejections", body: "A restricted additive comes back as a number — 150 mg/kg clears all six markets, 180 clears five — so you reformulate once, with the trade-off visible." },
+          { k: "Designations, not translations", body: "The legal string each ingredient must be declared under, per market and language, cited to the article. \u201cBotanical blend 4B\u201d comes back unmatched rather than guessed." },
+          { k: "Markets as a choice", body: "Clear, one change away, or closed under any wording. Dropping one market is sometimes the cheaper answer, and you can see when." },
+        ],
+        opens: "A brief with a partial formula, before artwork exists.",
+        hands: "A design envelope and the permitted wording, straight to artwork.",
+      },
+      {
+        tag: "Product management", role: "I am launching it",
+        usp: "Know which SKUs are sellable, not just compliant.",
+        body: "One grid: your products down, jurisdictions across, one state per cell with its open-action count and the ruleset version it was judged against. Registration is its own state, so the board separates label-ready from actually shippable.",
+        pain: "A launch date set from artwork sign-off, then a state registration nobody scheduled adds eight weeks. Or a ruleset moves and nobody knows which of forty SKUs it touched.",
+        value: [
+          { k: "Label-ready vs sellable", body: "A product clear on every label check but unregistered in eleven states reads as not ready, with the eleven named and their lead times attached." },
+          { k: "Named impact, not notices", body: "When a threshold tightens you get the SKUs it touches and which move state — not a bulletin about a regulation. Effective dates give you a horizon to plan the artwork cycle against." },
+          { k: "Freshness on the record", body: "Every cell carries the ruleset it was judged against, so cleared-in-June against an August ruleset shows as stale rather than green." },
+        ],
+        opens: "The board, filtered to this quarter's launches.",
+        hands: "A readiness view for the board pack, with what is not assessed stated.",
+      },
+      {
+        tag: "Sales · export", role: "I am selling it",
+        usp: "Answer \u201ccan we sell it there?\u201d with a document, not an opinion.",
+        body: "A distributor or retailer asks about a market. You get a per-jurisdiction answer with the obligations named, and a Report of Check they can verify themselves without an account — pinned to the ruleset version and the artwork it was issued against.",
+        pain: "A market gets promised on a call, then turns out to need a registration, a different designation, or a claim that is not permitted. The retracted promise costs more than the delay.",
+        value: [
+          { k: "Evidence you can send", body: "A pinned report with a verification link that returns current, superseded or unknown. Nothing for the buyer to take on trust, and nothing for you to defend by email." },
+          { k: "Feasibility before the promise", body: "Registration route, fee and deadline per jurisdiction, so a launch window you quote is one the filing calendar supports." },
+          { k: "The limits are published", body: "Where we hold no rules for a jurisdiction, the coverage page says so. Knowing what we do not know is what keeps you from over-promising on our behalf." },
+        ],
+        opens: "A jurisdiction question from a distributor.",
+        hands: "A verifiable report and a dossier pack, sent the same day.",
+      },
+    ];
+  }
+  renderVals() {
+    const sq = (c) => "width: 10px; height: 10px; flex-shrink: 0; background: " + c;
+    const tri = (c) => "width: 0; height: 0; flex-shrink: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 9px solid " + c;
+    const ring = "width: 9px; height: 9px; flex-shrink: 0; border: 2px solid var(--none); border-radius: 50%";
+    const cell = (tag, color, bg, glyph) => ({ tag, color, bg, glyph });
+    const all = this.segments();
+    const active = this.state.seg;
+    return {
+      seg: all[active],
+      segs: all.map((s, i) => ({
+        tag: s.tag,
+        role: s.role,
+        pick: () => this.setState({ seg: i }),
+        tabStyle: "flex: 1; text-align: left; cursor: pointer; border: 1px solid var(--rule); border-bottom: 0; border-left: " + (i === 0 ? "1px solid var(--rule)" : "0") + "; padding: 13px 16px 14px; background: " + (i === active ? "var(--cobalt)" : "transparent") + "; color: " + (i === active ? "#fff" : "var(--n700)"),
+      })),
+      heroStates: [
+        { n: "31", label: "Clear", color: "var(--clear)", bg: "var(--clear-bg)" },
+        { n: "4", label: "Action needed", color: "var(--action)", bg: "var(--action-bg)" },
+        { n: "5", label: "Not assessed", color: "var(--none)", bg: "var(--none-bg)" },
+        { n: "1", label: "Blocked", color: "var(--blocked)", bg: "var(--blocked-bg)" },
+      ],
+      heroFindings: [
+        { pin: "3", color: "var(--action)", market: "DE AT CH", text: "Analytical constituents heading measures 1.9 mm. Minimum is 2.0 mm for this pack size.", prov: "RULE · 767/2009 Annex VI · measured on artwork v7" },
+        { pin: "7", color: "var(--blocked)", market: "FR", text: "Joint mobility claim is not permitted for this product class in any wording we hold.", prov: "RULE · claim framework · deterministic" },
+        { pin: "9", color: "var(--none)", market: "ALL", text: "\u201cBotanical blend 4B\u201d does not resolve to a designation in the register.", prov: "NOT ASSESSED · permissibility cannot be judged" },
+      ],
+      proof: [
+        { k: "Verification", v: "Prescribed designations reviewed by named specialists per language, with the date and method published per node." },
+        { k: "Built by", v: "Regulatory affairs, feed formulation and prepress \u2014 the three functions a label check actually crosses." },
+        { k: "Coverage", v: "EU member states, GB and NI separately, US federal and state. Depth stated per node, gaps included." },
+      ],
+      paths: [
+        {
+          kicker: "The product exists", title: "Check a label", body: "Artwork, formula and the markets you sell in. One pass answers all of them, in the language each one is printed in.",
+          items: [
+            { n: "01", q: "Are we compliant?", a: "One state per jurisdiction, with the ruleset version it was judged against." },
+            { n: "02", q: "What is missing?", a: "Two lists kept apart: missing from the label, and missing from the file." },
+            { n: "03", q: "What do we do?", a: "Every finding is an instruction, ordered by what unblocks the most markets." },
+            { n: "04", q: "What must we register?", a: "Authority, route, evidence, fee and deadline \u2014 pre-filled, filed by you." },
+          ],
+        },
+        {
+          kicker: "It does not exist yet", title: "Test a brief", body: "For NPD. Bring a formula, a target market list, or half of each. The output is not a verdict but the envelope you have to design inside.",
+          items: [
+            { n: "01", q: "Test what we have", a: "Partial input runs. We state exactly what the missing data prevented." },
+            { n: "02", q: "Constraints, not failures", a: "A restricted ingredient is a ceiling, a substitution, or a market to drop." },
+            { n: "03", q: "Which markets are worth it", a: "Clear, one change away, or closed \u2014 with registration lead time included." },
+            { n: "04", q: "Wording to use", a: "Permitted claims and mandatory particulars per market and language." },
+          ],
+        },
+      ],
+      states: [
+        { k: "Clear", color: "var(--clear)", glyph: sq("var(--clear)"), body: "Every rule we hold for this jurisdiction was applied and passed, against a stated ruleset version." },
+        { k: "Action needed", color: "var(--action)", glyph: tri("var(--action)"), body: "A specific instruction, on a specific panel, with the article it comes from and the markets it unblocks." },
+        { k: "Not assessed", color: "var(--none)", glyph: ring, body: "Counted and shown, never hidden. Links to the gap behind it: missing data, or a rule we do not hold." },
+        { k: "Blocked", color: "var(--blocked)", glyph: sq("var(--blocked)"), body: "Closed under any wording, or unsellable pending a registration. Reformulation or a market decision, not an edit." },
+      ],
+      textClasses: [
+        { k: "Legal designations", how: "Looked up per market and language from the rulebook, cited to the article. Never translated." },
+        { k: "Mandatory particulars", how: "Assembled in the required order, with prescribed phrasing where the law fixes it." },
+        { k: "Claims", how: "Checked against the target market\u2019s framework, on the target-language string." },
+        { k: "Free text", how: "Translated \u2014 the one class where translation is right \u2014 then re-checked as new copy." },
+        { k: "Rendered text", how: "Measured on the artwork after translation: character height, panel fit, line breaks." },
+      ],
+      boardGroups: [
+        { k: "EU", span: 2 },
+        { k: "UK", span: 2 },
+        { k: "US", span: 1 },
+      ],
+      boardCols: ["Germany", "France", "NI", "GB", "California"],
+      boardRows: [
+        { name: "Salmon & Rice Adult Dry", cells: [cell("clear", "var(--clear)", "var(--clear-bg)", sq("var(--clear)")), cell("geo", "var(--action)", "var(--action-bg)", tri("var(--action)")), cell("clear", "var(--clear)", "var(--clear-bg)", sq("var(--clear)")), cell("reg", "var(--action)", "var(--action-bg)", tri("var(--action)")), cell("reg", "var(--action)", "var(--action-bg)", tri("var(--action)"))] },
+        { name: "Senior Joint Support Wet", cells: [cell("clear", "var(--clear)", "var(--clear-bg)", sq("var(--clear)")), cell("claim", "var(--blocked)", "var(--blocked-bg)", sq("var(--blocked)")), cell("clear", "var(--clear)", "var(--clear-bg)", sq("var(--clear)")), cell("clear", "var(--clear)", "var(--clear-bg)", sq("var(--clear)")), cell("reg", "var(--action)", "var(--action-bg)", tri("var(--action)"))] },
+        { name: "Puppy Dry 3 kg", cells: [cell("term", "var(--none)", "var(--none-bg)", ring), cell("term", "var(--none)", "var(--none-bg)", ring), cell("term", "var(--none)", "var(--none-bg)", ring), cell("clear", "var(--clear)", "var(--clear-bg)", sq("var(--clear)")), cell("\u2014", "var(--none)", "var(--none-bg)", ring)] },
+        { name: "Dental Treat Sticks", cells: [cell("clear", "var(--clear)", "var(--clear-bg)", sq("var(--clear)")), cell("clear", "var(--clear)", "var(--clear-bg)", sq("var(--clear)")), cell("geo", "var(--action)", "var(--action-bg)", tri("var(--action)")), cell("clear", "var(--clear)", "var(--clear-bg)", sq("var(--clear)")), cell("reg", "var(--action)", "var(--action-bg)", tri("var(--action)"))] },
+      ],
+      coverage: [
+        { node: "EU \u00b7 Germany", method: "Double-verified \u00b7 M. Reuter \u00b7 14 Aug 2026", rules: "1,284", state: "Verified", color: "var(--clear)" },
+        { node: "EU \u00b7 France", method: "Double-verified \u00b7 14 Aug 2026", rules: "1,251", state: "Verified", color: "var(--clear)" },
+        { node: "UK \u00b7 Northern Ireland", method: "Diff against EU core \u00b7 09 Aug 2026", rules: "1,190", state: "Verified", color: "var(--clear)" },
+        { node: "US \u00b7 California", method: "Machine-extracted, in-house accepted", rules: "612", state: "Partial", color: "var(--action)" },
+        { node: "CH \u00b7 cantonal enforcement", method: "Not held \u2014 variation not encoded", rules: "\u2014", state: "Not encoded", color: "var(--none)" },
+      ],
+      tiers: [
+        {
+          k: "Free", who: "One product", border: "var(--n300)", accent: "var(--n400)", price: "No card. No expiry.",
+          body: "The whole answer for one product, so you can judge the product on a real label rather than a demo.",
+          lines: ["One product, up to three jurisdictions", "Full report with provenance and coverage links", "One artwork version and its geometry pass", "Unlimited re-checks, monitoring included"],
+          cta: "Start free", ctaBg: "var(--cobalt)", ctaFg: "#fff", ctaBorder: "var(--cobalt-600)",
+        },
+        {
+          k: "Core", who: "Small brand \u00b7 one NPD team", border: "var(--n300)", accent: "var(--clear)", price: "Per product under management.",
+          body: "Everything free gives you, plus the artefact you can send: a pinned report your manager, a retailer or your artwork agency can open and verify.",
+          lines: ["Report of Check \u2014 pinned, unsigned, verifiable", "Export, email, or share by link", "Obligation register with registration packs", "Document vault with expiry tracking"],
+          cta: "See pricing", ctaBg: "transparent", ctaFg: "var(--ink)", ctaBorder: "var(--n300)",
+        },
+        {
+          k: "Portfolio", who: "A real range \u00b7 consultants", border: "var(--n300)", accent: "var(--clear)", price: "Per product \u00d7 jurisdiction node.",
+          body: "For a portfolio wide enough that finding the product becomes the interaction.",
+          lines: ["Supplier portal \u2014 specs uploaded once", "Dossier packs assembled per market", "Scoped access for consultants and co-packers", "Unlimited seats"],
+          cta: "See pricing", ctaBg: "transparent", ctaFg: "var(--ink)", ctaBorder: "var(--n300)",
+        },
+        {
+          k: "Verified", who: "When your signature carries risk", border: "var(--cobalt-200)", accent: "var(--cobalt)", price: "Per verified node, signing authority and specialist hour.",
+          body: "Signed attestation and specialist time, not software. Bought coverage moves from machine-extracted to verified \u2014 and you can see which of your nodes would change before you buy.",
+          lines: ["Signed Certificate of Check, authority per market", "Named specialist verification of your nodes", "Free-text translation as a service", "Volume artwork and language passes, SSO, audit exports"],
+          cta: "Talk to us", ctaBg: "transparent", ctaFg: "var(--cobalt-700)", ctaBorder: "var(--cobalt-200)",
+        },
+      ],
+      quote: "\u201cCustomer quote to be supplied. Ideally the sentence about finding a character-height failure before plates were cut, rather than after.\u201d",
+      quoteAttr: "Attribution to be agreed \u2014 role and category, anonymous if required.",
+      team: [
+        "Regulatory affairs \u2014 feed law, obligation registers, authority routes.",
+        "Feed formulation \u2014 species, life stage, additive conditions of use.",
+        "Prepress \u2014 artwork geometry, character heights, per-language passes.",
+        "Names, roles and prior companies to be supplied.",
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

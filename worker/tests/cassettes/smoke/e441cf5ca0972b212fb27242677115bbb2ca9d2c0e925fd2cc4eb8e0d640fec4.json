@@ -1,0 +1,12 @@
+{
+  "purpose": "smoke",
+  "prompt_version": "v1",
+  "input_hash": "e441cf5ca0972b212fb27242677115bbb2ca9d2c0e925fd2cc4eb8e0d640fec4",
+  "provider": "bedrock",
+  "model_id": "eu.anthropic.claude-haiku-4-5-20251001-v1:0",
+  "text": "{\"answer\": \"OK\"}",
+  "stop_reason": "end_turn",
+  "input_tokens": 230,
+  "output_tokens": 9,
+  "recorded_at": "2026-10-23T00:39:13+00:00"
+}

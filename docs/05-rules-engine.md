@@ -47,3 +47,33 @@ withheld (`model_abstained`), never passed.
 `ref.rule_fixtures`: input (panel text objects, classification, formula), expected outcome (passed, failed, withheld)
 and expected findings. `nutrivo fixtures run --ruleset <id>` must pass for every member before a release (K05).
 Golden labels (`fixtures/golden/`) gate releases once there are 30 of them.
+
+### The runner (T-206)
+`nutrivo fixtures run --ruleset <id> [--format text|json] [--out report.json] [--junit report.xml]` reads, and never
+writes:
+- the rule fixtures of every member of a released ruleset (`ref.ruleset_members` × `ref.rule_fixtures`, in a
+  read-only transaction);
+- the synthetic labels (`fixtures/synth/out/*.truth.json`);
+- the golden labels (`fixtures/golden/`).
+
+It reports each item, per language panel for labels, as one of:
+- `matched`: an evaluator ran and its outcome equals the expected outcome, including the reason code for a withheld
+  fixture and the rule keys of the expected findings;
+- `differed`: an evaluator ran and its outcome is not the expected one;
+- `withheld`, with a reason:
+  - `evaluator_missing`: no evaluator for the shape yet;
+  - `engine_unavailable`: labels need extraction and the engine;
+  - `no_fixtures`: a member has none;
+  - `fixture_invalid`;
+  - `evaluator_error:<type>`.
+
+A runner-level withhold never counts as a match, even for a fixture that expects `withheld`. The run passes (exit 0)
+only when every item matched and at least one rule fixture was evaluated. Exit 1 means something differed or was
+withheld. Exit 2 means an unknown ruleset or missing configuration. With `--format json`, stdout carries the report
+alone (logs go to stderr). The report holds `ruleset_version`, `passed`, a summary per kind and every result with
+expected and actual.
+
+Evaluators register in `nutrivo_worker.fixtures_runner.EVALUATORS` by shape, and the label path in `LABEL_EVALUATOR`.
+Both are empty until T-403, so today every item is withheld and no ruleset passes. Open on #36: how an unreleased
+(proposed) ruleset is named before K05 writes its members, and the golden expected-results file format. Until those
+are decided, only released ruleset ids resolve, and a golden JSON file with a `panels` list is reported per panel.

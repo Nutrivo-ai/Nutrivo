@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--panel); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  button { font: inherit; color: inherit; }
+  input { font: inherit; color: inherit; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .ntv-in { width: 100%; box-sizing: border-box; border: 1px solid var(--n400); border-radius: 3px; padding: 11px 12px; font-size: 14px; background: var(--paper); }
+  .ntv-in::placeholder { color: var(--n500); }
+  @keyframes ntv-slide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+
+<div style="min-width: 1140px; min-height: 900px; display: flex; flex-direction: column; background: var(--panel); font-size: 14px">
+
+  <header style="display: flex; align-items: center; gap: 20px; border-bottom: 1px solid var(--ink); background: var(--paper); padding: 13px 30px">
+    <p style="margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 21px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 6px; height: 6px; background: var(--accent); margin-bottom: 2px; flex-shrink: 0"></span></p>
+    <span style="font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600)">GETTING BACK IN</span>
+    <div style="flex: 1"></div>
+    <div style="display: flex; gap: 1px">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="6">
+        <button type="button" onClick="{{ t.go }}" style="{{ t.style }}" style-hover="border-color: var(--accent); color: var(--accent-700)">{{ t.k }}</button>
+      </sc-for>
+    </div>
+  </header>
+
+  <div style="flex: 1; padding: 30px 30px 60px">
+    <div style="max-width: 1080px; margin: 0 auto">
+
+      <p style="margin: 0 0 22px; font-size: 14px; line-height: 1.6; color: var(--n700); max-width: 96ch">Five moments where somebody cannot get in. Each one says what happened, what to do next, and never why in a way that tells a stranger whether an account exists. None of them is a dead end.</p>
+
+      <div style="display: grid; grid-template-columns: minmax(0, 440px) minmax(0, 1fr); gap: 26px; align-items: start">
+
+        <!-- ── the screen ── -->
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 28px 30px; animation: ntv-slide 240ms ease-out both">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <p style="margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 20px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 5px; height: 5px; background: var(--accent); margin-bottom: 2px"></span></p>
+
+          <div style="{{ markStyle }}">
+            <span style="{{ glyphStyle }}"></span>
+            <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em">{{ markLabel }}</span>
+          </div>
+
+          <h1 style="margin: 14px 0 0; font-size: 25px; font-weight: 600; line-height: 1.15">{{ title }}</h1>
+          <p style="margin: 10px 0 0; font-size: 14px; line-height: 1.6; color: var(--n700)">{{ body }}</p>
+
+          <sc-if value="{{ hasFields }}">
+            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 13px">
+              <sc-for list="{{ fields }}" as="f" hint-placeholder-count="2">
+                <div>
+                  <label style="display: block; font-size: 12.5px; font-weight: 500; margin-bottom: 5px">{{ f.k }}</label>
+                  <input class="ntv-in" type="{{ f.type }}" value="{{ f.value }}" placeholder="{{ f.ph }}" />
+                  <p style="{{ f.hintStyle }}">{{ f.hint }}</p>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ hasList }}">
+            <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 10px">
+              <sc-for list="{{ list }}" as="li" hint-placeholder-count="3">
+                <div style="display: flex; gap: 11px; align-items: baseline">
+                  <span style="{{ li.dot }}"></span>
+                  <span style="font-size: 13px; line-height: 1.5; color: var(--n800)">{{ li.k }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <button type="button" style="margin-top: 22px; width: 100%; background: var(--accent); color: #ffffff; border: none; border-radius: 3px; padding: 13px 20px; font-size: 14.5px; font-weight: 500; cursor: pointer" style-hover="background: var(--accent-600)">{{ primary }}</button>
+          <p style="margin: 14px 0 0; text-align: center; font-size: 13px; color: var(--n600)">{{ secondary }}</p>
+        </div>
+
+        <!-- ── the reasoning ── -->
+        <div style="display: flex; flex-direction: column; gap: 18px">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--accent); background: var(--paper); padding: 20px 22px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">Why it reads this way</p>
+            <p style="margin: 10px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n800)">{{ why }}</p>
+          </div>
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 20px 22px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">Rules on this screen</p>
+            <div style="margin-top: 13px; display: flex; flex-direction: column; gap: 12px">
+              <sc-for list="{{ rules }}" as="r" hint-placeholder-count="3">
+                <div style="border-left: 3px solid {{ r.bar }}; padding-left: 13px">
+                  <p style="margin: 0; font-size: 13px; font-weight: 600">{{ r.k }}</p>
+                  <p style="margin: 4px 0 0; font-size: 12.5px; line-height: 1.5; color: var(--n700)">{{ r.v }}</p>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div class="blueprint" style="position: relative; border: 1px solid var(--rule); background: var(--paper); padding: 18px 20px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">The email it sends</p>
+            <p style="margin: 9px 0 0; font-size: 13px; font-weight: 600">{{ mailSubject }}</p>
+            <p style="margin: 6px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ mailBody }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 26px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px">
+        <sc-for list="{{ universal }}" as="u" hint-placeholder-count="3">
+          <div class="blueprint" style="{{ u.style }}">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-size: 13.5px; font-weight: 600; line-height: 1.25">{{ u.k }}</p>
+            <p style="margin: 7px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ u.v }}</p>
+          </div>
+        </sc-for>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1200,&quot;height&quot;:940}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)", n600: "var(--n600)", n700: "var(--n700)", ink: "var(--ink)" };
+
+const SCREENS = {
+  forgot: {
+    tab: "Forgotten password",
+    mark: ["PASSWORD RESET", C.accent, "circle"],
+    title: "Send yourself a way back in",
+    body: "Type the address you sign in with. If we hold an account for it, a link arrives within a minute and works once, for an hour.",
+    fields: [{ k: "Email address", type: "email", value: "", ph: "you@company.com", hint: "" }],
+    primary: "Send the link",
+    secondary: "Remembered it? Sign in instead",
+    why: "The confirmation is deliberately identical whether or not an account exists. Telling a stranger that j.holm@haldenpet.com is a customer of a compliance tool is a disclosure in itself, and the customer never asked us to make it.",
+    rules: [
+      { k: "One use, one hour", v: "The link burns on use and expires on time, so a forwarded email or an old inbox is not a way in.", bar: C.accent },
+      { k: "The old password keeps working until the new one is set", v: "Asking for a reset never locks anybody out of a session they are in the middle of.", bar: C.clear },
+      { k: "Signing authority survives a reset", v: "A password change is not a grant change. Nothing about who may sign what is touched.", bar: C.none },
+    ],
+    mailSubject: "Your Nutrivo sign-in link",
+    mailBody: "One line, one button, an hour's validity stated on it, and a sentence saying that if this was not you, nothing has changed and no action is needed.",
+  },
+  setpw: {
+    tab: "Set a new password",
+    mark: ["LINK VERIFIED", C.clear, "square"],
+    title: "Choose a new password",
+    body: "Twelve characters or more. Longer beats complicated — a passphrase you can remember is stronger than a short string of symbols you cannot.",
+    fields: [
+      { k: "New password", type: "password", value: "", ph: "At least twelve characters", hint: "STRONG · A PASSPHRASE OF FOUR WORDS", hintColor: C.clear },
+      { k: "Type it again", type: "password", value: "", ph: "", hint: "" },
+    ],
+    primary: "Set the password and sign in",
+    secondary: "This link expires in 47 minutes",
+    why: "We ask for it twice because a mistyped password on a reset is the fastest route back to the screen you just left. The strength read-out is a fact about what you typed, not a demand for a symbol and a digit.",
+    rules: [
+      { k: "Every other session ends", v: "Setting a new password signs out every device except this one, because the usual reason for a reset is that somebody else may have had access.", bar: C.action },
+      { k: "The event is recorded", v: "A password change appears in the audit log as an access event. What it does not record is the password.", bar: C.accent },
+      { k: "Two-step is offered here, not later", v: "If the account holds signing authority, two-step is required and set up on the next screen rather than left for another day.", bar: C.none },
+    ],
+    mailSubject: "Your Nutrivo password was changed",
+    mailBody: "Sent after the change, not before it, to the address on the account. It names the time and the city, and says what to do if it was not you.",
+  },
+  expired: {
+    tab: "Expired invitation",
+    mark: ["INVITATION EXPIRED", C.action, "triangle"],
+    title: "This invitation has expired",
+    body: "Invitations last fourteen days. Johanna Holm invited you to Halden Pet Nutrition on 18 August, and the link has since lapsed.",
+    list: [
+      { k: "Nothing was lost — the workspace and its recipes are untouched", color: C.clear },
+      { k: "Ask for a new invitation and it arrives at this same address", color: C.accent },
+      { k: "Your role and scope will be whatever the admin sets now, not what was set then", color: C.none },
+    ],
+    primary: "Ask Johanna for a new invitation",
+    secondary: "She is notified in the product, not just by email",
+    why: "An expired invitation is somebody trying to start work, so the screen's job is to get them a live link with one action. It names the person who invited them, because a request to a name gets answered faster than a request to a system.",
+    rules: [
+      { k: "Fourteen days, then it lapses", v: "An invitation that never expires is a permanent key sitting in an inbox, often at a company the person has since left.", bar: C.action },
+      { k: "The request goes to the admin, in the product", v: "Not an email into the void. It appears on the people screen as a pending request with the date.", bar: C.accent },
+      { k: "Re-inviting is a fresh grant", v: "Role, scope and any external end date are set again. Nothing is inherited from the lapsed invitation.", bar: C.none },
+    ],
+    mailSubject: "Katrin asked for a new invitation to Halden Pet Nutrition",
+    mailBody: "To the admin, naming who asked, what role they were offered before, and a single button to invite them again.",
+  },
+  removed: {
+    tab: "Access removed",
+    mark: ["NO LONGER HAS ACCESS", C.blocked, "barred"],
+    title: "You no longer have access to this workspace",
+    body: "Your access to Halden Pet Nutrition ended on 31 December 2026. This can happen because an end date passed, or because an admin removed it.",
+    list: [
+      { k: "Your name remains on every check you ran and every document you signed", color: C.n600 },
+      { k: "Reports you sent are still verifiable by whoever holds them", color: C.clear },
+      { k: "You cannot see recipes, findings or documents from here", color: C.blocked },
+    ],
+    primary: "Ask Johanna Holm for access",
+    secondary: "Or sign in to a different workspace",
+    why: "External access with an end date is the normal case, not a failure, so the screen does not read as an error. It states the two facts a departing consultant actually needs: their work is still attributed to them, and the reports they sent still resolve.",
+    rules: [
+      { k: "Removal is immediate, attribution is permanent", v: "The history is append-only. Taking somebody's access away cannot take their name off what they did.", bar: C.blocked },
+      { k: "It never says which", v: "Whether the date passed or an admin acted is between them and the admin. The screen offers the route back rather than the reason.", bar: C.none },
+      { k: "Their own account survives", v: "A person removed from one workspace still has an account, and may hold access to others. We do not delete a person because a customer did.", bar: C.clear },
+    ],
+    mailSubject: "Your access to Halden Pet Nutrition has ended",
+    mailBody: "Sent on the day, naming the workspace and the date. It repeats that their name stays on their work and that sent reports remain verifiable.",
+  },
+  dormant: {
+    tab: "Dormant workspace",
+    mark: ["WORKSPACE DORMANT", C.none, "circle"],
+    title: "This workspace is dormant",
+    body: "Halden Pet Nutrition was closed on 12 June 2026 and has been dormant since. Nothing was deleted, and nothing has been checked since that date.",
+    list: [
+      { k: "Every report ever sent from here still verifies", color: C.clear },
+      { k: "Eight recipes, 61 checks and four certificates are held intact", color: C.clear },
+      { k: "No new check can run until an admin reopens it", color: C.action },
+    ],
+    primary: "Reopen the workspace",
+    secondary: "Only an admin can reopen. You are one.",
+    why: "Dormant rather than deleted exists for one reason: somebody outside the company may still be holding a report that has to resolve. The screen leads with that, because it is also the strongest argument for reopening rather than starting again.",
+    rules: [
+      { k: "Verification never stops working", v: "A dormant workspace still answers the public verification page. A retailer's copy of a report does not become worthless because a customer left.", bar: C.clear },
+      { k: "Reopening restores, it does not restart", v: "Recipes, history and certificates come back as they were. What is missing is every ruleset change since — so the board shows stale against current rules, honestly.", bar: C.action },
+      { k: "Ninety idle days, then dormant", v: "On the free plan a workspace nobody has opened for ninety days goes dormant on its own. It is never deleted, on any plan.", bar: C.none },
+    ],
+    mailSubject: "Halden Pet Nutrition is dormant",
+    mailBody: "Sent at ninety days to every admin. It states what stays resolvable, what stops, and that reopening is one click and free.",
+  },
+};
+
+const ORDER = ["forgot", "setpw", "expired", "removed", "dormant"];
+
+class Component extends DCLogic {
+  state = { screen: "forgot" };
+
+  renderVals() {
+    const key = this.state.screen;
+    const d = SCREENS[key] || SCREENS.forgot;
+    const [markLabel, markColor, glyph] = d.mark;
+
+    const glyphStyle =
+      glyph === "square" ? "width: 11px; height: 11px; flex: none; background: " + markColor
+      : glyph === "triangle" ? "width: 0; height: 0; flex: none; border-left: 6px solid transparent; border-right: 6px solid transparent; border-bottom: 11px solid " + markColor
+      : glyph === "barred" ? "width: 11px; height: 11px; flex: none; background: " + markColor + "; box-shadow: inset 0 4px 0 var(--paper), inset 0 -4px 0 " + markColor
+      : "width: 11px; height: 11px; flex: none; border: 2px solid " + markColor + "; border-radius: 50%";
+
+    return {
+      tabs: ORDER.map(id => ({
+        k: SCREENS[id].tab,
+        go: () => this.setState({ screen: id }),
+        style: "border: 1px solid " + (key === id ? "var(--accent)" : "var(--n400)") + "; background: " + (key === id ? "var(--accent-100)" : "var(--paper)") +
+          "; color: " + (key === id ? "var(--accent-700)" : "var(--n700)") + "; padding: 6px 11px; font-size: 12px; cursor: pointer; font-weight: " + (key === id ? "600" : "400"),
+      })),
+
+      markLabel, glyphStyle,
+      markStyle: "margin-top: 22px; display: inline-flex; align-items: center; gap: 9px; border: 1px solid " + markColor + "; color: " + markColor + "; padding: 6px 10px",
+
+      title: d.title,
+      body: d.body,
+      primary: d.primary,
+      secondary: d.secondary,
+      why: d.why,
+      rules: d.rules,
+      mailSubject: d.mailSubject,
+      mailBody: d.mailBody,
+
+      hasFields: !!d.fields,
+      fields: (d.fields || []).map(f => ({
+        k: f.k, type: f.type, value: f.value, ph: f.ph, hint: f.hint,
+        hintStyle: f.hint
+          ? "margin: 5px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: " + (f.hintColor || C.n600)
+          : "display: none",
+      })),
+
+      hasList: !!d.list,
+      list: (d.list || []).map(li => ({
+        k: li.k,
+        dot: "width: 10px; height: 10px; flex: none; margin-top: 4px; background: " + li.color,
+      })),
+
+      universal: [
+        { k: "No screen is a dead end", v: "Every one of the five offers a next action that a person can take alone, or names the one human who can unblock them. A message that only explains is not finished.", bar: C.accent },
+        { k: "Never reveal whether an account exists", v: "The reset screen answers identically either way. Membership of a compliance tool is a fact about a company's regulatory exposure, and it is theirs to disclose.", bar: C.none },
+        { k: "Losing access never rewrites history", v: "Reset a password, expire an invitation, remove a person, close a workspace — a report already sent stays verifiable through all four. That is the whole reason the store is append-only.", bar: C.clear },
+      ].map(u => ({
+        k: u.k, v: u.v,
+        style: "position: relative; border: 1px solid var(--ink); border-top: 4px solid " + u.bar + "; background: var(--paper); padding: 18px 20px",
+      })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>
