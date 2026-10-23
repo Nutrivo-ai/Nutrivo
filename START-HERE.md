@@ -13,17 +13,18 @@ wrong. This system makes failures small, loud and quickly fixed, and keeps a per
 1. **Infisical token.** The shell that runs Claude Code has `INFISICAL_TOKEN`; in Claude Code on the web, the
    environment holds the `claude-dev` identity instead (docs/22 §5). If the project is in Infisical's EU cloud, also
    set `INFISICAL_DOMAIN=https://eu.infisical.com`.
-2. **GitHub plan.** Enforced rulesets, code-owner review and environment secrets on the private `ar835/Nutrivo` need
-   GitHub Pro on ar835's personal account (docs/22 §1). A merge queue needs Enterprise Cloud; without it the protocol
+2. **GitHub plan.** Enforced rulesets, code-owner review and environment secrets on the private `nutrivo-ai/Nutrivo`
+   come with the `nutrivo-ai` organisation's paid GitHub Team plan (docs/22 §1). A merge queue needs Enterprise Cloud; without it the protocol
    falls back to "branch must be up to date".
 3. **Tools.** On the web, the session start hook installs them. On a laptop: git, gh, Node 22+, pnpm, uv, Docker
    (running), Supabase CLI, Infisical CLI, Ghostscript and Poppler; `scripts/bootstrap/check-tools.sh` lists anything
    missing with the install command.
-4. **Secrets.** Infisical holds the names in `config/secrets.yaml` for dev, staging and prod. Different names are
-   fine: Claude Code maps them in `config/secret-aliases.env` and lists anything missing by name, never by value.
+4. **Secrets.** Infisical's dev project holds the dev names in `config/secrets.yaml`; staging and prod get their own
+   projects in T-010 (docs/22 §3). Different names are fine: Claude Code maps them in `config/secret-aliases.env` and
+   lists anything missing by name, never by value.
 
 ## Start
-**On the web:** open claude.ai/code, choose `ar835/Nutrivo` and your Nutrivo environment (docs/22 §5), and paste the
+**On the web:** open claude.ai/code, choose `nutrivo-ai/Nutrivo` and your Nutrivo environment (docs/22 §5), and paste the
 prompt below. **On a laptop:**
 ```bash
 mkdir -p ~/code && cd ~/code && unzip nutrivo-handoff.zip && cd nutrivo
@@ -41,11 +42,11 @@ names, and tell me exactly what you need from me at each one. Report after every
 | G0 Tools | Bootstrap step 1 | Install what is missing (on the web the session start hook installs the tools; only the `claude-dev` variables in docs/22 §5 can be missing) |
 | G1 Repository import | Bootstrap step 2, if the repository has code | Approve the import pull request (old code is archived on a branch and kept in `legacy/`, never deleted) |
 | G1b GitHub settings | Bootstrap step 7, task T-004 | The settings in docs/22: collaborators, the two approval labels, rulesets, environments, Actions secrets; Claude Code cannot change them |
-| G2 Secrets | Bootstrap steps 3–4 | Add or fix the named secrets in Infisical; run the `doctor` workflow for staging and prod |
+| G2 Secrets | Bootstrap steps 3–4 (dev); T-010 (staging) and T-1101 (prod) | Add or fix the named secrets in Infisical; run the `doctor` workflow for staging and prod in those tasks |
 | G2b Research conflicts | Task T-011 | Resolve the conflicts Claude Code records in docs/14 into docs/02-decisions.md |
 | G3 Design files | Bootstrap step 6, only if the automatic download is refused | Download the Drive design folder into `design/`; on the web, upload it as a zip into the session |
 | G4 Target freeze | Task T-012 | Approve `spec/screens.yaml`: every screen Claude Code found in your designs |
-| G5 Merges | Every pull request | Review and approve (CI must be green; you never review red code) |
+| G5 Merges | Every pull request | Nothing: no approval is required, and your Claude Code session updates and merges once CI is green (D-24); the `claude-review` workflow still reviews (D-23), and you can still review, approve or dismiss a review |
 | G6 Content | Weekly from milestone 2 | Accept rules in /admin (docs/12-content-ops.md) |
 | G7 Deploy environments | T-010 and T-1101 | Approve the first staging and production deployments: the owner sets the switches in docs/22 §4 |
 | G8 Stripe live | T-705 | Switch Stripe to live once test mode is proven |

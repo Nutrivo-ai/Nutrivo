@@ -1,0 +1,11 @@
+{
+  "method": "GET",
+  "url": "https://publications.europa.eu/resource/celex/02017R2279-20171214",
+  "request_headers": {
+    "accept": "application/xhtml+xml",
+    "accept-language": "eng"
+  },
+  "status": 404,
+  "headers": {},
+  "body_sha256": "208d205139277a4b3683e1045c16c089842a27cf01773de222d15060f2f88908"
+}

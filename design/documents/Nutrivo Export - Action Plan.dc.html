@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="./doc-page.js"></script>
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6;
+    --accent: #1738a8; --accent-100: #eef2ff; --accent-300: #b4c6ff; --accent-900: #0d1c52;
+    --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n200: #eef0f2;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --body: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; color: var(--ink); font-family: var(--body); }
+  doc-page, doc-page p, doc-page li, doc-page td, doc-page th, doc-page span, doc-page div, doc-page ul, doc-page table { font-family: var(--body); }
+  doc-page:not(:defined) { visibility: hidden; }
+  a { color: var(--accent); }
+  a:hover { color: var(--accent-900); }
+  h1, h2, h3 { font-family: var(--head); font-weight: 600; }
+  .kick { margin: 16pt 0 0; font-family: var(--mono); font-size: 8.5pt; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent); }
+  .h2row { display: flex; align-items: baseline; gap: 9pt; border-bottom: 1px solid var(--ink); padding-bottom: 4pt; margin: 20pt 0 9pt; break-after: avoid; }
+  .h2row span { font-family: var(--mono); font-size: 8.5pt; color: var(--accent); }
+  .h2row h2 { margin: 0; font-size: 14pt; line-height: 1.1; }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 8.5pt; line-height: 1.4; }
+  .tbl th { text-align: left; font-family: var(--mono); font-weight: 400; font-size: 7.5pt; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600); border-bottom: 1px solid var(--ink); padding: 5pt 7pt 5pt 0; vertical-align: bottom; }
+  .tbl td { border-bottom: 1px solid var(--rule); padding: 7pt 7pt 7pt 0; vertical-align: top; }
+  .tbl tr { break-inside: avoid; }
+  .mono { font-family: var(--mono); }
+  .box { break-inside: avoid; }
+  doc-page > *:last-child { margin-bottom: 18pt; }
+</style>
+</helmet>
+<doc-page margin="0.6in">
+
+  <div slot="header" style="display: flex; align-items: baseline; justify-content: space-between; gap: 14pt; border-bottom: 1px solid var(--ink); padding-bottom: 5pt; margin-bottom: 14pt; font-family: var(--mono); font-size: 7.5pt; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600)">
+    <span style="color: var(--accent); font-weight: 500">Nutrivo · action plan</span>
+    <span>Salmon &amp; Rice Adult Dry 12 kg · SKU 4471</span>
+    <span>Ruleset 2026.08-b</span>
+  </div>
+
+  <div slot="footer" style="display: flex; align-items: baseline; justify-content: space-between; gap: 14pt; border-top: 1px solid var(--rule); padding-top: 5pt; font-family: var(--mono); font-size: 7.5pt; letter-spacing: 0.08em; text-transform: uppercase; color: var(--n600)">
+    <span>Generated 20 Aug 2026, 09:14 CEST by M. Feldt</span>
+    <span>Scope and exclusions stated in section 04</span>
+  </div>
+
+  <p class="kick">Export · action plan · XLSX equivalent</p>
+  <h1 style="margin: 5pt 0 0; font-size: 26pt; line-height: 1.05; letter-spacing: -0.015em">What to do, in the order<br />that opens the most markets</h1>
+  <p style="margin: 10pt 0 0; font-size: 11pt; line-height: 1.5; max-width: 74ch">Fourteen open actions across six markets for one product. Sorted by how many product-market pairs each action moves out of a non-clear state. Nothing here is a score and nothing is a summary: each row is an instruction with a legal basis, an owner and a consequence.</p>
+
+  <div style="margin-top: 16pt; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10pt" class="box">
+    <sc-for list="{{ tiles }}" as="t" hint-placeholder-count="4">
+      <div style="border: 1px solid var(--rule); border-top: 2.5pt solid {{ t.color }}; background: {{ t.bg }}; padding: 9pt 10pt">
+        <p style="margin: 0; font-family: var(--head); font-size: 22pt; font-weight: 600; line-height: 1; letter-spacing: -0.02em; color: {{ t.color }}">{{ t.n }}</p>
+        <p style="margin: 4pt 0 0; font-family: var(--mono); font-size: 7.5pt; letter-spacing: 0.09em; text-transform: uppercase; color: {{ t.color }}">{{ t.label }}</p>
+        <p style="margin: 4pt 0 0; font-size: 8.5pt; line-height: 1.4; color: var(--n700)">{{ t.note }}</p>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="margin-top: 12pt; border: 1px solid var(--accent-300); background: var(--accent-100); padding: 10pt 12pt" class="box">
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12pt">
+      <sc-for list="{{ stamp }}" as="s" hint-placeholder-count="4">
+        <div>
+          <p style="margin: 0; font-family: var(--mono); font-size: 7.5pt; letter-spacing: 0.09em; text-transform: uppercase; color: var(--accent)">{{ s.k }}</p>
+          <p style="margin: 3pt 0 0; font-family: var(--mono); font-size: 9pt; color: var(--accent-900)">{{ s.v }}</p>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div class="h2row"><span>01</span><h2>Actions, by markets unblocked</h2></div>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th style="width: 4%">#</th>
+        <th style="width: 30%">Action</th>
+        <th style="width: 13%">Owner</th>
+        <th style="width: 13%">Markets unblocked</th>
+        <th style="width: 8%">Blocking</th>
+        <th style="width: 17%">Rule basis</th>
+        <th style="width: 9%">Due</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <sc-for list="{{ actions }}" as="a" hint-placeholder-count="14">
+        <tr>
+          <td class="mono" style="color: var(--n500)">{{ a.n }}</td>
+          <td>
+            <span style="display: block; font-weight: 500">{{ a.title }}</span>
+            <span style="display: block; margin-top: 2pt; color: var(--n700); font-size: 8pt; line-height: 1.4">{{ a.detail }}</span>
+          </td>
+          <td style="font-size: 8pt">{{ a.owner }}</td>
+          <td>
+            <span class="mono" style="display: block; font-size: 9pt; color: {{ a.color }}">{{ a.count }}</span>
+            <span class="mono" style="display: block; margin-top: 1pt; font-size: 7.5pt; color: var(--n600)">{{ a.markets }}</span>
+          </td>
+          <td class="mono" style="font-size: 7.5pt; letter-spacing: 0.06em; color: {{ a.color }}">{{ a.blocking }}</td>
+          <td class="mono" style="font-size: 7.5pt; color: var(--n700)">{{ a.basis }}</td>
+          <td class="mono" style="font-size: 8pt; color: {{ a.dueColor }}">{{ a.due }}</td>
+          <td class="mono" style="font-size: 7.5pt; letter-spacing: 0.06em; text-transform: uppercase; color: var(--n600)">{{ a.status }}</td>
+        </tr>
+      </sc-for>
+    </tbody>
+  </table>
+  <p style="margin: 8pt 0 0; font-size: 8.5pt; line-height: 1.5; color: var(--n700)">Blocking means no label change resolves it — the product cannot be placed on that market until the action is complete. Everything else can proceed in parallel with artwork production at your own risk assessment.</p>
+
+  <div class="h2row"><span>02</span><h2>Grouped for the people who do the work</h2></div>
+  <p style="margin: 0 0 9pt; font-size: 10pt; line-height: 1.5; max-width: 76ch">The same fourteen actions, re-cut by owner. In the spreadsheet this is a filter; here it is how the document is handed over, because three of these groups go to three different organisations.</p>
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12pt">
+    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+      <div style="border: 1px solid var(--rule); border-left: 2.5pt solid {{ g.color }}; padding: 10pt 12pt" class="box">
+        <div style="display: flex; align-items: baseline; gap: 8pt">
+          <span style="flex: 1; font-family: var(--head); font-size: 12pt; font-weight: 600">{{ g.owner }}</span>
+          <span class="mono" style="font-size: 8pt; color: var(--n600)">{{ g.count }}</span>
+        </div>
+        <p style="margin: 4pt 0 0; font-size: 8.5pt; line-height: 1.45; color: var(--n700)">{{ g.note }}</p>
+        <ul style="margin: 7pt 0 0; padding-left: 13pt; font-size: 8.5pt; line-height: 1.5">
+          <sc-for list="{{ g.items }}" as="i" hint-placeholder-count="3">
+            <li style="margin-bottom: 3pt">{{ i }}</li>
+          </sc-for>
+        </ul>
+      </div>
+    </sc-for>
+  </div>
+
+  <div class="h2row"><span>03</span><h2>Sequence</h2></div>
+  <p style="margin: 0 0 10pt; font-size: 10pt; line-height: 1.5; max-width: 78ch">Two actions have to land before others are worth starting. The zinc reformulation changes the additive declaration, which changes the artwork — running the artwork revision first would mean two prepress cycles instead of one.</p>
+  <div style="display: flex; flex-direction: column">
+    <sc-for list="{{ sequence }}" as="s" hint-placeholder-count="4">
+      <div style="display: grid; grid-template-columns: 62pt 1fr 130pt; gap: 12pt; border-top: 1px solid var(--rule); padding: 9pt 0; align-items: baseline" class="box">
+        <span class="mono" style="font-size: 8pt; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent)">{{ s.phase }}</span>
+        <div>
+          <p style="margin: 0; font-size: 10pt; font-weight: 500; line-height: 1.35">{{ s.title }}</p>
+          <p style="margin: 3pt 0 0; font-size: 8.5pt; line-height: 1.45; color: var(--n700)">{{ s.body }}</p>
+        </div>
+        <span class="mono" style="font-size: 8pt; color: var(--n600); text-align: right">{{ s.gate }}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <div class="h2row"><span>04</span><h2>What was not assessed</h2></div>
+  <div style="border: 1px solid var(--none); background: var(--none-bg); padding: 12pt 14pt" class="box">
+    <p style="margin: 0; font-size: 10pt; line-height: 1.55; max-width: 78ch">Three rules could not be applied. They are not passes and they are not findings — they are questions we could not answer with the data supplied. Treat the absence of an action below as unknown, not as clear.</p>
+    <table class="tbl" style="margin-top: 10pt">
+      <thead>
+        <tr>
+          <th style="width: 28%; border-bottom-color: var(--none)">Rule</th>
+          <th style="width: 16%; border-bottom-color: var(--none)">Market</th>
+          <th style="width: 28%; border-bottom-color: var(--none)">Why it could not run</th>
+          <th style="border-bottom-color: var(--none)">What would resolve it</th>
+        </tr>
+      </thead>
+      <tbody>
+        <sc-for list="{{ notAssessed }}" as="n" hint-placeholder-count="3">
+          <tr>
+            <td style="border-bottom-color: var(--n200)">
+              <span style="display: block; font-weight: 500">{{ n.rule }}</span>
+              <span class="mono" style="display: block; margin-top: 2pt; font-size: 7.5pt; color: var(--n600)">{{ n.cite }}</span>
+            </td>
+            <td class="mono" style="border-bottom-color: var(--n200); font-size: 8.5pt">{{ n.market }}</td>
+            <td style="border-bottom-color: var(--n200)">{{ n.why }}</td>
+            <td style="border-bottom-color: var(--n200)">{{ n.fix }}</td>
+          </tr>
+        </sc-for>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="h2row"><span>05</span><h2>Scope of this export</h2></div>
+  <table class="tbl">
+    <thead>
+      <tr><th style="width: 26%">Dimension</th><th style="width: 34%">Included</th><th>Excluded</th></tr>
+    </thead>
+    <tbody>
+      <sc-for list="{{ scope }}" as="s" hint-placeholder-count="6">
+        <tr>
+          <td style="font-weight: 500">{{ s.k }}</td>
+          <td>{{ s.inc }}</td>
+          <td style="color: var(--n700)">{{ s.exc }}</td>
+        </tr>
+      </sc-for>
+    </tbody>
+  </table>
+
+  <div style="margin-top: 18pt; border-top: 1px solid var(--ink); padding-top: 9pt; display: grid; grid-template-columns: 1fr 200pt; gap: 20pt" class="box">
+    <p style="margin: 0; font-size: 8.5pt; line-height: 1.55; color: var(--n700)">This plan reflects the ruleset and term register versions stamped above. Re-running the check is free and unlimited; if either version moves, re-export rather than working from this copy. The spreadsheet form of this document carries the same columns plus a machine-readable rule identifier per row.</p>
+    <p class="mono" style="margin: 0; font-size: 7.5pt; line-height: 1.7; letter-spacing: 0.05em; text-transform: uppercase; color: var(--n600); text-align: right">Export id AP-4471-0820-01<br />Artwork hash 4f19…c02a<br />Recorded against SKU 4471<br />Nutrivo GmbH · Hamburg</p>
+  </div>
+
+</doc-page>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)" };
+    return {
+      tiles: [
+        { n: "14", label: "Open actions", note: "Across six markets, one product, nine languages.", color: "var(--accent)", bg: "var(--accent-100)" },
+        { n: "2", label: "Blocking", note: "No label change resolves these. Reformulation or a decision.", color: C.blocked, bg: "var(--blocked-bg)" },
+        { n: "9", label: "Artwork", note: "All on three panels. One prepress cycle if grouped.", color: C.action, bg: "var(--action-bg)" },
+        { n: "3", label: "Not assessed", note: "Rules that could not run. Listed in section 04.", color: C.none, bg: "var(--none-bg)" },
+      ],
+      stamp: [
+        { k: "Ruleset", v: "2026.08-b · current" },
+        { k: "Term register", v: "v2026.08" },
+        { k: "Checked", v: "20 Aug 2026, 09:12" },
+        { k: "Languages", v: "9 · DE AT-DE EN-GB FR EN-NI NL BE-NL BE-FR EN-TX" },
+      ],
+      actions: [
+        { n: "01", title: "Reduce zinc chelate to 150 mg/kg or below", detail: "Declared at 180 mg/kg. Accurate declaration, impermissible level.", owner: "R&D · formulation", count: "6 pairs", markets: "DE AT CH NL BE FR", color: C.blocked, blocking: "BLOCKING", basis: "EU 1831/2003 · 3b606", due: "Before print", dueColor: C.blocked, status: "Open" },
+        { n: "02", title: "Obtain current premix specification for PMX-118", detail: "Expired 3 June. Three additive rules cannot be applied without it.", owner: "Procurement", count: "3 pairs", markets: "BE + 2 rules", color: C.none, blocking: "NOT ASSESSED", basis: "EU 1831/2003 Art. 16", due: "ASAP", dueColor: C.none, status: "Draft sent" },
+        { n: "03", title: "Increase analytical constituents heading to 2.0 mm", detail: "Measured 1.91 mm from vector outline. Pin 3, back panel.", owner: "Prepress", count: "3 pairs", markets: "DE AT CH", color: C.action, blocking: "—", basis: "EU 767/2009 Annex II 1(b)", due: "Rev 8", dueColor: C.action, status: "Open" },
+        { n: "04", title: "Replace product designation with the register string", detail: "Use “Alleinfuttermittel für Hunde”. Current wording adds an age qualifier that is not part of the prescribed term.", owner: "Prepress", count: "3 pairs", markets: "DE AT CH", color: C.action, blocking: "—", basis: "Term register 0198", due: "Rev 8", dueColor: C.action, status: "Open" },
+        { n: "05", title: "Add the feeding instruction table by body weight", detail: "Body copy refers to it; no table geometry found on any panel.", owner: "Prepress", count: "3 pairs", markets: "DE AT CH", color: C.action, blocking: "—", basis: "EU 767/2009 Art. 15(g)", due: "Rev 8", dueColor: C.action, status: "Open" },
+        { n: "06", title: "Decide whether France ships without the mobility claim", detail: "The claim is not permitted for this class in FR under any wording. Removing it moves FR from blocked to action needed.", owner: "Commercial", count: "1 pair", markets: "FR", color: C.blocked, blocking: "BLOCKING", basis: "EU 767/2009 Art. 13(3)", due: "22 Aug", dueColor: C.blocked, status: "Escalated" },
+        { n: "07", title: "Confirm best-before format accepted in Great Britain", detail: "MM/YYYY may not satisfy the GB requirement. Moving to DD/MM/YYYY satisfies GB without affecting the German-language markets at once.", owner: "Regulatory", count: "1 pair", markets: "CH", color: C.action, blocking: "—", basis: "CH VLtH Art. 12", due: "Rev 8", dueColor: C.action, status: "Open" },
+        { n: "08", title: "Update the additive declaration after reformulation", detail: "Dependent on action 01. Do not start before the new level is fixed.", owner: "Prepress", count: "6 pairs", markets: "All", color: C.action, blocking: "—", basis: "EU 767/2009 Art. 15(f)", due: "After 01", dueColor: C.action, status: "Blocked by 01" },
+        { n: "09", title: "Register the product with Texas Feed and Fertilizer Control", detail: "Label passes every encoded rule; sale before registration is prohibited. Fee $120, revised form since 1 September.", owner: "Regulatory", count: "1 pair", markets: "CH", color: C.action, blocking: "—", basis: "CH VLtH Art. 21", due: "14 d prior", dueColor: C.action, status: "Not started" },
+        { n: "10", title: "Attach evidence for the NL first-placing notification", detail: "Draft prepared, evidence not attached.", owner: "Regulatory", count: "1 pair", markets: "NL", color: C.action, blocking: "—", basis: "EU 767/2009 Art. 17", due: "Before launch", dueColor: C.action, status: "In progress" },
+        { n: "11", title: "Add the Dutch-language feeding instruction sheet to the dossier", detail: "Tenth of eleven documents. Dossier otherwise complete for NL.", owner: "Regulatory", count: "1 pair", markets: "NL", color: C.action, blocking: "—", basis: "NVWA dossier template", due: "Before launch", dueColor: C.action, status: "Open" },
+        { n: "12", title: "Renew the Belgian establishment registration", detail: "αBE0092 expires 31 October. Affects every Belgian SKU, not only this one.", owner: "Regulatory", count: "1 pair", markets: "BE", color: C.action, blocking: "—", basis: "EU 183/2005 Art. 9", due: "31 Oct", dueColor: C.action, status: "Open" },
+        { n: "13", title: "Supply both NL and FR claim wording for the Belgian pack", detail: "Belgium requires both languages on pack; only NL is present.", owner: "Marketing", count: "1 pair", markets: "BE", color: C.action, blocking: "—", basis: "EU 767/2009 Art. 14", due: "Rev 8", dueColor: C.action, status: "Open" },
+        { n: "14", title: "Re-run the check after revision 8 is produced", detail: "Free and unlimited. A new artwork hash requires a new signature for any certificate.", owner: "Regulatory", count: "6 pairs", markets: "All", color: "var(--accent)", blocking: "—", basis: "Export policy", due: "On rev 8", dueColor: "var(--n600)", status: "Scheduled" },
+      ],
+      groups: [
+        { owner: "Prepress / artwork agency", count: "5 actions", color: C.action, note: "All on three panels of the same sheet. Group into one revision — running them separately means three cycles.", items: ["Analytical constituents heading to 2.0 mm", "Product designation to the register string", "Feeding instruction table", "Best-before format for Switzerland", "Additive declaration, after reformulation"] },
+        { owner: "R&D / formulation", count: "1 action", color: C.blocked, note: "One action, but it gates the artwork. Do this first.", items: ["Zinc chelate to 150 mg/kg or below"] },
+        { owner: "Procurement", count: "1 action", color: C.none, note: "One supplier request resolves three unassessable rules here and nine pairs across the wider portfolio.", items: ["Current premix specification for PMX-118 from Aldrich Nutrition"] },
+        { owner: "Regulatory / commercial", count: "7 actions", color: "var(--accent)", note: "Registrations, dossier gaps and one commercial decision. Independent of the artwork cycle.", items: ["France: ship without the mobility claim, or not", "Swiss import declaration", "NL notification evidence", "NL feeding instruction sheet", "Belgian registration renewal", "Belgian claim wording in both languages", "Re-check after revision 8"] },
+      ],
+      sequence: [
+        { phase: "First", title: "Fix the zinc level and take the France decision", body: "Both are blocking, and the zinc change alters the additive declaration that the artwork carries. Starting artwork before this lands means revising twice.", gate: "Gates 8 of 14" },
+        { phase: "In parallel", title: "Send the Aldrich premix request", body: "Costs nothing to start and has the longest external lead time. It resolves three unassessable rules here and nine pairs elsewhere in the portfolio.", gate: "External lead time" },
+        { phase: "Then", title: "One prepress revision covering five findings", body: "All five sit on three panels of the same sheet. Grouped, this is a single cycle to revision 8.", gate: "After the zinc level is fixed" },
+        { phase: "Last", title: "Re-check, then registrations and certificates", body: "A new artwork hash needs a new check and a new signature. Registration filings can proceed once the pairs are clear.", gate: "On revision 8" },
+      ],
+      notAssessed: [
+        { rule: "Additive identity verification", cite: "EU 1831/2003 Annex I", market: "BE", why: "Premix specification SPEC-0442 expired 3 June 2026.", fix: "Current specification from Aldrich Nutrition (action 02)." },
+        { rule: "Additive inclusion level check", cite: "EU 1831/2003 Annex I", market: "BE", why: "Depends on the same expired specification.", fix: "Same document (action 02)." },
+        { rule: "Traceability record completeness", cite: "EU 1831/2003 Art. 16", market: "BE", why: "Manufacturing establishment number for the premix not on file.", fix: "Included in the same supplier request (action 02)." },
+      ],
+      scope: [
+        { k: "Product", inc: "Salmon & Rice Adult Dry 12 kg, SKU 4471, artwork revision 7", exc: "The 3 kg variant, SKU 4472, exported separately" },
+        { k: "Markets", inc: "Germany, Austria, Netherlands, Belgium, France, Great Britain, Northern Ireland, US federal, Texas", exc: "The remaining EU member states, not sold into for this SKU" },
+        { k: "Languages", inc: "All nine carried on the pack, each checked on the rendered string", exc: "Free marketing copy is machine-assisted and marked unverified" },
+        { k: "Checks", inc: "Ingredients, classification, label and geometry, claims, dossier", exc: "Nutritional adequacy modelling; sensory and shelf-life testing" },
+        { k: "Rule depth", inc: "Encoded rules per the coverage table, double-extracted for thresholds and prescribed terms", exc: "Länder enforcement practice in Germany; county-level variation in Texas" },
+        { k: "Judgement", inc: "Two findings rest on model judgement and are marked as such in the report", exc: "No finding here is inferred from an absent document" },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--panel); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  code { font-family: var(--mono); font-size: 0.92em; background: var(--panel); padding: 1px 4px; border: 1px solid var(--n300); }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</helmet>
+
+<div style="min-width: 1120px; background: var(--panel); padding: 0 0 60px">
+  <div style="max-width: 1180px; margin: 0 auto; background: var(--paper); border-left: 1px solid var(--rule); border-right: 1px solid var(--rule)">
+
+    <div style="border-bottom: 1px solid var(--ink); padding: 36px 44px 32px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">Handoff · Alex Retzlik · 5 September 2026</p>
+      <h1 style="margin: 12px 0 0; font-size: 40px; font-weight: 600; line-height: 1.04; max-width: 26ch">Everything designed, and what the backend has to do about it</h1>
+      <p style="margin: 15px 0 0; font-size: 15.5px; line-height: 1.6; color: var(--n700); max-width: 96ch">One document. What exists on the design side and which file is authoritative for each thing, the decisions that are build constraints rather than preferences, a first-pass schema, the twelve clusters in build order, and the eight response shapes the screens already assume. This supersedes the earlier Claude Code handoff.</p>
+      <div style="margin-top: 26px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid var(--rule)">
+        <sc-for list="{{ tally }}" as="t" hint-placeholder-count="5">
+          <div style="{{ t.style }}">
+            <p style="margin: 0; font-family: var(--mono); font-size: 22px; line-height: 1; color: {{ t.color }}">{{ t.n }}</p>
+            <p style="margin: 8px 0 0; font-size: 12px; line-height: 1.4; color: var(--n700)">{{ t.k }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- ═══ 01 · NON-NEGOTIABLES ═══ -->
+    <div style="border-bottom: 1px solid var(--ink); padding: 30px 44px 34px">
+      <div style="display: flex; align-items: baseline; gap: 18px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; color: var(--blocked); flex: none; width: 30px">01</p>
+        <div style="flex: 1; min-width: 0">
+          <h2 style="margin: 0; font-size: 26px; font-weight: 600; line-height: 1.15">Read these first. They are constraints, not preferences.</h2>
+          <p style="margin: 11px 0 0; font-size: 14px; line-height: 1.65; color: var(--n800); max-width: 96ch">Each one is settled and each one is load-bearing: if the implementation breaks it, a claim the product makes in public becomes false. They are cheap to honour at the start and expensive to retrofit.</p>
+          <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+            <sc-for list="{{ nonNeg }}" as="nn" hint-placeholder-count="8">
+              <div class="blueprint" style="{{ nn.style }}">
+                <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                <p style="margin: 0; font-size: 14.5px; font-weight: 600; line-height: 1.25">{{ nn.k }}</p>
+                <p style="margin: 7px 0 0; font-size: 13px; line-height: 1.6; color: var(--n700)">{{ nn.v }}</p>
+                <p style="margin: 9px 0 0; padding-top: 9px; border-top: 1px solid var(--n200); font-size: 12.5px; line-height: 1.55; color: var(--blocked)">{{ nn.risk }}</p>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 02 · SCHEMA ═══ -->
+    <div style="border-bottom: 1px solid var(--ink); padding: 30px 44px 34px">
+      <div style="display: flex; align-items: baseline; gap: 18px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; color: var(--accent); flex: none; width: 30px">02</p>
+        <div style="flex: 1; min-width: 0">
+          <h2 style="margin: 0; font-size: 26px; font-weight: 600; line-height: 1.15">First-pass schema</h2>
+          <p style="margin: 11px 0 0; font-size: 14px; line-height: 1.65; color: var(--n800); max-width: 96ch">One Postgres database on Supabase. Tenant data carries <code>workspace_id</code> and row-level security policies keyed to it. Rulesets, coverage and terms live in their own schema with no RLS, because they are shared reference data rather than anybody's property.</p>
+          <div class="blueprint" style="position: relative; margin-top: 20px; border: 1px solid var(--ink)">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div style="display: grid; grid-template-columns: 210px minmax(0, 1fr) 130px; background: var(--panel); border-bottom: 1px solid var(--ink)">
+              <p style="margin: 0; padding: 10px 14px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600)">Table</p>
+              <p style="margin: 0; padding: 10px 14px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600)">Carries</p>
+              <p style="margin: 0; padding: 10px 14px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600)">Policy</p>
+            </div>
+            <sc-for list="{{ schema }}" as="sc" hint-placeholder-count="10">
+              <div style="{{ sc.style }}">
+                <p style="margin: 0; padding: 11px 14px; font-family: var(--mono); font-size: 11.5px; color: {{ sc.nameColor }}">{{ sc.k }}</p>
+                <p style="margin: 0; padding: 11px 14px; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ sc.v }}</p>
+                <p style="margin: 0; padding: 11px 14px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.05em; color: {{ sc.polColor }}">{{ sc.pol }}</p>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 03 · CONTRACTS ═══ -->
+    <div style="border-bottom: 1px solid var(--ink); padding: 30px 44px 34px">
+      <div style="display: flex; align-items: baseline; gap: 18px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; color: var(--accent); flex: none; width: 30px">03</p>
+        <div style="flex: 1; min-width: 0">
+          <h2 style="margin: 0; font-size: 26px; font-weight: 600; line-height: 1.15">Eight response shapes the screens already assume</h2>
+          <p style="margin: 11px 0 0; font-size: 14px; line-height: 1.65; color: var(--n800); max-width: 96ch">Each of these is visible on a designed screen. If an endpoint returns a different shape, the screen has to be redesigned rather than wired up — which is a much more expensive discovery in month four than in week one.</p>
+          <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 14px">
+            <sc-for list="{{ contracts }}" as="ct" hint-placeholder-count="8">
+              <div style="border-left: 3px solid var(--accent); padding-left: 16px">
+                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap">
+                  <p style="margin: 0; font-size: 14.5px; font-weight: 600; line-height: 1.3">{{ ct.k }}</p>
+                  <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; color: var(--n500); white-space: nowrap">{{ ct.where }}</span>
+                </div>
+                <p style="margin: 7px 0 0; font-size: 13px; line-height: 1.6; color: var(--n700); max-width: 100ch">{{ ct.v }}</p>
+                <p style="margin: 7px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--action)">{{ ct.fail }}</p>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 04 · METERING ═══ -->
+    <div style="border-bottom: 1px solid var(--ink); padding: 30px 44px 34px">
+      <div style="display: flex; align-items: baseline; gap: 18px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; color: var(--accent); flex: none; width: 30px">04</p>
+        <div style="flex: 1; min-width: 0">
+          <h2 style="margin: 0; font-size: 26px; font-weight: 600; line-height: 1.15">What is metered, and what must never be</h2>
+          <p style="margin: 11px 0 0; font-size: 14px; line-height: 1.65; color: var(--n800); max-width: 96ch">Three dials, and the free allowance. The counter rules matter more than they look: getting the exemptions wrong is the difference between a fair trial and one that feels like a trick.</p>
+          <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px">
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-top: 4px solid var(--accent); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent)">Metered</p>
+              <div style="margin-top: 13px; display: flex; flex-direction: column; gap: 12px">
+                <sc-for list="{{ metered }}" as="m" hint-placeholder-count="4">
+                  <div style="border-bottom: 1px solid var(--n200); padding-bottom: 11px">
+                    <p style="margin: 0; font-size: 13.5px; font-weight: 600">{{ m.k }}</p>
+                    <p style="margin: 5px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ m.v }}</p>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-top: 4px solid var(--blocked); background: var(--paper); padding: 20px 22px">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--blocked)">Never metered, on any plan</p>
+              <div style="margin-top: 13px; display: flex; flex-wrap: wrap; gap: 7px">
+                <sc-for list="{{ never }}" as="nv" hint-placeholder-count="7">
+                  <span style="border: 1px solid var(--clear); background: var(--clear-bg); padding: 5px 9px; font-size: 12px; color: var(--n800)">{{ nv }}</span>
+                </sc-for>
+              </div>
+              <p style="margin: 15px 0 0; padding-top: 13px; border-top: 1px solid var(--n200); font-size: 13px; line-height: 1.6; color: var(--n700)">Unlimited re-checking is priced into every plan and is only affordable if a re-check re-runs the rules and language panels that actually changed. Unscoped, Standard's margin falls from 93% to 77%. <strong style="font-weight: 600">Scoped re-check must ship with the diff engine, not after it.</strong></p>
+            </div>
+          </div>
+          <div class="blueprint" style="position: relative; margin-top: 18px; border: 1px solid var(--ink); border-left: 4px solid var(--action); background: var(--action-bg); padding: 19px 22px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-size: 15px; font-weight: 600">The free allowance · three label artworks per workspace</p>
+            <p style="margin: 8px 0 0; font-size: 13.5px; line-height: 1.65; color: var(--n800); max-width: 104ch">The whole product on each of the three, sending included. No card and no clock. The counter increments on a <strong style="font-weight: 600">new artwork only</strong> — a re-check, a further market inside the same region, and a revised version of the same artwork are all free. When the three are used the workspace refuses a new artwork and changes nothing else: everything already checked stays readable, re-checks stay free, and every shared document keeps verifying. Enforce it per workspace, since the terms forbid creating workspaces to farm it.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 05 · CLUSTERS ═══ -->
+    <div style="border-bottom: 1px solid var(--ink); padding: 30px 44px 34px">
+      <div style="display: flex; align-items: baseline; gap: 18px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; color: var(--accent); flex: none; width: 30px">05</p>
+        <div style="flex: 1; min-width: 0">
+          <h2 style="margin: 0; font-size: 26px; font-weight: 600; line-height: 1.15">Twelve clusters, in build order</h2>
+          <p style="margin: 11px 0 0; font-size: 14px; line-height: 1.65; color: var(--n800); max-width: 96ch">Two of them are not yours. A to C are regulatory content operations and they are the critical path — you can finish every other cluster and the product still cannot answer a question.</p>
+          <div class="blueprint" style="position: relative; margin-top: 20px; border: 1px solid var(--ink)">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div style="display: grid; grid-template-columns: 42px minmax(0, 1fr) minmax(0, 1fr) 116px; background: var(--panel); border-bottom: 1px solid var(--ink)">
+              <sc-for list="{{ clHead }}" as="ch" hint-placeholder-count="4">
+                <p style="margin: 0; padding: 10px 13px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600)">{{ ch }}</p>
+              </sc-for>
+            </div>
+            <sc-for list="{{ clusters }}" as="c" hint-placeholder-count="12">
+              <div style="{{ c.style }}">
+                <p style="margin: 0; padding: 12px 13px; font-family: var(--mono); font-size: 12px; color: {{ c.color }}">{{ c.n }}</p>
+                <div style="padding: 12px 13px">
+                  <p style="margin: 0; font-size: 13.5px; font-weight: 600; line-height: 1.3">{{ c.k }}</p>
+                  <p style="margin: 4px 0 0; font-size: 12px; line-height: 1.5; color: var(--n700)">{{ c.v }}</p>
+                </div>
+                <p style="margin: 0; padding: 12px 13px; font-size: 12px; line-height: 1.55; color: var(--n700)">{{ c.tech }}</p>
+                <p style="margin: 0; padding: 12px 13px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.05em; color: {{ c.color }}">{{ c.who }}</p>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 06 · THE DESIGN SET ═══ -->
+    <div style="border-bottom: 1px solid var(--ink); padding: 30px 44px 34px">
+      <div style="display: flex; align-items: baseline; gap: 18px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; color: var(--accent); flex: none; width: 30px">06</p>
+        <div style="flex: 1; min-width: 0">
+          <h2 style="margin: 0; font-size: 26px; font-weight: 600; line-height: 1.15">Which file is authoritative for what</h2>
+          <p style="margin: 11px 0 0; font-size: 14px; line-height: 1.65; color: var(--n800); max-width: 96ch">Open <a href="Start here - Nutrivo design index.dc.html">the index</a> first. When two files disagree, the one named here wins — everything else in the project is either a legacy snapshot or analysis that produced a decision.</p>
+          <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+            <sc-for list="{{ sources }}" as="sr" hint-placeholder-count="8">
+              <div style="border-left: 3px solid {{ sr.bar }}; padding-left: 15px">
+                <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.03em; color: var(--accent-700)">{{ sr.file }}</p>
+                <p style="margin: 6px 0 0; font-size: 13.5px; font-weight: 600; line-height: 1.3">{{ sr.k }}</p>
+                <p style="margin: 5px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ sr.v }}</p>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 07 · NOT YOURS ═══ -->
+    <div style="padding: 30px 44px 40px">
+      <div style="display: flex; align-items: baseline; gap: 18px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 13px; letter-spacing: 0.08em; color: var(--none); flex: none; width: 30px">07</p>
+        <div style="flex: 1; min-width: 0">
+          <h2 style="margin: 0; font-size: 26px; font-weight: 600; line-height: 1.15">Not yours, and worth saying out loud</h2>
+          <p style="margin: 11px 0 0; font-size: 14px; line-height: 1.65; color: var(--n800); max-width: 96ch">So that none of it lands on you by default, and so nobody assumes it is done because the software works.</p>
+          <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px">
+            <sc-for list="{{ notYours }}" as="ny" hint-placeholder-count="6">
+              <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-top: 4px solid var(--none); background: var(--paper); padding: 18px 20px">
+                <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                <p style="margin: 0; font-size: 13.5px; font-weight: 600; line-height: 1.25">{{ ny.k }}</p>
+                <p style="margin: 7px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--n700)">{{ ny.v }}</p>
+              </div>
+            </sc-for>
+          </div>
+
+          <div class="blueprint" style="position: relative; margin-top: 24px; border: 1px solid var(--ink); border-left: 4px solid var(--accent); background: var(--accent-100); padding: 22px 24px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent)">If you want a first week</p>
+            <div style="margin-top: 14px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px">
+              <sc-for list="{{ week }}" as="w" hint-placeholder-count="6">
+                <div style="display: flex; gap: 12px; align-items: baseline">
+                  <span style="font-family: var(--mono); font-size: 10px; color: var(--accent-700); flex: none; width: 20px">{{ w.n }}</span>
+                  <p style="margin: 0; font-size: 13px; line-height: 1.6; color: var(--n800)">{{ w.v }}</p>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1220,&quot;height&quot;:1000}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)", n500: "var(--n500)", n600: "var(--n600)", n700: "var(--n700)", ink: "var(--ink)" };
+
+class Component extends DCLogic {
+  renderVals() {
+    const t3 = (n, k, v, tech, who, color) => ({ n, k, v, tech, who, color });
+
+    return {
+      tally: [
+        { n: "40", k: "Live design deliverables", color: C.ink },
+        { n: "8", k: "Non-negotiable constraints", color: C.blocked },
+        { n: "12", k: "Backend clusters", color: C.accent },
+        { n: "8", k: "Response shapes assumed", color: C.action },
+        { n: "3", k: "Clusters that are not engineering", color: C.none },
+      ].map((x, i) => Object.assign({}, x, {
+        style: "padding: 17px 18px; border-right: " + (i < 4 ? "1px solid var(--rule)" : "none"),
+      })),
+
+      nonNeg: [
+        { k: "The record cannot be mutated, including by us", v: "Revoke UPDATE and DELETE from every application role on the check-event and certificate-chain tables, add an insert-only policy, and add a trigger that rejects them anyway.",
+          risk: "If the application can rewrite history, the Certificate of Check is a claim rather than a record — and we say in public that it cannot be altered." },
+        { k: "No rule, no verdict", v: "Where no rule is held for a point in a market, the engine withholds and emits a typed reason code. It must be structural, not a prompt instruction to the model.",
+          risk: "A node with no rules must never be able to return Clear. Everything the coverage page promises rests on this." },
+        { k: "Tenancy is row-level, not application-level", v: "Postgres RLS keyed to workspace_id on every tenant table. One database, policies enforced by the database.",
+          risk: "A defect in the application must not be able to expose one customer's formulations to another. We state this in the DPA." },
+        { k: "Results are per language panel", v: "One artwork with three language panels produces three result sets. Claim checks run on the rendered target-language string, never on English then translated.",
+          risk: "The report's language switcher has no data behind it otherwise, and we sell language-correct checking on every plan including free." },
+        { k: "Registration is modelled separately from label compliance", v: "A product-market row carries a registration state alongside its label state. A parent node never rolls up as Clear while a child fails.",
+          risk: "The Texas case — label passes, product unsellable — is the sharpest thing in the product and it is inexpressible without this." },
+        { k: "The applied-rule set is written onto every check event", v: "Applied, passed and withheld, with rule ids. This makes the affected-object query a join rather than a portfolio re-run.",
+          risk: "Without it, monitoring cannot name affected recipes and unlimited re-checks stop being affordable." },
+        { k: "Provenance on every result", v: "Deterministic rule, model judgement, authored definition, or not assessed. Carried as a field on the finding, not inferred in the UI.",
+          risk: "It is on the face of every screen and every document. A result without it cannot be rendered." },
+        { k: "Verification outlives the subscription", v: "Keep the verification record outside the subscription lifecycle. A failed payment, a downgrade or a closed workspace must never break a document somebody else holds.",
+          risk: "A retailer's copy of a report becoming unverifiable because a customer's card expired is a harm to a third party who never agreed to anything." },
+      ].map(n => Object.assign({}, n, {
+        style: "position: relative; border: 1px solid var(--ink); border-top: 4px solid var(--blocked); background: var(--paper); padding: 19px 21px",
+      })),
+
+      schema: [
+        { k: "workspaces", v: "The tenant. Plan, region entitlements, allowance counters, dormant flag.", pol: "RLS", polColor: C.accent },
+        { k: "memberships", v: "Person × workspace: role (admin · portfolio_manager · editor · viewer), external flag, optional end_date, scope.", pol: "RLS", polColor: C.accent },
+        { k: "signing_grants", v: "Person × jurisdiction node. Never implied by role, never granted to an external person. The RLS policies join against it.", pol: "RLS", polColor: C.accent },
+        { k: "products", v: "Lifecycle brief → in_development → active → discontinued, family_id linking pack sizes and variants. Never deleted.", pol: "RLS", polColor: C.accent },
+        { k: "artworks", v: "Version, file hash, extracted text, per-panel language, glyph geometry with x-height and cap-height, coordinates.", pol: "RLS", polColor: C.accent },
+        { k: "product_market", v: "Product × jurisdiction node. Label state, registration state, ruleset version, open-action count.", pol: "RLS", polColor: C.accent },
+        { k: "check_events", v: "Append-only. Language, ruleset version, artwork hash, applied/passed/withheld rule ids, actor with external flag stamped at write time.", pol: "INSERT ONLY", polColor: C.blocked },
+        { k: "findings", v: "State, rule id, citation, provenance, coordinates, measured height, withheld reason code.", pol: "INSERT ONLY", polColor: C.blocked },
+        { k: "documents", v: "Report or certificate. Unguessable reference, pinned ruleset version and artwork hash, signatory where applicable.", pol: "INSERT ONLY", polColor: C.blocked },
+        { k: "certificate_chain", v: "Append-only entries. Supersession from material change only, never deletion.", pol: "INSERT ONLY", polColor: C.blocked },
+        { k: "alerts · alert_reads", v: "The change, its type, effective date, affected product ids. Read state is per person, not per workspace.", pol: "RLS", polColor: C.accent },
+        { k: "saved_views", v: "Shared workspace objects, not per-user preferences. Board filters and column selection.", pol: "RLS", polColor: C.accent },
+        { k: "rules · ruleset_versions · rule_diffs", v: "Stable rule identity across versions, explicit supersession, diffs typed by effect with effective dates.", pol: "NO RLS · SHARED", polColor: C.none },
+        { k: "coverage", v: "Node × domain: rules encoded, method, last_checked, typed gap rows with ids the reason codes resolve against.", pol: "NO RLS · SHARED", polColor: C.none },
+        { k: "terms · glossary", v: "Prescribed designations per language with article citations, plus the eleven authored definitions returned verbatim. Versioned with the ruleset.", pol: "NO RLS · SHARED", polColor: C.none },
+        { k: "obligations", v: "Per node: authority, legal basis, route, evidence list, fee, lead time, renewal cycle, submission language.", pol: "NO RLS · SHARED", polColor: C.none },
+      ].map((s, i, a) => Object.assign({}, s, {
+        nameColor: s.pol === "INSERT ONLY" ? C.blocked : C.ink,
+        style: "display: grid; grid-template-columns: 210px minmax(0, 1fr) 130px; border-bottom: " +
+          (i < a.length - 1 ? "1px solid var(--n200)" : "none") + "; background: " + (i % 2 ? "var(--panel)" : "transparent"),
+      })),
+
+      contracts: [
+        { k: "Per-language result sets, each with its own findings", where: "LABEL REPORT · 2.0",
+          v: "The language switcher shows a verdict and findings per panel. Return one result set per language, not one per product with a language attribute.",
+          fail: "If it returns one result per product, the switcher is a filter over the same data and the product no longer checks in the printed language." },
+        { k: "Coordinates and both height measurements per text object", where: "ARTWORK PINS · 2.0",
+          v: "Every finding carries a position on the sheet, the measured character height, and which definition the market uses. Return x-height and cap-height rather than one number.",
+          fail: "Regimes measure differently. One number means picking a definition and being wrong in half the markets." },
+        { k: "Registration state on the product-market row", where: "BOARD · REGISTRATION PACK",
+          v: "Alongside the label state, with its own obligation reference. Roll-up must never let a parent read Clear while a child is blocked.",
+          fail: "Registration becomes a footnote, and the case that differentiates the product cannot be shown." },
+        { k: "Typed withheld reason codes resolving to gap ids", where: "EVERY NOT ASSESSED FINDING",
+          v: "Not a message string. A code that resolves to a row in the coverage table so the finding can link to the record explaining it.",
+          fail: "Not assessed becomes unexplainable, and the coverage link that the whole honesty position depends on has nothing to point at." },
+        { k: "Affected-object query over the applied-rule record", where: "MONITORING · ALERTS · BULK RE-CHECK",
+          v: "Given a rule diff, return the products and markets whose last check applied that rule. A join, not a re-evaluation.",
+          fail: "Alerts cannot name recipes, so they become a newsletter — and bulk re-check costs a full portfolio run instead of 58 evaluations." },
+        { k: "Live billable counts against allowances", where: "PLAN PICKER · BILLING",
+          v: "Recipes, regions and editor seats in use versus included, plus what each tier would change for this workspace. Read at request time, not cached nightly.",
+          fail: "The plan picker's whole argument is that it knows this workspace. Stale counts make it a brochure." },
+        { k: "External flag stamped onto the event at write time", where: "AUDIT LOG",
+          v: "Not joined to the person's current state. A revoked grant or a changed flag must not rewrite how past events read.",
+          fail: "History changes retroactively when somebody's status changes, which is the thing the append-only store exists to prevent." },
+        { k: "Verification by unguessable reference, no table access", where: "PUBLIC VERIFICATION PAGE",
+          v: "An edge function returning current, superseded or unknown, plus issue date, ruleset version, and whether not-assessed items existed. The anonymous role reads no customer table.",
+          fail: "Either the page leaks customer data, or it stops working when a subscription lapses. Both are worse than not shipping it." },
+      ],
+
+      metered: [
+        { k: "Product families, not records", v: "The recipe is the billing unit. Pack sizes, artwork versions and label variants of the same recipe are free — an eight-recipe brand is billed for eight, not for twenty-four pack codes." },
+        { k: "Regions, sold whole", v: "EU (27 states, 24 languages), UK (GB + NI), US (federal + 50 states). A region is a regime, never a single market. Basic holds one and cannot add another; Standard holds one plus one more; Advanced all three." },
+        { k: "Editor seats only", v: "Editor-class roles consume a seat. Viewers are unlimited and free, internal or external. An external editor consumes a seat like anyone else. Advanced short-circuits the seat check entirely." },
+        { k: "Overage, capped at half again list", v: "Basic stops at €374, Standard at €749. Past the cap the system offers the next plan rather than continuing to charge. Prices exclude VAT everywhere; it is added on the invoice." },
+      ],
+      never: ["Checks and re-checks", "Language-correct checking", "The four states", "Provenance", "Coverage links and gap citations", "Registration obligations named", "Reading your own answer", "Viewer seats", "Supplier upload links", "Data export"],
+
+      clHead: ["", "Cluster", "What it runs on", "Owner"],
+      clusters: [
+        t3("A", "The rule corpus", "Tens of thousands of individually evaluable rules with citations across ~80 nodes.", "Postgres, own schema. Not a schema problem — a content problem.", "CONTENT OPS", C.action),
+        t3("B", "Term register and language layer", "Prescribed designations extracted per language from official text, never translated.", "Same schema, versioned with the ruleset.", "CONTENT OPS", C.action),
+        t3("C", "Obligation register", "Authority, basis, route, evidence, fee, lead time, renewal, per node.", "Same schema. Pure research.", "CONTENT OPS", C.action),
+        t3("D", "Artwork extraction", "Vector text, fonts, coordinates, glyph metrics, per-panel language segmentation, typed failure taxonomy.", "A service. PDF parsing plus font programme reading. Storage for files.", "ALEX · HARDEST", C.blocked),
+        t3("E", "Rule engine", "Classification first, then deterministic evaluation with citations, model judgement marked, applied-rule set recorded.", "Postgres functions plus a service. Reads coverage at check time.", "ALEX", C.accent),
+        t3("F", "Staying ahead of the law", "~80 sources incl. drafts and proposals. Stable rule identity, diffs typed by effect, effective dates.", "Ingestion service plus an acceptance queue. Standing operational load.", "ALEX + CONTENT", C.blocked),
+        t3("G", "Coverage table", "Node × domain, method, last checked, typed gaps. Queried at check time, rendered live in public.", "Postgres. Small and load-bearing.", "ALEX", C.clear),
+        t3("H", "Auth, tenancy, roles", "Four roles plus the external flag, signing grants, RLS on every tenant table, insert-only revocations.", "Supabase Auth with roles in JWT claims. RLS policies.", "ALEX · FIRST", C.clear),
+        t3("I", "Documents and verification", "Report renderer, pinning, share links, the public verification endpoint, the certificate chain.", "Supabase Storage, signed URLs, edge functions.", "ALEX", C.accent),
+        t3("J", "Billing and metering", "Three dials, the three-label allowance, overage caps, VAT by place of supply, dunning that never deletes.", "Stripe. Separate catalogue rows per currency, never live conversion.", "ALEX", C.accent),
+        t3("K", "Notifications and email", "Six written templates, per-user read state, severity, and the rule that editorial changes never notify.", "Supabase Realtime plus an EU transactional provider.", "ALEX", C.clear),
+        t3("L", "The Compliance Worker", "Retrieval over corpus and coverage, provenance on every answer, glossary returned verbatim, refusal behaviour.", "Blocked on A and G. Without coverage it will answer anyway.", "ALEX · AFTER A+G", C.none),
+      ].map((c, i, a) => Object.assign({}, c, {
+        style: "display: grid; grid-template-columns: 42px minmax(0, 1fr) minmax(0, 1fr) 116px; border-bottom: " +
+          (i < a.length - 1 ? "1px solid var(--n200)" : "none") + "; background: " + (i % 2 ? "var(--panel)" : "transparent"),
+      })),
+
+      sources: [
+        { file: "Nutrivo 2.0.dc.html", k: "The product", v: "34 screens, left-rail switcher. Authoritative for every in-product surface, states, findings, registration packs and the Worker panel.", bar: C.accent },
+        { file: "Nutrivo - Missing Surfaces.dc.html", k: "Alerts, horizon, scale, bulk, help", v: "The five drawn last. Authoritative for the notification inbox, the horizon view, board search and saved views, bulk re-check, and how help works.", bar: C.accent },
+        { file: "Nutrivo - Gap Register.dc.html", k: "What is missing", v: "Surfaces, content placeholders, clusters, the eight contracts, and the five open decisions. Start here for scope.", bar: C.blocked },
+        { file: "Nutrivo - Full Coverage Requirements.dc.html", k: "What makes the claim true", v: "Eight clusters with scale estimates and five phases, each ending in a claim that can be made without hedging.", bar: C.blocked },
+        { file: "Nutrivo Pricing - Priced Ladder.dc.html", k: "Prices and the basis of charge", v: "Authoritative for figures and dials. Its Free row is stale — the three-label allowance in §04 above supersedes it.", bar: C.action },
+        { file: "Nutrivo Workspace Settings.dc.html", k: "Roles, signing, retention, audit", v: "Authoritative for the permission model, retention periods per record kind, and what the audit log carries.", bar: C.accent },
+        { file: "Nutrivo Brand - Cobalt Specification.dc.html", k: "Tokens and the verdict vocabulary", v: "Colours, type, the four state values and glyphs, and the three rules that stop the accent reading as a verdict.", bar: C.clear },
+        { file: "Nutrivo Legal - Terms, DPA, Privacy.dc.html", k: "What we promise contractually", v: "Retention, sub-processors, hosting, the free allowance clauses, and the boundary. Drafts pending counsel.", bar: C.none },
+      ],
+
+      notYours: [
+        { k: "The rule corpus, the term register, the obligation register", v: "Two thirds of the work and none of it engineering. It needs a regulatory content owner with a budget line before anything else starts." },
+        { k: "Coverage data", v: "The matrix cells and last-checked dates on the public pages are placeholders. They publish as commitments, so real values must land before either page goes live." },
+        { k: "Legal review", v: "Terms, DPA and privacy are drafts. Liability, warranties and the limitation period need a Swedish commercial lawyer, and the sub-processor list needs confirming against what you actually deploy." },
+        { k: "Claim substantiation", v: "Whether the evidence behind a functional claim is adequate is a scientific judgement on a dossier. The product names what is required and never rules on sufficiency." },
+        { k: "Filing, paying, corresponding", v: "Not a liability position we could relax — only the operator named on the label may act. Never build an endpoint that submits to an authority." },
+        { k: "Accessibility audit", v: "Keyboard order, focus handling in the Worker panel, and how the four states read to a screen reader. A process rather than a screen, and a procurement question in this category." },
+      ],
+
+      week: [
+        { n: "01", v: "Stand up Supabase with RLS on a workspaces / memberships / products skeleton, and write the insert-only revocations and the rejecting trigger on day one. Retrofitting them later means a migration nobody trusts." },
+        { n: "02", v: "Create the rulesets schema empty but shaped: rules with stable ids, ruleset_versions, rule_diffs typed by effect with effective dates, and the coverage table. Everything else reads from these." },
+        { n: "03", v: "Model product_market with label state and registration state as separate columns, and write the roll-up as a database function so a parent can never conceal a failing child." },
+        { n: "04", v: "Write check_events with the applied-rule set as a first-class column, not a JSON afterthought. The affected-object query is the single most valuable query in the product." },
+        { n: "05", v: "Spike artwork extraction on three real print PDFs before committing to a library. Outlined text and flattened transparency will decide the approach, and you want to meet them in week one." },
+        { n: "06", v: "Read §03 above against whatever you build. Eight response shapes are already on screen — if an endpoint disagrees with one, tell us before you work around it." },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

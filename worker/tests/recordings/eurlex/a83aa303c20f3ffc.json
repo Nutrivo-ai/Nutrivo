@@ -1,0 +1,14 @@
+{
+  "method": "GET",
+  "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:02009R0767-20181226",
+  "request_headers": {
+    "accept": "application/xhtml+xml",
+    "accept-language": "eng"
+  },
+  "status": 202,
+  "headers": {
+    "x-amzn-waf-action": "challenge",
+    "content-type": "text/html; charset=UTF-8"
+  },
+  "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

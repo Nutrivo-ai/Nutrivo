@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  button { font: inherit; color: inherit; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</helmet>
+
+<div style="background: var(--paper)">
+
+  <header style="border-bottom: 1px solid var(--ink); background: var(--paper)">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 15px 26px; display: flex; align-items: center; gap: 20px; flex-wrap: wrap">
+      <p style="margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 22px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 6px; height: 6px; background: var(--accent); margin-bottom: 2px; flex-shrink: 0"></span><span style="font-size: 14px; font-weight: 400; letter-spacing: 0; color: var(--n600)">.ai</span></p>
+      <div style="flex: 1"></div>
+      <div style="display: flex; gap: 1px">
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="2">
+          <button type="button" onClick="{{ t.go }}" style="{{ t.style }}" style-hover="border-color: var(--accent); color: var(--accent-700)">{{ t.k }}</button>
+        </sc-for>
+      </div>
+      <a href="Nutrivo Pricing Page.dc.html" style="font-size: 13.5px">Pricing</a>
+      <a href="Nutrivo Coverage (public).dc.html" style="font-size: 13.5px">Coverage</a>
+    </div>
+  </header>
+
+  <!-- ═══════════ FAQ ═══════════ -->
+  <sc-if value="{{ isFaq }}" hint-placeholder-val="{{ true }}">
+  <div data-screen-label="FAQ">
+
+    <section style="border-bottom: 1px solid var(--ink)">
+      <div style="max-width: 1120px; margin: 0 auto; padding: 42px 26px 34px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">Questions</p>
+        <h1 style="margin: 14px 0 0; font-size: 44px; font-weight: 600; line-height: 1.04; max-width: 24ch; text-wrap: pretty">Everything a buyer asks, answered before the call</h1>
+        <p style="margin: 15px 0 0; font-size: 17px; line-height: 1.55; color: var(--n700); max-width: 76ch; text-wrap: pretty">Including the ones that are awkward for us. If an answer here turns out to be wrong for your case, we would rather you found out on this page than three months into a subscription.</p>
+        <div style="margin-top: 26px; display: flex; flex-wrap: wrap; gap: 8px">
+          <sc-for list="{{ jump }}" as="j" hint-placeholder-count="5">
+            <a href="{{ j.href }}" style="border: 1px solid var(--n400); border-radius: 3px; padding: 8px 13px; font-size: 12.5px; color: var(--n800)">{{ j.k }}</a>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="5">
+      <section id="{{ g.id }}" style="{{ g.sectionStyle }}">
+        <div style="max-width: 1120px; margin: 0 auto; padding: 34px 26px 40px">
+          <div style="display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap">
+            <p style="margin: 0; font-family: var(--mono); font-size: 12px; letter-spacing: 0.1em; color: var(--n500)">{{ g.n }}</p>
+            <h2 style="margin: 0; font-size: 28px; font-weight: 600; line-height: 1.1">{{ g.k }}</h2>
+          </div>
+          <div style="margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 22px">
+            <sc-for list="{{ g.qs }}" as="q" hint-placeholder-count="5">
+              <div style="border-left: 3px solid {{ q.bar }}; padding-left: 17px">
+                <p style="margin: 0; font-size: 17px; font-weight: 600; line-height: 1.25; text-wrap: pretty">{{ q.q }}</p>
+                <p style="margin: 9px 0 0; font-size: 14px; line-height: 1.65; color: var(--n800); text-wrap: pretty">{{ q.a }}</p>
+                <sc-if value="{{ q.hasMore }}">
+                  <p style="margin: 9px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n700); text-wrap: pretty">{{ q.more }}</p>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+    </sc-for>
+
+    <section>
+      <div style="max-width: 1120px; margin: 0 auto; padding: 42px 26px 52px">
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-top: 4px solid var(--accent); background: var(--paper); padding: 28px 30px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; align-items: center">
+            <div>
+              <h2 style="margin: 0; font-size: 26px; font-weight: 600; line-height: 1.15; max-width: 26ch">Something not answered here?</h2>
+              <p style="margin: 10px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--n700)">Write to us and a person who knows the answer will reply. If the question was good enough to ask, it belongs on this page, so we will probably add it.</p>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 10px">
+              <span style="background: var(--accent); color: #ffffff; border-radius: 3px; padding: 13px 22px; font-size: 15px; font-weight: 500; text-align: center">Check three labels free</span>
+              <a href="mailto:hello@nutrivo.ai" style="border: 1px solid var(--n400); border-radius: 3px; padding: 13px 22px; font-size: 15px; text-align: center; color: var(--n800)">hello@nutrivo.ai</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+  </sc-if>
+
+  <!-- ═══════════ ABOUT ═══════════ -->
+  <sc-if value="{{ isAbout }}">
+  <div data-screen-label="About us">
+
+    <div class="blueprint" style="position: relative; max-width: 1120px; margin: 22px auto 0; border: 1px solid var(--ink); border-left: 4px solid var(--action); background: var(--action-bg); padding: 16px 20px">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <p style="margin: 0; font-size: 14px; font-weight: 600">Draft — the facts about the company are placeholders</p>
+      <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: var(--n800)">The position, the boundary and the method are all real and taken from decisions on record. Everything about founders, team, dates and where the idea came from is marked and needs replacing with the truth before this page goes anywhere.</p>
+    </div>
+
+    <section style="border-bottom: 1px solid var(--ink)">
+      <div style="max-width: 1120px; margin: 0 auto; padding: 42px 26px 36px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">About</p>
+        <h1 style="margin: 14px 0 0; font-size: 44px; font-weight: 600; line-height: 1.04; max-width: 26ch; text-wrap: pretty">We check pet food labels against the law of every market you sell in</h1>
+        <p style="margin: 15px 0 0; font-size: 17px; line-height: 1.6; color: var(--n700); max-width: 80ch; text-wrap: pretty">The European Union, the United Kingdom and the United States including every state, in the language each panel is printed in. Composition, additives, mandatory particulars, claims, character heights measured against the legal minimum, and every registration you owe with the authority and the deadline.</p>
+        <p style="margin: 13px 0 0; font-size: 17px; line-height: 1.6; color: var(--n700); max-width: 80ch; text-wrap: pretty">What makes it worth trusting is that every answer is auditable. Each finding cites the article it came from and says whether a rule decided it or a judgement did, and we publish how much of each market we hold. A compliance answer you cannot check is not an answer.</p>
+      </div>
+    </section>
+
+    <section style="border-bottom: 1px solid var(--ink); background: var(--panel)">
+      <div style="max-width: 1120px; margin: 0 auto; padding: 36px 26px 42px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">What we believe, and it shows in the product</p>
+        <div style="margin-top: 22px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px">
+          <sc-for list="{{ beliefs }}" as="b" hint-placeholder-count="4">
+            <div class="blueprint" style="{{ b.style }}">
+              <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+              <p style="margin: 0; font-size: 18px; font-weight: 600; line-height: 1.2">{{ b.k }}</p>
+              <p style="margin: 10px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n700)">{{ b.v }}</p>
+              <p style="margin: 12px 0 0; padding-top: 11px; border-top: 1px solid var(--n200); font-size: 12.5px; line-height: 1.55; color: var(--n700)"><span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.08em; color: var(--accent-700)">IN THE PRODUCT · </span>{{ b.proof }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section style="border-bottom: 1px solid var(--ink)">
+      <div style="max-width: 1120px; margin: 0 auto; padding: 36px 26px 42px">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 26px; align-items: start">
+          <div>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--n600)">Where we stop, deliberately</p>
+            <h2 style="margin: 12px 0 0; font-size: 28px; font-weight: 600; line-height: 1.1; max-width: 24ch">The line we will not sell past</h2>
+            <p style="margin: 12px 0 0; font-size: 14.5px; line-height: 1.65; color: var(--n700)">We name the obligation, the authority, the route, the evidence, the fee and the deadline, and we fill in everything your product record already answers. Then you file it. Not because we are being careful with our liability, but because only the operator named on the label is entitled to.</p>
+            <p style="margin: 12px 0 0; font-size: 14.5px; line-height: 1.65; color: var(--n700)">Every competitor in this category is under pressure to blur that line, because "we handle your registrations" sells better than "we prepare them". It is not on our roadmap at any price.</p>
+          </div>
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-top: 4px solid var(--blocked); background: var(--paper); padding: 24px 26px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blocked)">We never</p>
+            <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 10px">
+              <sc-for list="{{ never }}" as="nv" hint-placeholder-count="5">
+                <div style="display: flex; gap: 11px; align-items: baseline">
+                  <span style="width: 11px; height: 11px; flex: none; margin-top: 4px; background: var(--blocked); box-shadow: inset 0 4px 0 var(--paper), inset 0 -4px 0 var(--blocked)"></span>
+                  <span style="font-size: 13.5px; line-height: 1.5; color: var(--n800)">{{ nv }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="border-bottom: 1px solid var(--ink); background: var(--panel)">
+      <div style="max-width: 1120px; margin: 0 auto; padding: 36px 26px 42px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--action)">Placeholder · needs the real story</p>
+        <h2 style="margin: 12px 0 0; font-size: 28px; font-weight: 600; line-height: 1.1">How this started</h2>
+        <div style="margin-top: 22px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px">
+          <sc-for list="{{ story }}" as="st" hint-placeholder-count="3">
+            <div style="border-left: 3px solid var(--action); padding-left: 17px">
+              <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--action)">{{ st.tag }}</p>
+              <p style="margin: 9px 0 0; font-size: 15.5px; font-weight: 600; line-height: 1.25">{{ st.k }}</p>
+              <p style="margin: 8px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n700)">{{ st.v }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section style="border-bottom: 1px solid var(--ink)">
+      <div style="max-width: 1120px; margin: 0 auto; padding: 36px 26px 42px">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 26px; align-items: start">
+          <div>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--action)">Placeholder · needs real people</p>
+            <h2 style="margin: 12px 0 0; font-size: 28px; font-weight: 600; line-height: 1.1">Who does this</h2>
+            <p style="margin: 12px 0 0; font-size: 14.5px; line-height: 1.65; color: var(--n700)">Two things worth saying honestly on a page like this, once the names are real. Who holds the regulatory method, because a buyer wants to know a person owns it rather than a model. And how small the company is, because a regulatory team will find out either way and would rather hear it from you.</p>
+            <p style="margin: 12px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n700)">What we would not put here: stock photographs, invented advisory boards, or a headcount implied by a wall of avatars.</p>
+          </div>
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 24px 26px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div style="display: flex; flex-direction: column; gap: 14px">
+              <sc-for list="{{ people }}" as="pp" hint-placeholder-count="3">
+                <div style="border-bottom: 1px solid var(--n200); padding-bottom: 13px">
+                  <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px">
+                    <p style="margin: 0; font-size: 14.5px; font-weight: 600">{{ pp.k }}</p>
+                    <span style="font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; color: var(--action); white-space: nowrap">{{ pp.tag }}</span>
+                  </div>
+                  <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">{{ pp.v }}</p>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section style="border-bottom: 1px solid var(--ink); background: var(--panel)">
+      <div style="max-width: 1120px; margin: 0 auto; padding: 34px 26px 40px">
+        <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">The company</p>
+        <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 20px">
+          <sc-for list="{{ company }}" as="cy" hint-placeholder-count="4">
+            <div>
+              <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">{{ cy.k }}</p>
+              <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.55">{{ cy.v }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <div style="max-width: 1120px; margin: 0 auto; padding: 44px 26px 54px; text-align: center">
+        <h2 style="margin: 0 auto; font-size: 32px; font-weight: 600; line-height: 1.1; max-width: 26ch; text-wrap: pretty">Judge us on three labels, not on this page</h2>
+        <p style="margin: 14px auto 0; font-size: 16px; line-height: 1.6; color: var(--n700); max-width: 62ch">No card, no clock, no sales call. Run a real label through it and see whether the answer is one you would put your name to.</p>
+        <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap">
+          <span style="background: var(--accent); color: #ffffff; border-radius: 3px; padding: 14px 26px; font-size: 15.5px; font-weight: 500">Check three labels free</span>
+          <a href="Nutrivo Coverage (public).dc.html" style="border: 1px solid var(--n400); border-radius: 3px; padding: 14px 22px; font-size: 15.5px; color: var(--n800)">See what we cover</a>
+        </div>
+      </div>
+    </section>
+  </div>
+  </sc-if>
+
+  <footer style="border-top: 1px solid var(--ink); background: var(--paper)">
+    <div style="max-width: 1120px; margin: 0 auto; padding: 20px 26px; display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap">
+      <p style="margin: 0; font-size: 12.5px; color: var(--n600)">Sunny Ventures AB, trading as Nutrivo.ai · Karlbergsvägen 48, 113 37 Stockholm, Sweden · VAT SE559429715101</p>
+      <div style="flex: 1"></div>
+      <a href="Nutrivo Pricing Page.dc.html" style="font-size: 12.5px">Pricing</a>
+      <a href="Nutrivo Coverage (public).dc.html" style="font-size: 12.5px">Coverage</a>
+      <a href="Nutrivo Legal - Terms, DPA, Privacy.dc.html" style="font-size: 12.5px">Terms</a>
+    </div>
+  </footer>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:1000}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)", n600: "var(--n600)", n700: "var(--n700)", ink: "var(--ink)" };
+
+const q = (bar, question, answer, more) => ({ bar, q: question, a: answer, more });
+
+const GROUPS = [
+  { n: "01", id: "what", k: "What it is, and who it is for", qs: [
+    q(C.accent, "What does Nutrivo do?",
+      "It reads your label artwork, checks it against the regulatory rules we hold for every market you sell in, and tells you four things: what is clear, what needs action, what we did not check, and what is blocked outright.",
+      "It also names what you have to register, with which authority, by when, and what evidence they will ask for — separately from the label check, because a label can be perfect and the product still unsellable."),
+    q(C.accent, "Who is it for?",
+      "Pet food and animal nutrition brands selling into more than one market, the contract manufacturers who make for them, and the regulatory consultants who do this work on their behalf.",
+      "In practice the person using it is a regulatory or quality manager, an NPD manager who needs an answer before artwork is signed off, or a founder who is currently their own regulatory function."),
+    q(C.none, "Who is it not for?",
+      "Human food and supplements. There are good horizontal tools for those, and feed law is a different rulebook — species, life stage, additive conditions of use, PARNUT status. We went deep on one category rather than shallow across several.",
+      "It is also not for somebody who wants a single green tick to show a retailer. The output is a report with states and gaps, which is more useful and less comfortable."),
+    q(C.none, "What exactly is a check?",
+      "One label artwork, assessed against every rule we hold for the markets you have selected, in the language each panel is printed in. A pack with German, French and Dutch panels is three language assessments of one artwork.",
+      "Checks are never metered. Once a label is in your workspace you can re-check it as often as you like, on every plan including the free allowance."),
+    q(C.blocked, "Is this legal advice?",
+      "No. It is an assessment against rules we have encoded, with the article cited for each one. It is not an opinion on your legal position and it does not create a lawyer-client relationship.",
+      "Nothing we produce transfers responsibility for your product's compliance. That stays with the operator named on the label, which is the whole basis of feed law."),
+  ] },
+  { n: "02", id: "coverage", k: "How compliant is it, really", qs: [
+    q(C.accent, "How compliant is the software with EU, UK and US regulation?",
+      "We hold and check the feed and pet food rules for the European Union, the United Kingdom and the United States including every state, and we check your label against them in the language each panel is printed in. Composition, additives, mandatory particulars, claims, character heights, language duties and registration obligations.",
+      "We also publish how much we hold for each individual market, with the date it was last checked and any gap named. Not because coverage is thin, but because a compliance answer you cannot audit is not worth much — read the coverage page and you will know exactly what stands behind your verdict."),
+    q(C.accent, "So how do the three regimes actually differ?",
+      "The EU is one supranational rulebook plus twenty-seven national layers for registration, language and enforcement. The UK is one country with two regimes, because Great Britain is diverging on retained law while Northern Ireland stays EU-aligned for goods. The US is federal safety and labelling plus a model feed bill that each state adopts in its own edition, with registration state by state.",
+      "None of those is a flat list, which is why markets are a tree in the product rather than a dropdown. A parent market never hides a failing child."),
+    q(C.accent, "How do you know your rules are right?",
+      "We extract them from official source text with an article-level citation, and a person accepts every entry before it can affect a result. Numeric thresholds and prescribed legal terms are extracted twice, independently, and any disagreement goes to a person rather than to a tie-break rule.",
+      "One distinction we hold to: a prescribed legal designation is looked up from the official text, never translated. A linguistically perfect translation of a legal term is still a defect."),
+    q(C.clear, "What happens if you do not cover something?",
+      "The result is withheld and marked Not assessed, with a link to the coverage record that explains why — the method, the date, and the named gap. It is shown as prominently as any other state.",
+      "A market where we hold no rules can never return Clear. That is enforced in the engine, not left to wording."),
+    q(C.clear, "What happens when a rule changes?",
+      "You hear about it from us, with your own recipes named, while there is still time to act. We watch every source continuously — EUR-Lex, the national gazettes, GB and Northern Ireland, the Federal Register, and every state feed control office — and we track changes at the level of individual rules, so an alert says which of your recipes it touches and which it does not.",
+      "It also carries the date the change takes effect, so you can tell a fourteen-month plan from something urgent. Editorial corrections never notify anybody, and re-checking after a change is free — a rule moving should not cost you anything to respond to."),
+    q(C.accent, "Will I know about something before it is too late?",
+      "That is the point of the product rather than a feature of it. We watch what is coming as well as what has passed: Commission proposals, additive re-authorisations under review, consultations in Great Britain, state bills in session, and the AAFCO committee agenda ahead of each annual publication.",
+      "The case we design around is an additive losing its authorisation, because it carries a sell-through deadline and it is the most expensive thing to discover late. An alert tells you what changed, whether it is law or still coming, when it takes effect, and which of your recipes it affects."),
+    q(C.action, "Do you check in the local language?",
+      "Yes, always, on the string as printed. On every plan including the free allowance.",
+      "This is not a premium feature anywhere. Selling somebody a market and then checking their English copy is selling a verdict we know is invalid for the artwork."),
+    q(C.none, "Can you guarantee an authority will accept my label?",
+      "No, and nobody honestly can. We can tell you it satisfies the rules we hold and name what we did not assess. An authority's decision is an authority's decision.",
+      "If a supplier in this category tells you otherwise, ask them what happens contractually when an authority disagrees."),
+  ] },
+  { n: "03", id: "trying", k: "Trying it and paying for it", qs: [
+    q(C.clear, "Do I need to enter a card to start?",
+      "No. Three labels, no card, no clock, no sales call, and no company-size field.",
+      "You will not be asked for a card until you choose a plan, and nothing charges automatically at the end of anything."),
+    q(C.clear, "What is in the three free labels?",
+      "The whole product. Every finding, every market in your region, where each answer came from, the coverage links, and reports you can export, email and share with somebody who has no account.",
+      "Nothing is held back to make the trial feel limited. The limit is the count, not the features."),
+    q(C.accent, "What happens after the third label?",
+      "The workspace stops accepting a new label until a plan starts. Nothing is removed: all three labels stay, every answer stays readable, the reports you sent stay verifiable, and re-checking them stays free.",
+      "Re-checks, adding further markets in your region, and revised versions of the same artwork do not count against the three. Only a new artwork does."),
+    q(C.accent, "How is it priced?",
+      "On what you manage: recipes, regions, and people who edit. Never on how often you check and never on tokens. Basic is €249 a month, Standard €499, Advanced from €999, all excluding VAT.",
+      "A recipe is the thing you formulate. Pack sizes, artwork versions and label variants of the same recipe are free, so an eight-recipe brand is billed for eight rather than for its twenty-four pack codes."),
+    q(C.action, "Why can I not buy a single country?",
+      "Because a member state or a US state is one edition of a national rulebook rather than a rulebook of its own. Selling you Texas alone would mean selling you an answer that leans on federal law we had not encoded.",
+      "So a region is sold whole: the EU means all twenty-seven, the US means every state. It also costs us almost nothing extra, because a check costs what your artwork costs to read, not what our coverage costs to hold."),
+    q(C.clear, "What happens if I stop paying?",
+      "Your workspace stops accepting new labels. Nothing is deleted, everything you have checked stays readable, and every report you sent stays verifiable by whoever is holding it.",
+      "We will not break a document somebody outside your company is relying on because your card expired."),
+    q(C.none, "Do you offer a discount?",
+      "One, and it is the same for everybody: an annual term is ten months for twelve. We concede on term rather than on price, so nobody on your plan is paying less than you.",
+      ""),
+  ] },
+  { n: "04", id: "using", k: "Using it day to day", qs: [
+    q(C.accent, "What do I upload?",
+      "Print-ready artwork as a PDF with live vector text. That is what lets us measure character heights against the legal minimums and pin each finding to a coordinate on the sheet.",
+      "Outlined text or a flattened image still gets you most of the check, and we tell you exactly which panels we could not measure rather than quietly skipping them."),
+    q(C.none, "How long does a check take?",
+      "Minutes for a normal pack across a handful of markets. The variable is how many language panels your artwork carries, not how many markets you have selected.",
+      ""),
+    q(C.clear, "Can my colleagues use it?",
+      "Yes. People who only read are free and unlimited on every paid plan, internal or external. Only people who edit take a seat.",
+      "We never charge for read access, because circulation is what makes the tool useful — taxing it would be taxing the thing we want to happen."),
+    q(C.clear, "Can my consultant or my supplier use it?",
+      "A consultant is invited as an editor or a viewer, scoped to named recipes and markets, and marked external with an optional end date. A supplier gets a scoped link to upload one document and needs no account at all.",
+      "A supplier is never a seat and never appears on your people screen. You are not charged for your suppliers' access."),
+    q(C.action, "Who can sign a certificate?",
+      "A named person in your own company who holds signing authority for that market, granted explicitly. It is not implied by any role, including administrator, and it is never offered to an external person.",
+      "A Certificate of Check is an internal attestation by that person. It is not a certificate issued by us or by an authority, and it makes no claim under eIDAS."),
+    q(C.clear, "Can I get my data out?",
+      "Yes, on every plan including the free allowance, at no charge, with the ruleset version on every row.",
+      "If you leave, you leave with everything. A tool holding your compliance history hostage is not one you should have trusted with it."),
+  ] },
+  { n: "05", id: "trust", k: "Data, security and trust", qs: [
+    q(C.accent, "Where is my data held?",
+      "In the European Union, in Ireland. We do not move it outside the European Economic Area for hosting or for backup.",
+      "The current list of sub-processors is published in our data processing agreement, and we give thirty days' notice before adding or replacing one."),
+    q(C.clear, "Do you train models on my recipes?",
+      "No. Your material is never used to train models for the benefit of other customers, and our model providers are engaged on terms that prohibit training on what we send them.",
+      "Your formulations are the most commercially sensitive thing in the product. Treating them as training data would be indefensible."),
+    q(C.clear, "Who can see my recipes?",
+      "The people you admit, at the scope you give them. Each customer's data is separated from every other in the database itself, by row-level policies, rather than by application code — so a defect in the application cannot expose one customer to another.",
+      "Our own people access workspace content only if you ask us to, and that access is recorded."),
+    q(C.accent, "Can the record be altered?",
+      "No, and that includes by us. Checks, findings and certificates are written to a store that accepts inserts only; update and delete are revoked from every application role and rejected at the database level.",
+      "That is deliberate. A record the application could rewrite would not be a record, and a certificate resting on it would be a claim."),
+    q(C.none, "Do you support single sign-on?",
+      "Yes, on Advanced. It is available rather than required, so it never holds up getting started.",
+      ""),
+    q(C.none, "What if a recipient wants to verify a report I sent them?",
+      "There is a public verification page. They enter the reference on the document and get back whether it is current, superseded or unknown, its issue date, its ruleset version, and whether it contained items we did not assess.",
+      "It never returns your composition, your findings or anything else about your business, and it needs no account."),
+  ] },
+];
+
+class Component extends DCLogic {
+  state = { page: "faq" };
+
+  renderVals() {
+    const s = this.state.page;
+
+    return {
+      isFaq: s === "faq", isAbout: s === "about",
+
+      tabs: [["faq", "Questions"], ["about", "About us"]].map(([id, k]) => ({
+        k, go: () => this.setState({ page: id }),
+        style: "border: 1px solid " + (s === id ? "var(--accent)" : "var(--n400)") + "; background: " + (s === id ? "var(--accent-100)" : "var(--paper)") +
+          "; color: " + (s === id ? "var(--accent-700)" : "var(--n700)") + "; padding: 8px 14px; font-size: 13px; cursor: pointer; font-weight: " + (s === id ? "600" : "400"),
+      })),
+
+      jump: GROUPS.map(g => ({ k: g.k, href: "#" + g.id })),
+
+      groups: GROUPS.map((g, i) => ({
+        n: g.n, id: g.id, k: g.k,
+        sectionStyle: "border-bottom: 1px solid " + (i === GROUPS.length - 1 ? "var(--ink)" : "var(--rule)") +
+          "; background: " + (i % 2 ? "var(--panel)" : "var(--paper)"),
+        qs: g.qs.map(x => ({ bar: x.bar, q: x.q, a: x.a, hasMore: !!x.more, more: x.more || "" })),
+      })),
+
+      beliefs: [
+        { k: "An answer you can audit", v: "Every result carries four states, and Not assessed is one of them, shown as prominently as Clear and never inferred away into a pass. A regulatory manager can trace any verdict back to the article behind it.", proof: "The four states, on every screen and every document.", bar: C.accent },
+        { k: "An answer should say where it came from", v: "A deterministic rule and a model judgement are different kinds of claim, and a regulatory professional's first question is which one they are reading. So we mark it, per finding, rather than in a footer.", proof: "Provenance on every finding, and on every translated string.", bar: C.clear },
+        { k: "Publish the depth, including the holes", v: "We only sell a market once we have published exactly how much of it we hold. If we would not publish a market's depth, we do not offer it.", proof: "The coverage page, rendered from the same table the engine queries.", bar: C.clear },
+        { k: "Never charge for the check", v: "A meter on a compliance check is a reason not to run one, and the check somebody skipped is the one that costs money. We price the portfolio and never the activity.", proof: "Unlimited re-checks on every plan, including the free allowance.", bar: C.action },
+      ].map(b => ({
+        k: b.k, v: b.v, proof: b.proof,
+        style: "position: relative; border: 1px solid var(--ink); border-top: 4px solid " + b.bar + "; background: var(--paper); padding: 22px 24px",
+      })),
+
+      never: [
+        "File a registration, notification or application for you",
+        "Pay an authority's fee on your behalf",
+        "Correspond with an authority about your product",
+        "Confirm that a registration is valid or in force",
+        "Guarantee that anybody will accept your label",
+      ],
+
+      story: [
+        { tag: "Placeholder", k: "The problem we saw first", v: "Replace with the specific thing that started this — a reprint, a border hold, a delisting, a consultant's invoice. A concrete first story is worth more than a paragraph about a market opportunity." },
+        { tag: "Placeholder", k: "Why pet food, and not food generally", v: "Replace with the real reason for the category choice. The defensible version of this answer is that feed law is its own rulebook and going deep on one category beats going shallow across five." },
+        { tag: "Placeholder", k: "Why the honesty position", v: "Replace with why you decided to publish gaps rather than hide them. If there was a moment where you nearly did the opposite, say so — it is the most credible thing on a page like this." },
+      ],
+
+      people: [
+        { k: "Founder", tag: "PLACEHOLDER", v: "Name, and one line on what they did before that makes this the obvious thing for them to be building." },
+        { k: "Regulatory method", tag: "PLACEHOLDER", v: "Whoever owns how rules get encoded and accepted. Name this person: a buyer wants to know a human holds the method rather than a model." },
+        { k: "Engineering", tag: "PLACEHOLDER", v: "Who builds it. Worth naming if the architecture claims — append-only records, row-level separation — are going to be believed." },
+      ],
+
+      company: [
+        { k: "Legal entity", v: "Sunny Ventures AB, company registration 5594297151" },
+        { k: "Trading as", v: "Nutrivo.ai" },
+        { k: "Registered office", v: "Karlbergsvägen 48, 113 37 Stockholm, Sweden" },
+        { k: "VAT", v: "SE559429715101" },
+        { k: "Governing law", v: "Swedish law, Stockholm District Court" },
+        { k: "Data processed in", v: "Ireland, European Union" },
+        { k: "General enquiries", v: "hello@nutrivo.ai" },
+        { k: "Security", v: "security@nutrivo.ai · acknowledged within one working day" },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>
