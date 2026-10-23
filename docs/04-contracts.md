@@ -19,7 +19,7 @@ redesign rather than wiring.
 |---|---|---|
 | `app.create_workspace(p_name)` | A01 | person, workspace, admin membership, allowance, audit |
 | `app.invite_member(p_ws, p_email, p_role, p_is_external, p_scope_family_ids, p_scope_node_ids, p_access_ends_at)` | A03 | seat check; the worker generates and emails the token |
-| `app.accept_invitation(p_token)` | A04 | one-time, email-bound |
+| `app.accept_invitation(p_token)` | A04 | one-time, email-bound; locks the invitation, so a concurrent revoke wins |
 | `app.register_artwork(p_product, p_storage_path, p_sha256, p_file_name, p_mime)` | D01, B02 | idempotent per file hash; allowance; dunning; enqueues extraction |
 | `app.request_check(p_product, p_nodes)` | D04 | job key = artwork, ruleset, classification, nodes |
 | `app.issue_certificate(p_report, p_node)` | I03 (after launch) | grant, two-factor, zero open findings; hash chain |

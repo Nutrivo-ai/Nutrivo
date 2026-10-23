@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(54);
+select plan(55);
 set local client_min_messages = warning;
 
 -- ─── Workspace A: Alice (admin), Carl and Dan (editors with signing grants), Vera and Wynn (viewers). B: Bob. ──
@@ -104,7 +104,9 @@ reset role;
 select is((select role from app.memberships where id = '50000000-0000-4000-8104-0000000000a1'), 'admin',
           '[A05.fail.1] the refused demotion leaves the last admin an admin');
 
--- Permission, tenancy and arguments.
+-- Permission, tenancy and arguments. (Both membership RPCs check the caller again after taking the workspace lock, so
+-- a request queued behind its caller's own removal or demotion is refused; pgTAP runs in one session and cannot
+-- interleave two, so that path is covered by the code, not by a test here.)
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8104-0000000000d1","role":"authenticated"}', true);
 set local role authenticated;
 select throws_ok($$select app.change_member('50000000-0000-4000-8104-0000000000e1', 'editor', false, null, null, null)$$,
@@ -118,6 +120,8 @@ select throws_ok($$select app.change_member('50000000-0000-4000-8104-0000000000b
 select throws_ok($$select app.change_member('50000000-0000-4000-8104-0000000000e1', 'viewer', false,
                                              '{30000000-0000-4000-8104-00000000000b}', null, null)$$,
                  '22023', null, '[T-104] a scope cannot name another workspace''s family');
+select throws_ok($$select app.change_member('50000000-0000-4000-8104-0000000000e1', 'owner', null, null, null, null)$$,
+                 '22023', null, '[T-104] an unknown role or a missing external flag is refused as an invalid argument');
 select throws_ok($$select app.change_member('50000000-0000-4000-8104-0000000000e1', 'viewer', false, null, null,
                                              now() - interval '1 day')$$,
                  '22023', null, '[T-104] an end date in the past is refused (removal is its own action)');

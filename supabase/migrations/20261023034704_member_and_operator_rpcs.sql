@@ -4,7 +4,8 @@
 --
 -- Last admin (A05.must.1, A06.fail.1): a write that touches an active admin must leave at least one other active
 -- admin with no end date, or it raises P0043. Membership writes in a workspace serialise on an advisory lock, so two
--- admins demoting each other at the same moment cannot both succeed.
+-- admins demoting each other at the same moment cannot both succeed. Each statement after the lock reads a fresh
+-- snapshot (READ COMMITTED, the PostgREST default); under REPEATABLE READ the last-admin check would not hold.
 
 -- The editable state of a membership, as written to audit_events.before / after.
 create function private.membership_audit(m app.memberships) returns jsonb
@@ -28,11 +29,19 @@ begin
     raise exception 'only admins can change a member' using errcode = '42501';
   end if;
   perform pg_advisory_xact_lock(hashtext('memberships:' || v_m.workspace_id::text));
+  -- Again under the lock: a request that waited behind the caller's own removal or demotion must not take effect.
+  if not private.has_role(v_m.workspace_id, '{admin}') then
+    raise exception 'only admins can change a member' using errcode = '42501';
+  end if;
   select * into v_m from app.memberships m where m.id = p_membership for update;
   if v_m.ended_at is not null then
     raise exception 'this membership has ended' using errcode = 'P0044';
   end if;
 
+  if p_role is null or p_role not in ('admin','portfolio_manager','editor','viewer') or p_is_external is null then
+    raise exception 'a role (admin, portfolio_manager, editor or viewer) and the external flag are required'
+      using errcode = '22023';
+  end if;
   if p_access_ends_at is not null and p_access_ends_at <= now()
      and p_access_ends_at is distinct from v_m.access_ends_at then
     raise exception 'an end date must be in the future; remove the member instead' using errcode = '22023';
@@ -112,6 +121,10 @@ begin
     raise exception 'only admins can remove a member' using errcode = '42501';
   end if;
   perform pg_advisory_xact_lock(hashtext('memberships:' || v_m.workspace_id::text));
+  -- Again under the lock: a request that waited behind the caller's own removal or demotion must not take effect.
+  if not private.has_role(v_m.workspace_id, '{admin}') then
+    raise exception 'only admins can remove a member' using errcode = '42501';
+  end if;
   select * into v_m from app.memberships m where m.id = p_membership for update;
   if v_m.ended_at is not null then return v_m.id; end if;
 
@@ -198,6 +211,40 @@ begin
   update app.workspaces w set default_operator = v_after where w.id = p_ws;
   perform private.write_audit(p_ws, 'workspace.default_operator_set', 'workspace', p_ws::text, v_before, v_after);
   return p_ws;
+end $$;
+
+-- A04 (from 0005, unchanged but for `for update`): accepting locks the invitation, so it waits for a concurrent
+-- revoke_invitation and then sees revoked_at; an invitation can no longer end up both revoked and accepted.
+create or replace function app.accept_invitation(p_token text) returns uuid
+language plpgsql security definer set search_path = '' as $$
+declare v_uid uuid := auth.uid(); v_email text; v_inv app.invitations; v_person uuid; v_m uuid;
+begin
+  if v_uid is null then raise exception 'not authenticated' using errcode = '42501'; end if;
+  select * into v_inv from app.invitations i where i.token_hash = extensions.digest(p_token, 'sha256') for update;
+  if not found or v_inv.revoked_at is not null or v_inv.accepted_at is not null or v_inv.expires_at < now() then
+    raise exception 'this invitation is not valid any more' using errcode = 'P0040';
+  end if;
+  select u.email into v_email from auth.users u where u.id = v_uid;
+  if lower(v_email) <> lower(v_inv.email::text) then
+    raise exception 'this invitation was sent to a different email address' using errcode = 'P0041';
+  end if;
+  select p.id into v_person from app.people p where p.user_id = v_uid;
+  if v_person is null then
+    insert into app.people (user_id, display_name, email) values (v_uid, split_part(v_email, '@', 1), v_email)
+    returning id into v_person;
+  end if;
+  if exists (select 1 from app.memberships m where m.workspace_id = v_inv.workspace_id
+             and m.person_id = v_person and m.ended_at is null) then
+    raise exception 'already a member of this workspace' using errcode = 'P0042';
+  end if;
+  insert into app.memberships (workspace_id, person_id, role, is_external, scope_family_ids, scope_node_ids, access_ends_at)
+  values (v_inv.workspace_id, v_person, v_inv.role, v_inv.is_external, v_inv.scope_family_ids,
+          v_inv.scope_node_ids, v_inv.access_ends_at)
+  returning id into v_m;
+  update app.invitations set accepted_at = now() where id = v_inv.id;
+  perform private.write_audit(v_inv.workspace_id, 'membership.created', 'membership', v_m::text, null,
+                              jsonb_build_object('role', v_inv.role, 'is_external', v_inv.is_external));
+  return v_inv.workspace_id;
 end $$;
 
 revoke all on function private.membership_audit(app.memberships) from public, anon;
