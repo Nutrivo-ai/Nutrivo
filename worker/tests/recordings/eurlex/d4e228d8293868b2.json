@@ -1,0 +1,14 @@
+{
+  "method": "GET",
+  "url": "https://publications.europa.eu/resource/celex/32017R2279",
+  "request_headers": {
+    "accept": "application/xhtml+xml",
+    "accept-language": "eng"
+  },
+  "status": 303,
+  "headers": {
+    "content-type": "application/xhtml+xml;charset=UTF-8",
+    "location": "http://publications.europa.eu/resource/cellar/41b18ce9-df1d-11e7-9749-01aa75ed71a1.0006.03/DOC_1"
+  },
+  "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

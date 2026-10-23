@@ -1,5 +1,5 @@
-# Acts to fetch, store (sha256) and extract from first. CELEX numbers are candidates written on 8 Oct 2026 without
-# web access: milestone 0 confirms each and records the latest consolidated version date.
+# Acts to fetch, store (sha256) and extract from first. CELEX numbers were written on 8 Oct 2026 without web access
+# and confirmed on 21 Oct 2026 with their latest consolidated versions (docs/14 §6).
 # EUR-Lex URL pattern: https://eur-lex.europa.eu/legal-content/{LANG}/TXT/?uri=CELEX:{celex}
 languages: [en, sv, da, fi, de]
 licence: eu_reuse
@@ -29,5 +29,10 @@ acts:
     title: Regulation (EC) No 183/2005 laying down requirements for feed hygiene
     why: Establishment registration and approval (registration domain)
 registers:
-  - title: European Union Register of Feed Additives (current edition, published by the European Commission)
+  - title: European Union Register of Feed Additives (online database in the Food and Feed Information Portal)
+    url: https://ec.europa.eu/food/food-feed-portal/screen/feed-additives/search
     why: Authorised additives, identification numbers, species, maximum contents, conditions
+    note: >-
+      No numbered editions since 5 April 2023, when the online register replaced the PDF (docs/14 §6). Each import
+      stores the pull with its sha256 and retrieval date, and that snapshot is what a ruleset pins. Whether the portal
+      offers a bulk export is confirmed in T-202 before the importer is written.

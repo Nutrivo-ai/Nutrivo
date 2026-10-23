@@ -24,12 +24,32 @@ nothing.
   - viewports.
 - **Baselines.** A Playwright script opens each design file locally, switches it to each screen and saves a
   screenshot to `apps/web/tests/visual/baselines/<id>.png`.
+  - `pnpm --dir apps/web baselines` (`playwright.baselines.config.ts`) serves design/ over HTTP and sets the design's
+    own component state recorded in the entry's `state` (what its rail, tab or step sets).
+  - It saves a full page at 1600 px, or for the Mobile file's phones the phone element (`element`).
+  - Re-run it only when design/ or the inventory changes.
+- **Guard.** `apps/web/src/lib/screens/inventory.test.ts` (in `pnpm test`) checks the inventory against design/:
+  - every frame a design file switches to is inventoried exactly once;
+  - every design file in product/, public/ and documents/ is covered;
+  - every workflow id exists and every baseline is present.
+- **What T-012 found** (104 screens):
+  - Nutrivo 2.0, 34;
+  - Missing Surfaces 5, Onboarding 8, Plans and Checkout 6, Workspace Settings 6, Billing Settings 4,
+    Account Recovery 5, Partner Tier 4, Partner Upsell 2, Mobile 6, Empty and Error States 1;
+  - 16 public frames, 6 emails, 3 documents.
+- **Recorded as proposals.** Routes and roles are not written down elsewhere, so they are proposals. They are listed
+  with the other open questions (Q1 to Q5 in the file's header) for G4.
 - **Gate G4.** The founders approve the inventory; from then on it is the frontend's target.
 
 ## 3 · Demo data identical to the design (T-013)
-The mock data inside the design files' component scripts (Halden Pet Nutrition, its recipes, markets and findings) is
-extracted into `supabase/seed/demo/`. Loaded into local, CI and the staging demo workspace, it makes each built screen
-directly comparable with its baseline.
+The mock data inside the design files' component scripts (Halden Pet Nutrition: its people, recipes, markets, artwork,
+suppliers and documents) is extracted into one synthetic workspace. The loader and the full list are in
+`supabase/seed/demo/` (README.md and `load.sh`). The SQL is `supabase/tests/app/fixtures/demo_halden.psql`, so the pgTAP
+container can test it. The seed is loaded into local, CI and the staging demo workspace (T-010), never production. It
+makes each built screen directly comparable with its baseline, with one deliberate exception: verdicts. No ruleset is
+encoded yet, so every demo check and finding is withheld with its coverage gap (no rule, no verdict). Screens show Not
+assessed where the design draws Clear, Action or Blocked, until real checks run against accepted rules (question on
+issue #22). `make db-reset` does not load it, because the gate tests assume an empty tenant dataset.
 
 ## 4 · Building screens
 - **Order.** Tokens and the component kit come first (T-101); then the shell and routing (T-102); then each screen

@@ -23,6 +23,26 @@ never converted at runtime, BE-31); the extra region as a quantity item; recipe 
 the RPC. A single `config/pricing.ts` feeds both the pricing page and the idempotent catalogue script.
 Checkout uses automatic tax and tax-ID collection; the customer portal handles cards, cancellation and invoices.
 
+### The catalogue script (T-701)
+`make stripe-catalogue` (ENV=dev; `DRY=1` previews) runs `scripts/stripe/catalogue.ts`, which makes the Stripe
+catalogue match `config/pricing.ts`. It runs in test mode only: it refuses any key but `sk_test_`/`rk_test_`, aborts
+if Stripe answers `livemode: true`, and never prints the key. Live mode is gate G8 (T-705).
+
+| Stripe object | Identity | From config/pricing.ts |
+|---|---|---|
+| Product per paid plan | id `nutrivo_plan_<plan>` | Basic, Standard, Advanced; metadata: recipes, editors, regions included and max, overage cap (cents), `price_from` |
+| Product per add-on | id `nutrivo_addon_<addon>` | `region` (Standard), `recipe` (Basic, Standard), `editor_seat` (Basic, Standard) |
+| Plan price | lookup key `nutrivo_plan_<plan>_<currency>_<interval>` | Monthly and yearly, net, `tax_behavior: exclusive` |
+| Add-on price | lookup key `nutrivo_addon_<addon>_<plan>_<currency>_<interval>` | One price per plan that may buy it, as a quantity item |
+
+The free allowance has no product (D-21: no subscription row) and Partner is not sold before launch. Advanced
+carries its floor (€999 per month, €9,990 per year); work above the floor is quoted, not catalogued.
+
+A re-run changes nothing. Prices are immutable in Stripe, so a changed amount creates a new price that takes the
+lookup key over (`transfer_lookup_key`) and archives the old one. An archived or renamed catalogue object is restored.
+An active price on a `nutrivo_` product that the config no longer names is archived. Nothing is deleted. Code reads
+prices by lookup key, never by price id.
+
 ## VAT (BE-35)
 Swedish VAT in full for Swedish customers; EU reverse charge on a validated VAT number; one-stop shop for EU
 customers without one; zero outside the EU. All prices are stored and shown net; VAT is added on the invoice.

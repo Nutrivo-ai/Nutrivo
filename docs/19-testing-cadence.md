@@ -26,11 +26,17 @@ fails when a baseline ID regresses (`spec/conformance-baseline.json`).
 ## Determinism
 - **Models.** CI runs in `MODELS_MODE=replay` against recorded responses in `worker/tests/cassettes/`. The nightly run
   records against real models and opens a PR when outputs change.
+  - To record by hand on dev, run `scripts/env/run.sh dev -- env MODELS_MODE=record <command>` from `worker/`.
+  - Cassettes hold the model's output and token counts, never the inputs.
+  - `worker/tests/cassettes/smoke/` is a real Bedrock response, recorded on 23 Oct 2026, that the suite replays.
+- **Database in worker tests.** `worker/tests/test_jobs_pg.py` runs the job loop on the local Supabase database with
+  real pgmq (`make verify-fast` starts it, or set `NUTRIVO_TEST_DATABASE_URL`). The CI `worker` job has no database
+  until T-009, so these tests skip there with that reason.
 - **Email.** Mail goes to Mailpit in the local Supabase stack; tests read it through Mailpit's API.
 - **Stripe.** Test mode. Webhooks are posted to the local function signed with the test secret.
 - **Data.**
   - The demo seed reproduces the design's mock data (Halden Pet Nutrition), so screens are comparable with design
-    baselines.
+    baselines. Its verdicts are all withheld until rules are accepted (supabase/seed/demo/README.md).
   - The synthetic labels provide extraction truth.
   - Golden labels are added from pilots.
 
