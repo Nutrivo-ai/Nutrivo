@@ -67,6 +67,8 @@ EUR-Lex site answers automated clients with a bot challenge (docs/14). It sends 
 `nutrivo content extract` (worker) takes each target in `content/candidates/eu-core.yaml` and its latest stored text in
 every language (`ref.sources`, from T-201). It extracts the target twice and writes one `ref.rule_candidates` row per
 target × source. It never writes a rule.
+- **Latest text.** Per language, the newest consolidated version stored is used. The act as published is used only
+  when no consolidated version is stored.
 - **Sources.** The target's act is the first act its `candidate_source` names, and it must be listed in
   `content/sources.yaml`. A row is used only when it is kind `eurlex` with a sha256 and a storage path, names neither
   FEDIAF nor AAFCO, and its body read back from the `sources` bucket has that sha256. Anything else fails with a
@@ -76,9 +78,12 @@ target × source. It never writes a rule.
   (`title-article-norm`, `title-annex-1`). The model sees only the units the target names (for example `Art. 15`
   and `Annex I`), never the whole act and never anything from memory.
 - **First key (K01).** `extraction_primary.v1` runs on the extraction model class. The answer is the shape's params,
-  the article reference to the paragraph and a verbatim excerpt. The excerpt and every field the schema calls verbatim
-  (`content/schemas.py`) must be printed in the units, up to whitespace. If one is not, the result is withheld as
-  `excerpt_not_in_source` and nothing is written. This is also what keeps a term from being translated. When the
+  the article reference to the paragraph and a verbatim excerpt. The excerpt must be printed in the units, up to
+  whitespace. Every field the schema calls verbatim (`content/schemas.py`) must be printed inside the excerpt. Every
+  number (a threshold's value, a band's heights and quantities) must be one of the numbers printed in its own
+  verbatim field. If any check fails, the result is withheld as `excerpt_not_in_source` and nothing is written. This
+  is also what keeps a term from being translated. The comparison operator is worded differently in every language,
+  so it is not checked here: the second key compares it, and thresholds always go to a person. When the
   model abstains, the result is withheld as `not_found`.
 - **Second key (K02).** `extraction_secondary.v1` runs on the judgement model class with its own prompt and the same
   inputs. It never sees the first answer. `agree` is computed field by field: `found`, the article reference and

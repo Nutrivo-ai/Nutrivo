@@ -15,7 +15,7 @@ from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanE
 
 from nutrivo_worker import observability as obs
 from nutrivo_worker.config import WORKER_ROOT, Settings
-from nutrivo_worker.content import extract, targets
+from nutrivo_worker.content import articles, extract, targets
 from nutrivo_worker.content.extract import Candidate, SourceRow
 from nutrivo_worker.content.store import PgCandidateStore
 from nutrivo_worker.models import Models
@@ -39,7 +39,9 @@ def answer(found=True, ref="Art. 15(d)", excerpt="the batch or lot reference num
             "abstain_reason": None if found else "not in the units", "params": params}
 
 
-MOISTURE_14 = answer(ref="Annex I point 6", excerpt="14 % in the case of other feed.", params={
+ANNEX_I = articles.split_units(EN_767)["Annex I"].text
+POINT_6 = ANNEX_I[ANNEX_I.index("6. Provided"):ANNEX_I.index("other feed.") + len("other feed.")]
+MOISTURE_14 = answer(ref="Annex I point 6", excerpt=POINT_6, params={
     "quantity": "moisture content", "operator": "gt", "value": 14, "value_text": "14 %", "unit": "%",
     "then": "the moisture content of the feed must be stated"})
 
@@ -172,8 +174,7 @@ def test_K01_must_1_never_from_memory_FEDIAF_and_AAFCO_are_never_sources(tmp_pat
 
 
 def test_K02_main_second_extraction_is_independent_and_agreement_is_computed_field_by_field(tmp_path):
-    second = {**MOISTURE_14, "excerpt": "10 % in the case of mineral feed containing organic substances,",
-              "params": {**MOISTURE_14["params"], "value": 10, "value_text": "10 %"}}
+    second = {**MOISTURE_14, "params": {**MOISTURE_14["params"], "value": 10, "value_text": "10 %"}}
     m, provider = models(tmp_path, {("eu.extract", MOISTURE.key): MOISTURE_14, ("eu.judge", MOISTURE.key): second})
     store = Store()
     (res,) = extract.run([MOISTURE], Reader(), store, m)
@@ -282,3 +283,24 @@ def test_compare_ignores_case_whitespace_and_list_order_but_not_values():
     c = {**b, "params": {"particular": "the lot", "conditions": ["y", "x"]}}
     assert extract.compare(a, c) == {"article_ref": True, "found": True, "params.conditions": True,
                                      "params.particular": False}
+
+
+def test_K01_must_1_threshold_params_are_read_from_the_excerpt_in_the_texts_own_language(tmp_path):
+    """The reviewer's probe: on the Danish text, an excerpt and value_text that are printed ('14 %') do not carry an
+    English quantity, a value that is not the printed one, or a param found elsewhere in the units."""
+    da = gzip.decompress((TESTS / "recordings" / "eurlex" / "7585be7f2e9f3ae1.body.gz").read_bytes())
+    da_row = row(id="src-da", language="da", sha256=hashlib.sha256(da).hexdigest())
+    probe = answer(ref="Annex I point 6", excerpt="14 %", params={
+        "quantity": "moisture content", "operator": "lt", "value": 41, "value_text": "14 %", "unit": "%",
+        "then": "the moisture content of the feed must be stated"})
+    m, _ = models(tmp_path, {("eu.extract", MOISTURE.key): probe, ("eu.judge", MOISTURE.key): probe})
+    store = Store()
+    (res,) = extract.run([MOISTURE], Reader([da_row], body=da), store, m)
+    assert (res.status, res.reason) == ("withheld", "excerpt_not_in_source") and store.rows == {}
+    assert extract.unverified_fields("threshold", probe, articles.split_units(da)["Annex I"].text) == [
+        "params.quantity", "params.then", "params.value"]
+    # In English: every param inside the excerpt, the value one of the numbers its printed text carries.
+    assert extract.unverified_fields("threshold", MOISTURE_14, ANNEX_I) == []
+    elsewhere = {**MOISTURE_14, "excerpt": "14 % in the case of other feed."}
+    assert extract.unverified_fields("threshold", elsewhere, ANNEX_I) == ["params.quantity", "params.then"]
+    assert extract.printed_numbers("2,2 % · 1 000 kg · 2.5") >= {2.2, 1000.0, 2.5}

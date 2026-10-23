@@ -31,7 +31,7 @@ class PgSourceReader:
                      from ref.sources
                     where (celex = %(act)s or celex like %(consolidated)s)
                       and (%(langs)s::text[] is null or language = any(%(langs)s::text[]))
-                    order by language, celex desc, created_at desc""",
+                    order by language, (celex like '0%%') desc, celex desc, created_at desc""",
                 {"act": act, "consolidated": "0" + act[1:] + "-%", "langs": languages}).fetchall()
         return [SourceRow(str(r["id"]), r["kind"], r["celex"], r["language"], r["title"], r["url"], r["sha256"],
                           r["storage_path"]) for r in rows]

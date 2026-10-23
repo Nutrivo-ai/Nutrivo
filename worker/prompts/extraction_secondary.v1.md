@@ -20,7 +20,8 @@ Work in this order:
 3. Locate it: `article_ref` in the form `Art. <n>(<paragraph>)(<point>)` or `Annex <roman> point <n>`, independent
    of the text's language.
 4. Record the values for the target's shape in `params`, taking every string verbatim from `units` in the text's
-   own language (no translation, no rewording, no list markers, no surrounding quotation marks):
+   own language and from inside `excerpt` (no translation, no rewording, no list markers, no surrounding quotation
+   marks):
    - mandatory_particular: `particular` and its `conditions`;
    - prescribed_wording: the prescribed `wordings` and permitted `alternatives`;
    - threshold: `quantity`, `operator`, `value`, `value_text` as printed, `unit`, and `then`;

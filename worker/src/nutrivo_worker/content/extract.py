@@ -18,6 +18,7 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import json
+import re
 from collections.abc import Iterable, Iterator
 from dataclasses import asdict, dataclass
 from typing import Any, Literal, Protocol
@@ -29,7 +30,7 @@ from ..errors import ModelError, SafeError
 from ..logs import get_logger, kv
 from ..models import ModelResult, Models
 from . import articles
-from .schemas import OUTPUT_SCHEMAS, VERBATIM
+from .schemas import NUMBERS, OUTPUT_SCHEMAS, VERBATIM
 from .targets import REFUSED_SOURCES, Target
 
 log = get_logger(__name__)
@@ -128,12 +129,39 @@ def _verbatim_values(params: Any, path: str) -> list[str]:
     return [v for v in items if isinstance(v, str)]
 
 
+_NUMBER = re.compile(r"\d+(?:[ .,\u00a0\u202f]\d+)*")
+
+
+def printed_numbers(text: str) -> set[float]:
+    """Every reading of the numbers printed in `text`: '2,2' and '2.2' are 2.2; '1 000' and '1.000' are 1000."""
+    out: set[float] = set()
+    for m in _NUMBER.findall(text):
+        compact = re.sub(r"[ \u00a0\u202f]", "", m)
+        for reading in (compact.replace(",", "."), compact.replace(",", ""), compact.replace(".", "").replace(",", ".")):
+            with contextlib.suppress(ValueError):
+                out.add(float(reading))
+    return out
+
+
 def unverified_fields(shape: str, output: dict[str, Any], text: str) -> list[str]:
-    """The verbatim fields whose value the stored text does not print: empty means every value is from the text."""
-    missing = [] if articles.contains(text, output.get("excerpt") or "") else ["excerpt"]
+    """The fields the stored text does not bear out: empty means every value was read from it. The excerpt must be
+    printed in the units, every verbatim param inside the excerpt, and every number among the numbers printed in its
+    own verbatim field. The comparison (`operator`) is worded differently in every language and is not checked here;
+    the second key compares it and thresholds always go to a person."""
+    excerpt = output.get("excerpt") or ""
+    missing = [] if articles.contains(text, excerpt) else ["excerpt"]
+    params = output.get("params") or {}
     for path in VERBATIM[shape]:
-        if any(not articles.contains(text, v) for v in _verbatim_values(output.get("params") or {}, path)):
+        if any(not articles.contains(excerpt, v) for v in _verbatim_values(params, path)):
             missing.append(f"params.{path}")
+    for items_key, number, printed in NUMBERS.get(shape, ()):
+        items = params.get(items_key) if items_key else [params]
+        for item in items if isinstance(items, list) else []:
+            value = item.get(number) if isinstance(item, dict) else None
+            if value is not None and float(value) not in printed_numbers(str(item.get(printed) or "")):
+                path = f"params.{items_key + '.' if items_key else ''}{number}"
+                if path not in missing:
+                    missing.append(path)
     return missing
 
 

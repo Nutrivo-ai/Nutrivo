@@ -24,8 +24,8 @@ Rules:
 5. Fill `params` for the shape named in `target`:
    - mandatory_particular: the particular that must be indicated and any conditions on it.
    - prescribed_wording: each designation the text prescribes, and the alternatives it permits.
-   - threshold: what is measured, the comparison, the number, the value with its unit as printed, the unit, and what
-     becomes required.
+   - threshold: what is measured (copied), the comparison, the number, the value with its unit as printed, the unit
+     as printed, and what becomes required (copied). Every copied value must lie inside `excerpt`.
    - character_height: what the height applies to and each band, with the band's line as printed.
 6. If the units do not contain what the target asks for, or you are unsure, set `found` to false, `params` to null,
    `article_ref` and `excerpt` to empty strings, and say why in `abstain_reason`. Abstaining is always acceptable;

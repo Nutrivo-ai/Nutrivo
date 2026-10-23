@@ -16,6 +16,7 @@ from nutrivo_worker.db import connect
 DSN = os.environ.get("NUTRIVO_TEST_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:54322/postgres")
 CELEX = "09999R9767-20181226"          # a test-only id, never one a real fetch stores
 ACT = "39999R9767"
+OLDER = "09999R9767-20101231"          # an earlier consolidation of the same test act
 
 
 class Storage:
@@ -40,7 +41,7 @@ def conn():
              from unnest(array['en', 'da']) l returning id""", {"celex": CELEX, "sha": SHA}).fetchall()]
     yield c
     c.execute("delete from ref.rule_candidates where source_id = any(%s)", (ids,))
-    c.execute("delete from ref.sources where celex = %s", (CELEX,))
+    c.execute("delete from ref.sources where celex = any(%s)", ([CELEX, ACT, OLDER],))
     c.close()
 
 
@@ -78,9 +79,20 @@ def test_candidates_on_postgres_are_idempotent_and_never_past_needs_review(conn,
 
 
 def test_the_reader_returns_the_latest_stored_text_per_language(conn):
+    # The act as published (stored last) and an older consolidation sit next to the latest consolidation: the
+    # latest consolidated text wins, whatever the CELEX prefix or the order the rows were stored in.
+    conn.execute(
+        """insert into ref.sources (kind, celex, title, url, language, licence, retrieved_at, sha256, storage_path,
+                                    created_at)
+           values ('eurlex', %(older)s, 'test:t203', 'https://x', 'en', 'eu_reuse', now(), 'a', 'p', now()),
+                  ('eurlex', %(act)s, 'test:t203', 'https://x', 'en', 'eu_reuse', now(), 'b', 'p',
+                   now() + interval '1 minute')""", {"older": OLDER, "act": ACT})
     rows = PgSourceReader(conn, Storage()).sources(ACT, None)
-    assert sorted(r.language for r in rows) == ["da", "en"] and {r.celex for r in rows} == {CELEX}
+    assert sorted((r.language, r.celex) for r in rows) == [("da", CELEX), ("en", CELEX)]
     assert [r.language for r in PgSourceReader(conn, Storage()).sources(ACT, ["da"])] == ["da"]
+    # With no consolidation stored, the act as published is the text.
+    conn.execute("delete from ref.sources where celex = any(%s) and title = 'test:t203'", ([CELEX, OLDER],))
+    assert [r.celex for r in PgSourceReader(conn, Storage()).sources(ACT, None)] == [ACT]
 
 
 def extract_target(t):
