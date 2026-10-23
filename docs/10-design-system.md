@@ -39,3 +39,48 @@ tablet is the desktop layout reflowed. Interface in English.
 StateBadge (four states with glyphs) · ProvenanceTag · CitationLink · GapLink · Panel · DataTable · ArtworkViewer
 with pins and measured-versus-required labels · LanguageSwitcher · RegionTree · Shell with left rail · Dialog ·
 Toast · EmptyState and ErrorState (from the Empty and Error States file).
+
+### Built in T-101 (`apps/web/src/components/kit`, imported from `@/components/kit`)
+- **Tokens.** The block above is copied verbatim into `apps/web/src/styles/tokens.css`.
+  - `globals.css` maps it into Tailwind after clearing Tailwind's default palette, fonts, radii and shadows.
+  - The only colour classes are the tokens: `text-ink`, `bg-panel`, `border-rule`, `text-accent-700`, `text-n600`, …
+    and `text-clear`, `text-action`, `text-na`, `text-blocked` with their `-bg` tints. Not assessed is `na` because
+    Tailwind already has `border-none` and `bg-none`.
+  - `tokens.test.ts` compares the file with this block and fails on a colour defined anywhere else in `src/`.
+  - Both fonts are self-hosted through `next/font`, so the browser never contacts a font service.
+- **Base styles.** There is no Tailwind preflight. The app renders on the design set's own base
+  (`design/_ds/…/styles.css`: border-box sizing, body 15px/1.55, `p` and heading margins), so components match
+  design/ pixel for pixel.
+- **States.**
+  - `StateGlyph` and `StateBadge` draw the specification's glyphs at 12 px (`md`) and the board's at 9 px (`sm`). A
+    badge always shows the glyph and the name.
+  - `StateCell` and `stateTint` make the board cells; `StateLegend` is the legend under the board.
+- **Findings.**
+  - `ProvenanceTag`: mono, neutral `--n600`, never tinted.
+  - `CitationLink`: needs a `ruleKey`.
+  - `GapLink`: needs a `gapId` and the coverage href.
+  - `Finding`: the label-report row. Its type requires provenance. A Not assessed finding requires `reasonCode`,
+    `gapId` and `gapHref`. A finding with a verdict requires `ruleKey` and a citation, and is never Clear.
+- **Frames and controls.** `Panel`, `Blueprint` (the ink frame with registration marks), `SectionHeading`, and
+  `Button` and `ButtonLink` (primary, secondary, ghost).
+- **Tables.** `DataTable` renders loading, error, no permission and empty in place of its rows, in that order.
+- **Empty, error and loading.** `EmptyState` (kinds none and action), `ErrorState`, `NoPermissionState` and
+  `LoadingState` (neutral, mono).
+  - Each is built from the four parts of the Empty and Error States file: a mark, what is true, one action, and a
+    reference.
+  - The marks (`PatternMark`) are that file's own marks, never the verdict glyphs.
+- **Dialog and Toast.** `Dialog` uses the native `<dialog>`; `Toast` uses `ToastProvider` and `useToast`. No design
+  file draws either, so both are built only from the §5 primitives of the Cobalt specification. This is an open
+  question on issue #23.
+- **Deviations from the design, recorded on #23.**
+  - Small text drawn in `--n500` is set in `--n600`, so axe finds no contrast failures (spec/nfr.yaml).
+  - Finding rows in Nutrivo 2.0 tint provenance with verdict colours. The kit follows Cobalt §6 rule 3 and keeps
+    provenance neutral.
+- **Test pages.** `/kit` shows every component in every state; `/kit/empty-and-error-states` is S-EES-001 rebuilt
+  from the kit. Both return 404 when `NUTRIVO_ENV=prod`.
+  - `tests/e2e/kit.spec.ts` compares S-EES-001 with its design baseline, and the gallery sections and the dialog
+    with their own images in `tests/visual/kit/`, all within spec/nfr.yaml's 2% (`--update-snapshots` rewrites
+    the kit's images only).
+  - It also runs axe on both pages and checks the dialog by keyboard.
+- **Left to the screen tasks.** The Shell with left rail, LanguageSwitcher and RegionTree go to T-102 and the screens
+  that use them; ArtworkViewer goes to T-404.
