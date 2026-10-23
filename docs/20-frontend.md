@@ -27,9 +27,14 @@ nothing.
 - **Gate G4.** The founders approve the inventory; from then on it is the frontend's target.
 
 ## 3 · Demo data identical to the design (T-013)
-The mock data inside the design files' component scripts (Halden Pet Nutrition, its recipes, markets and findings) is
-extracted into `supabase/seed/demo/`. Loaded into local, CI and the staging demo workspace, it makes each built screen
-directly comparable with its baseline.
+The mock data inside the design files' component scripts (Halden Pet Nutrition: its people, recipes, markets, artwork,
+suppliers and documents) is extracted into one synthetic workspace. The loader and the full list are in
+`supabase/seed/demo/` (README.md and `load.sh`). The SQL is `supabase/tests/app/fixtures/demo_halden.psql`, so the pgTAP
+container can test it. The seed is loaded into local, CI and the staging demo workspace (T-010), never production. It
+makes each built screen directly comparable with its baseline, with one deliberate exception: verdicts. No ruleset is
+encoded yet, so every demo check and finding is withheld with its coverage gap (no rule, no verdict). Screens show Not
+assessed where the design draws Clear, Action or Blocked, until real checks run against accepted rules (question on
+issue #22). `make db-reset` does not load it, because the gate tests assume an empty tenant dataset.
 
 ## 4 · Building screens
 - **Order.** Tokens and the component kit come first (T-101); then the shell and routing (T-102); then each screen

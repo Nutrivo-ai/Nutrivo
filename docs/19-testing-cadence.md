@@ -30,7 +30,7 @@ fails when a baseline ID regresses (`spec/conformance-baseline.json`).
 - **Stripe.** Test mode. Webhooks are posted to the local function signed with the test secret.
 - **Data.**
   - The demo seed reproduces the design's mock data (Halden Pet Nutrition), so screens are comparable with design
-    baselines.
+    baselines. Its verdicts are all withheld until rules are accepted (supabase/seed/demo/README.md).
   - The synthetic labels provide extraction truth.
   - Golden labels are added from pilots.
 
