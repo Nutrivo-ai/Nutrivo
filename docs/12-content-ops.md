@@ -63,6 +63,54 @@ EUR-Lex site answers automated clients with a bot challenge (docs/14). It sends 
   `--record DIR` and `--replay DIR` write and serve recorded exchanges (tests use `worker/tests/recordings/eurlex`).
   Nothing in it writes rule content or sets any status.
 
+## Extracting candidates (K01/K02, T-203)
+`nutrivo content extract` (worker) takes each target in `content/candidates/eu-core.yaml` and its latest stored text in
+every language (`ref.sources`, from T-201). It extracts the target twice and writes one `ref.rule_candidates` row per
+target × source. It never writes a rule.
+- **Latest text.** Per language, the newest consolidated version stored is used. The act as published is used only
+  when no consolidated version is stored.
+- **Sources.** The target's act is the first act its `candidate_source` names, and it must be listed in
+  `content/sources.yaml`. A row is used only when it is kind `eurlex` with a sha256 and a storage path, names neither
+  FEDIAF nor AAFCO, and its body read back from the `sources` bucket has that sha256. Anything else fails with a
+  reason (`source_refused`, `source_kind_refused`, `source_not_stored`, `source_act_mismatch`,
+  `source_hash_mismatch`) before any model is called.
+- **Units.** The body is split into articles and annexes on the headings every language version shares
+  (`title-article-norm`, `title-annex-1`). The model sees only the units the target names (for example `Art. 15`
+  and `Annex I`), never the whole act and never anything from memory.
+- **First key (K01).** `extraction_primary.v1` runs on the extraction model class. The answer is the shape's params,
+  the article reference to the paragraph and a verbatim excerpt. The excerpt must be printed in the units, up to
+  whitespace. Every field the schema calls verbatim (`content/schemas.py`) must be printed inside the excerpt. Every
+  number (a threshold's value, a band's heights and quantities) must be one of the numbers printed in its own
+  verbatim field. If any check fails, the result is withheld as `excerpt_not_in_source` and nothing is written. This
+  is also what keeps a term from being translated. The comparison operator is worded differently in every language,
+  so it is not checked here: the second key compares it, and thresholds always go to a person. When the
+  model abstains, the result is withheld as `not_found`.
+- **Second key (K02).** `extraction_secondary.v1` runs on the judgement model class with its own prompt and the same
+  inputs. It never sees the first answer. `agree` is computed field by field: `found`, the article reference and
+  every param, with case, whitespace and list order ignored. Excerpts are not compared. The per-field map is in
+  `second_value.fields`.
+- **Decision.** A candidate stays `pending`. It becomes `needs_review` when the keys disagree, when the second key is
+  not verbatim, and always for `threshold` and `prescribed_wording`. Nothing here sets `accepted`, writes
+  `decided_by`, or touches `ref.rules`, `ref.rule_versions` or a ruleset. Acceptance is a person's click (K03, T-204).
+  Until the second key has run, the candidate has `agree` null. The accept RPC must refuse such a candidate.
+- **Not extracted yet.** `claim_judgement` targets are skipped (`needs_claims_harness`, T-501), and so are
+  `additive_condition` targets (`needs_additive_register`, T-202). Drafting fixtures for the reviewer comes with
+  acceptance.
+- **Idempotent.** There is one candidate per (source_id, rule key), under an advisory lock.
+  - A candidate with both values gives `unchanged`, with no model call.
+  - The first value is stored before the second key runs. A failed second key (for example `model_unavailable`) is
+    therefore resumed by the next run, which gives `updated`.
+  - A decided candidate is never touched.
+- **Visible.** The run prints one JSON line per target × source, then a summary. The states are `stored`,
+  `updated`, `unchanged`, `extracted` (dry run), `skipped`, `withheld` and `failed`, each with a reason where there
+  is one. Any `failed` exits 1 and goes to Sentry with ids and the reason only.
+- **Traced.** Each target × source is one Langfuse trace, `content:extract:<rule_key>:<source_id>`, with an id derived
+  from that name so reruns join it. Each model call is one generation in that trace and one `app.model_calls` row
+  (docs/07). The first and second values also carry the prompt version, model id, input hash and source sha256.
+- **Running it.** Use `scripts/env/run.sh dev -- uv run nutrivo content extract`. It needs `DATABASE_URL`,
+  `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and model configuration. `--target KEY` and `--lang xx` narrow the run.
+  `--dry-run` extracts and compares, but writes nothing to the database. Langfuse still traces the calls.
+
 ## Candidate targets
 `content/candidates/eu-core.yaml` lists the first targets. **Every citation there is a candidate written from
 general knowledge: paragraph letters especially must be confirmed against the consolidated text before any
