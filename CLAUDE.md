@@ -36,8 +36,9 @@ every result. The product is honest by construction: no rule, no verdict.
 9. Verification outlives the subscription: billing, dunning or closure never affect `public.verify_reference`.
 10. Customer data stays in the EU services in docs/02-decisions.md. Never add a vendor or sub-processor unasked.
 11. Never deploy or touch staging or production yourself: CI deploys after review. Never `supabase link`, `db push`,
-    `functions deploy` or `vercel`, and never merge or approve a pull request: only the `claude-review` workflow
-    approves (D-23), never a session.
+    `functions deploy` or `vercel`. You may update, approve and merge pull requests (D-24): approve only one you did
+    not author and did not push last, after reading its diff against its task; squash-merge only a head that is up to
+    date with main, with every required check green, every review thread resolved and no review requesting changes.
 12. Never edit `supabase/tests/gates/**`, `worker/tests/gates/**`, `fixtures/golden/**`, `content/accepted/**`
     or `.milestone`. They are the oracle. If one looks wrong, stop and explain why.
 
@@ -69,7 +70,8 @@ fixtures/ synthetic and golden labels · worker/prompts/ versioned prompts
   on the web, `t/T-123-name` on a laptop. The PR body names the task: `Task: T-123` and `Closes #N`. The task's
   issue lists its acceptance IDs; each gets a test with the ID in its title. `make verify-task T=<id>` before the PR.
 - The target is fixed in spec/, docs/workflows/ and docs/02-decisions.md. If something is not written down, ask on the
-  issue (label `needs-human`) instead of deciding. Never edit spec/, plan/ or protected files.
+  issue (label `needs-human`) instead of deciding. Never edit spec/, plan/ or protected files unless a founder asks
+  for that change in the session; then add `human-approved` to its PR yourself (D-24), never for the oracle files.
 - Secrets: a session holds only the dev identity. Use `make env-check` and `make doctor` (ENV=dev), or run anything
   else that needs them through `scripts/env/run.sh dev -- <command>`; staging and prod run only in GitHub Actions.
   Never print, echo, log or commit a secret, never write .env files, never run `infisical export`, `infisical secrets` or `printenv`.

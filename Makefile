@@ -86,6 +86,7 @@ verify-fast: ## what the Claude Code Stop hook runs
 	cd worker && uv run ruff check . && uv run pytest -q --junitxml=../reports/worker.xml
 	@if [ -f apps/web/package.json ]; then pnpm --dir apps/web lint && pnpm --dir apps/web typecheck && pnpm --dir apps/web test; fi
 	$(PY) scripts/protocol/validate-plan.py
+	$(PY) -m unittest discover -s scripts/protocol -p 'test_*.py'
 	$(PY) scripts/workflows/render.py --check
 	python3 -m unittest discover -s scripts/env -p 'test_*.py'
 	python3 -m unittest discover -s scripts/doctor -p 'test_*.py'
