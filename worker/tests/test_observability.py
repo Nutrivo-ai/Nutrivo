@@ -102,6 +102,19 @@ def test_reaper_check_in_reports_errors(sentry):
     assert [c["status"] for c in sentry.items("check_in")] == ["in_progress", "error"]
 
 
+def test_source_watch_check_in_is_weekly_and_reports_errors(sentry):
+    with obs.cron_checkin(obs.SOURCE_WATCH_MONITOR, obs.SOURCE_WATCH_CONFIG):
+        pass
+    with pytest.raises(RuntimeError), obs.cron_checkin(obs.SOURCE_WATCH_MONITOR, obs.SOURCE_WATCH_CONFIG):
+        raise RuntimeError("cellar down")
+    sentry_sdk.flush()
+    checkins = sentry.items("check_in")
+    assert [(c["monitor_slug"], c["status"]) for c in checkins] == \
+        [("source-watch", "in_progress"), ("source-watch", "ok"), ("source-watch", "in_progress"),
+         ("source-watch", "error")]
+    assert checkins[0]["monitor_config"]["schedule"] == {"type": "crontab", "value": "0 6 * * 1"}
+
+
 def test_sentry_is_off_without_a_dsn():
     assert obs.init_sentry(Settings()) is False
 

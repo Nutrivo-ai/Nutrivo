@@ -14,6 +14,7 @@ Every failure is seen within minutes, every model call can be explained later, a
 - **Cron monitors (check-ins):**
   - `worker-heartbeat`, every minute;
   - `job-reaper`, every 5 min;
+  - `source-watch`, weekly on Monday at 06:00 UTC (J01, `nutrivo sources watch`);
   - `stripe-reconcile` and `dunning`, daily;
   - `expiry-reminders`, daily;
   - `synthetic-smoke-prod`, every 15 min after launch.

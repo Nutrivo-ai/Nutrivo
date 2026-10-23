@@ -26,6 +26,9 @@ HEARTBEAT_CONFIG = {"schedule": {"type": "crontab", "value": "* * * * *"}, "chec
                     "failure_issue_threshold": 5, "timezone": "UTC"}   # docs/18: a person is told after 5 minutes
 REAPER_CONFIG = {"schedule": {"type": "crontab", "value": "*/5 * * * *"}, "checkin_margin": 5, "max_runtime": 5,
                  "timezone": "UTC"}
+SOURCE_WATCH_MONITOR = "source-watch"
+SOURCE_WATCH_CONFIG = {"schedule": {"type": "crontab", "value": "0 6 * * 1"}, "checkin_margin": 180,  # docs/12: Monday
+                       "max_runtime": 60, "failure_issue_threshold": 1, "timezone": "UTC"}
 
 REDACTED = "[redacted]"
 _PATTERNS = [
@@ -113,15 +116,19 @@ def heartbeat() -> None:
 
 
 @contextlib.contextmanager
-def reaper_checkin() -> Iterator[None]:
-    check_in_id = crons.capture_checkin(monitor_slug=REAPER_MONITOR, status="in_progress",
-                                        monitor_config=REAPER_CONFIG)
+def cron_checkin(slug: str, config: dict[str, Any]) -> Iterator[None]:
+    """in_progress, then ok, or error when the body raises (a missed or failed run alerts, docs/17)."""
+    check_in_id = crons.capture_checkin(monitor_slug=slug, status="in_progress", monitor_config=config)
     try:
         yield
     except Exception:
-        crons.capture_checkin(monitor_slug=REAPER_MONITOR, check_in_id=check_in_id, status="error")
+        crons.capture_checkin(monitor_slug=slug, check_in_id=check_in_id, status="error")
         raise
-    crons.capture_checkin(monitor_slug=REAPER_MONITOR, check_in_id=check_in_id, status="ok")
+    crons.capture_checkin(monitor_slug=slug, check_in_id=check_in_id, status="ok")
+
+
+def reaper_checkin() -> contextlib.AbstractContextManager[None]:
+    return cron_checkin(REAPER_MONITOR, REAPER_CONFIG)
 
 
 # ── Langfuse ────────────────────────────────────────────────────────────────────────────────────────
@@ -171,6 +178,18 @@ def job_observation(job: Any) -> Iterator[Any]:
     with lf.start_as_current_observation(trace_context={"trace_id": job_trace_id(job.kind, job.id)}, name=name,
                                          as_type="span", metadata=job_tags(job)) as span, \
             propagate_attributes(trace_name=name, metadata=job_tags(job)):
+        yield span
+
+
+@contextlib.contextmanager
+def run_observation(name: str, run_id: str, metadata: dict[str, str]) -> Iterator[Any]:
+    """The Langfuse trace of a command run outside the job loop (`<name>:<run_id>`); its model calls nest inside."""
+    from langfuse import Langfuse, propagate_attributes
+
+    trace_name = f"{name}:{run_id}"
+    with langfuse().start_as_current_observation(
+            trace_context={"trace_id": Langfuse.create_trace_id(seed=trace_name)}, name=trace_name, as_type="span",
+            metadata=metadata) as span, propagate_attributes(trace_name=trace_name, metadata=metadata):
         yield span
 
 

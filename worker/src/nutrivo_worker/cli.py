@@ -3,6 +3,8 @@
   nutrivo work     the job loop: every registered handler, the Sentry heartbeat, the reaper every 5 minutes
   nutrivo reap     one reaper pass
   nutrivo sources fetch   official texts from content/sources.yaml into the 'sources' bucket and ref.sources
+  nutrivo sources watch   new documents linked to those acts, triaged by the model into a report for a person (J01)
+  nutrivo horizon record  a person records a horizon item from a watch report, with the stage and dates they give
   nutrivo config   the resolved settings, secrets masked
   nutrivo fixtures run --ruleset <id>
                    rule fixtures, synthetic and golden labels against a ruleset (exit 0 passed, 1 not, 2 error)"""
@@ -16,7 +18,7 @@ from pathlib import Path
 
 from . import models, observability
 from .config import WORKER_ROOT, ConfigError, Settings
-from .logs import get_logger, setup_logging
+from .logs import get_logger, kv, setup_logging
 
 log = get_logger("nutrivo")
 
@@ -96,6 +98,97 @@ def cmd_sources_fetch(settings: Settings, args: argparse.Namespace) -> int:
     return 1 if counts.get("failed") else 0
 
 
+def cmd_sources_watch(settings: Settings, args: argparse.Namespace) -> int:
+    """Exit 0 when every act was queried (withheld items are not failures); 1 when any act failed."""
+    from datetime import UTC, datetime, timedelta
+
+    import sentry_sdk
+
+    from .logs import log_context
+    from .sources import fetch, watch
+    from .sources.http import PoliteClient, RecordingTransport, ReplayTransport, Transport, UrllibTransport
+
+    acts, _, _ = fetch.load_sources(Path(args.sources))
+    if args.celex:
+        acts = [a for a in acts if a.celex in set(args.celex)]
+        if len(acts) != len(set(args.celex)):
+            print("nutrivo: --celex names an act that is not in the sources file", file=sys.stderr)
+            return 2
+    today = datetime.fromisoformat(args.today).date() if args.today else datetime.now(UTC).date()
+    since = (datetime.fromisoformat(args.since).date() if args.since
+             else today - timedelta(days=watch.DEFAULT_LOOKBACK_DAYS))
+    transport: Transport = ReplayTransport(Path(args.replay)) if args.replay else UrllibTransport()
+    if args.record:
+        transport = RecordingTransport(transport, Path(args.record))
+    client = PoliteClient(transport, min_interval_s=0.0 if args.replay else args.min_interval)
+
+    conn, store, known = None, None, set()
+    if settings.database_url:   # model calls are recorded and items already recorded are skipped
+        from .db import PgStore, connect
+        from .sources.horizon import PgHorizonStore
+
+        conn = connect(settings.require_database())
+        store, known = PgStore(conn), PgHorizonStore(conn).known_celex()
+
+    def emit(report: watch.Report) -> None:
+        body = report.to_json()
+        if args.out:
+            Path(args.out).write_text(body, encoding="utf-8")
+            print(json.dumps({"summary": report.counts(), "out": args.out}))
+        else:
+            print(body, end="")
+
+    run_id = str(uuid.uuid4())
+    try:
+        with log_context(request_id=run_id), \
+                observability.cron_checkin(observability.SOURCE_WATCH_MONITOR, observability.SOURCE_WATCH_CONFIG), \
+                sentry_sdk.start_transaction(op="content", name="sources:watch"), \
+                observability.run_observation("sources:watch", run_id, {"request_id": run_id}):
+            report = watch.run(acts, client, models.configure(settings), run_id=run_id, since=since, today=today,
+                               known_celex=known, store=store, max_items=args.max_items)
+            emit(report)                 # the report is written even when an act failed
+            if report.failures:          # and the check-in reports the run as an error
+                raise watch.WatchFailed(f"{len(report.failures)} of {len(acts)} acts failed")
+    except watch.WatchFailed as exc:
+        print(f"nutrivo: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        if conn is not None:
+            conn.close()
+        observability.flush()
+    return 0
+
+
+def cmd_horizon_record(settings: Settings, args: argparse.Namespace) -> int:
+    """Exit 0 recorded or unchanged; 3 refused (the reason code on stderr)."""
+    from datetime import date
+
+    from .db import connect
+    from .sources import horizon
+
+    def day(value: str | None) -> date | None:
+        try:
+            return date.fromisoformat(value) if value else None
+        except ValueError:
+            raise horizon.RecordRefused(f"{value[:20]!r} is not a date (YYYY-MM-DD)", "bad_date") from None
+
+    try:
+        item = horizon.report_item(Path(args.report), args.celex)
+        rec = horizon.recording(item, args.stage, expected_date=day(args.expected_date),
+                                effective_from=day(args.effective_from), notes=args.notes)
+    except horizon.RecordRefused as exc:
+        print(f"nutrivo: refused ({exc.reason}): {exc}", file=sys.stderr)
+        return 3
+    conn = connect(settings.require_database())
+    try:
+        status, item_id = horizon.PgHorizonStore(conn).record(rec)
+    finally:
+        conn.close()
+    log.info("horizon item " + status, extra=kv(celex=rec.celex, stage=rec.stage, horizon_item_id=item_id))
+    print(json.dumps({"status": status, "id": item_id, "celex": rec.celex, "stage": rec.stage}))
+    return 0
+
+
 def cmd_config(settings: Settings) -> int:
     print(settings.model_dump_json(indent=2))
     return 0
@@ -150,6 +243,25 @@ def main(argv: list[str] | None = None) -> int:
     f.add_argument("--min-interval", type=float, default=2.0, help="seconds between requests (default 2)")
     f.add_argument("--record", metavar="DIR", help="also write every exchange to DIR (test recordings)")
     f.add_argument("--replay", metavar="DIR", help="serve recorded exchanges from DIR instead of the network")
+    w = sources_sub.add_parser("watch", help="list new documents linked to the followed acts, triaged for a person")
+    w.add_argument("--sources", default=str(WORKER_ROOT.parent / "content" / "sources.yaml"))
+    w.add_argument("--celex", action="append", help="only this act (repeatable)")
+    w.add_argument("--since", help="documents dated on or after this day (default: 14 days before --today)")
+    w.add_argument("--today", help="the run date, YYYY-MM-DD (default: today, UTC)")
+    w.add_argument("--max-items", type=int, default=60, help="model calls per run at most (default 60)")
+    w.add_argument("--out", help="write the JSON report to this file instead of stdout")
+    w.add_argument("--min-interval", type=float, default=2.0, help="seconds between requests (default 2)")
+    w.add_argument("--record", metavar="DIR", help="also write every exchange to DIR (test recordings)")
+    w.add_argument("--replay", metavar="DIR", help="serve recorded exchanges from DIR instead of the network")
+    hz = sub.add_parser("horizon", help="horizon items (J01)").add_subparsers(dest="horizon_command",
+                                                                           metavar="command", required=True)
+    rec = hz.add_parser("record", help="a person records a horizon item from a source-watch report")
+    rec.add_argument("--report", required=True, help="the JSON report written by `nutrivo sources watch`")
+    rec.add_argument("--celex", required=True, help="the item's CELEX id, as the report lists it")
+    rec.add_argument("--stage", required=True, help="proposal, draft, consultation, adopted, published or in_force")
+    rec.add_argument("--expected-date", help="YYYY-MM-DD, as the person reads it in the official text")
+    rec.add_argument("--effective-from", help="YYYY-MM-DD; only for adopted, published or in_force (BE-37)")
+    rec.add_argument("--notes", help="the person's own note")
     from .fixtures_runner import GOLDEN_DIR, SYNTH_DIR
     fixtures = sub.add_parser("fixtures", help="fixture commands").add_subparsers(dest="fixtures_command",
                                                                                    metavar="subcommand")
@@ -176,11 +288,16 @@ def main(argv: list[str] | None = None) -> int:
         except ConfigError as exc:
             print(f"nutrivo: configuration error: {exc}", file=sys.stderr)
             return 2
-    if args.command != "config":
-        _start(settings)
+    if args.command != "config":   # the watch's stdout carries its report alone
+        watching = args.command == "sources" and args.sources_command == "watch"
+        _start(settings, log_stream=sys.stderr if watching else None)
     try:
         if args.command == "sources":
+            if args.sources_command == "watch":
+                return cmd_sources_watch(settings, args)
             return cmd_sources_fetch(settings, args)
+        if args.command == "horizon":
+            return cmd_horizon_record(settings, args)
         return {"work": cmd_work, "reap": cmd_reap, "config": cmd_config}[args.command](settings)
     except ConfigError as exc:
         print(f"nutrivo: configuration error: {exc}", file=sys.stderr)
