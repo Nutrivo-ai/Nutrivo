@@ -85,5 +85,48 @@ Toast · EmptyState and ErrorState (from the Empty and Error States file).
   - Both Playwright configs launch Chromium with `tests/visual/render.ts`: no font hinting, greyscale antialiasing
     and an sRGB profile. The design baselines were captured with exactly these flags, and without them a stock
     ubuntu runner draws hinted, subpixel text that differs from the baselines by 3–4%.
-- **Left to the screen tasks.** The Shell with left rail, LanguageSwitcher and RegionTree go to T-102 and the screens
-  that use them; ArtworkViewer goes to T-404.
+- **Left to the screen tasks.** LanguageSwitcher and RegionTree go to the screens that use them; ArtworkViewer goes
+  to T-404. The Shell was built in T-102 (below).
+
+### Built in T-102: the shell (`apps/web/src/components/shell`, imported from `@/components/shell`)
+- **Frame.** `Shell` draws Nutrivo 2.0's rail and puts the page beside it. `ShellFrame` is the same frame without data.
+  - The rail is 216 px on `--panel`. It holds the wordmark, the workspace's regions in mono, and grouped links; the
+    active link is `--accent` with white text.
+  - `ScreenHeader` is the page header: a mono crumb in the accent over a 22 px title, on a 1 px ink rule.
+  - Below 768 px the Mobile file's chrome replaces the rail: a top bar, the workspace name as the eyebrow, and a tab
+    bar (Recipes, Alerts, More). More opens the rail in the kit `Dialog`. Every target is at least 44 px.
+- **Rail entries** come from `src/lib/shell/routes.ts`, in Nutrivo 2.0's order, with only the screens that have a
+  route of their own under a workspace. Left out of the rail:
+  - entries that need a product or a check;
+  - catalogue frames, LATER screens, /admin and public routes;
+  - the design's counts, until each screen's own task can read them.
+
+  `routes.test.ts` keeps the file in step with spec/screens.yaml and with the pages.
+- **Workspace switcher (N02, S-PRT-002).** `WorkspaceSwitcher` sits in the header, where the design draws the
+  Compliance Worker button (LATER).
+  - It lists the person's active memberships, each as its name and the person's role, in Partner Tier's style: the
+    current workspace on `--accent-100` with a 2 px accent edge.
+  - Choosing one navigates to the same section of that workspace, or to its home when the page belongs to a product.
+    Nothing is written and nothing is remembered.
+- **States.**
+  - `ShellLoading` is the kit LoadingState.
+  - `ShellError` is the kit ErrorState with "Read it again", and reports to Sentry.
+  - A workspace the person cannot read renders `NoAccess`, which reads the same whether the workspace exists or not.
+    It lists the person's own workspaces, or shows an EmptyState when they have none.
+  - A route above the person's role (spec/screens.yaml `role`) shows NoPermissionState inside the shell. This is
+    presentation only; RLS decides every read.
+  - With no session a workspace route renders Next's not-found page, until sign-in (T-103).
+- **Routes.** Every BUILD screen of spec/screens.yaml under `/w/[workspace]` has a page. Screens owned by later tasks
+  render `ScreenPlaceholder`: the design title and the screen ids, with no content and no reads.
+- **Tests.** `tests/e2e/shell.spec.ts` covers:
+  - the rail and the left of the header on `/kit/shell`, compared with crops of the S-NV2-001 baseline:
+    `tests/visual/shell/rail-S-NV2-001.png` is the box (0, 0, 216, 1831) and `header-S-NV2-001.png` is
+    (216, 0, 860, 68), cut unchanged from the baseline;
+  - the switcher and every state on `/kit/shell/states`, compared with their own images;
+  - N02 end to end, with people and workspaces made through the admin API and `app.create_workspace`;
+  - axe, the no-dead-controls crawl, and the phone chrome at 390 px.
+- **Open on issue #24.**
+  - Where the switcher sits.
+  - What its rows show: the design draws a roll-up glyph, a recipe count and partner billing.
+  - The rail entries left out.
+  - The header's ruleset chip, which is left out until "current" is defined for a workspace.
