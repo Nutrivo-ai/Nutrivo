@@ -41,6 +41,28 @@ EU core plus the language layers for Sweden, Denmark, Finland and Germany. Domai
 composition and additives (the additive register); prescribed wording and general claims; language; net-quantity
 figure height; registration and establishment obligations for the four launch nodes (researched, dated, sourced).
 
+## Fetching the official texts (T-201)
+`nutrivo sources fetch` (worker) reads `content/sources.yaml`, finds each act's latest consolidated version dated on or
+before today, and fetches it in every listed language. Consolidated versions dated later are listed in the output
+but not fetched. The tool goes through CELLAR, the Publications Office repository that EUR-Lex is published from: the
+EUR-Lex site answers automated clients with a bot challenge (docs/14). It sends one request every 2 seconds, retries
+429, 5xx and network errors up to 4 times with backoff, and fails a challenge at once.
+- **Stored exactly as served.** The XHTML body goes byte for byte to the private `sources` bucket at
+  `eurlex/{celex}/{lang}/{sha256}.xhtml`, with one `ref.sources` row: kind `eurlex`, `celex` the consolidated CELEX id
+  (`02009R0767-20181226`: the suffix is the consolidation date; `eurlex.consolidation_date()` reads it), language,
+  url of the manifestation fetched, licence from the file, `retrieved_at`, sha256 and storage_path. An act with no
+  consolidated version is stored as published under its own CELEX id, and the output says so.
+- **Checked.** A body that does not read as the requested language fails as `language_mismatch` and is not stored.
+- **Idempotent.** The same celex, language and sha256 again gives `unchanged` and no new row. A body that changed
+  gives a new row; the old one stays, so an excerpt keeps matching the text it was taken from.
+- **Visible.** One JSON line per document: `stored`, `unchanged`, `fetched` (dry run) or `failed` with a reason
+  (`source_blocked`, `retries_exhausted`, `not_available`, `language_mismatch`, `storage_error`, ...), then a
+  summary. Any failure exits 1 and goes to Sentry with ids and the reason only.
+- **Running it.** `scripts/env/run.sh dev -- uv run nutrivo sources fetch` needs `DATABASE_URL`, `SUPABASE_URL` and
+  `SUPABASE_SERVICE_ROLE_KEY`. `--dry-run` fetches and hashes only. `--celex` and `--lang` narrow the run.
+  `--record DIR` and `--replay DIR` write and serve recorded exchanges (tests use `worker/tests/recordings/eurlex`).
+  Nothing in it writes rule content or sets any status.
+
 ## Candidate targets
 `content/candidates/eu-core.yaml` lists the first targets. **Every citation there is a candidate written from
 general knowledge: paragraph letters especially must be confirmed against the consolidated text before any

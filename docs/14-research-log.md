@@ -83,6 +83,13 @@ from the Publications Office (the EUR-Lex back end): its SPARQL endpoint publica
 the consolidated texts at publications.europa.eu/resource/celex/{id}. Reader links:
 eur-lex.europa.eu/legal-content/EN/ALL/?uri=CELEX:{celex}. A cross-check on the EUR-Lex pages themselves is still to do.
 
+T-201 (23 Oct 2026, own run of `nutrivo sources fetch --dry-run`) confirms every row below and fetched all 40 texts.
+The run covered 8 acts × EN, SV, DA, FI and DE, and each text passed the language check. The challenge is AWS WAF:
+HTTP 202 with an empty body and `x-amzn-waf-action: challenge`. The fetcher fails it as `source_blocked` and does not
+try to pass it. CELLAR needs no key. The text is negotiated with `Accept: application/xhtml+xml` and an ISO 639-2
+`Accept-Language` (eng, swe, dan, fin, deu), and the request is redirected (303, on plain http) to the language
+manifestation. A version that does not exist answers 404. Recorded responses: worker/tests/recordings/eurlex.
+
 | CELEX | Exists, title matches | Latest consolidated version |
 |---|---|---|
 | 32009R0767 | Yes (amended by 568/2010, 939/2010, 2017/2279, 2018/1903) | 02009R0767-20181226 |
