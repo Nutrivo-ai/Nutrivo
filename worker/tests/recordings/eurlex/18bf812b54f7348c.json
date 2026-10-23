@@ -1,0 +1,15 @@
+{
+  "method": "GET",
+  "url": "https://publications.europa.eu/resource/cellar/41b18ce9-df1d-11e7-9749-01aa75ed71a1.0006.03/DOC_1",
+  "request_headers": {
+    "accept": "application/xhtml+xml",
+    "accept-language": "eng"
+  },
+  "status": 200,
+  "headers": {
+    "content-type": "application/xhtml+xml;charset=UTF-8",
+    "etag": "\"Con-20250211221317000\"",
+    "last-modified": "Tue, 11 Feb 2025 21:13:17 GMT"
+  },
+  "body_sha256": "4d4541ed8a509e5ff8b8b1904be35e26a61e955acf78bcae47affa2117542a8a"
+}
