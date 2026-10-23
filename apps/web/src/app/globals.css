@@ -1,26 +1,97 @@
-@import "tailwindcss";
+/* Tailwind without its preflight reset: every design file renders on the design set's own base
+   (design/_ds/.../styles.css: border-box sizing, body 15px/1.55, paragraph and heading margins), so the app does too and
+   matches design/ pixel for pixel. Its colours and fonts are replaced by the Cobalt tokens (src/styles/tokens.css). */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "../styles/tokens.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-*: initial;
+  --font-*: initial;
+  --radius-*: initial;
+  --shadow-*: initial;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-rule: var(--rule);
+  --color-panel: var(--panel);
+  --color-accent: var(--accent);
+  --color-accent-100: var(--accent-100);
+  --color-accent-200: var(--accent-200);
+  --color-accent-600: var(--accent-600);
+  --color-accent-700: var(--accent-700);
+  --color-n200: var(--n200);
+  --color-n300: var(--n300);
+  --color-n400: var(--n400);
+  --color-n500: var(--n500);
+  --color-n600: var(--n600);
+  --color-n700: var(--n700);
+  --color-n800: var(--n800);
+  --color-clear: var(--clear);
+  --color-clear-bg: var(--clear-bg);
+  --color-action: var(--action);
+  --color-action-bg: var(--action-bg);
+  --color-na: var(--none);
+  --color-na-bg: var(--none-bg);
+  --color-blocked: var(--blocked);
+  --color-blocked-bg: var(--blocked-bg);
+  --font-head: var(--head);
+  --font-mono: var(--mono);
+  /* Cobalt §5: 3px on controls and panels, 0 on tables and documents; shadows only on modals (ink at 8%). */
+  --radius-control: 3px;
+  --shadow-modal: 0 12px 32px color-mix(in srgb, var(--ink) 8%, transparent);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.55;
+    font-weight: 400;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--head);
+    -webkit-font-smoothing: antialiased;
   }
+  h1, h2, h3, h4, h5, h6 { font-family: var(--head); font-weight: 600; line-height: 1.12; letter-spacing: -0.03em; margin: 0 0 6.8px; }
+  h1 { font-size: 42px; }
+  h2 { font-size: 32px; }
+  h3 { font-size: 25px; }
+  h4 { font-size: 20px; }
+  h5 { font-size: 16px; }
+  h6 { font-size: 13px; }
+  p { margin: 0 0 10.2px; }
+  a { color: var(--accent-700); text-decoration: none; text-underline-offset: 3px; }
+  a:hover { color: var(--accent); }
+  img { display: block; max-width: 100%; }
+  button { font: inherit; color: inherit; }
+  :focus { outline: none; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* The blueprint frame of the design set (_ds styles.css): registration marks drawn outside the box. */
+  .blueprint { position: relative; }
+  .blueprint > .corner {
+    position: absolute; width: 11px; height: 11px;
+    color: color-mix(in srgb, var(--ink) 55%, transparent);
+  }
+  .blueprint > .corner::before, .blueprint > .corner::after { content: ""; position: absolute; background: currentColor; }
+  .blueprint > .corner::before { left: 5px; top: 0; width: 1px; height: 100%; }
+  .blueprint > .corner::after { top: 5px; left: 0; width: 100%; height: 1px; }
+  .blueprint > .corner.tl { top: -6px; left: -6px; }
+  .blueprint > .corner.tr { top: -6px; right: -6px; }
+  .blueprint > .corner.bl { bottom: -6px; left: -6px; }
+  .blueprint > .corner.br { bottom: -6px; right: -6px; }
+
+  .kit-dialog::backdrop { background: color-mix(in srgb, var(--ink) 30%, transparent); }
+}
+
+/* Cobalt §5: 120ms ease-out on state change; nothing animates on load. */
+@media (prefers-reduced-motion: no-preference) {
+  .kit-transition { transition: background-color 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out; }
 }
