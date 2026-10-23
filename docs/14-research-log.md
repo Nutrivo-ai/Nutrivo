@@ -194,7 +194,7 @@ Enforcement is T-014.
    [Done 23 Oct 2026: docs/11.]
 6. **content/sources.yaml (T-202 input).** The Feed Additives Register has no "current edition" any more; it is an
    online database since 5 April 2023, so the importer needs a different source shape.
-   [Done 23 Oct 2026: content/sources.yaml; the export format is checked in T-202.]
+   [Done 23 Oct 2026: content/sources.yaml. T-202 found no export: the importer reads the portal's JSON API (§6).]
 7. **content/candidates/eu-core.yaml.** Seven article references are wrong or incomplete (§7). They are candidates,
    not accepted content; the correction belongs to a content-lane task and to K01/K02 acceptance by a person.
    [Done 23 Oct 2026: references corrected in content/candidates/eu-core.yaml; a person still confirms them at acceptance.]
