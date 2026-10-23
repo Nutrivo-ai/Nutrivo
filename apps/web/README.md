@@ -7,8 +7,12 @@ Rules for this folder: `.claude/rules/web.md`.
 |---|---|
 | `pnpm dev` / `build` / `start` | Next.js |
 | `pnpm lint` · `pnpm typecheck` · `pnpm test` | ESLint · route types and `tsc` · Vitest (`src/**/*.test.ts`) |
-| `pnpm e2e` | Playwright (`tests/e2e`) against `BASE_URL` or `http://localhost:3000`; installs Chromium only in CI |
+| `pnpm e2e` | Playwright (`tests/e2e`) against `BASE_URL` or `http://localhost:3000`; installs Chromium only in CI. Screenshot assertions read `tests/visual/` (design baselines and the kit's images) |
 | `pnpm baselines` | Captures every screen of `spec/screens.yaml` from design/ into `tests/visual/baselines/` (docs/20 §2) |
+
+Design system: the Cobalt tokens are in `src/styles/tokens.css` and the component kit is in
+`src/components/kit` (import it from `@/components/kit`). `/kit` and `/kit/empty-and-error-states` are the kit's test
+pages and return 404 in production. docs/10 describes both.
 
 Wiring, all off when its variables are unset (names from `config/env.example`):
 - **Supabase:** `src/lib/supabase/{client,server}.ts` with @supabase/ssr; `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
