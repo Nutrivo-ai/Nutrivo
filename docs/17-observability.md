@@ -51,7 +51,9 @@ release. Never label text, never secrets.
 ## Proving it works
 `make doctor ENV=<env>` performs a round-trip for each service:
 - **Sentry:** sends an event with a unique id to each DSN, then reads it back through the API.
-- **Langfuse:** creates a trace, then fetches it by id.
+- **Langfuse:** sends one span through its OpenTelemetry endpoint (`/api/public/otel/v1/traces`), then reads it back
+  through `/api/public/v2/observations`. Langfuse Cloud retires the v3 ingestion API on 2026-11-16 and already answers
+  410 to v3 trace reads for new projects.
 - **PostHog:** sends a capture.
 
 Once staging deploys are switched on (T-010, docs/22 §4), the staging deploy runs the same round-trip after every merge, so a broken DSN or key fails the pipeline instead of

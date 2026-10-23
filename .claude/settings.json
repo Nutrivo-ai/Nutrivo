@@ -24,13 +24,10 @@
       "Bash(supabase db reset --linked:*)", "Bash(supabase db reset --db-url:*)", "Bash(supabase test db --linked:*)",
       "Bash(supabase * --linked*)", "Bash(supabase * --db-url*)",
       "Bash(gh api -X:*)", "Bash(gh api --method:*)", "Bash(gh api *-X*)", "Bash(gh api *--method*)",
-      "Bash(npx vercel:*)", "Bash(vercel:*)", "Bash(*gh pr merge*)", "Bash(*gh pr review*)", "Bash(gh repo delete:*)",
+      "Bash(npx vercel:*)", "Bash(vercel:*)", "Bash(gh repo delete:*)",
       "Bash(gh secret list:*)", "Bash(git push --force:*)", "Bash(git push -f:*)", "Bash(git reset --hard:*)",
       "Bash(git push *--force*)", "Bash(*printenv*)",
-      "Bash(git tag:*)", "Bash(git push *--tags*)", "Bash(git push *refs/tags/*)", "Bash(git push *--follow-tags*)",
-      "mcp__github__merge_pull_request", "mcp__github__pull_request_review_write", "mcp__github__enable_pr_auto_merge",
-      "Bash(gh pr edit *human-approved*)", "Bash(gh pr edit *scope-approved*)",
-      "Bash(gh issue edit *human-approved*)", "Bash(gh issue edit *scope-approved*)"
+      "Bash(git tag:*)", "Bash(git push *--tags*)", "Bash(git push *refs/tags/*)", "Bash(git push *--follow-tags*)"
     ]
   },
   "hooks": {
