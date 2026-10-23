@@ -11,7 +11,7 @@ PSQL = $(if $(shell command -v psql),psql -Atq postgresql://postgres:postgres@12
 # Every target is a command, never a file: without this, `make fixtures` sees the fixtures/ directory and does nothing.
 .PHONY: help bootstrap db-start db-reset db-migrate fixtures typegen env-check doctor design-fetch design-check \
         validate-plan workflows issues-sync next verify-task autopilot status gates db-tap test verify-fast verify e2e \
-        e2e-ci smoke acceptance-staging conformance conformance-update
+        e2e-ci smoke acceptance-staging conformance conformance-update stripe-catalogue
 
 help: ## list targets
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -37,6 +37,9 @@ env-check: ## names present or missing in Infisical for ENV (never values); ALL=
 	bash scripts/env/check.sh $(ENV) $(if $(ALL),--all,)
 doctor: ## prove every service for ENV, with Sentry and Langfuse round-trips (READONLY=1 for prod)
 	$(RUN) uv run --no-project --with boto3 python scripts/doctor/doctor.py --env $(ENV) $(if $(READONLY),--readonly,)
+stripe-catalogue: ## create or update the Stripe TEST catalogue from config/pricing.ts (ENV=dev only; DRY=1 previews)
+	@[ "$(ENV)" = dev ] || { echo "stripe-catalogue runs for ENV=dev only: staging and prod run in GitHub Actions" >&2; exit 1; }
+	$(RUN) node --no-warnings scripts/stripe/catalogue.ts $(if $(DRY),--dry-run,)
 
 # ── Design ────────────────────────────────────────────────────────────────────────────────────────
 design-fetch: ## download the design set listed in design/MANIFEST.json
@@ -86,7 +89,11 @@ verify-fast: ## what the Claude Code Stop hook runs
 	cd worker && uv run ruff check . && uv run pytest -q --junitxml=../reports/worker.xml
 	@if [ -f apps/web/package.json ]; then pnpm --dir apps/web lint && pnpm --dir apps/web typecheck && pnpm --dir apps/web test; fi
 	$(PY) scripts/protocol/validate-plan.py
+	$(PY) -m unittest discover -s scripts/protocol -p 'test_*.py'
 	$(PY) scripts/workflows/render.py --check
+	python3 -m unittest discover -s scripts/env -p 'test_*.py'
+	python3 -m unittest discover -s scripts/doctor -p 'test_*.py'
+	node --no-warnings --test scripts/stripe/*.test.ts
 verify: verify-fast e2e ## everything CI runs
 e2e: ## full-stack end-to-end on the local stack
 	@if [ -f apps/web/package.json ]; then bash scripts/ci/e2e.sh; else echo "apps/web is scaffolded in T-007"; fi

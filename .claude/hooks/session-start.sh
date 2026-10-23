@@ -32,6 +32,12 @@ then ok "ghostscript+poppler"; else fail "apt could not install ghostscript and 
 
 # Docker daemon: the local Supabase stack runs in it.
 if ! docker info >/dev/null 2>&1; then
+  # A resumed container keeps the pid file of a dockerd that no longer runs; dockerd refuses to start while that pid
+  # is any live process, and in a new container it often is, so keep the file only if the pid is a running dockerd.
+  if [ -f /var/run/docker.pid ] \
+     && [ "$(cat "/proc/$(cat /var/run/docker.pid 2>/dev/null)/comm" 2>/dev/null)" != dockerd ]; then
+    rm -f /var/run/docker.pid
+  fi
   (nohup dockerd >/tmp/dockerd.log 2>&1 &)
   for _ in $(seq 1 30); do docker info >/dev/null 2>&1 && break; sleep 1; done
 fi

@@ -15,6 +15,29 @@
 | Feature misbehaving | Sentry, PostHog | Kill-switch flag off | Always |
 | Expired or rotated key | Nightly doctor | — | Next morning |
 
+## The job runtime (worker, T-008)
+- **Messages.** A pgmq message carries only `{job_id}`; one queue per kind. A kind with no registered handler is not
+  polled.
+- **Claim.** A job is claimed with a conditional update: either `queued`, or `running` with `updated_at` older than
+  the 15-minute lease. A job that is already `succeeded`, `failed` or `cancelled` never runs again; its duplicate
+  message is deleted. A job held by a live worker keeps its message hidden for another lease.
+- **Lease.** While a handler runs, its message stays hidden for the lease. A handler that runs longer than that calls
+  `ctx.heartbeat()`, which also publishes `app.jobs.progress`.
+- **Success.** The status is committed first, then the message is deleted.
+- **Failure.**
+  - Each failure retries with exponential backoff (10 s · 2^(attempt-1), capped at 15 min, with jitter), applied
+    through the message's visibility timeout.
+  - The 5th failure, or a `PermanentJobError`, marks the job `failed` with a safe `last_error`, archives the message
+    and reports to Sentry.
+- **Concurrency.** Bounded per kind (`WORKER_CONCURRENCY`, default 1, or the handler's own limit).
+- **Shutdown.** SIGTERM stops polling and drains the jobs in flight.
+- **Reaper.**
+  - It runs inside the worker every 5 minutes (also `nutrivo reap`), with the Sentry `job-reaper` check-in.
+  - It requeues jobs `running` past the lease with a fresh message; a job with no attempts left becomes `failed`
+    instead.
+  - It warns Sentry when a reaped job has run at least twice.
+  - Whether it should move to pg_cron (a db-lane change) is open on issue #17.
+
 ## Rules that make this work
 - **Idempotency.** Every job is keyed and every write is idempotent; unique constraints make repeated effects
   impossible.

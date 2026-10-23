@@ -27,7 +27,7 @@ fi
 protected='^(spec/(acceptance|nfr|screens)\.yaml$|CLAUDE\.md$|\.claude/|plan/tasks\.yaml$|docs/02-decisions\.md$|supabase/migrations/2026100800000)'
 if echo "$changed" | grep -Eq "$protected"; then
   echo "WARNING: protected files changed: $(echo "$changed" | grep -E "$protected" | tr '\n' ' ')" >&2
-  echo "A founder must add the label 'human-approved' to the PR." >&2
+  echo "The PR needs the label 'human-approved': add it yourself only if a founder asked for this change (D-24)." >&2
   echo "If no person asked for this, restore them (git checkout origin/main -- <path>)." >&2
 fi
 

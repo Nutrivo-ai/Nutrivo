@@ -24,6 +24,21 @@ nothing.
   - viewports.
 - **Baselines.** A Playwright script opens each design file locally, switches it to each screen and saves a
   screenshot to `apps/web/tests/visual/baselines/<id>.png`.
+  - `pnpm --dir apps/web baselines` (`playwright.baselines.config.ts`) serves design/ over HTTP and sets the design's
+    own component state recorded in the entry's `state` (what its rail, tab or step sets).
+  - It saves a full page at 1600 px, or for the Mobile file's phones the phone element (`element`).
+  - Re-run it only when design/ or the inventory changes.
+- **Guard.** `apps/web/src/lib/screens/inventory.test.ts` (in `pnpm test`) checks the inventory against design/:
+  - every frame a design file switches to is inventoried exactly once;
+  - every design file in product/, public/ and documents/ is covered;
+  - every workflow id exists and every baseline is present.
+- **What T-012 found** (104 screens):
+  - Nutrivo 2.0, 34;
+  - Missing Surfaces 5, Onboarding 8, Plans and Checkout 6, Workspace Settings 6, Billing Settings 4,
+    Account Recovery 5, Partner Tier 4, Partner Upsell 2, Mobile 6, Empty and Error States 1;
+  - 16 public frames, 6 emails, 3 documents.
+- **Recorded as proposals.** Routes and roles are not written down elsewhere, so they are proposals. They are listed
+  with the other open questions (Q1 to Q5 in the file's header) for G4.
 - **Gate G4.** The founders approve the inventory; from then on it is the frontend's target.
 
 ## 3 · Demo data identical to the design (T-013)
