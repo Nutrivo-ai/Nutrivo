@@ -63,6 +63,36 @@ EUR-Lex site answers automated clients with a bot challenge (docs/14). It sends 
   `--record DIR` and `--replay DIR` write and serve recorded exchanges (tests use `worker/tests/recordings/eurlex`).
   Nothing in it writes rule content or sets any status.
 
+## Importing the additive register and the feed-material catalogue (T-202)
+`nutrivo sources import additives` and `nutrivo sources import materials` (worker) take the same options as the
+fetcher (`--dry-run`, `--record DIR`, `--replay DIR`, `--min-interval`) and need the same three settings. Both write
+reference data only: no rule, term, coverage or status. One JSON line per pull and per entry, then a summary; a failed
+pull or an answer of an unexpected shape exits 1 and **writes nothing**, so a partial register or catalogue is never
+imported. Tests replay `worker/tests/recordings/register` and `worker/tests/recordings/catalogue`.
+- **The register.** The EU Register of Feed Additives has no editions and no download (docs/14 §6). The importer
+  pulls the JSON the portal's own screen reads (`ec.europa.eu/food/food-feed-portal/backend/api`): every register
+  entry, the legislation they cite and the reference labels. Each body is stored byte for byte in the `sources`
+  bucket at `register/feed-additives/{endpoint}/{sha256}.json` with a `ref.sources` row (kind `register`, url,
+  `retrieved_at`, sha256, licence `eu_reuse`); the same body again is `unchanged`.
+- **What becomes a row of `ref.feed_additives`.** Only an entry the register lets us write without guessing: its
+  identification number is present and on no other entry, no authorisation has a deletion date, and no linked act
+  withdraws, repeals, denies or suspends it (a link type the importer does not know also skips the entry). Every
+  other entry is reported `skipped` with its reason (`no_identification_number`, `ambiguous_identification_number`,
+  `deleted`, `withdrawn`, `unknown_legislation_type`, `unknown_legislation`, `no_name`) and stays in the stored pull.
+  A row holds the name and functional group as served, each authorisation's species string unsplit, the "Primary"
+  act's title as `authorising_act`, `expiry` only when every authorisation gives the same date, and `source_id` of the
+  entries pull. **`max_content`, `conditions` and `category` are never written**: the register does not serve the
+  first two (they are in each authorising act). A row an earlier import wrote that the current pull does not support
+  is reported `stale` and left in place. On 23 Oct 2026: 2,026 entries, 1,055 rows.
+- **The catalogue.** The latest consolidated text of Regulation (EU) No 68/2013 dated on or before today, fetched and
+  stored in every launch language exactly as `nutrivo sources fetch` does. Annex Part C is read from each language:
+  `names` holds each language's name from its own text and leaves a language out where that text has no entry
+  (reported `language_missing`; 5.41.1 has no Danish entry in 02013R0068-20220724). Footnote references and the
+  consolidation markers (`►M1`, `◄`) are dropped by their markup; `description` and `compulsory_declarations` (one
+  item per printed line) come from the English text, and `source_id` is the English text's row.
+- **Open (issue #32, needs-human).** Holding the register per authorisation with a status, removing stale rows,
+  per-language provenance for `ref.feed_materials`, and where maximum contents and conditions come from.
+
 ## Candidate targets
 `content/candidates/eu-core.yaml` lists the first targets. **Every citation there is a candidate written from
 general knowledge: paragraph letters especially must be confirmed against the consolidated text before any
