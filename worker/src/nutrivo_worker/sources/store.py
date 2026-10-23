@@ -7,7 +7,8 @@ status: nothing here accepts anything."""
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+import time
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Literal, Protocol
@@ -17,7 +18,7 @@ from psycopg.rows import dict_row
 
 from ..errors import SafeError
 from .eurlex import Document
-from .http import Transport, UrllibTransport
+from .http import Transport, TransportError, UrllibTransport
 
 if TYPE_CHECKING:
     from .register import Pull
@@ -72,6 +73,27 @@ class StorageClient:
         if resp.status in (400, 409) and _already_exists(resp.body):
             return
         raise StorageError(f"storage upload to {bucket} answered HTTP {resp.status}")
+
+    def get(self, bucket: str, path: str, *, attempts: int = 3,
+            sleep: Callable[[float], None] = time.sleep) -> bytes:
+        """A stored object's bytes. Network errors and 5xx retry with backoff, `attempts` times in all."""
+        headers: Mapping[str, str] = {"Authorization": f"Bearer {self._key}", "apikey": self._key}
+        url = f"{self.url}/storage/v1/object/authenticated/{bucket}/{quote(path)}"
+        last = "no attempt"
+        for attempt in range(attempts):
+            if attempt:
+                sleep(2.0 ** (attempt - 1))
+            try:
+                resp = self.transport.send("GET", url, headers)
+            except TransportError as exc:
+                last = str(exc)
+                continue
+            if resp.status == 200:
+                return resp.body
+            last = f"HTTP {resp.status}"
+            if resp.status < 500:
+                break
+        raise StorageError(f"storage read from {bucket} failed ({last})")
 
 
 def _already_exists(body: bytes) -> bool:

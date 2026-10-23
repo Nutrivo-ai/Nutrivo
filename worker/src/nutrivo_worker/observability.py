@@ -174,6 +174,19 @@ def job_observation(job: Any) -> Iterator[Any]:
         yield span
 
 
+@contextlib.contextmanager
+def content_observation(name: str, metadata: dict[str, str]) -> Iterator[Any]:
+    """A content-operations trace (`content:extract:<rule_key>:<source_id>`), as a job trace: the id is derived from
+    the name, so a rerun of the same unit of work joins its trace, and model calls inside become its generations."""
+    from langfuse import Langfuse, propagate_attributes
+
+    lf = langfuse()
+    with lf.start_as_current_observation(trace_context={"trace_id": Langfuse.create_trace_id(seed=name)}, name=name,
+                                         as_type="span", metadata=metadata) as span, \
+            propagate_attributes(trace_name=name, metadata=metadata):
+        yield span
+
+
 def flush() -> None:
     with contextlib.suppress(Exception):
         if _langfuse is not None:

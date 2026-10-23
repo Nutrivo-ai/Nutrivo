@@ -4,6 +4,7 @@
   nutrivo reap     one reaper pass
   nutrivo sources fetch   official texts from content/sources.yaml into the 'sources' bucket and ref.sources
   nutrivo sources import  the Feed Additives Register → ref.feed_additives; the Catalogue → ref.feed_materials
+  nutrivo content extract  K01/K02: candidates from content/candidates/eu-core.yaml over the stored sources
   nutrivo config   the resolved settings, secrets masked
   nutrivo fixtures run --ruleset <id>
                    rule fixtures, synthetic and golden labels against a ruleset (exit 0 passed, 1 not, 2 error)"""
@@ -143,6 +144,44 @@ def cmd_sources_import(settings: Settings, args: argparse.Namespace) -> int:
     print(json.dumps({"summary": summary(outcomes), "requests": client.requests_sent}))
     observability.flush()
     return 1 if any(o.status == "failed" for o in outcomes) else 0
+def cmd_content_extract(settings: Settings, args: argparse.Namespace) -> int:
+    """Exit 0 when every pair is stored, updated, unchanged, extracted (dry run), skipped or withheld; 1 when any
+    failed. Withheld and skipped are visible states with a reason, not failures: a person reads them in the output."""
+    import sentry_sdk
+
+    from .content import extract, targets
+    from .content.store import PgCandidateStore, PgSourceReader
+    from .db import connect
+    from .logs import log_context
+    from .sources import fetch
+    from .sources.store import StorageClient
+
+    acts, languages, _ = fetch.load_sources(Path(args.sources))
+    chosen = targets.load_targets(Path(args.targets), {a.celex for a in acts})
+    if args.target:
+        chosen = [t for t in chosen if t.key in set(args.target)]
+        if len(chosen) != len(set(args.target)):
+            print("nutrivo: --target names a key that is not in the targets file", file=sys.stderr)
+            return 2
+    if args.lang:
+        languages = [lang for lang in languages if lang in set(args.lang)]
+    conn = connect(settings.require_database())
+    try:
+        reader = PgSourceReader(conn, StorageClient(*settings.require_storage()))
+        store = None if args.dry_run else PgCandidateStore(conn)
+        with log_context(request_id=str(uuid.uuid4())), \
+                sentry_sdk.start_transaction(op="content", name="content:extract"):
+            results = extract.run(chosen, reader, store, models.configure(settings), languages=languages)
+    finally:
+        conn.close()
+    for r in results:
+        print(json.dumps(r.as_dict(), ensure_ascii=False))
+    counts: dict[str, int] = {}
+    for r in results:
+        counts[r.status] = counts.get(r.status, 0) + 1
+    print(json.dumps({"summary": counts}))
+    observability.flush()
+    return 1 if counts.get("failed") else 0
 
 
 def cmd_config(settings: Settings) -> int:
@@ -206,6 +245,14 @@ def main(argv: list[str] | None = None) -> int:
     imp.add_argument("--min-interval", type=float, default=2.0, help="seconds between requests (default 2)")
     imp.add_argument("--record", metavar="DIR", help="also write every exchange to DIR (test recordings)")
     imp.add_argument("--replay", metavar="DIR", help="serve recorded exchanges from DIR instead of the network")
+    content = sub.add_parser("content", help="content operations over stored sources (docs/12)")
+    content_sub = content.add_subparsers(dest="content_command", metavar="command", required=True)
+    x = content_sub.add_parser("extract", help="K01/K02: two independent extractions per target into candidates")
+    x.add_argument("--targets", default=str(WORKER_ROOT.parent / "content" / "candidates" / "eu-core.yaml"))
+    x.add_argument("--sources", default=str(WORKER_ROOT.parent / "content" / "sources.yaml"))
+    x.add_argument("--target", action="append", help="only this rule key (repeatable)")
+    x.add_argument("--lang", action="append", help="only this language (repeatable)")
+    x.add_argument("--dry-run", action="store_true", help="extract and compare; write no candidate")
     from .fixtures_runner import GOLDEN_DIR, SYNTH_DIR
     fixtures = sub.add_parser("fixtures", help="fixture commands").add_subparsers(dest="fixtures_command",
                                                                                    metavar="subcommand")
@@ -239,6 +286,8 @@ def main(argv: list[str] | None = None) -> int:
             if args.sources_command == "import":
                 return cmd_sources_import(settings, args)
             return cmd_sources_fetch(settings, args)
+        if args.command == "content":
+            return cmd_content_extract(settings, args)
         return {"work": cmd_work, "reap": cmd_reap, "config": cmd_config}[args.command](settings)
     except ConfigError as exc:
         print(f"nutrivo: configuration error: {exc}", file=sys.stderr)
