@@ -1,5 +1,5 @@
-# Founders approve every merge (gate G5). Both founders are collaborators with write access (docs/22 §1): any one
-# listed owner's approval satisfies code-owner review.
+# The protocol check reads the "*" line to know whose approval labels count (D-24). Both founders have write
+# access (docs/22 §1); code-owner review is off in the main ruleset (D-23).
 *                         @ar835 @abnutrivo
 /spec/                    @ar835 @abnutrivo
 /plan/                    @ar835 @abnutrivo

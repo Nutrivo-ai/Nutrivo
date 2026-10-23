@@ -28,7 +28,9 @@
   `PRODUCTION_DEPLOY_ENABLED` (T-1101, G7) and `SYNTHETIC_ENABLED` (T-1102). Until an organisation owner sets one to `true`, the
   matching workflow does nothing. docs/22-github-and-team.md has the click path.
 - **Existing names.** Names you already use can map to the canonical ones in `config/secret-aliases.env`
-  (names only, never values).
+  (names only, never values): one `CANONICAL=EXISTING` per line, `#` comments allowed. `scripts/env/aliases.py` reads
+  it for the run wrapper, `make env-check` and CI alike; a line that is not two upper-case names stops them with its
+  line number, never its text.
 
 ## Rules
 - Run anything that needs secrets through `scripts/env/run.sh <env> -- <command>`. Secrets exist only in that

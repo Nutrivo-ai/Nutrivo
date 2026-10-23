@@ -55,9 +55,12 @@ Any task may touch docs/. Anything else outside the task's lanes fails the proto
 7. **CI.** Required checks: protocol, secrets-scan, database, worker, web, e2e, conformance. On an autopilot PR a
    failure triggers the fixer (up to three attempts) before a person is asked.
 8. **Review.** The Claude reviewer comments against the spec, and the `claude-review` workflow approves on
-   APPROVE-READY or requests changes on CHANGES-NEEDED (D-23). A founder can still approve, or dismiss its review.
+   APPROVE-READY or requests changes on CHANGES-NEEDED (D-23). The `main` ruleset requires no approval (D-24); a
+   founder can still approve, or dismiss a review, and a Claude Code session approves pull requests it did not author
+   or push last.
 9. **Merge.** Through the merge queue, or only when up to date with main, so the PR is tested on the latest main and
-   main stays green.
+   main stays green. A Claude Code session updates the branch and squash-merges once every required check is green,
+   every thread is resolved and no review requests changes (D-24).
 10. **Staging.** Once `STAGING_DEPLOY_ENABLED` is set at T-010 (docs/22 §4), every merge deploys to staging, then runs
     smoke tests and the Sentry and Langfuse round-trip. A failure rolls back and opens an incident issue.
 11. **Close.** The issue closes, dependants become ready, and `spec/conformance-baseline.json` keeps the IDs the task
@@ -66,7 +69,7 @@ Any task may touch docs/. Anything else outside the task's lanes fails the proto
 ## Required checks and what each one stops
 | Check | Stops |
 |---|---|
-| protocol | Work without a task; out-of-lane changes; edits to protected files; edited or out-of-order migrations; stale generated specs; an invalid plan |
+| protocol | Work without a task; out-of-lane changes; edits to protected files; edited or out-of-order migrations; stale generated specs; an invalid plan; a failing repository-script test or an unparsable `config/secret-aliases.env` |
 | secrets-scan | Secrets committed to the repository |
 | database | Any gate or app pgTAP failure |
 | worker | Unit, handler and extraction-gate failures; lint |
@@ -102,7 +105,8 @@ runs tasks in sequence on a laptop only, because it needs `gh pr`, which the web
 - **May:** claim ready tasks, write code and tests, open pull requests, fix its own CI failures, answer review
   comments.
 - **May not:**
-  - merge, or approve (only the `claude-review` workflow approves, D-23);
+  - merge, or approve (the `claude-review` workflow approves, D-23, and a founder's Claude Code session merges,
+    D-24);
   - change spec/ or protected files;
   - deploy to production;
   - accept regulatory content;
