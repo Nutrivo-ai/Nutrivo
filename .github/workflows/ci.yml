@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with: { version: 2.120.0 }
-      - run: supabase db start
+      - run: bash scripts/ci/supabase-start.sh db start
       - run: supabase test db
       - name: Per-test TAP for the conformance report
         run: |
@@ -56,7 +56,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with: { version: 2.120.0 }
-      - run: supabase db start
+      - run: bash scripts/ci/supabase-start.sh db start
       - run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - run: cd worker && uv sync
@@ -120,7 +120,7 @@ jobs:
       # One local stack for the whole run: the database, Auth, Storage, Realtime, Mailpit and the Edge runtime. Studio,
       # the log pipeline, the pooler and image transformation are not used by tests, and skipping them saves the pulls.
       - if: steps.app.outputs.ready == 'true'
-        run: supabase start -x studio,logflare,vector,supavisor,imgproxy && make e2e-ci
+        run: bash scripts/ci/supabase-start.sh start -x studio,logflare,vector,supavisor,imgproxy && make e2e-ci
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with: { name: reports-e2e, path: reports/ }
