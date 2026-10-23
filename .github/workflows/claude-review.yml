@@ -24,7 +24,7 @@ jobs:
       - name: Note the start of this review
         id: started
         run: echo "at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
-      - uses: anthropics/claude-code-action@db77d4d3c98f3f6380e7cd45ffba2342a3dbde3c # v1.0.254
+      - uses: anthropics/claude-code-action@e4a6faad497d33dbc7144135c75e41f82f0bf6c0 # v1.0.255
         with:
           anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
           allowed_bots: claude          # autopilot pull requests are opened and pushed by claude[bot]
