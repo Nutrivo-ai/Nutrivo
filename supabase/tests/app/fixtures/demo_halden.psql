@@ -1,0 +1,323 @@
+-- Demo seed (T-013): the Halden Pet Nutrition workspace from the design's mock data (docs/20 §3).
+-- Synthetic. No real customer data, no secrets: demo sign-in passwords are random at load time (use a magic link),
+-- file hashes are computed here, and email addresses use reserved .example domains.
+-- It lives under supabase/tests so the pgTAP container can read it: 10_demo_seed.test.sql loads it inside a rolled-back
+-- transaction. The .psql extension keeps pg_prove and the TAP loop from running it as a test. Load it into a database
+-- with supabase/seed/demo/load.sh (local, CI, the staging demo workspace); never into production.
+-- Idempotent: if the workspace exists the whole file does nothing.
+--
+-- No rule, no verdict (CLAUDE.md 3, 6, 7). The design shows Clear, Action and Blocked cells against ruleset 2026.08-b;
+-- no such ruleset or accepted rule exists. Every demo check is pinned to the baseline ruleset '0000.00-empty', every
+-- product node reads not_assessed, and every finding is withheld with its node × domain gap_id. Nothing here writes
+-- ref content. What the seed holds and leaves out: supabase/seed/demo/README.md.
+
+do $seed$
+declare
+  ws        constant uuid := 'da7a0000-0000-4000-8000-000000000001';
+  -- people (app.people) and their auth users
+  p_holm    constant uuid := 'da7a0001-0000-4000-8000-000000000001';
+  p_feldt   constant uuid := 'da7a0001-0000-4000-8000-000000000002';
+  p_lindq   constant uuid := 'da7a0001-0000-4000-8000-000000000003';
+  p_reuter  constant uuid := 'da7a0001-0000-4000-8000-000000000004';
+  p_salo    constant uuid := 'da7a0001-0000-4000-8000-000000000005';
+  p_kvist   constant uuid := 'da7a0001-0000-4000-8000-000000000006';
+  -- families (recipes)
+  f_salmon  constant uuid := 'da7a0003-0000-4000-8000-000000000001';
+  f_pupchk  constant uuid := 'da7a0003-0000-4000-8000-000000000002';
+  f_pupslm  constant uuid := 'da7a0003-0000-4000-8000-000000000003';
+  f_senior  constant uuid := 'da7a0003-0000-4000-8000-000000000004';
+  f_urin    constant uuid := 'da7a0003-0000-4000-8000-000000000005';
+  f_indoor  constant uuid := 'da7a0003-0000-4000-8000-000000000006';
+  f_work    constant uuid := 'da7a0003-0000-4000-8000-000000000007';
+  f_snrslm  constant uuid := 'da7a0003-0000-4000-8000-000000000008';
+  -- products: the last digits are the design's SKU (the schema has no SKU column)
+  pr_4471   constant uuid := 'da7a0004-0000-4000-8000-000000004471';
+  pr_4472   constant uuid := 'da7a0004-0000-4000-8000-000000004472';
+  pr_4402   constant uuid := 'da7a0004-0000-4000-8000-000000004402';
+  pr_4403   constant uuid := 'da7a0004-0000-4000-8000-000000004403';
+  pr_4488   constant uuid := 'da7a0004-0000-4000-8000-000000004488';
+  pr_4519   constant uuid := 'da7a0004-0000-4000-8000-000000004519';
+  pr_4521   constant uuid := 'da7a0004-0000-4000-8000-000000004521';
+  pr_4530   constant uuid := 'da7a0004-0000-4000-8000-000000004530';
+  pr_4390   constant uuid := 'da7a0004-0000-4000-8000-000000004390';
+  -- suppliers
+  s_aldrich constant uuid := 'da7a0005-0000-4000-8000-000000000001';
+  s_march   constant uuid := 'da7a0005-0000-4000-8000-000000000002';
+  s_nordf   constant uuid := 'da7a0005-0000-4000-8000-000000000003';
+  s_botan   constant uuid := 'da7a0005-0000-4000-8000-000000000004';
+  s_kessler constant uuid := 'da7a0005-0000-4000-8000-000000000005';
+  s_peptico constant uuid := 'da7a0005-0000-4000-8000-000000000006';
+  baseline  constant text := '0000.00-empty';
+  board_nodes constant text[] := array['EU-DE','EU-AT','US-TX','EU-NL','EU-BE','EU-FR'];
+  r record;
+begin
+  if exists (select 1 from app.workspaces w where w.id = ws) then
+    raise notice 'demo seed: Halden Pet Nutrition already present, nothing to do';
+    return;
+  end if;
+  if not exists (select 1 from ref.ruleset_versions rv where rv.id = baseline) then
+    raise exception 'demo seed: baseline ruleset % is missing; apply the migrations first', baseline;
+  end if;
+
+  -- ─── People (Workspace Settings · People and roles) ─────────────────────────────────────────────
+  -- Auth users get a random password generated here and never stored anywhere: sign in by magic link.
+  insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+                          raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+                          confirmation_token, recovery_token, email_change_token_new, email_change)
+  select '00000000-0000-0000-0000-000000000000', u.id, 'authenticated', 'authenticated', u.email,
+         extensions.crypt(gen_random_uuid()::text, extensions.gen_salt('bf')), u.at,
+         '{"provider":"email","providers":["email"]}'::jsonb, jsonb_build_object('display_name', u.name),
+         u.at, u.at, '', '', '', ''
+  from (values
+    ('da7a0002-0000-4000-8000-000000000001'::uuid, 'j.holm@haldenpet.example',    'Johanna Holm',    timestamptz '2026-05-04 09:00+02'),
+    ('da7a0002-0000-4000-8000-000000000002'::uuid, 'm.feldt@haldenpet.example',   'Marit Feldt',     timestamptz '2026-05-06 10:12+02'),
+    ('da7a0002-0000-4000-8000-000000000003'::uuid, 'e.lindqvist@haldenpet.example','Erik Lindqvist', timestamptz '2026-08-29 17:44+02'),
+    ('da7a0002-0000-4000-8000-000000000004'::uuid, 'k.reuter@reglar.example',     'Katrin Reuter',   timestamptz '2026-06-15 11:30+02'),
+    ('da7a0002-0000-4000-8000-000000000005'::uuid, 'p.salo@haldenpet.example',    'Petra Salo',      timestamptz '2026-05-20 08:45+02'),
+    ('da7a0002-0000-4000-8000-000000000006'::uuid, 'a.kvist@haldenpet.example',   'Anders Kvist',    timestamptz '2026-07-01 13:05+02')
+  ) as u(id, email, name, at);
+
+  insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
+  select gen_random_uuid(), u.id, u.id::text, 'email',
+         jsonb_build_object('sub', u.id::text, 'email', u.email, 'email_verified', true), null, u.created_at, u.created_at
+  from auth.users u where u.id::text like 'da7a0002-%';
+
+  insert into app.people (id, user_id, display_name, email, created_at)
+  select ('da7a0001' || substr(u.id::text, 9))::uuid, u.id, u.raw_user_meta_data ->> 'display_name', u.email, u.created_at
+  from auth.users u where u.id::text like 'da7a0002-%';
+
+  -- ─── Workspace (Workspace Settings, Billing Settings: Standard, annual, EU and US) ───────────────
+  insert into app.workspaces (id, name, entitled_regions, plan, status, default_operator, created_by, created_at)
+  values (ws, 'Halden Pet Nutrition', '{EU,US}', 'standard', 'active',
+          jsonb_build_object('name', 'Halden Pet Nutrition AB', 'city', 'Göteborg', 'country', 'SE'),
+          p_holm, '2026-05-04 09:00+02');
+
+  insert into app.memberships (workspace_id, person_id, role, is_external, scope_family_ids, scope_node_ids,
+                               access_ends_at, created_at) values
+    (ws, p_holm,   'admin',             false, null, null, null, '2026-05-04 09:00+02'),
+    (ws, p_feldt,  'portfolio_manager', false, null, null, null, '2026-05-06 10:12+02'),
+    -- "Adult dog · complete dry": the adult dog dry recipe
+    (ws, p_lindq,  'editor',            false, array[f_salmon], null, null, '2026-08-29 17:44+02'),
+    -- "9 recipes · EU markets only · until 31 Dec 2026" (the design's count; the seed has seven live dog and cat recipes)
+    (ws, p_reuter, 'editor',            true,  array[f_salmon, f_pupchk, f_pupslm, f_senior, f_urin, f_indoor, f_work],
+                                               -- the design's end date while it is ahead; afterwards always 90 days ahead
+                                               array['EU'], greatest(timestamptz '2026-12-31 23:59:59+01', now() + interval '90 days'),
+                                               '2026-06-15 11:30+02'),
+    (ws, p_salo,   'viewer',            false, null, null, null, '2026-05-20 08:45+02'),
+    -- "Adult range only · no end date"
+    (ws, p_kvist,  'viewer',            true,  array[f_salmon, f_urin, f_indoor, f_work], null, null, '2026-07-01 13:05+02');
+
+  -- Signing authority (Workspace Settings · Signing authority): rows, never implied by role (BE-04). Texas: no holder.
+  insert into app.signing_grants (workspace_id, person_id, node_id, granted_by, granted_at)
+  select ws, p_feldt, n, p_holm, timestamptz '2026-08-06 10:00+02' from unnest(array['EU-DE','EU-AT','EU-NL','EU-BE']) as n
+  union all
+  select ws, p_holm, n, p_holm, timestamptz '2026-05-04 09:05+02' from unnest(array['UK-GB','UK-NI']) as n;
+
+  insert into app.subscriptions (workspace_id, plan, term, status, regions, editor_seats, recipes_included,
+                                 current_period_end, updated_at)
+  values (ws, 'standard', 'annual', 'active', '{EU,US}', 5, 30, '2027-09-04 00:00+02', '2026-09-04 08:00+02');
+
+  -- ─── Recipes and products (Nutrivo 2.0 · Portfolio board) ───────────────────────────────────────
+  insert into app.families (id, workspace_id, name, discontinued_at, created_at) values
+    (f_salmon, ws, 'Salmon & Rice Adult Dry',   null, '2026-05-12 09:00+02'),
+    (f_pupchk, ws, 'Puppy Grain-Free Chicken',  null, '2026-05-12 09:05+02'),
+    (f_pupslm, ws, 'Puppy Grain-Free Salmon',   null, '2026-05-12 09:10+02'),
+    (f_senior, ws, 'Senior Joint Support Wet',  null, '2026-08-20 14:00+02'),
+    (f_urin,   ws, 'Feline Urinary Care Dry',   null, '2026-08-31 10:00+02'),
+    (f_indoor, ws, 'Feline Indoor Chicken Dry', null, '2026-05-12 09:20+02'),
+    (f_work,   ws, 'Working Dog High Energy',   null, '2026-05-12 09:25+02'),
+    (f_snrslm, ws, 'Senior Salmon Complete Dry', '2026-08-28 10:05+02', '2026-05-12 09:30+02');
+
+  insert into app.products (id, workspace_id, family_id, name, stage, species, life_stage, format, discontinued_at, created_at) values
+    (pr_4471, ws, f_salmon, 'Salmon & Rice Adult Dry 12 kg',   'active',         'dog', 'adult',  'dry', null, '2026-05-12 09:00+02'),
+    (pr_4472, ws, f_salmon, 'Salmon & Rice Adult Dry 3 kg',    'active',         'dog', 'adult',  'dry', null, '2026-05-12 09:01+02'),
+    (pr_4402, ws, f_pupchk, 'Puppy Grain-Free Chicken 2 kg',   'active',         'dog', 'growth', 'dry', null, '2026-05-12 09:05+02'),
+    (pr_4403, ws, f_pupslm, 'Puppy Grain-Free Salmon 2 kg',    'active',         'dog', 'growth', 'dry', null, '2026-05-12 09:10+02'),
+    -- Brief NB-0219: a draft formula, no artwork yet (Brief & formula, Design envelope)
+    (pr_4488, ws, f_senior, 'Senior Joint Support Wet 400 g',  'in_development', 'dog', 'senior', 'wet', null, '2026-08-20 14:00+02'),
+    -- "Awaiting spec · never run"
+    (pr_4519, ws, f_urin,   'Feline Urinary Care Dry 2 kg',    'active',         'cat', 'adult',  'dry', null, '2026-08-31 10:00+02'),
+    (pr_4521, ws, f_indoor, 'Feline Indoor Chicken Dry 4 kg',  'active',         'cat', 'adult',  'dry', null, '2026-05-12 09:20+02'),
+    (pr_4530, ws, f_work,   'Working Dog High Energy 15 kg',   'active',         'dog', 'adult',  'dry', null, '2026-05-12 09:25+02'),
+    (pr_4390, ws, f_snrslm, 'Senior Salmon Complete Dry 12 kg','discontinued',   'dog', 'senior', 'dry', '2026-08-28 10:05+02', '2026-05-12 09:30+02');
+
+  -- Every live product on the board's six nodes. Registration state stays unknown: nothing about obligations is encoded.
+  insert into app.product_nodes (product_id, node_id, workspace_id, updated_at)
+  select p.id, n, ws, p.created_at
+  from app.products p cross join unnest(board_nodes) as n
+  where p.workspace_id = ws and p.stage <> 'discontinued';
+
+  -- ─── Formula and intended claims (Brief & formula: Senior Joint Support Wet) ────────────────────
+  -- Register references stay null: matching to ref.feed_materials / ref.feed_additives is content operations' work.
+  insert into app.formula_lines (workspace_id, product_id, position, ingredient, percent, amount, unit, applied_by, created_at) values
+    (ws, pr_4488, 1, 'Chicken breast, cooked',       38.0, null, null,    p_feldt, '2026-09-03 10:00+02'),
+    (ws, pr_4488, 2, 'Chicken liver',                12.0, null, null,    p_feldt, '2026-09-03 10:00+02'),
+    (ws, pr_4488, 3, 'Marine collagen peptides',      3.5, null, null,    p_feldt, '2026-09-03 10:00+02'),
+    (ws, pr_4488, 4, 'Glucosamine HCl',               0.8, null, null,    p_feldt, '2026-09-03 10:00+02'),
+    (ws, pr_4488, 5, 'Green-lipped mussel powder',    1.2, null, null,    p_feldt, '2026-09-03 10:00+02'),
+    (ws, pr_4488, 6, 'Botanical blend 4B',            0.6, null, null,    p_feldt, '2026-09-03 10:00+02'),
+    (ws, pr_4488, 7, 'Zinc chelate of amino acids',  null, 180,  'mg/kg', p_feldt, '2026-09-03 10:00+02');
+
+  insert into app.intended_claims (workspace_id, product_id, language, claim_text, created_at) values
+    (ws, pr_4488, 'en', 'Joint mobility support',                                  '2026-09-03 10:05+02'),
+    (ws, pr_4488, 'de', 'Zur Unterstützung der Gelenkfunktion bei älteren Hunden', '2026-09-03 10:05+02'),
+    (ws, pr_4471, 'de', 'Für Haut und Fell',                                       '2026-07-19 09:00+02');
+
+  -- ─── Artwork (Upload & scope, Label report) ─────────────────────────────────────────────────────
+  -- No file is stored: storage_path names where it would live. The hash is computed from a fixed label here.
+  insert into app.artwork_versions (id, workspace_id, product_id, version, file_sha256, storage_path, file_name, mime_type,
+                                    page_count, page_size_mm, is_new_artwork, uploaded_by, created_at)
+  select md5('halden-demo:artwork:' || a.sku || ':v' || a.v)::uuid, ws, a.pid, a.v,
+         encode(extensions.digest('halden-demo:artwork:' || a.sku || ':v' || a.v, 'sha256'), 'hex'),
+         ws::text || '/' || a.pid::text || '/' || a.file, a.file, 'application/pdf', 1, '{420,297}', a.v = a.first_v, a.who, a.at
+  from (values
+    (pr_4471, '4471', 6, 6, 'salmon-rice-12kg-v6.pdf', p_holm,  timestamptz '2026-07-19 08:40+02'),
+    (pr_4471, '4471', 7, 6, 'salmon-rice-12kg-v7.pdf', p_holm,  timestamptz '2026-08-11 15:20+02'),
+    (pr_4472, '4472', 1, 1, 'salmon-rice-3kg-v1.pdf',  p_holm,  timestamptz '2026-07-19 08:45+02'),
+    (pr_4402, '4402', 4, 4, 'puppy-gf-chicken-2kg-v4.pdf', p_feldt, timestamptz '2026-08-06 14:11+02'),
+    (pr_4403, '4403', 1, 1, 'puppy-gf-salmon-2kg-v1.pdf', p_feldt, timestamptz '2026-06-10 11:00+02'),
+    (pr_4521, '4521', 1, 1, 'feline-indoor-chicken-4kg-v1.pdf', p_feldt, timestamptz '2026-06-12 09:30+02'),
+    (pr_4530, '4530', 1, 1, 'working-dog-15kg-v1.pdf', p_feldt, timestamptz '2026-08-02 10:15+02')
+  ) as a(pid, sku, v, first_v, file, who, at);
+
+  -- The free allowance was spent on the first three new artworks before the Standard plan (BE-32).
+  insert into app.allowances (workspace_id, labels_allowed, labels_used, updated_at)
+  values (ws, 3, 3, '2026-06-12 09:30+02');
+  insert into app.allowance_consumptions (artwork_version_id, workspace_id, consumed_at)
+  select av.id, ws, av.created_at from app.artwork_versions av
+  where av.workspace_id = ws and av.is_new_artwork order by av.created_at limit 3;
+
+  -- One extraction run and four language panels per latest artwork. Engine 'demo_seed' says where the data came from.
+  insert into app.extraction_runs (id, workspace_id, product_id, artwork_version_id, engine, engine_version, status,
+                                   idempotency_key, started_at, finished_at, created_at)
+  select md5('halden-demo:run:' || av.id)::uuid, ws, av.product_id, av.id, 'demo_seed', 'T-013', 'succeeded',
+         'extract:' || av.id::text, av.created_at, av.created_at + interval '40 seconds', av.created_at
+  from app.artwork_versions av
+  where av.workspace_id = ws
+    and av.version = (select max(x.version) from app.artwork_versions x where x.product_id = av.product_id);
+
+  insert into app.artwork_panels (id, workspace_id, product_id, artwork_version_id, extraction_run_id, page, panel_index,
+                                  bbox_mm, language, language_confidence, status, created_at)
+  select md5('halden-demo:panel:' || er.artwork_version_id || ':' || l.lang)::uuid, ws, er.product_id, er.artwork_version_id,
+         er.id, 1, l.idx, l.bbox, l.lang, 0.99, 'extracted', er.finished_at
+  from app.extraction_runs er
+  cross join (values (0, 'de', '{0,0,105,297}'::numeric[]), (1, 'nl', '{105,0,210,297}'::numeric[]),
+                     (2, 'fr', '{210,0,315,297}'::numeric[]), (3, 'en', '{315,0,420,297}'::numeric[])) as l(idx, lang, bbox)
+  where er.workspace_id = ws;
+
+  -- The German panel of Salmon & Rice 12 kg v7 as printed (the report's pins 1 to 7 and the claim panel).
+  insert into app.text_objects (workspace_id, product_id, panel_id, text, bbox_mm, font_name, font_size_pt,
+                                x_height_mm, cap_height_mm, is_ocr, confidence, reading_order)
+  select ws, pr_4471, md5('halden-demo:panel:' || md5('halden-demo:artwork:4471:v7')::uuid || ':de')::uuid,
+         t.txt, t.bbox, 'Inter', t.pt, t.xh, t.ch, false, 1, t.ord
+  from (values
+    (1, 'Alleinfuttermittel für ausgewachsene Hunde', '{8,14,97,22}'::numeric[], 13.0, 2.42, 3.34),
+    (2, 'Zusammensetzung: Lachs (26 %), Reis, Geflügelfett, Rübentrockenschnitzel, Leinsamen, Hefe', '{8,60,97,74}'::numeric[], 7.5, 1.38, 1.92),
+    (3, 'Analytische Bestandteile', '{8,80,62,85}'::numeric[], 10.0, 1.91, 2.62),
+    (4, 'Rohprotein 26,0 % · Rohfett 15,0 % · Rohfaser 2,4 % · Rohasche 7,1 %', '{8,86,97,92}'::numeric[], 7.5, 1.38, 1.92),
+    (5, 'Ernährungsphysiologische Zusatzstoffe: Vitamin A 18 000 IE, Zink (Chelat) 180 mg', '{8,98,97,108}'::numeric[], 7.5, 1.38, 1.92),
+    (6, 'Fütterungsempfehlung nach Körpergewicht. Frisches Wasser bereitstellen.', '{8,120,97,130}'::numeric[], 8.0, 1.47, 2.05),
+    (7, '12 kg ℮ · L2608-114 · MHD 11/2027', '{8,250,70,256}'::numeric[], 9.0, 1.66, 2.30),
+    (8, 'Nutrivo GmbH, Musterstraße 4, 20095 Hamburg · Zul.-Nr. αDE0114', '{8,262,97,268}'::numeric[], 6.5, 1.20, 1.66),
+    (9, 'Für Haut und Fell', '{8,36,60,44}'::numeric[], 12.0, 2.21, 3.07)
+  ) as t(ord, txt, bbox, pt, xh, ch);
+
+  -- ─── Checks (Label report, Portfolio board, Product × node) ─────────────────────────────────────
+  -- One job per product. The key is the request_check shape under a 'demo-seed:' prefix, so a real re-check is never
+  -- answered by a seeded job: it runs.
+  for r in
+    select av.product_id, av.id as av_id, av.file_sha256, av.created_at,
+           case when av.uploaded_by = p_holm then p_holm else p_feldt end as actor
+    from app.artwork_versions av
+    where av.workspace_id = ws
+      and av.version = (select max(x.version) from app.artwork_versions x where x.product_id = av.product_id)
+  loop
+    insert into app.jobs (id, workspace_id, kind, idempotency_key, status, payload, progress, attempts,
+                          requested_by, created_at, updated_at)
+    values (md5('halden-demo:job:' || r.av_id)::uuid, ws, 'check',
+            format('demo-seed:check:%s:%s:%s:%s:%s', r.product_id, r.file_sha256, baseline, '-',
+                   array_to_string(array(select n from unnest(board_nodes) n order by n), ',')),
+            'succeeded',
+            jsonb_build_object('product_id', r.product_id, 'artwork_version_id', r.av_id, 'ruleset_version', baseline,
+                               'classification_id', null,
+                               'node_ids', to_jsonb(array(select n from unnest(board_nodes) n order by n))),
+            jsonb_build_object('checks', 7, 'done', 7), 1, r.actor,
+            r.created_at + interval '2 minutes', r.created_at + interval '3 minutes');
+
+    -- One check per node × printed language panel: DE and AT read German, BE reads both Dutch and French, TX English.
+    insert into app.checks (id, workspace_id, job_id, product_id, node_id, artwork_version_id, panel_id, language,
+                            artwork_sha, ruleset_version, label_state, actor_id, actor_is_external, trigger, at)
+    select md5('halden-demo:check:' || r.av_id || ':' || m.node || ':' || m.lang)::uuid, ws,
+           md5('halden-demo:job:' || r.av_id)::uuid, r.product_id, m.node, r.av_id,
+           md5('halden-demo:panel:' || r.av_id || ':' || m.lang)::uuid, m.lang, r.file_sha256, baseline,
+           'not_assessed', r.actor, false, 'user', r.created_at + interval '3 minutes'
+    from (values ('EU-DE','de'), ('EU-AT','de'), ('EU-NL','nl'), ('EU-BE','nl'), ('EU-BE','fr'),
+                 ('EU-FR','fr'), ('US-TX','en')) as m(node, lang);
+
+    update app.product_nodes pn
+       set ruleset_version = baseline, last_check_job_id = md5('halden-demo:job:' || r.av_id)::uuid,
+           updated_at = r.created_at + interval '3 minutes'
+     where pn.product_id = r.product_id;
+  end loop;
+
+  -- Every finding is withheld: one per check and domain, carrying the coverage gap that explains why (BE-10, BE-21).
+  insert into app.check_findings (workspace_id, check_id, product_id, node_id, gap_id, state, kind, provenance,
+                                  message, panel_id, language, reason_code, created_at)
+  select ws, c.id, c.product_id, c.node_id, g.gap_id, 'not_assessed',
+         case g.domain when 'registration' then 'registration' when 'type_geometry' then 'geometry' else 'label' end,
+         'not_assessed', g.description, c.panel_id, c.language, g.reason_code, c.at
+  from app.checks c
+  join ref.coverage_nodes cn on cn.ruleset_version = c.ruleset_version and cn.node_id = c.node_id
+  join ref.coverage_gaps g on g.gap_id = cn.gap_id
+  where c.workspace_id = ws
+  order by c.at, c.node_id, c.language, g.domain;
+
+  -- ─── Suppliers and documents (Library · Suppliers, Portfolio · Documents) ───────────────────────
+  insert into app.suppliers (id, workspace_id, name, created_at) values
+    (s_aldrich, ws, 'Aldrich Nutrition',         '2026-05-14 09:00+02'),
+    (s_march,   ws, 'Marchetti Marine',          '2026-05-14 09:05+02'),
+    (s_nordf,   ws, 'Nordfleisch',               '2026-05-14 09:10+02'),
+    (s_botan,   ws, 'Botanica Fine Ingredients', '2026-08-21 09:00+02'),
+    (s_kessler, ws, 'Kessler Mühle',             '2026-05-14 09:15+02'),
+    (s_peptico, ws, 'Peptico Biosciences',       '2026-08-21 09:05+02');
+
+  insert into app.supplier_documents (workspace_id, supplier_id, product_id, doc_type, storage_path, file_sha256,
+                                      valid_from, valid_to, uploaded_via, scan_status, created_at)
+  select ws, d.sup, d.pid, d.kind, ws::text || '/documents/' || d.file,
+         encode(extensions.digest('halden-demo:document:' || d.file, 'sha256'), 'hex'),
+         d.vfrom, d.vto, d.via, 'clean', d.at
+  from (values
+    (s_aldrich, null::uuid, 'specification', 'SPEC-0442-premix-PMX-118.pdf', date '2025-06-03', date '2026-06-03', 'member', timestamptz '2025-06-05 10:00+02'),
+    (s_aldrich, null::uuid, 'specification', 'SPEC-0518-vitamin-premix-declaration.pdf', date '2026-04-01', date '2027-03-31', 'member', timestamptz '2026-04-02 10:00+02'),
+    (s_march,   null::uuid, 'certificate_of_analysis', 'CERT-0311-fish-oil-coa.pdf', date '2026-03-14', date '2026-09-14', 'supplier_link', timestamptz '2026-03-16 09:00+01'),
+    (null::uuid, null::uuid, 'establishment_registration', 'aBE0092-establishment-registration.pdf', date '2021-11-01', date '2026-10-31', 'member', timestamptz '2026-05-15 10:00+02'),
+    (null::uuid, null::uuid, 'test_protocol', 'QA-2024-07-salmonella-testing-protocol.pdf', date '2024-11-30', date '2026-11-30', 'member', timestamptz '2026-05-15 10:05+02'),
+    (null::uuid, pr_4471, 'specification', 'SPEC-4471-rev-C.pdf', date '2026-08-03', null::date, 'member', timestamptz '2026-08-03 11:00+02'),
+    (null::uuid, pr_4471, 'certificate_of_analysis', 'L2608-analytical-certificate.pdf', date '2026-08-09', null::date, 'member', timestamptz '2026-08-09 09:30+02')
+  ) as d(sup, pid, kind, file, vfrom, vto, via, at);
+
+  -- Open requests: drafts until the worker sends them, which is when token_hash is set (H02).
+  insert into app.document_requests (workspace_id, supplier_id, product_id, doc_type, expires_at, created_by, created_at) values
+    (ws, s_aldrich, null,    'specification',  '2026-09-17 11:20+02', p_feldt, '2026-09-03 11:20+02'),
+    (ws, s_botan,   pr_4488, 'component_list', '2026-09-16 15:00+02', p_feldt, '2026-09-02 15:00+02'),
+    (ws, s_peptico, pr_4488, 'feed_material_designation', '2026-09-16 15:05+02', p_feldt, '2026-09-02 15:05+02');
+
+  -- ─── Audit (Workspace Settings · Audit log): what the seed itself did, actor stamped (BE-06) ───
+  insert into app.audit_events (workspace_id, actor_id, actor_is_external, kind, object_type, object_id, after, ruleset_version, at)
+  values
+    (ws, p_holm,   false, 'workspace.created',     'workspace', ws::text, jsonb_build_object('name', 'Halden Pet Nutrition'), null, '2026-05-04 09:00+02'),
+    (ws, p_holm,   false, 'signing_grant.created', 'person', p_feldt::text, jsonb_build_object('nodes', array['EU-DE','EU-AT','EU-NL','EU-BE']), null, '2026-08-06 10:00+02'),
+    (ws, p_holm,   false, 'artwork.registered',    'artwork_version', md5('halden-demo:artwork:4471:v7')::uuid::text, jsonb_build_object('version', 7), null, '2026-08-11 15:20+02'),
+    (ws, p_holm,   false, 'product.discontinued',  'product', pr_4390::text, jsonb_build_object('stage', 'discontinued'), null, '2026-08-28 10:05+02'),
+    (ws, p_lindq,  false, 'invitation.accepted',   'person', p_lindq::text, jsonb_build_object('role', 'editor'), null, '2026-08-29 17:44+02'),
+    (ws, p_feldt,  false, 'document_request.created', 'supplier', s_aldrich::text, jsonb_build_object('doc_type', 'specification'), null, '2026-09-03 11:20+02'),
+    (ws, p_holm,   false, 'membership.changed',    'person', p_reuter::text, jsonb_build_object('access_ends_at', '2026-12-31'), null, '2026-09-03 16:02+02');
+
+  insert into app.audit_events (workspace_id, actor_id, actor_is_external, kind, object_type, object_id, after, ruleset_version, at)
+  select ws, j.requested_by, false, 'check.completed', 'job', j.id::text,
+         jsonb_build_object('product_id', j.payload ->> 'product_id', 'label_state', 'not_assessed'), baseline, j.updated_at
+  from app.jobs j where j.workspace_id = ws and j.kind = 'check';
+
+  raise notice 'demo seed: Halden Pet Nutrition loaded';
+end
+$seed$;
