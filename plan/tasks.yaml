@@ -48,7 +48,7 @@ tasks:
   - {id: T-208, ms: M2, lanes: [content], gate: human, deps: [T-205, T-206, T-202], title: "Founders accept the first EU core rules and release the first ruleset (gate G6)"}
   # ── M3 · Artwork extraction ─────────────────────────────────────────────────────────────────────────
   - {id: T-301, ms: M3, lanes: [worker], deps: [T-008], title: "Extraction spike: pypdfium2 against pdfplumber, results recorded in docs/06"}
-  - {id: T-302, ms: M3, lanes: [worker], deps: [T-301], title: "Extraction to the contract: worker gates BE-16, BE-17, BE-18 pass"}
+  - {id: T-302, ms: M3, lanes: [worker], deps: [T-301], title: "Extraction to the contract: worker gates BE-16, BE-17, BE-18 pass; pypdfium2 + fontTools engine with pdfplumber moved to dev dependencies (D-15); synthetic generator wraps the operator line and adds one deliberate gutter-overflow fixture with expected panel attribution (#39)"}
   - {id: T-303, ms: M3, lanes: [web, worker], deps: [T-302, T-102], wf: [D01, C02], title: "Upload flow: signed upload, register_artwork, extract job, Realtime progress, product from artwork"}
   - {id: T-304, ms: M3, lanes: [web], deps: [T-303], wf: [D02], title: "Panel triage view"}
   # ── M4 · First demo path ────────────────────────────────────────────────────────────────────────────
