@@ -87,6 +87,7 @@ verify-fast: ## what the Claude Code Stop hook runs
 	@if [ -f apps/web/package.json ]; then pnpm --dir apps/web lint && pnpm --dir apps/web typecheck && pnpm --dir apps/web test; fi
 	$(PY) scripts/protocol/validate-plan.py
 	$(PY) scripts/workflows/render.py --check
+	python3 -m unittest discover -s scripts/env -p 'test_*.py'
 verify: verify-fast e2e ## everything CI runs
 e2e: ## full-stack end-to-end on the local stack
 	@if [ -f apps/web/package.json ]; then bash scripts/ci/e2e.sh; else echo "apps/web is scaffolded in T-007"; fi

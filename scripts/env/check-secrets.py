@@ -3,6 +3,7 @@ check.sh unsets every canonical and alias name before Infisical runs, so a name 
 import argparse, os, sys
 from pathlib import Path
 import yaml
+from aliases import load  # scripts/env/aliases.py, beside this file
 
 ROOT = Path(__file__).resolve().parents[2]
 TOOL_VARS = {"UV", "VIRTUAL_ENV", "SHLVL", "_", "PWD", "OLDPWD", "NUTRIVO_ENV"}  # set by the wrapper chain itself
@@ -12,12 +13,7 @@ ap.add_argument("--baseline")
 ap.add_argument("--all", action="store_true", help="also require names whose resource a later task creates")
 a = ap.parse_args()
 secrets = yaml.safe_load((ROOT / "config/secrets.yaml").read_text())["secrets"]
-aliases = {}
-alias_file = ROOT / "config/secret-aliases.env"
-if alias_file.exists():
-    for line in alias_file.read_text().splitlines():
-        if "=" in line and not line.strip().startswith("#"):
-            k, v = (p.strip() for p in line.split("=", 1)); aliases[v] = k
+aliases = {existing: canonical for canonical, existing in load(ROOT / "config/secret-aliases.env")}
 missing, present, later = [], [], []
 for s in secrets:
     if a.env not in s.get("envs", []):
