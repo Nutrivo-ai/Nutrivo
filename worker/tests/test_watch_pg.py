@@ -46,6 +46,18 @@ def test_J01_main_a_person_records_a_triaged_proposal_once(conn, tmp_path):
     assert TEST_PROPOSAL in store.known_celex()        # the next watch skips it
 
 
+def test_J01_main_recording_other_values_for_the_same_item_is_refused_not_dropped(conn):
+    item = {"celex": TEST_PROPOSAL, "title": "Proposal for a REGULATION (test)"}
+    store = horizon.PgHorizonStore(conn)
+    status, item_id = store.record(horizon.recording(item, "proposal", expected_date=date(2027, 6, 30)))
+    assert status == "recorded"
+    with pytest.raises(horizon.RecordRefused) as exc:
+        store.record(horizon.recording(item, "proposal", expected_date=date(2027, 9, 30)))
+    assert exc.value.reason == "conflicts_with_existing"
+    (row,) = rows(conn, TEST_PROPOSAL)
+    assert str(row["id"]) == item_id and row["expected_date"] == date(2027, 6, 30)
+
+
 def test_J01_must_1_the_database_refuses_an_effective_date_on_a_proposal(conn):
     with pytest.raises(psycopg.errors.CheckViolation), conn.transaction():
         conn.execute("insert into ref.horizon_items (title, stage, effective_from, celex) values (%s, %s, %s, %s)",

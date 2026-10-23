@@ -26,9 +26,9 @@ HEARTBEAT_CONFIG = {"schedule": {"type": "crontab", "value": "* * * * *"}, "chec
                     "failure_issue_threshold": 5, "timezone": "UTC"}   # docs/18: a person is told after 5 minutes
 REAPER_CONFIG = {"schedule": {"type": "crontab", "value": "*/5 * * * *"}, "checkin_margin": 5, "max_runtime": 5,
                  "timezone": "UTC"}
+# J01's watch has no scheduler yet (a db or infra task): its check-ins carry no monitor_config, so Sentry never
+# expects a weekly run that nothing makes. The task that adds the schedule adds the config with it (docs/17).
 SOURCE_WATCH_MONITOR = "source-watch"
-SOURCE_WATCH_CONFIG = {"schedule": {"type": "crontab", "value": "0 6 * * 1"}, "checkin_margin": 180,  # docs/12: Monday
-                       "max_runtime": 60, "failure_issue_threshold": 1, "timezone": "UTC"}
 
 REDACTED = "[redacted]"
 _PATTERNS = [
@@ -116,8 +116,9 @@ def heartbeat() -> None:
 
 
 @contextlib.contextmanager
-def cron_checkin(slug: str, config: dict[str, Any]) -> Iterator[None]:
-    """in_progress, then ok, or error when the body raises (a missed or failed run alerts, docs/17)."""
+def cron_checkin(slug: str, config: dict[str, Any] | None = None) -> Iterator[None]:
+    """in_progress, then ok, or error when the body raises (a missed or failed run alerts, docs/17). Without a config
+    nothing is upserted: the check-ins only reach a monitor that already exists."""
     check_in_id = crons.capture_checkin(monitor_slug=slug, status="in_progress", monitor_config=config)
     try:
         yield

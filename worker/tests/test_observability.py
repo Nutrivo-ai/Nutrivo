@@ -102,17 +102,17 @@ def test_reaper_check_in_reports_errors(sentry):
     assert [c["status"] for c in sentry.items("check_in")] == ["in_progress", "error"]
 
 
-def test_source_watch_check_in_is_weekly_and_reports_errors(sentry):
-    with obs.cron_checkin(obs.SOURCE_WATCH_MONITOR, obs.SOURCE_WATCH_CONFIG):
+def test_source_watch_check_in_reports_errors_and_declares_no_schedule_yet(sentry):
+    with obs.cron_checkin(obs.SOURCE_WATCH_MONITOR):
         pass
-    with pytest.raises(RuntimeError), obs.cron_checkin(obs.SOURCE_WATCH_MONITOR, obs.SOURCE_WATCH_CONFIG):
+    with pytest.raises(RuntimeError), obs.cron_checkin(obs.SOURCE_WATCH_MONITOR):
         raise RuntimeError("cellar down")
     sentry_sdk.flush()
     checkins = sentry.items("check_in")
     assert [(c["monitor_slug"], c["status"]) for c in checkins] == \
         [("source-watch", "in_progress"), ("source-watch", "ok"), ("source-watch", "in_progress"),
          ("source-watch", "error")]
-    assert checkins[0]["monitor_config"]["schedule"] == {"type": "crontab", "value": "0 6 * * 1"}
+    assert not any("monitor_config" in c for c in checkins)   # no scheduler yet: no false missed check-ins
 
 
 def test_sentry_is_off_without_a_dsn():

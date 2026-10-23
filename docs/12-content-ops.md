@@ -23,12 +23,14 @@ Source watch (J01, T-207):
   dated after the run date.
 - The document kind (proposal, preparatory, legal act, corrigendum, other) comes from the CELEX id.
 - The model (`triage.v1`) only ranks the items high, medium or low and summarises their titles.
-- A summary that gives a date, or calls a non-law document law, is withheld (BE-37). So is an abstention or a model
-  failure. Withheld items rank just below high, never with the low ones.
+- A summary that gives a date is withheld (BE-37). For a document that is not a legal act, any year that is not
+  part of an act number counts as a date, and so does wording such as a deadline or "next year". A summary that
+  calls such a document law is withheld too, and so is an abstention or a model failure. Withheld items rank just below high, never with the low ones.
 - The person reads the report and records what matters with
   `nutrivo horizon record --report watch.json --celex <id> --stage <stage> [--expected-date] [--effective-from]`.
-  An effective date is refused unless the stage is adopted, published or in force. A proposal is never recorded at
-  a law stage.
+  An effective date is refused unless the stage is adopted, published or in force. A document that is not a legal
+  act is never recorded at a law stage; its kind is worked out again from the CELEX id. Recording the same item and
+  stage again with other values is refused (`conflicts_with_existing`) rather than ignored.
 - Items already in ref.horizon_items are skipped on the next run.
 
 ## Accepting a rule: the checklist

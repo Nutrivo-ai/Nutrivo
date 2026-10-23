@@ -138,6 +138,15 @@ def test_J01_must_1_triage_output_has_no_stage_or_date_and_rejects_one():
     ("New labelling rules are now in force for pet food.", "proposal_stated_as_law"),
     ("A binding regulation on feed labelling.", "proposal_stated_as_law"),
     ("The regulation was adopted and changes pet-food labels.", "proposal_stated_as_law"),
+    ("A proposal amending 767/2009 for 2028.", "model_stated_date"),
+    ("A proposal with a 2028 application date.", "model_stated_date"),
+    ("A proposal; the deadline is 2027.", "model_stated_date"),
+    ("Expected in the second half of 2027.", "model_stated_date"),
+    ("A proposal likely to be voted in autumn 2027.", "model_stated_date"),
+    ("A proposal that could apply next year.", "model_stated_date"),
+    ("Member States would comply within 24 months.", "model_stated_date"),
+    ("A proposal that would apply on January 1st, 2027.", "model_stated_date"),
+    ("A proposal postponing the date of application to 2028.", "model_stated_date"),
 ])
 def test_J01_must_1_a_proposal_never_appears_as_law_or_with_an_effective_date(summary, reason):
     """BE-37: a summary that dates a proposal or calls it law is withheld, and its words are not shown."""
@@ -147,6 +156,24 @@ def test_J01_must_1_a_proposal_never_appears_as_law_or_with_an_effective_date(su
     d = report.as_dict()
     assert not {"stage", "effective_from", "effective_date", "expected_date"} & set(keys(d))
     assert all(i["official_status"].endswith("not law") for i in d["items"] if i["kind"] == "proposal")
+
+
+def test_J01_must_1_act_numbers_are_not_dates():
+    t = Triage(abstain=False, relevance="high", reason="It cites the feed act.",
+               summary="A Commission proposal to amend Regulation (EC) No 767/2009 and Regulation (EU) 2017/2279.")
+    assert watch.guard("proposal", t) is None
+
+
+def test_J01_must_1_the_kind_comes_from_the_celex_not_the_report():
+    """A report whose kind is missing or wrong cannot get a proposal recorded as law (BE-37)."""
+    for kind in (None, "legal_act", "corrigendum"):
+        item = {"celex": PROPOSAL, "title": "Proposal for a REGULATION ...", **({"kind": kind} if kind else {})}
+        with pytest.raises(horizon.RecordRefused) as exc:
+            horizon.recording(item, "in_force")
+        assert exc.value.reason == "proposal_as_law"
+    with pytest.raises(horizon.RecordRefused):
+        horizon.recording({"celex": "22026D0683", "kind": "legal_act", "title": "t"}, "published")
+    assert horizon.recording({"celex": PROPOSAL, "kind": "legal_act", "title": "t"}, "proposal").kind == "proposal"
 
 
 def test_J01_must_1_a_proposal_is_never_recorded_as_law_or_with_an_effective_date():

@@ -141,7 +141,7 @@ def cmd_sources_watch(settings: Settings, args: argparse.Namespace) -> int:
     run_id = str(uuid.uuid4())
     try:
         with log_context(request_id=run_id), \
-                observability.cron_checkin(observability.SOURCE_WATCH_MONITOR, observability.SOURCE_WATCH_CONFIG), \
+                observability.cron_checkin(observability.SOURCE_WATCH_MONITOR), \
                 sentry_sdk.start_transaction(op="content", name="sources:watch"), \
                 observability.run_observation("sources:watch", run_id, {"request_id": run_id}):
             report = watch.run(acts, client, models.configure(settings), run_id=run_id, since=since, today=today,
@@ -160,7 +160,7 @@ def cmd_sources_watch(settings: Settings, args: argparse.Namespace) -> int:
 
 
 def cmd_horizon_record(settings: Settings, args: argparse.Namespace) -> int:
-    """Exit 0 recorded or unchanged; 3 refused (the reason code on stderr)."""
+    """Exit 0 recorded or unchanged; 3 refused, including a conflict with an existing row (reason code on stderr)."""
     from datetime import date
 
     from .db import connect
@@ -182,6 +182,9 @@ def cmd_horizon_record(settings: Settings, args: argparse.Namespace) -> int:
     conn = connect(settings.require_database())
     try:
         status, item_id = horizon.PgHorizonStore(conn).record(rec)
+    except horizon.RecordRefused as exc:
+        print(f"nutrivo: refused ({exc.reason}): {exc}", file=sys.stderr)
+        return 3
     finally:
         conn.close()
     log.info("horizon item " + status, extra=kv(celex=rec.celex, stage=rec.stage, horizon_item_id=item_id))

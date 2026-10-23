@@ -92,12 +92,17 @@ _MONTHS = ("january|february|march|april|may|june|july|august|september|october|
 _DATE = re.compile(
     r"\b\d{4}-\d{2}-\d{2}\b"                                        # 2027-01-01
     r"|\b\d{1,2}[./]\d{1,2}[./]\d{2,4}\b"                           # 1.1.2027, 01/01/27
-    rf"|\b(?:{_MONTHS})\b\.?\s+(?:\d{{1,2}}\b|(?:19|20)\d{{2}}\b)"  # July 2027, Jan 1
-    rf"|\b\d{{1,2}}\s+(?:{_MONTHS})\b"                              # 24 July
+    rf"|\b(?:{_MONTHS})\b\.?\s+(?:\d{{1,2}}(?:st|nd|rd|th)?\b|(?:19|20)\d{{2}}\b)"  # July 2027, Jan 1st
+    rf"|\b\d{{1,2}}(?:st|nd|rd|th)?\s+(?:of\s+)?(?:{_MONTHS})\b"     # 24 July, 1st of May
     r"|\b(?:from|by|until|till|in|on|as of|before|after|during|end of|start of|early|late|mid)[\s-]+"
     r"(?:19|20)\d{2}\b(?!\s*/)"                                     # from 2027 (not 2017/2279)
-    r"|\b(?:Q[1-4]|H[12])\s+(?:19|20)\d{2}\b",                      # Q3 2027
+    r"|\b(?:Q[1-4]|H[12])\s+(?:19|20)\d{2}\b"                       # Q3 2027
+    r"|\b(?:next|this|last|coming|following)\s+(?:year|month|week|spring|summer|autumn|fall|winter)\b"
+    r"|\bwithin\s+(?:\d+|a|one|two|three|six|twelve|eighteen|\w+-\w+)\s+(?:days?|weeks?|months?|years?)\b"
+    r"|\b(?:deadlines?|dates? of application|application dates?|transition(?:al)? period|postpon\w*|delay\w*)\b",
     re.IGNORECASE)
+# Any year that is not part of an act number (767/2009, 2017/2279): withheld on every document that is not law.
+_YEAR = re.compile(r"(?<![/\d])\b(?:19|20)\d{2}\b(?!\s*/)")
 _AS_LAW = re.compile(
     r"\b(?:in force|into force|applies from|apply from|applicable from|applies as of|takes effect|take effect|"
     r"effective|binding|has been adopted|was adopted|were adopted|is now law|now applies|is law|became law|"
@@ -109,7 +114,7 @@ def guard(kind: str, triage: Triage) -> str | None:
     if triage.abstain or triage.relevance is None:
         return "model_abstained"
     text = f"{triage.summary}\n{triage.reason}"
-    if _DATE.search(text):
+    if _DATE.search(text) or (kind in NOT_LAW and _YEAR.search(text)):
         return "model_stated_date"            # dates come from the official text, recorded by a person
     if kind in NOT_LAW and _AS_LAW.search(text):
         return "proposal_stated_as_law"       # BE-37
