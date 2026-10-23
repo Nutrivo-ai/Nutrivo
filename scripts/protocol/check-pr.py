@@ -2,12 +2,13 @@
 without approval.
 Without a task: a Dependabot PR that changes only dependency files; 'Incident: #N' for a PR that closes an incident or
 nightly issue; 'Task: none' for a founder's change to the target, with 'human-approved'. An approval label counts only
-when a founder applied it: a person (never a bot or app) who is a code owner on the base branch or a repository admin.
+when a founder applied it: a code owner on the base branch or a repository admin, by hand or through their Claude Code
+session (D-24), never a bot or another app.
 The plan and CODEOWNERS are read as committed on the base branch, so a PR cannot loosen the rules it is checked by."""
 import os, re, subprocess, sys
 from functools import cache
 import yaml
-from lib import allowed_paths, gh_json, matches, plan, repo, sh, task_by_id
+from lib import allowed_paths, gh_json, label_applier, matches, plan, repo, sh, task_by_id
 
 DEPENDENCY_FILES = [".github/workflows/*.yml", ".github/actions/*/action.yml", "apps/web/package.json", "pnpm-lock.yaml",
                     "apps/web/pnpm-lock.yaml", "worker/pyproject.toml", "worker/uv.lock", "worker/Dockerfile"]
@@ -47,16 +48,16 @@ def gh_or_none(*args):
 @cache
 def unapproved(label):
     """Why `label` does not count, or None: its latest 'labeled' event must be by a founder (a code owner on main, or a
-    repository admin), never a bot or an app."""
+    repository admin), by hand or through their Claude Code session (D-24), never a bot or another app."""
     if label not in labels:
         return f"a founder must add '{label}'"
     pages = gh_json("api", "--paginate", "--slurp", f"repos/{repo()}/issues/{pr}/events")
     events = [e for page in pages for e in page if e.get("event") == "labeled" and e["label"]["name"] == label]
     if not events:
         return f"no 'labeled' event found for '{label}'"
-    actor = events[-1].get("actor") or {}
-    who = actor.get("login", "unknown")
-    if actor.get("type") != "User" or events[-1].get("performed_via_github_app"):
+    who = label_applier(events[-1])
+    if who is None:
+        who = (events[-1].get("actor") or {}).get("login", "unknown")
         return f"'{label}' was applied by {who}, a bot or app; a founder must apply it"
     if who.lower() in founders():
         return None

@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--panel); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  button { font: inherit; color: inherit; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</helmet>
+
+<div style="min-width: 1080px; background: var(--panel); padding: 0 0 60px">
+
+  <div style="position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 20px; border-bottom: 1px solid var(--ink); background: var(--paper); padding: 12px 34px">
+    <p style="margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 20px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 6px; height: 6px; background: var(--accent); margin-bottom: 2px; flex-shrink: 0"></span></p>
+    <span style="font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600)">LEGAL</span>
+    <div style="flex: 1"></div>
+    <div style="display: flex; gap: 1px">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+        <button type="button" onClick="{{ t.go }}" style="{{ t.style }}" style-hover="border-color: var(--accent); color: var(--accent-700)">{{ t.k }}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="max-width: 1020px; margin: 0 auto; background: var(--paper); border-left: 1px solid var(--rule); border-right: 1px solid var(--rule)">
+
+    <div class="blueprint" style="position: relative; margin: 22px 34px 0; border: 1px solid var(--ink); border-left: 4px solid var(--action); background: var(--action-bg); padding: 16px 20px">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <p style="margin: 0; font-size: 14px; font-weight: 600">Draft for review by Swedish counsel before publication</p>
+      <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: var(--n800)">These are working drafts written from the product decisions on record. They are not legal advice and have not been reviewed by a lawyer. The clauses on liability, warranties, indemnities and limitation periods in particular need a Swedish commercial lawyer, and the processing annexes need confirming against the infrastructure as actually deployed.</p>
+    </div>
+
+    <div style="padding: 26px 34px 20px; border-bottom: 1px solid var(--ink)">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">{{ kicker }}</p>
+      <h1 style="margin: 10px 0 0; font-size: 34px; font-weight: 600; line-height: 1.08; max-width: 30ch">{{ title }}</h1>
+      <p style="margin: 12px 0 0; font-size: 15px; line-height: 1.6; color: var(--n700); max-width: 84ch">{{ intro }}</p>
+      <div style="margin-top: 20px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--rule)">
+        <sc-for list="{{ facts }}" as="f" hint-placeholder-count="4">
+          <div style="{{ f.style }}">
+            <p style="margin: 0; font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">{{ f.k }}</p>
+            <p style="margin: 7px 0 0; font-size: 12.5px; line-height: 1.45">{{ f.v }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <sc-for list="{{ sections }}" as="s" hint-placeholder-count="10">
+      <div style="{{ s.style }}">
+        <div style="display: flex; align-items: baseline; gap: 16px">
+          <p style="margin: 0; font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; color: var(--accent); flex: none; width: 26px">{{ s.n }}</p>
+          <div style="flex: 1; min-width: 0">
+            <h2 style="margin: 0; font-size: 21px; font-weight: 600; line-height: 1.2">{{ s.k }}</h2>
+            <sc-if value="{{ s.hasLead }}">
+              <p style="margin: 9px 0 0; font-size: 14px; line-height: 1.65; color: var(--n800); max-width: 88ch">{{ s.lead }}</p>
+            </sc-if>
+            <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 12px">
+              <sc-for list="{{ s.clauses }}" as="c" hint-placeholder-count="4">
+                <div style="display: flex; gap: 14px; align-items: baseline">
+                  <span style="font-family: var(--mono); font-size: 11px; color: var(--n500); flex: none; width: 34px">{{ c.n }}</span>
+                  <p style="margin: 0; flex: 1; font-size: 13.5px; line-height: 1.65; color: var(--n800); max-width: 92ch">{{ c.v }}</p>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ s.hasTable }}">
+              <div class="blueprint" style="position: relative; margin-top: 16px; border: 1px solid var(--ink)">
+                <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+                <div style="{{ s.tableHeadStyle }}">
+                  <sc-for list="{{ s.tableHead }}" as="th" hint-placeholder-count="3">
+                    <p style="margin: 0; padding: 9px 13px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">{{ th }}</p>
+                  </sc-for>
+                </div>
+                <sc-for list="{{ s.tableRows }}" as="tr" hint-placeholder-count="4">
+                  <div style="{{ tr.style }}">
+                    <sc-for list="{{ tr.cells }}" as="cell" hint-placeholder-count="3">
+                      <p style="{{ cell.style }}">{{ cell.v }}</p>
+                    </sc-for>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+      </div>
+    </sc-for>
+
+    <div style="padding: 26px 34px 40px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">Contact</p>
+      <p style="margin: 10px 0 0; font-size: 14px; line-height: 1.7">Sunny Ventures AB, trading as Nutrivo.ai · Karlbergsvägen 48, 113 37 Stockholm, Sweden<br />Company registration 5594297151 · VAT SE559429715101<br />{{ contactLine }}</p>
+      <p style="margin: 14px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">{{ version }}</p>
+    </div>
+
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1080,&quot;height&quot;:1000}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)", n600: "var(--n600)", n700: "var(--n700)", ink: "var(--ink)" };
+
+const sec = (n, k, lead, clauses, table) => ({ n, k, lead, clauses, table });
+
+const TERMS = {
+  tab: "Terms and conditions",
+  kicker: "Terms of service · draft 1.0",
+  title: "Terms and conditions",
+  intro: "The agreement between Sunny Ventures AB, trading as Nutrivo.ai, and the company that subscribes to the service. It sets out what the service does, what it deliberately does not do, and who is responsible for what.",
+  facts: [
+    { k: "Provider", v: "Sunny Ventures AB, Stockholm" },
+    { k: "Governing law", v: "Swedish law" },
+    { k: "Forum", v: "Stockholm District Court" },
+    { k: "Processing location", v: "European Union · Ireland" },
+  ],
+  contactLine: "Commercial and contractual: finance@nutrivo.ai · +46 76 347 03 92",
+  version: "VERSION 1.0 DRAFT · 5 SEPTEMBER 2026 · SUPERSEDES NOTHING",
+  sections: [
+    sec("01", "Who these terms are between", null, [
+      { n: "1.1", v: "The service is provided by Sunny Ventures AB, company registration number 5594297151, of Karlbergsvägen 48, 113 37 Stockholm, Sweden, which trades under the name Nutrivo.ai. In these terms \"we\" and \"Nutrivo\" mean that company." },
+      { n: "1.2", v: "\"You\" means the company or other legal person named as the customer in the workspace's billing details. Where an individual accepts these terms, they confirm that they are authorised to bind that company." },
+      { n: "1.3", v: "The service is offered to businesses only. It is not offered to consumers, and the Swedish Consumer Sales Act and the Distance Contracts Act do not apply to it." },
+      { n: "1.4", v: "These terms, the Data Processing Agreement, the privacy policy and the plan and price in effect for your workspace together form the whole agreement. Where they conflict, the Data Processing Agreement prevails on the processing of personal data and these terms prevail on everything else." },
+    ]),
+    sec("02", "What the service does", "Nutrivo checks label artwork, recipes and product records against regulatory rules we have encoded for named jurisdictions, and reports what it finds.", [
+      { n: "2.1", v: "Every result is reported in one of four states: clear, action needed, not assessed, or blocked. \"Not assessed\" means we did not check something, and it is reported as prominently as any other state. The service never reduces a result to a pass or a fail." },
+      { n: "2.2", v: "Every result carries its provenance: whether it came from a deterministic rule, from a model judgement, or from nothing at all because the point was not assessed. Provenance is part of the result and is not optional." },
+      { n: "2.3", v: "Where we hold no rules for a jurisdiction, or hold them only in part, the affected result is withheld and links to the coverage statement that names the method, the date and the gap. A jurisdiction for which we hold no rules can never return a clear result." },
+      { n: "2.4", v: "We publish the depth of our coverage per jurisdiction, including what is not covered. Published coverage is a statement of what we hold at a stated date, not a warranty of completeness or of currency at any later date." },
+      { n: "2.5", v: "A check runs against the language in which the label is printed, for each jurisdiction in scope, on every plan including the free one. We do not check an English text and report the result as though it applied to another language." },
+      { n: "2.6", v: "Checks and re-checks are not metered on any plan. Where a plan sets a limit, that limit is on what you manage in the service, not on how often you check it." },
+    ]),
+    sec("03", "What the service does not do", "This section is the most important in these terms. It states the boundary of what we sell, and it is not negotiable on any plan or at any price.", [
+      { n: "3.1", v: "We do not represent you before any authority. We do not submit or file a registration, notification or application; we do not pay a fee on your behalf; we do not correspond with an authority about your product; and we do not act as your agent, importer, distributor or responsible operator." },
+      { n: "3.2", v: "We do not confirm that a registration is valid, in force or accepted, and we do not guarantee that any authority will accept a product, a label, a claim or a submission. Only the operator named on the label can register a product, and only an authority can decide whether a registration stands." },
+      { n: "3.3", v: "The service is not legal advice and does not create a lawyer-client relationship. A result is an assessment against rules we have encoded, not an opinion on your legal position." },
+      { n: "3.4", v: "You remain responsible for the compliance of your products, for the accuracy of what you put into the service, and for every decision you take on the basis of a result. The service supports that responsibility; it does not assume it." },
+      { n: "3.5", v: "A Report of Check states on its face that it was generated automatically and attested by nobody. A Certificate of Check is an internal attestation by a person in your own organisation who holds signing authority for the market in question. Neither is a certificate issued by us, by an authority or by a notified body, and neither is a qualified electronic signature or any other trust service under Regulation (EU) No 910/2014." },
+    ]),
+    sec("04", "Your account, your people and your suppliers", null, [
+      { n: "4.1", v: "You are responsible for who you admit to your workspace, for the role and scope you give them, and for keeping that current. An administrator can remove access at any time and it ends immediately." },
+      { n: "4.2", v: "A person marked external is somebody outside your company, such as a consultant. Their access may carry an end date, they are never offered signing authority, and every event they generate is recorded as external. Their role determines what they cost: an external person who edits consumes an editor seat; an external person who only reads does not." },
+      { n: "4.3", v: "Suppliers and contract manufacturers may be given a scoped link to upload a document without holding an account. Such a link gives access to the specific request and to nothing else, and it is not charged for." },
+      { n: "4.4", v: "Signing authority is granted to a named individual for named markets. It is not a role and it is not implied by any role, including administrator. You are responsible for granting it only to people who are authorised within your organisation to attest on its behalf." },
+      { n: "4.5", v: "Each person must have their own credentials. Shared logins are not permitted, because the record of who did what is only worth what the identities behind it are worth." },
+    ]),
+    sec("05", "Records that cannot be altered", null, [
+      { n: "5.1", v: "Checks, findings and certificates are recorded as events in an append-only store. They cannot be edited or deleted, by you or by us, because a record the application could rewrite would not be a record." },
+      { n: "5.2", v: "A Report of Check and a Certificate of Check are pinned to the ruleset version, the artwork identifier and the time at which they were produced. A later change to the rules or to your artwork does not alter an existing report; it may mark it superseded." },
+      { n: "5.3", v: "Where a document has been shared outside your organisation, we keep the record needed to answer the public verification page for that document, whether or not your subscription continues. Verification returns the document's status, its issue date and its ruleset version, and never its content." },
+      { n: "5.4", v: "Products are not deleted. A product you no longer sell is marked discontinued, excluded from counts, freshness and monitoring, and retained so that documents issued against it stay resolvable." },
+    ]),
+    sec("06", "Plans, fees and payment", null, [
+      { n: "6.1", v: "All prices are stated excluding value added tax. VAT is added on the invoice at the rate applicable to your workspace, determined by the country in your billing details and by whether you have given a valid VAT number." },
+      { n: "6.2", v: "Fees are charged in advance, monthly or annually according to the plan you choose. An annual term is charged as ten months for twelve, and that discount is the same on every plan." },
+      { n: "6.3", v: "A region is sold whole. You cannot subscribe to a single member state or a single US state, because a state is one edition of a national rulebook rather than a rulebook of its own." },
+      { n: "6.4", v: "Where you exceed an allowance, the excess is charged at the rate published for your plan, and the total charge for a period will not exceed one and a half times the plan's list price. Beyond that we will offer you the next plan rather than continue to charge overage." },
+      { n: "6.5", v: "A monthly subscription has no minimum term and may be cancelled with effect from the next renewal date. Fees already paid for a current period are not refunded, and an annual term is not refunded in part on early cancellation." },
+      { n: "6.6", v: "If a payment fails we will notify you and retry. Access is not restricted for fourteen days from the first failure, after which the workspace stops accepting new label artworks. Nothing is deleted, everything already checked stays readable, and no document already shared stops verifying." },
+      { n: "6.7", v: "We may change prices with sixty days' written notice, effective at your next renewal. A price change never applies within a term you have already paid for." },
+    ]),
+    sec("07", "The free allowance", null, [
+      { n: "7.1", v: "The free allowance requires no payment card and carries no time limit. It covers the first three label artworks submitted to a workspace, and it gives the full service on each of them, including exporting, emailing, sharing by link and the public verification page." },
+      { n: "7.2", v: "An artwork counts against the allowance once when it is first submitted. Re-checking the same artwork, checking it against further markets within your region, and checking a revised version of it are not charged against the allowance." },
+      { n: "7.3", v: "Once the allowance is used, the workspace stops accepting a new label artwork until a plan starts. Nothing is removed: the three labels, their results, their history and any document you shared remain available and continue to verify." },
+      { n: "7.4", v: "The free allowance is per workspace. Creating a further workspace to obtain a further allowance is not permitted, and we may decline to provide the service where that is what is happening." },
+      { n: "7.5", v: "A workspace that nobody has opened for ninety days becomes dormant. It is not deleted, and documents shared from it continue to verify." },
+    ]),
+    sec("08", "Your material and ours", null, [
+      { n: "8.1", v: "Everything you put into the service remains yours: your artwork, recipes, product records, documents and the results produced from them. We claim no ownership of it and no licence to it beyond what is needed to provide the service to you." },
+      { n: "8.2", v: "We do not use your material to train models for the benefit of other customers, and we do not disclose it to another customer in any form, aggregated or otherwise." },
+      { n: "8.3", v: "The service itself, including the encoded rulesets, the coverage records, the term register and the software, remains ours. Your subscription is a right to use it, not a transfer of it." },
+      { n: "8.4", v: "You may export your material at any time, on any plan including the free one, at no charge." },
+      { n: "8.5", v: "You warrant that you have the right to submit the material you submit, and that doing so does not infringe a third party's rights." },
+    ]),
+    sec("09", "Availability, support and change", null, [
+      { n: "9.1", v: "We aim for the service to be available at all times but do not offer a service level commitment on the plans published as Free, Basic or Standard. A service level may be agreed in writing on the Advanced plan." },
+      { n: "9.2", v: "We may make planned maintenance outside Central European business hours and will give notice where it is likely to interrupt the service." },
+      { n: "9.3", v: "We develop the service continuously. We will not remove a material function that your plan includes without ninety days' notice, and we will not narrow the four states, the provenance record or the coverage links at all." },
+      { n: "9.4", v: "Rulesets change as the law changes. We maintain them at the depth we publish for each jurisdiction, and monitoring will tell you which of your products a material change affects. Editorial corrections do not generate notifications." },
+    ]),
+    sec("10", "Liability", "This section is drafted to be read, and it is the section most in need of review by counsel and by an insurer.", [
+      { n: "10.1", v: "The service is provided as described in these terms. We do not warrant that a result is exhaustive, that a jurisdiction is fully encoded beyond the depth published for it, or that a product assessed as clear will be accepted by an authority." },
+      { n: "10.2", v: "We are liable for direct loss caused by our breach of this agreement or by our negligence, up to an aggregate amount equal to the fees you paid us in the twelve months before the event giving rise to the claim." },
+      { n: "10.3", v: "We are not liable for indirect or consequential loss, including lost profit, lost sales, the cost of reprinting artwork, the cost of a product recall, a delisting, a regulatory penalty, or a missed launch, except where such loss is caused by our gross negligence or wilful misconduct." },
+      { n: "10.4", v: "Nothing in this agreement limits liability that cannot be limited under Swedish law, including liability for personal injury and for wilful misconduct." },
+      { n: "10.5", v: "A claim under this agreement must be brought within twelve months of the date on which you became aware, or ought reasonably to have become aware, of the circumstances giving rise to it." },
+      { n: "10.6", v: "Neither party is liable for a failure to perform caused by an event beyond its reasonable control, provided it notifies the other and resumes performance as soon as it is able." },
+    ]),
+    sec("11", "Confidentiality", null, [
+      { n: "11.1", v: "Each party will keep the other's confidential information in confidence and use it only for the purposes of this agreement. Your product records, formulations, artwork and results are your confidential information." },
+      { n: "11.2", v: "Confidentiality does not apply to information that is public, that a party already held without obligation, or that a party is required to disclose by law or by a competent authority. Where we are required to disclose, we will tell you first unless we are prohibited from doing so." },
+      { n: "11.3", v: "These obligations continue for three years after the agreement ends, and indefinitely for anything that constitutes a trade secret under the Swedish Trade Secrets Act." },
+    ]),
+    sec("12", "Ending the agreement", null, [
+      { n: "12.1", v: "Either party may terminate for material breach that the other has not remedied within thirty days of written notice." },
+      { n: "12.2", v: "On termination your workspace becomes dormant rather than being deleted. You may export everything before termination and for thirty days afterwards." },
+      { n: "12.3", v: "Sections 3, 5, 8, 10 and 11 survive termination, as does our obligation to keep answering the verification page for documents already shared." },
+    ]),
+    sec("13", "Law, disputes and notices", null, [
+      { n: "13.1", v: "This agreement is governed by Swedish law, excluding its conflict of laws rules and excluding the United Nations Convention on Contracts for the International Sale of Goods." },
+      { n: "13.2", v: "Disputes are to be settled by the Stockholm District Court as court of first instance. Either party may instead apply for arbitration under the Rules for Expedited Arbitrations of the Arbitration Institute of the Stockholm Chamber of Commerce where the amount in dispute is below one million Swedish kronor." },
+      { n: "13.3", v: "Notices under this agreement are given in writing to the addresses in the billing details and to finance@nutrivo.ai. Notice of a change to these terms may be given in the service and by email to the administrators of your workspace." },
+      { n: "13.4", v: "We may change these terms with sixty days' notice. If a change is materially to your disadvantage you may terminate without penalty before it takes effect, and we will refund the unused part of any prepaid term." },
+      { n: "13.5", v: "Neither party may assign this agreement without the other's consent, except that either may assign it to a successor of its business." },
+    ]),
+  ],
+};
+
+const DPA = {
+  tab: "Data processing agreement",
+  kicker: "Data processing agreement · draft 1.0",
+  title: "Data processing agreement",
+  intro: "The agreement under Article 28 of the General Data Protection Regulation between you as controller and Sunny Ventures AB as processor. It applies whenever we process personal data on your behalf, and it forms part of the terms of service.",
+  facts: [
+    { k: "Controller", v: "You, the customer" },
+    { k: "Processor", v: "Sunny Ventures AB" },
+    { k: "Processing location", v: "Ireland · European Union" },
+    { k: "Transfers outside the EEA", v: "None for hosting" },
+  ],
+  contactLine: "Data protection: privacy@nutrivo.ai · Security incidents: security@nutrivo.ai",
+  version: "VERSION 1.0 DRAFT · 5 SEPTEMBER 2026 · ANNEXES I AND II FORM PART OF THIS AGREEMENT",
+  sections: [
+    sec("01", "Roles and scope", null, [
+      { n: "1.1", v: "You are the controller of the personal data you submit to the service and of the personal data of the people you admit to your workspace. We are the processor of that data and process it only on your instructions." },
+      { n: "1.2", v: "We are an independent controller for a limited set of data we process for our own purposes: the identity and contact details of the people who administer and pay for a workspace, billing records we are required to keep, and the security and operational logs we need to run the service. That processing is described in the privacy policy, not here." },
+      { n: "1.3", v: "This agreement applies for as long as we process personal data on your behalf, and prevails over the terms of service on any question about the processing of personal data." },
+      { n: "1.4", v: "Your instructions are given by your use of the service and by the settings you choose in it. If we consider an instruction to be in breach of data protection law, we will tell you and may suspend the processing concerned until it is resolved." },
+    ]),
+    sec("02", "The processing", "The details required by Article 28(3) are set out here and in Annex I. The processing is characteristically light on personal data: the service is about products and rules, and the people in it are a small number of named professionals.", [
+      { n: "2.1", v: "Subject matter: the provision of regulatory compliance checking of product labels, recipes and records, and the documents produced from it." },
+      { n: "2.2", v: "Duration: for the term of the subscription, and afterwards only for the retention periods stated in Annex I and in section 8." },
+      { n: "2.3", v: "Nature and purpose: storing, reading, analysing and reporting on the material you submit; identifying and authenticating your people; recording who did what; and producing, sharing and verifying documents at your instruction." },
+      { n: "2.4", v: "We do not carry out automated decision-making with legal effect on a person, and we do not profile. The service assesses products, not people." },
+      { n: "2.5", v: "You must not submit special category data or criminal offence data to the service. It is not designed for it and there is no purpose for which it would be needed." },
+    ], {
+      head: ["Category of person", "Categories of data", "Why it is processed"],
+      rows: [
+        ["Your people, and external consultants you admit", "Name, business email, role, scope, access dates, actions taken with timestamps, authentication data", "Access control, and the append-only record of who did what"],
+        ["Your suppliers' contacts", "Business email, company, the document requested and uploaded", "Requesting and receiving specifications by scoped link, without an account"],
+        ["Recipients of a document you send", "Business email, the fact and time of sending, whether a reference was verified", "Delivering a document you chose to send, and answering verification"],
+        ["Individuals named in your own material", "Whatever appears in artwork or documents you upload, typically a responsible operator's contact details", "Because it is on the label; we neither seek nor use it beyond the check"],
+      ],
+    }),
+    sec("03", "Security", "The measures are listed in Annex II. Three of them are load-bearing and are stated here because they are architectural rather than operational.", [
+      { n: "3.1", v: "Tenant separation is enforced in the database itself, by row-level security policies keyed to your workspace, rather than by application code. A defect in the application cannot expose one customer's data to another." },
+      { n: "3.2", v: "The event store and the certificate chain accept inserts only. Update and delete rights are revoked from every application role and rejected at the database level. Neither we nor you can alter a historical record." },
+      { n: "3.3", v: "The public verification endpoint has no read access to customer tables. It returns a document's status, issue date and ruleset version against an unguessable reference, and never its content, its findings or your identity beyond what is on the document itself." },
+      { n: "3.4", v: "Data is encrypted in transit with TLS and at rest. Access by our personnel is limited to named individuals who need it, is authenticated with a second factor, and is logged." },
+      { n: "3.5", v: "We will not materially reduce the measures in Annex II during the term. We may change how a measure is implemented, provided the level of protection is maintained." },
+    ]),
+    sec("04", "Our personnel", null, [
+      { n: "4.1", v: "Only personnel who need access to provide, secure or support the service are given it, and only to the extent needed." },
+      { n: "4.2", v: "Every person with access is bound by a written confidentiality obligation that survives the end of their engagement." },
+      { n: "4.3", v: "We do not access the content of your workspace to answer a support request unless you ask us to, and such access is recorded." },
+    ]),
+    sec("05", "Sub-processors", null, [
+      { n: "5.1", v: "You give general authorisation for us to engage the sub-processors listed below. We remain responsible to you for their performance." },
+      { n: "5.2", v: "We will give thirty days' notice before adding or replacing a sub-processor. If you reasonably object on data protection grounds you may terminate the affected part of the service without penalty, and we will refund the unused part of any prepaid term." },
+      { n: "5.3", v: "Every sub-processor is bound by obligations no less protective than those in this agreement." },
+    ], {
+      head: ["Sub-processor", "What it does", "Where it processes"],
+      rows: [
+        ["Supabase (Supabase Inc., on Amazon Web Services infrastructure)", "Database, authentication, file storage, realtime updates", "Ireland · eu-west-1"],
+        ["Amazon Web Services EMEA SARL", "Underlying compute, storage and network", "Ireland · eu-west-1"],
+        ["An EU-established transactional email provider", "Delivering documents you send, invitations and notifications", "European Union"],
+        ["Stripe Payments Europe Ltd", "Card payment processing and invoicing", "Ireland, with transfers under its own safeguards"],
+        ["A model provider for the assistant and for extraction", "Model inference on the text you submit, under a no-training commitment", "European Union where the provider offers EU processing"],
+      ],
+    }),
+    sec("06", "Transfers outside the EEA", null, [
+      { n: "6.1", v: "Your workspace is hosted in Ireland and the processing of your material takes place within the European Union. We do not transfer it outside the European Economic Area for hosting or for backup." },
+      { n: "6.2", v: "Where a sub-processor is established outside the EEA or may access data from outside it, the transfer is made under the Standard Contractual Clauses adopted by the European Commission, together with a transfer impact assessment and any supplementary measures it identifies." },
+      { n: "6.3", v: "We will tell you if we ever need to change the hosting region, with the notice period in section 5.2, and you may object on the same basis." },
+    ]),
+    sec("07", "Your rights and obligations, and ours", null, [
+      { n: "7.1", v: "We will assist you in responding to a request from a data subject. Because you control your workspace, you can find, correct and export most such data yourself; where you cannot, we will help within a reasonable time and without charge for a reasonable volume of requests." },
+      { n: "7.2", v: "Where a data subject's request would require altering an append-only record, we will tell you so and explain what can and cannot be done. A record of who ran a check is retained on the legal basis of our legitimate interest and yours in the integrity of a compliance record, and it is a small and proportionate amount of data." },
+      { n: "7.3", v: "We will notify you without undue delay, and in any event within forty-eight hours of becoming aware, of a personal data breach affecting your data, with the information you need for your own notification obligations under Articles 33 and 34." },
+      { n: "7.4", v: "We will assist you with a data protection impact assessment and with a prior consultation, to the extent the processing under this agreement is relevant to it." },
+      { n: "7.5", v: "You may audit our compliance with this agreement once in any twelve-month period, on thirty days' notice, at your own cost, and subject to confidentiality. We may satisfy an audit by providing a current third-party report or completed security questionnaire where it answers your questions." },
+    ]),
+    sec("08", "Deletion and return", null, [
+      { n: "8.1", v: "On termination you may export everything, and we will delete or return personal data at your choice, subject to the exceptions in 8.2 and 8.3." },
+      { n: "8.2", v: "We retain the minimum record needed to keep answering the public verification page for documents you shared before termination, because a third party may still hold one and its unverifiability would be a harm to them. That record is a reference, a status, a date and a ruleset version." },
+      { n: "8.3", v: "We retain billing records for the period required by Swedish accounting law, currently seven years, and we retain the append-only event record for the periods in Annex I." },
+      { n: "8.4", v: "Backups are retained on a rolling basis for thirty days and are then overwritten. A deletion request is executed against live systems immediately and takes effect in backups as they roll." },
+    ]),
+    sec("09", "Annex I · retention", "Retention is stated per kind of record rather than as one period, because the reasons differ.", [], {
+      head: ["Record", "Retained for", "Why"],
+      rows: [
+        ["Checks, findings and results", "For the life of the workspace, and beyond it as in 8.2", "It is an append-only compliance record"],
+        ["Reports and certificates", "Permanently, as a reference and status", "A third party may hold a copy that has to verify"],
+        ["Artwork files you upload", "While the product is active, then two years", "The extracted text and identifier are kept; the file itself is not needed"],
+        ["Supplier documents", "While current, then six years after expiry", "The span most audits reach back over"],
+        ["Access and audit events", "For the life of the workspace", "The integrity of the record depends on it"],
+        ["Billing records", "Seven years", "Swedish accounting law"],
+        ["Security and operational logs", "Twelve months", "Investigating incidents"],
+      ],
+    }),
+    sec("10", "Annex II · technical and organisational measures", null, [
+      { n: "10.1", v: "Access control: individual credentials, second factor available on every account and required for anybody holding signing authority, role and scope enforced per workspace, immediate revocation, optional end dates on external access." },
+      { n: "10.2", v: "Tenant separation: row-level security in the database keyed to the workspace, applied to every table holding customer data." },
+      { n: "10.3", v: "Integrity: insert-only event and certificate tables with update and delete revoked from all application roles and rejected by a database trigger; documents pinned to ruleset version and artwork identifier." },
+      { n: "10.4", v: "Encryption: TLS in transit; encryption at rest for the database, file storage and backups." },
+      { n: "10.5", v: "Segregation of environments: no customer data in development or test environments." },
+      { n: "10.6", v: "Availability: managed database with point-in-time recovery, daily backups retained thirty days, restore tested periodically." },
+      { n: "10.7", v: "Personnel: confidentiality undertakings, need-to-know access, logged administrative access, security training on joining and annually." },
+      { n: "10.8", v: "Vendor management: a written agreement and data protection terms with every sub-processor, and a review before any is added." },
+      { n: "10.9", v: "Incident response: a defined process with named responsibility, notification to you within forty-eight hours of becoming aware, and a written account of cause and remediation." },
+    ]),
+  ],
+};
+
+const PRIVACY = {
+  tab: "Privacy policy",
+  kicker: "Privacy policy · draft 1.0",
+  title: "Privacy policy",
+  intro: "How Sunny Ventures AB, trading as Nutrivo.ai, handles personal data. It covers the data we hold for our own purposes as a controller, and explains where the data inside a customer's workspace is governed by that customer instead.",
+  facts: [
+    { k: "Controller", v: "Sunny Ventures AB, Stockholm" },
+    { k: "Contact", v: "privacy@nutrivo.ai" },
+    { k: "Data held in", v: "Ireland · European Union" },
+    { k: "Supervisory authority", v: "IMY, Sweden" },
+  ],
+  contactLine: "Privacy questions and data subject requests: privacy@nutrivo.ai",
+  version: "VERSION 1.0 DRAFT · 5 SEPTEMBER 2026 · WE WILL PUBLISH THE DATE OF EVERY LATER CHANGE",
+  sections: [
+    sec("01", "Two different situations", "Nutrivo holds personal data in two capacities, and which one applies changes who you should ask about it.", [
+      { n: "1.1", v: "For the people who visit our website, sign up, administer a workspace or pay us, we are the controller. This policy describes that processing." },
+      { n: "1.2", v: "For the material inside a customer's workspace — their products, their artwork, the colleagues and consultants they admit — the customer is the controller and we are their processor. We process it on their instructions under a data processing agreement, and a request about it should go to them. If a request reaches us we will pass it on and tell you we have." },
+      { n: "1.3", v: "We are a business-to-business service. We do not knowingly process the data of anybody under eighteen, and the service has no consumer-facing part." },
+    ]),
+    sec("02", "What we hold as controller, and why", null, [], {
+      head: ["Data", "Purpose and legal basis", "Kept for"],
+      rows: [
+        ["Name, business email, company, role", "Providing the service and administering your account. Performance of a contract, Article 6(1)(b)", "While the account exists, then twelve months"],
+        ["Authentication data, sign-in times, devices, IP address", "Letting you in and keeping others out. Legitimate interest in security, Article 6(1)(f)", "Twelve months"],
+        ["Billing entity, address, VAT number, payment records, invoices", "Charging you and meeting accounting obligations. Contract and legal obligation, Article 6(1)(b) and (c)", "Seven years, per Swedish accounting law"],
+        ["Support correspondence", "Answering you and improving the service. Legitimate interest, Article 6(1)(f)", "Three years"],
+        ["Which features a workspace uses, in aggregate", "Understanding what to build. Legitimate interest, Article 6(1)(f)", "Aggregated, not tied to a person"],
+        ["Business email given for a trial or for product news", "Telling you about the service. Legitimate interest with an unsubscribe in every message, Article 6(1)(f)", "Until you unsubscribe, then a suppression record"],
+      ],
+    }),
+    sec("03", "What we do not do", null, [
+      { n: "3.1", v: "We do not sell personal data, and we do not share it with anybody for their own marketing." },
+      { n: "3.2", v: "We do not use advertising trackers or third-party marketing cookies on our website, so there is no consent banner to dismiss. We use one session cookie to keep you signed in and a small number of first-party measurements that do not identify a person." },
+      { n: "3.3", v: "We do not use a customer's product data, artwork or results to train models for the benefit of other customers, and our model providers are engaged on terms that prohibit training on what we send them." },
+      { n: "3.4", v: "We do not profile individuals and we take no automated decision with legal effect on a person. The service assesses products against rules." },
+    ]),
+    sec("04", "Where the data is", null, [
+      { n: "4.1", v: "Customer workspaces and the personal data in them are hosted in Ireland, within the European Union, on managed infrastructure provided by Supabase running on Amazon Web Services." },
+      { n: "4.2", v: "Our own controller data sits in the same place, apart from payment data held by our payment provider and correspondence held in our business systems, both within the European Union or under Standard Contractual Clauses." },
+      { n: "4.3", v: "Where a processor is established outside the European Economic Area or may access data from outside it, the transfer is made under the Standard Contractual Clauses adopted by the European Commission, with a transfer impact assessment and any supplementary measures it identifies." },
+      { n: "4.4", v: "The current list of processors is published in the data processing agreement, and we give thirty days' notice before adding or replacing one." },
+    ]),
+    sec("05", "Your rights", null, [
+      { n: "5.1", v: "You may ask for a copy of the personal data we hold about you, ask us to correct it, ask us to delete it, ask us to restrict how we use it, object to processing we carry out on the basis of legitimate interest, and ask for it in a portable form." },
+      { n: "5.2", v: "Write to privacy@nutrivo.ai. We answer within one month, and we will tell you if a request will take longer and why. There is no charge for a reasonable request." },
+      { n: "5.3", v: "Two limits are worth stating plainly. Data we must keep for accounting cannot be deleted before the statutory period ends. And a record of who ran a check or signed a document cannot be altered, because the record's integrity is the point of it; we keep only a name, a role and a timestamp for that purpose." },
+      { n: "5.4", v: "If a request concerns material inside a customer's workspace, that customer is the controller and we will refer you to them." },
+      { n: "5.5", v: "You may complain to the Swedish Authority for Privacy Protection, Integritetsskyddsmyndigheten, Box 8114, 104 20 Stockholm, imy@imy.se. We would rather you told us first, but the right is yours either way." },
+    ]),
+    sec("06", "Security", null, [
+      { n: "6.1", v: "Access is per individual with a second factor available on every account and required for anybody holding signing authority. Each customer's data is separated from every other in the database itself rather than by application code." },
+      { n: "6.2", v: "Data is encrypted in transit and at rest. Backups are encrypted, retained for thirty days and then overwritten." },
+      { n: "6.3", v: "Compliance records are append-only. They cannot be edited or deleted by a customer or by us, which is a security property as much as a product one." },
+      { n: "6.4", v: "If a breach affects your personal data we will tell you and the supervisory authority as the law requires, and we will say what happened rather than only that something did." },
+    ]),
+    sec("07", "Changes and contact", null, [
+      { n: "7.1", v: "When we change this policy we publish the new version with its date and keep the previous ones available. Where a change is material we tell account administrators by email before it takes effect." },
+      { n: "7.2", v: "For anything about personal data, write to privacy@nutrivo.ai. For a suspected security problem, security@nutrivo.ai — we will acknowledge within one working day. We have not appointed a data protection officer, as we are not required to; privacy@nutrivo.ai reaches the person responsible." },
+    ]),
+  ],
+};
+
+const DOCS = { terms: TERMS, dpa: DPA, privacy: PRIVACY };
+const ORDER = ["terms", "dpa", "privacy"];
+
+class Component extends DCLogic {
+  state = { doc: "terms" };
+
+  renderVals() {
+    const key = this.state.doc;
+    const d = DOCS[key] || TERMS;
+
+    const cellStyle = (i, n) =>
+      "margin: 0; padding: 11px 13px; font-size: 12.5px; line-height: 1.5; color: " + (i === 0 ? "var(--ink)" : "var(--n700)") +
+      "; font-weight: " + (i === 0 ? "500" : "400") + (i < n - 1 ? "; border-right: 1px solid var(--n200)" : "");
+
+    return {
+      tabs: ORDER.map(id => ({
+        k: DOCS[id].tab,
+        go: () => this.setState({ doc: id }),
+        style: "border: 1px solid " + (key === id ? "var(--accent)" : "var(--n400)") + "; background: " + (key === id ? "var(--accent-100)" : "var(--paper)") +
+          "; color: " + (key === id ? "var(--accent-700)" : "var(--n700)") + "; padding: 6px 12px; font-size: 12px; cursor: pointer; font-weight: " + (key === id ? "600" : "400"),
+      })),
+
+      kicker: d.kicker,
+      title: d.title,
+      intro: d.intro,
+      contactLine: d.contactLine,
+      version: d.version,
+      facts: d.facts.map((f, i) => Object.assign({}, f, {
+        style: "padding: 14px 16px; border-right: " + (i < 3 ? "1px solid var(--rule)" : "none"),
+      })),
+
+      sections: d.sections.map((s, i, a) => {
+        const t = s.table;
+        const cols = t ? t.head.length : 0;
+        const grid = cols === 3 ? "minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 1fr)" : "repeat(" + cols + ", minmax(0, 1fr))";
+        return {
+          n: s.n, k: s.k,
+          hasLead: !!s.lead, lead: s.lead || "",
+          clauses: s.clauses.map(c => ({ n: c.n, v: c.v })),
+          hasTable: !!t,
+          tableHead: t ? t.head : [],
+          tableHeadStyle: "display: grid; grid-template-columns: " + grid + "; background: var(--panel); border-bottom: 1px solid var(--ink)",
+          tableRows: t ? t.rows.map((r, ri, ra) => ({
+            cells: r.map((v, ci) => ({ v, style: cellStyle(ci, cols) })),
+            style: "display: grid; grid-template-columns: " + grid + "; border-bottom: " + (ri < ra.length - 1 ? "1px solid var(--n200)" : "none") +
+              "; background: " + (ri % 2 ? "var(--panel)" : "transparent"),
+          })) : [],
+          style: "padding: 26px 34px 28px; border-bottom: " + (i < a.length - 1 ? "1px solid var(--rule)" : "1px solid var(--ink)"),
+        };
+      }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

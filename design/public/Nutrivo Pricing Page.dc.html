@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  button { font: inherit; color: inherit; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</helmet>
+
+<div style="background: var(--paper)">
+
+  <header style="border-bottom: 1px solid var(--ink); background: var(--paper)">
+    <div style="max-width: 1180px; margin: 0 auto; padding: 15px 26px; display: flex; align-items: center; gap: 22px">
+      <p style="margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 22px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 6px; height: 6px; background: var(--accent); margin-bottom: 2px; flex-shrink: 0"></span><span style="font-size: 14px; font-weight: 400; letter-spacing: 0; color: var(--n600)">.ai</span></p>
+      <div style="flex: 1"></div>
+      <a href="Nutrivo Coverage (public).dc.html" style="font-size: 13.5px">Coverage</a>
+      <a href="Nutrivo Segment Pages.dc.html" style="font-size: 13.5px">Who it is for</a>
+      <span style="border: 1px solid var(--accent); color: var(--accent-700); border-radius: 3px; padding: 8px 15px; font-size: 13.5px">Check three labels free</span>
+    </div>
+  </header>
+
+  <!-- ═══ THE THREE QUESTIONS ═══ -->
+  <section style="border-bottom: 1px solid var(--ink)">
+    <div style="max-width: 1180px; margin: 0 auto; padding: 44px 26px 38px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">Pricing</p>
+      <h1 style="margin: 14px 0 0; font-size: 46px; font-weight: 600; line-height: 1.03; max-width: 22ch; text-wrap: pretty">Check three labels free. Then decide.</h1>
+      <p style="margin: 16px 0 0; font-size: 17px; line-height: 1.55; color: var(--n700); max-width: 74ch; text-wrap: pretty">The whole product for your first three labels, with no card and no clock: every finding, every market, and reports you can export, email and share. If it is any good you will know by the third one.</p>
+
+      <div style="margin-top: 32px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px">
+        <sc-for list="{{ questions }}" as="q" hint-placeholder-count="3">
+          <div class="blueprint" style="{{ q.style }}">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.11em; text-transform: uppercase; color: var(--n600)">{{ q.n }}</p>
+            <p style="margin: 10px 0 0; font-size: 17px; font-weight: 600; line-height: 1.2">{{ q.k }}</p>
+            <p style="margin: 9px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n700)">{{ q.v }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ THE LADDER ═══ -->
+  <section style="border-bottom: 1px solid var(--ink); background: var(--panel)">
+    <div style="max-width: 1180px; margin: 0 auto; padding: 36px 26px 44px">
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap">
+        <div>
+          <h2 style="margin: 0; font-size: 30px; font-weight: 600; line-height: 1.1">Four plans</h2>
+          <p style="margin: 9px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--n700); max-width: 70ch">Priced on what you manage — recipes, regions and people who edit. Never on how often you check, and never on tokens.</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 9px; align-items: flex-end">
+          <div style="display: flex; border: 1px solid var(--n400); border-radius: 3px; overflow: hidden; background: var(--paper)">
+            <sc-for list="{{ termOpts }}" as="t" hint-placeholder-count="2">
+              <button type="button" onClick="{{ t.pick }}" style="{{ t.style }}">{{ t.k }}</button>
+            </sc-for>
+          </div>
+          <span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">ALL PRICES EXCLUDE VAT</span>
+        </div>
+      </div>
+
+      <div style="margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(252px, 1fr)); gap: 16px; align-items: stretch">
+        <sc-for list="{{ tiers }}" as="p" hint-placeholder-count="4">
+          <div class="blueprint" style="{{ p.style }}">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-height: 22px">
+              <p style="margin: 0; font-size: 21px; font-weight: 600">{{ p.k }}</p>
+              <span style="{{ p.tagStyle }}">{{ p.tag }}</span>
+            </div>
+            <p style="margin: 8px 0 0; font-size: 13px; line-height: 1.5; color: var(--n700); min-height: 40px">{{ p.who }}</p>
+            <p style="margin: 16px 0 0; font-family: var(--mono); font-size: 30px; line-height: 1; color: {{ p.priceColor }}">{{ p.price }}</p>
+            <p style="margin: 7px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">{{ p.per }}</p>
+            <div style="margin-top: 16px; border-top: 1px solid var(--n200); padding-top: 13px; display: flex; flex-direction: column; gap: 8px">
+              <sc-for list="{{ p.dials }}" as="d" hint-placeholder-count="4">
+                <div style="display: flex; justify-content: space-between; gap: 10px; align-items: baseline">
+                  <span style="font-size: 12.5px; color: var(--n600)">{{ d.k }}</span>
+                  <span style="font-family: var(--mono); font-size: 11.5px; text-align: right; color: {{ d.color }}">{{ d.v }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top: 15px; border-top: 1px solid var(--n200); padding-top: 13px; display: flex; flex-direction: column; gap: 8px; flex: 1">
+              <sc-for list="{{ p.gets }}" as="g" hint-placeholder-count="5">
+                <div style="display: flex; gap: 9px; align-items: baseline">
+                  <span style="width: 9px; height: 9px; flex: none; margin-top: 4px; background: {{ p.tick }}"></span>
+                  <span style="font-size: 12.5px; line-height: 1.45; color: var(--n800)">{{ g }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <p style="margin: 15px 0 0; padding-top: 12px; border-top: 1px solid var(--n200); font-size: 12.5px; line-height: 1.5; color: {{ p.moveColor }}">{{ p.move }}</p>
+            <div style="{{ p.btnStyle }}">{{ p.btn }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <p style="margin: 20px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n700); max-width: 88ch">An annual term is ten months for twelve, on every plan. We concede on term, never on price — so nobody who signs the same plan as you pays less for it.</p>
+    </div>
+  </section>
+
+  <!-- ═══ A REGION IS SOLD WHOLE ═══ -->
+  <section style="border-bottom: 1px solid var(--ink)">
+    <div style="max-width: 1180px; margin: 0 auto; padding: 38px 26px 42px">
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap">
+        <div>
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">What you buy when you buy a region</p>
+          <h2 style="margin: 12px 0 0; font-size: 30px; font-weight: 600; line-height: 1.1; max-width: 30ch">A region is sold whole</h2>
+          <p style="margin: 10px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--n700); max-width: 80ch">You cannot buy one member state or one US state, because a state is one edition of a national rulebook rather than a rulebook of its own. Buy the EU and you have all twenty-seven. Buy the US and you have every state.</p>
+        </div>
+        <div style="display: flex; gap: 1px">
+          <sc-for list="{{ regionTabs }}" as="r" hint-placeholder-count="3">
+            <button type="button" onClick="{{ r.pick }}" style="{{ r.style }}">{{ r.k }}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; align-items: start">
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-top: 4px solid var(--accent); background: var(--paper); padding: 24px 26px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px">
+            <h3 style="margin: 0; font-size: 22px; font-weight: 600">{{ region.k }}</h3>
+            <span style="font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; color: var(--accent-700)">{{ region.price }}</span>
+          </div>
+          <p style="margin: 11px 0 0; font-size: 14px; line-height: 1.6; color: var(--n800)">{{ region.gets }}</p>
+          <div style="margin-top: 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 14px; border-top: 1px solid var(--n200); padding-top: 16px">
+            <sc-for list="{{ region.facts }}" as="rf" hint-placeholder-count="3">
+              <div>
+                <p style="margin: 0; font-family: var(--mono); font-size: 20px; line-height: 1">{{ rf.n }}</p>
+                <p style="margin: 6px 0 0; font-size: 12px; line-height: 1.4; color: var(--n700)">{{ rf.k }}</p>
+              </div>
+            </sc-for>
+          </div>
+          <p style="margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--n200); font-size: 13px; line-height: 1.55; color: var(--n700)">{{ region.note }}</p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 16px">
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--accent); background: var(--accent-100); padding: 20px 22px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-size: 15px; font-weight: 600">Why a whole region costs what one market would</p>
+            <p style="margin: 9px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n800)">A check costs what your artwork costs us to read, not what our coverage costs us to hold. Two packs are two language panels whether we hold three member states or twenty-seven. The part that grows with breadth — the authorities, the fees, the deadlines — is a lookup.</p>
+          </div>
+          <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--action); background: var(--paper); padding: 20px 22px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-size: 15px; font-weight: 600">We only sell a region we have published</p>
+            <p style="margin: 9px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n700)">For every market in it we publish how much we hold, how it was checked, when it was last checked, and every gap by name. If we would not publish a market's depth, we do not sell it. <a href="Nutrivo Coverage (public).dc.html">Read the coverage page</a>.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ NEVER / NOT SOLD ═══ -->
+  <section style="border-bottom: 1px solid var(--ink); background: var(--panel)">
+    <div style="max-width: 1180px; margin: 0 auto; padding: 38px 26px 42px">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; align-items: start">
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-top: 4px solid var(--clear); background: var(--paper); padding: 24px 26px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--clear)">Never charged for, on any plan</p>
+          <h2 style="margin: 11px 0 0; font-size: 24px; font-weight: 600; line-height: 1.15">Check as often as you like</h2>
+          <p style="margin: 10px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n700)">A meter on a compliance check is a reason not to run one, and the check you did not run is the one that costs you. So we price the portfolio and never the activity.</p>
+          <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 8px">
+            <sc-for list="{{ never }}" as="nv" hint-placeholder-count="7">
+              <span style="border: 1px solid var(--clear); background: var(--clear-bg); padding: 6px 11px; font-size: 12.5px; color: var(--n800)">{{ nv }}</span>
+            </sc-for>
+          </div>
+        </div>
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-top: 4px solid var(--blocked); background: var(--paper); padding: 24px 26px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--blocked)">Not sold at any price</p>
+          <h2 style="margin: 11px 0 0; font-size: 24px; font-weight: 600; line-height: 1.15">Where we stop</h2>
+          <p style="margin: 10px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n700)">We name the obligation, the authority, the route, the evidence, the fee and the deadline, and we fill in everything your product record already answers. Then you file it, because only the operator named on the label can.</p>
+          <div style="margin-top: 16px; display: flex; flex-direction: column; gap: 9px">
+            <sc-for list="{{ notSold }}" as="ns" hint-placeholder-count="5">
+              <div style="display: flex; gap: 10px; align-items: baseline">
+                <span style="width: 11px; height: 11px; flex: none; margin-top: 4px; background: var(--blocked); box-shadow: inset 0 4px 0 var(--paper), inset 0 -4px 0 var(--blocked)"></span>
+                <span style="font-size: 13px; line-height: 1.5; color: var(--n800)">{{ ns }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ WHICH PLAN ═══ -->
+  <section style="border-bottom: 1px solid var(--ink)">
+    <div style="max-width: 1180px; margin: 0 auto; padding: 38px 26px 42px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">Work out which one without asking us</p>
+      <h2 style="margin: 12px 0 0; font-size: 30px; font-weight: 600; line-height: 1.1; max-width: 28ch">Find yourself in this table</h2>
+
+      <div class="blueprint" style="position: relative; margin-top: 24px; border: 1px solid var(--ink); background: var(--paper)">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div style="display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr) 132px; background: var(--panel); border-bottom: 1px solid var(--ink)">
+          <p style="margin: 0; padding: 11px 16px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">If this is you</p>
+          <p style="margin: 0; padding: 11px 16px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">What decides it</p>
+          <p style="margin: 0; padding: 11px 16px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent)">Plan</p>
+        </div>
+        <sc-for list="{{ qualify }}" as="q" hint-placeholder-count="6">
+          <div style="{{ q.style }}">
+            <p style="margin: 0; padding: 13px 16px; font-size: 13.5px; font-weight: 500; line-height: 1.4">{{ q.who }}</p>
+            <p style="margin: 0; padding: 13px 16px; font-size: 13px; line-height: 1.5; color: var(--n700)">{{ q.why }}</p>
+            <p style="margin: 0; padding: 13px 16px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; color: {{ q.color }}">{{ q.tier }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ GROWING ═══ -->
+  <section style="border-bottom: 1px solid var(--ink); background: var(--panel)">
+    <div style="max-width: 1180px; margin: 0 auto; padding: 38px 26px 42px">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 22px; align-items: start">
+        <div>
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">When you outgrow a plan</p>
+          <h2 style="margin: 12px 0 0; font-size: 28px; font-weight: 600; line-height: 1.1; max-width: 26ch">What it costs to grow, before you grow</h2>
+          <p style="margin: 11px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--n700)">Every one of these is published so nothing on an invoice is a surprise. And the bill for extra recipes stops at half again the plan price — past that we offer you the next plan rather than keep charging.</p>
+          <div class="blueprint" style="position: relative; margin-top: 20px; border: 1px solid var(--ink); border-left: 4px solid var(--action); background: var(--paper); padding: 18px 20px">
+            <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+            <p style="margin: 0; font-size: 14px; font-weight: 600">The one number to know</p>
+            <p style="margin: 7px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">A recipe is the thing you formulate. Pack sizes, artwork versions and label variants of the same recipe are free and always have been — an eight-recipe brand is billed for eight, not for its twenty-four pack codes.</p>
+          </div>
+        </div>
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper)">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="display: grid; grid-template-columns: minmax(0, 1fr) 96px 96px 96px; background: var(--panel); border-bottom: 1px solid var(--ink)">
+            <sc-for list="{{ growHead }}" as="gh" hint-placeholder-count="4">
+              <p style="margin: 0; padding: 10px 13px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--n600)">{{ gh }}</p>
+            </sc-for>
+          </div>
+          <sc-for list="{{ grow }}" as="g" hint-placeholder-count="5">
+            <div style="{{ g.style }}">
+              <div style="padding: 12px 13px">
+                <p style="margin: 0; font-size: 13px; font-weight: 500">{{ g.k }}</p>
+                <p style="margin: 4px 0 0; font-size: 11.5px; line-height: 1.4; color: var(--n600)">{{ g.note }}</p>
+              </div>
+              <p style="margin: 0; padding: 12px 13px; font-family: var(--mono); font-size: 11px; color: {{ g.bc }}">{{ g.b }}</p>
+              <p style="margin: 0; padding: 12px 13px; font-family: var(--mono); font-size: 11px; color: {{ g.sc }}">{{ g.s }}</p>
+              <p style="margin: 0; padding: 12px 13px; font-family: var(--mono); font-size: 11px; color: {{ g.ac }}">{{ g.a }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ PARTNER ═══ -->
+  <section style="border-bottom: 1px solid var(--ink)">
+    <div style="max-width: 1180px; margin: 0 auto; padding: 36px 26px 40px">
+      <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-top: 4px solid var(--accent); background: var(--paper); padding: 26px 28px">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; align-items: start">
+          <div>
+            <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">If you answer for other companies' products</p>
+            <h2 style="margin: 11px 0 0; font-size: 28px; font-weight: 600; line-height: 1.1; max-width: 26ch">Partner</h2>
+            <p style="margin: 11px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--n700)">A consultancy does not have a portfolio. It has ten of somebody else's, each with its own markets, its own artwork and its own confidentiality. Priced on client workspaces rather than on recipes.</p>
+            <p style="margin: 16px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n700)">Your clients read their own workspace free, their data never mixes with another client's, and they can revoke your access at any time and keep everything.</p>
+          </div>
+          <div>
+            <p style="margin: 0; font-family: var(--mono); font-size: 32px; line-height: 1; color: var(--accent-700)">€1,499</p>
+            <p style="margin: 7px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)">PER MONTH · €14,990 PER YEAR · EXCL. VAT</p>
+            <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 8px">
+              <sc-for list="{{ partner }}" as="pt" hint-placeholder-count="5">
+                <div style="display: flex; justify-content: space-between; gap: 12px; align-items: baseline; border-bottom: 1px solid var(--n200); padding-bottom: 8px">
+                  <span style="font-size: 13px; color: var(--n700)">{{ pt.k }}</span>
+                  <span style="font-family: var(--mono); font-size: 11.5px; text-align: right; color: {{ pt.color }}">{{ pt.v }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="margin-top: 16px; display: inline-block; background: var(--accent); color: #ffffff; border-radius: 3px; padding: 11px 18px; font-size: 14px; font-weight: 500">Talk to us about Partner</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ THE HONEST ANSWERS ═══ -->
+  <section style="border-bottom: 1px solid var(--ink); background: var(--panel)">
+    <div style="max-width: 1180px; margin: 0 auto; padding: 38px 26px 42px">
+      <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)">Before you ask</p>
+      <h2 style="margin: 12px 0 0; font-size: 30px; font-weight: 600; line-height: 1.1">Answers we would rather give you now</h2>
+      <div style="margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px">
+        <sc-for list="{{ answers }}" as="an" hint-placeholder-count="6">
+          <div style="border-left: 3px solid {{ an.bar }}; padding-left: 16px">
+            <p style="margin: 0; font-size: 15px; font-weight: 600; line-height: 1.25">{{ an.q }}</p>
+            <p style="margin: 8px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n700)">{{ an.a }}</p>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ CLOSE ═══ -->
+  <section>
+    <div style="max-width: 1180px; margin: 0 auto; padding: 46px 26px 56px; text-align: center">
+      <h2 style="margin: 0 auto; font-size: 34px; font-weight: 600; line-height: 1.1; max-width: 24ch; text-wrap: pretty">Three labels. Then decide.</h2>
+      <p style="margin: 14px auto 0; font-size: 16px; line-height: 1.6; color: var(--n700); max-width: 62ch">The whole product, no card, no sales call, no company-size field. No countdown either — the three labels wait for you, because artwork does not arrive on our schedule.</p>
+      <div style="margin-top: 24px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap">
+        <span style="background: var(--accent); color: #ffffff; border-radius: 3px; padding: 14px 26px; font-size: 15.5px; font-weight: 500">Check three labels free</span>
+        <a href="Nutrivo Coverage (public).dc.html" style="border: 1px solid var(--n400); border-radius: 3px; padding: 14px 22px; font-size: 15.5px; color: var(--n800)">See what we cover first</a>
+      </div>
+      <p style="margin: 22px auto 0; font-size: 12.5px; line-height: 1.6; color: var(--n600); max-width: 76ch">Nutrivo names regulatory obligations and checks label artwork against encoded rules. It does not file registrations, pay fees, correspond with authorities, confirm that a registration is valid, or guarantee acceptance.</p>
+    </div>
+  </section>
+
+  <footer style="border-top: 1px solid var(--ink); background: var(--paper)">
+    <div style="max-width: 1180px; margin: 0 auto; padding: 20px 26px; display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap">
+      <p style="margin: 0; font-size: 12.5px; color: var(--n600)">Sunny Ventures AB, trading as Nutrivo.ai · Karlbergsvägen 48, 113 37 Stockholm, Sweden · VAT SE559429715101</p>
+      <div style="flex: 1"></div>
+      <a href="Nutrivo Legal - Terms, DPA, Privacy.dc.html" style="font-size: 12.5px">Terms</a>
+      <a href="Nutrivo Legal - Terms, DPA, Privacy.dc.html" style="font-size: 12.5px">Privacy</a>
+      <a href="Nutrivo Coverage (public).dc.html" style="font-size: 12.5px">Coverage</a>
+    </div>
+  </footer>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1240,&quot;height&quot;:1000}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)", n600: "var(--n600)", n700: "var(--n700)", ink: "var(--ink)" };
+
+const P = {
+  basic: { m: 249, y: 2490 },
+  standard: { m: 499, y: 4990 },
+  advanced: { m: 999, y: 9990 },
+  region: { m: 199, y: 1990 },
+};
+
+const REGIONS = {
+  EU: {
+    k: "European Union",
+    price: "€199 / mo · €1,990 / yr as a second region",
+    gets: "All twenty-seven member states, every official language, and each country's own registration, language and enforcement rules layered on top of the EU rulebook.",
+    facts: [{ n: "27", k: "Member states, all included" }, { n: "24", k: "Official languages" }, { n: "1", k: "Rulebook, twenty-seven editions" }],
+    note: "One supranational rulebook, then national law on top. A recipe cleared in Germany is not automatically cleared in France, and both are inside this region.",
+  },
+  UK: {
+    k: "United Kingdom",
+    price: "€199 / mo · €1,990 / yr as a second region",
+    gets: "Great Britain and Northern Ireland as two separate markets, because GB is diverging on retained law while NI stays EU-aligned for goods under the Windsor Framework.",
+    facts: [{ n: "2", k: "Markets, held apart" }, { n: "2", k: "Regimes in one country" }, { n: "1", k: "Region, one price" }],
+    note: "The only region where one country needs two answers. We give you both rather than averaging them, because a label that passes in Belfast can fail in Birmingham.",
+  },
+  US: {
+    k: "United States",
+    price: "€199 / mo · €1,990 / yr as a second region",
+    gets: "Federal labelling and safety, plus all fifty states — each one's own edition of the model feed law, its own registration, its own fees and its own tonnage reporting.",
+    facts: [{ n: "50", k: "States, all included" }, { n: "1", k: "Federal layer" }, { n: "51", k: "Registrations to track" }],
+    note: "This is the region where a label can be perfect and the product still unsellable, because registration is state by state. We name every one you owe, with the authority and the deadline.",
+  },
+};
+
+class Component extends DCLogic {
+  state = { term: "monthly", region: "EU" };
+
+  renderVals() {
+    const annual = this.state.term === "annual";
+    const fmt = (n) => "€" + n.toLocaleString("en-GB");
+    const r = REGIONS[this.state.region] || REGIONS.EU;
+
+    const card = (on) =>
+      "position: relative; border: 1px solid " + (on ? "var(--accent)" : "var(--ink)") +
+      "; border-top: 4px solid " + (on ? "var(--accent)" : "var(--n400)") +
+      "; background: " + (on ? "var(--accent-100)" : "var(--paper)") + "; padding: 22px 22px 22px; display: flex; flex-direction: column";
+
+    const btn = (kind) => kind === "primary"
+      ? "margin-top: 16px; text-align: center; background: var(--accent); color: #ffffff; border-radius: 3px; padding: 12px; font-size: 14px; font-weight: 500"
+      : "margin-top: 16px; text-align: center; border: 1px solid var(--n400); border-radius: 3px; padding: 12px; font-size: 14px; color: var(--n800)";
+
+    return {
+      questions: [
+        { n: "What it does", k: "Tells you whether a label is legal, and what to do if it is not", v: "We read your artwork, check it against the rules we hold for every market you sell in, and report four things: what is clear, what needs action, what we did not check, and what is blocked outright." },
+        { n: "Who it is for", k: "Pet food and animal nutrition brands, and the people who answer for them", v: "Brands selling into more than one market, their contract manufacturers, and the consultants who do the regulatory work on their behalf." },
+        { n: "What it costs", k: "Three labels free. From €249 a month after that", v: "Your first three labels are the full product, sending included. Paid plans start at €249 a month and are priced on what you manage: recipes, regions and people who edit." },
+      ].map((q, i) => ({
+        n: q.n, k: q.k, v: q.v,
+        style: "position: relative; border: 1px solid var(--ink); border-top: 4px solid " + (i === 2 ? "var(--accent)" : "var(--n400)") + "; background: var(--paper); padding: 20px 22px",
+      })),
+
+      termOpts: [
+        { id: "monthly", k: "Monthly" },
+        { id: "annual", k: "Annual · two months free" },
+      ].map(t => {
+        const on = this.state.term === t.id;
+        return {
+          k: t.k, pick: () => this.setState({ term: t.id }),
+          style: "border: none; background: " + (on ? "var(--accent)" : "transparent") + "; color: " + (on ? "#ffffff" : "var(--n700)") +
+            "; padding: 10px 16px; font-size: 13px; font-weight: " + (on ? "500" : "400") + "; cursor: pointer",
+        };
+      }),
+
+      tiers: [
+        { k: "Free", tag: "NO CARD, NO CLOCK", who: "Three labels, the whole product. For finding out whether the answer is any good.",
+          price: "€0", per: "THREE LABELS · NOTHING HELD BACK", on: false, btnKind: "ghost", btn: "Check three labels",
+          dials: [{ k: "Labels", v: "3", color: C.ink }, { k: "Regions", v: "1, whole", color: C.n700 }, { k: "People who edit", v: "2", color: C.n700 }, { k: "Sending", v: "INCLUDED", color: C.clear }],
+          gets: ["Whether your label is compliant, or not", "Every problem we found, in plain terms", "Where each answer came from, and what we could not check", "Reports you can export, email and share", "Re-check the same label as often as you like"],
+          move: "The fourth label is where a plan starts. Nothing you checked is taken away.", moveColor: C.action, tick: "var(--n400)" },
+        { k: "Basic", tag: "", who: "One brand, selling into one region. The plan most first customers need.",
+          price: annual ? fmt(P.basic.y) : fmt(P.basic.m), per: annual ? "PER YEAR · EXCL. VAT" : "PER MONTH · EXCL. VAT", on: false, btnKind: "ghost", btn: "Choose Basic",
+          dials: [{ k: "Recipes", v: "10", color: C.ink }, { k: "Regions", v: "1, whole", color: C.ink }, { k: "People who edit", v: "3", color: C.ink }, { k: "People who read", v: "FREE", color: C.clear }],
+          gets: ["Everything in Free", "A report you can send, email or share", "Whoever receives it can check it is real", "What you must register, with whom, by when", "Your document pack per market"],
+          move: "You outgrow it at a second region, thirty recipes, or a fourth person who edits.", moveColor: C.n700, tick: "var(--n400)" },
+        { k: "Standard", tag: "MOST RANGES", who: "A full range, selling into one region or two. Room to expand without a conversation.",
+          price: annual ? fmt(P.standard.y) : fmt(P.standard.m), per: annual ? "PER YEAR · EXCL. VAT" : "PER MONTH · EXCL. VAT", on: true, btnKind: "primary", btn: "Choose Standard",
+          dials: [{ k: "Recipes", v: "30", color: C.ink }, { k: "Regions", v: "1, plus 1 more", color: C.ink }, { k: "People who edit", v: "5", color: C.ink }, { k: "People who read", v: "FREE", color: C.clear }],
+          gets: ["Everything in Basic", "A second region for " + (annual ? fmt(P.region.y) + " a year" : fmt(P.region.m) + " a month"), "Ask a supplier for a specification once, not per recipe", "Give a consultant or co-packer access to named recipes", "Watch every market for rule changes that touch you"],
+          move: "You move up at a third region, or when somebody has to sign for a label.", moveColor: C.n700, tick: "var(--accent)" },
+        { k: "Advanced", tag: "", who: "When somebody in your company has to put their name to a label.",
+          price: "from " + (annual ? fmt(P.advanced.y) : fmt(P.advanced.m)), per: annual ? "PER YEAR · TO 100 RECIPES" : "PER MONTH · TO 100 RECIPES", on: false, btnKind: "ghost", btn: "Talk to us",
+          dials: [{ k: "Recipes", v: "NO LIMIT", color: C.clear }, { k: "Regions", v: "ALL THREE", color: C.clear }, { k: "People", v: "FREE", color: C.clear }, { k: "Signing", v: "PER MARKET", color: C.clear }],
+          gets: ["Everything in Standard", "All three regions: the EU, the UK and the US", "As many people as you like, all free", "A signed certificate, not only a report", "Single sign-on, and audit history you can export"],
+          move: "Above 100 recipes the price is quoted by range size, at a published rate.", moveColor: C.n700, tick: "var(--n400)" },
+      ].map(t => ({
+        k: t.k, who: t.who, price: t.price, per: t.per, dials: t.dials, gets: t.gets, move: t.move, moveColor: t.moveColor, tick: t.tick, tag: t.tag, btn: t.btn,
+        priceColor: t.on ? "var(--accent-700)" : "var(--ink)",
+        style: card(t.on),
+        btnStyle: btn(t.btnKind),
+        tagStyle: t.tag
+          ? "flex: none; font-family: var(--mono); font-size: 9px; letter-spacing: 0.07em; padding: 4px 7px; border: 1px solid " + (t.on ? "var(--accent)" : "var(--n400)") + "; color: " + (t.on ? "var(--accent-700)" : "var(--n600)") + "; background: var(--paper); white-space: nowrap"
+          : "display: none",
+      })),
+
+      regionTabs: ["EU", "UK", "US"].map(id => {
+        const on = this.state.region === id;
+        return {
+          k: id, pick: () => this.setState({ region: id }),
+          style: "border: 1px solid " + (on ? "var(--accent)" : "var(--n400)") + "; background: " + (on ? "var(--accent-100)" : "var(--paper)") +
+            "; color: " + (on ? "var(--accent-700)" : "var(--n700)") + "; padding: 9px 17px; font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.05em; cursor: pointer; font-weight: " + (on ? "600" : "400"),
+        };
+      }),
+      region: r,
+
+      never: ["Checks and re-checks", "Checking in the language the label is printed in", "The four states", "Where each answer came from", "What we could not check, and why", "What you must register, with whom, by when", "Reading your own answer"],
+      notSold: [
+        "Filing a registration, notification or application for you",
+        "Paying an authority's fee on your behalf",
+        "Corresponding with an authority about your product",
+        "Confirming that a registration is valid or in force",
+        "Guaranteeing that anybody will accept your label",
+      ],
+
+      qualify: [
+        { who: "You want to see whether this is any good", why: "Three labels, the whole product, sending included. No card, no clock, no sales call.", tier: "FREE", color: C.n700 },
+        { who: "You have a fourth label to check", why: "Three was enough to judge us. A fourth means this is work rather than an evaluation.", tier: "BASIC", color: C.accent },
+        { who: "One brand, one region, under ten recipes", why: "Ten recipes and three people who edit, with every pack size and artwork version free.", tier: "BASIC", color: C.accent },
+        { who: "A range, or a second region coming", why: "A second region is the reason most brands move here. Thirty recipes and five people who edit.", tier: "STANDARD", color: C.accent },
+        { who: "You work inside your clients' workspaces", why: "Scoped access to named recipes, every action attributed to you. Your client pays for their own plan.", tier: "STANDARD", color: C.accent },
+        { who: "Selling into all three regions", why: "The third region only exists here, along with unlimited recipes and no charge for people.", tier: "ADVANCED", color: C.accent },
+        { who: "Somebody has to sign for a label", why: "A named person in your company holding signing authority for that market, and a certificate that carries their name.", tier: "ADVANCED", color: C.accent },
+        { who: "You answer for other companies' products", why: "Ten client workspaces under one account you control, with your clients reading their own free.", tier: "PARTNER", color: C.accent },
+      ].map((q, i, a) => Object.assign({}, q, {
+        style: "display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.35fr) 132px; border-bottom: " +
+          (i < a.length - 1 ? "1px solid var(--n200)" : "none") + "; background: " + (i % 2 ? "var(--panel)" : "transparent"),
+      })),
+
+      growHead: ["What you add", "Basic", "Standard", "Advanced"],
+      grow: [
+        { k: "One more recipe", note: "Pack sizes and artwork versions are always free", b: "€15/mo", s: "€12/mo", a: "included", bc: C.n700, sc: C.n700, ac: C.clear },
+        { k: "A second region", note: "Whole, either of the other two", b: "not available", s: "€199/mo", a: "included", bc: C.blocked, sc: C.n700, ac: C.clear },
+        { k: "A third region", note: "All three only exist on Advanced", b: "not available", s: "not available", a: "included", bc: C.blocked, sc: C.blocked, ac: C.clear },
+        { k: "One more person who edits", note: "Beyond the three or five included", b: "€50/mo", s: "€50/mo", a: "free", bc: C.n700, sc: C.n700, ac: C.clear },
+        { k: "Somebody who only reads", note: "Internal or external, as many as you like", b: "free", s: "free", a: "free", bc: C.clear, sc: C.clear, ac: C.clear },
+        { k: "A supplier who uploads a document", note: "A scoped link, not an account", b: "free", s: "free", a: "free", bc: C.clear, sc: C.clear, ac: C.clear },
+        { k: "The most extra recipes can cost you", note: "Then we offer you the next plan instead", b: "€374/mo", s: "€749/mo", a: "n/a", bc: C.action, sc: C.action, ac: C.n600 },
+      ].map((g, i, a) => Object.assign({}, g, {
+        style: "display: grid; grid-template-columns: minmax(0, 1fr) 96px 96px 96px; border-bottom: " +
+          (i < a.length - 1 ? "1px solid var(--n200)" : "none") + "; background: " + (i % 2 ? "var(--panel)" : "transparent"),
+      })),
+
+      partner: [
+        { k: "Client workspaces", v: "10", color: C.ink },
+        { k: "Recipes in each", v: "30", color: C.ink },
+        { k: "People at your firm", v: "UNLIMITED, FREE", color: C.clear },
+        { k: "Each further client", v: "€129/mo", color: C.n700 },
+        { k: "Above 25 clients", v: "QUOTED", color: C.n700 },
+      ],
+
+      answers: [
+        { q: "Is there a catch in the three free labels?", a: "No feature is held back. You get every finding, every market in your region, the provenance on each answer, and reports you can export, email and share. The limit is the count, not the product — and there is no clock, so a label you upload in three months still counts as one of the three.", bar: C.accent },
+        { q: "Why is checking never charged for?", a: "Because a meter on a compliance check is a reason not to run one, and the check somebody skipped is the one that costs money. It also means a rule change never costs you anything to respond to.", bar: C.clear },
+        { q: "Why can I not buy a single country?", a: "Because a member state or a US state is one edition of a national rulebook, not a rulebook of its own. Selling you Texas alone would mean selling you an answer that depends on federal law we had not encoded.", bar: C.action },
+        { q: "What happens if I stop paying?", a: "Your workspace stops accepting new labels. Nothing is deleted, everything you have already checked stays readable, and every report you sent stays verifiable by whoever holds it. We do not hold a compliance history hostage, and we never break a document somebody else is relying on.", bar: C.clear },
+        { q: "Can I get my data out?", a: "Yes, on every plan including the free one, at no charge, with the ruleset version on every row. If you leave, you leave with everything.", bar: C.clear },
+        { q: "Do you offer a discount?", a: "One, and it is the same for everybody: an annual term is ten months for twelve. We concede on term rather than on price, so nobody on your plan is paying less than you are.", bar: C.none },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

@@ -12,11 +12,11 @@ Code on the web the session start hook installs the tools, so usually only the `
 are missing; if a tool is, show the hook's "Not ready" line instead of install commands.
 
 ## 2 · Repository (GATE G1 if the repository already has code)
-`main` of `ar835/Nutrivo` already holds this hand-off, so in a clone of it (every web session, or SETUP Step 3 on a
+`main` of `nutrivo-ai/Nutrivo` already holds this hand-off, so in a clone of it (every web session, or SETUP Step 3 on a
 laptop) skip step 2; 2.1–2.4 are for an unzipped hand-off only. On the web the session pushes through the Claude
 GitHub App: if a push is refused, ask the founder to install the app on the repository (docs/22 §1).
 1. `gh auth status`. If it is not authenticated, ask the founder to run `gh auth login`, and stop.
-2. The repository is `ar835/Nutrivo` (docs/22). If `gh repo view ar835/Nutrivo` fails, ask.
+2. The repository is `nutrivo-ai/Nutrivo` (docs/22). If `gh repo view nutrivo-ai/Nutrivo` fails, ask.
 3. In this folder: `git init -b main` (if needed), `git remote add origin <url>`, `git fetch origin`.
 4. **Empty remote:** commit everything as "Hand-off baseline" and push to main.
    **Remote with commits:**
@@ -30,16 +30,17 @@ GitHub App: if a push is refused, ask the founder to install the app on the repo
 ## 3 · Secrets (GATE G2)
 1. Create `.infisical.json` from `.infisical.json.example` with the project id (INFISICAL_PROJECT_ID, or ask).
    Commit it; it holds no secret.
-2. `make env-check ENV=dev`. It prints names only. A Claude Code session holds only the dev identity (docs/16), so
-   staging and prod are checked by a founder: Actions → doctor → Run workflow, once with `staging` and once with
-   `prod` (after the set-up pull request is merged and docs/22 §3 is done). Names whose resource a later task
-   creates (`from:` in `config/secrets.yaml`, for example the Render worker in T-010) show as `later`, not missing.
+2. `make env-check ENV=dev`. It prints names only. Bootstrap checks dev only: the staging and prod Infisical projects
+   are created in T-010 (docs/22 §3), and a Claude Code session holds only the dev identity (docs/16). Names whose
+   resource a later task creates (`from:` in `config/secrets.yaml`, for example the Render worker in T-010) show as
+   `later`, not missing. A founder checks staging in T-010 and prod in T-1101 with every name required: Actions →
+   doctor → Run workflow, with `staging` or `prod` and `all` ticked, and links the run on the task's issue.
 3. A missing canonical name with an obvious equivalent already in Infisical (for example SENTRY_DSN for
    SENTRY_DSN_WEB): add `CANONICAL=EXISTING` to `config/secret-aliases.env` and re-run.
 4. Anything still missing: list it with its purpose from `config/secrets.yaml`, and stop.
 
 ## 4 · Doctor (GATE G2 on a bad key)
-`make doctor ENV=dev` here; staging and prod in the same `doctor` workflow run as step 3 (prod read-only).
+`make doctor ENV=dev` here. Staging (T-010) and prod (T-1101, read-only) in the same `doctor` workflow run as step 3.
 Every check is green or explicitly skipped with a reason: until T-010 deploys staging, the database schema, the
 Render worker and the Vercel project are skipped, not failed. Sentry and Langfuse are proven by a round-trip: send,
 then read back.
@@ -57,7 +58,7 @@ GitHub autopilot have the files.
 ## 7 · GitHub (docs/22-github-and-team.md)
 1. Every third-party action in `.github/workflows/` is pinned to a full commit SHA (Dependabot keeps the pins
    current), and `.github/CODEOWNERS` names every founder's GitHub username (ask for any that are missing).
-2. Before the set-up pull request is approved, the owner (ar835) creates the `scope-approved` and `human-approved`
+2. Before the set-up pull request is approved, an organisation owner creates the `scope-approved` and `human-approved`
    labels and adds the ones it needs; on it only the owner's labels count (docs/22 §1). After merging it, the founder applies the rest of docs/22 §1–§3: plan and
    collaborators, rulesets imported from `.github/rulesets/`, environments, the Infisical identities as Actions
    secrets and the `INFISICAL_PROJECT_ID` variable (and `INFISICAL_DOMAIN` if the project is in Infisical's EU cloud). The merge closes T-004's issue (the pull request's `Closes` line)

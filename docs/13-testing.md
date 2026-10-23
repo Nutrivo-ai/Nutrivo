@@ -11,6 +11,7 @@
 | Golden labels | fixtures/golden/ | Release gate from 30 labels | People only |
 | Claims evaluations | worker/evals/claims/ | Before any claim rule joins a ruleset | Labels by people |
 | Web unit and end-to-end | apps/web | `pnpm test`, `pnpm e2e` | Claude Code |
+| Repository scripts | scripts/env/test_*.py, scripts/doctor/test_*.py | `make verify-fast`; CI's `protocol` check | Claude Code |
 
 ## The 13 gates (Backend Action Register rows tagged GATE)
 The register's text says seven; its data tags thirteen. All thirteen are treated as gates.

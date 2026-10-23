@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../_ds/industry-d00cd6eb-8298-4cb3-9f3a-c92bd28e9c94/styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #101216; --paper: #ffffff; --rule: #dde0e6; --panel: #f4f5f7;
+    --accent: #2f5eff; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-600: #1f49d9; --accent-700: #1738a8;
+    --n200: #eef0f2; --n300: #dde0e6; --n400: #c3c8d0; --n500: #8b9098; --n600: #6b7178; --n700: #42464c; --n800: #26292e;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --action: #9e5600; --none: #5f6570; --blocked: #b3251f;
+    --clear-bg: #e6f2ec; --action-bg: #fdf0dd; --none-bg: #f1f2f4; --blocked-bg: #fbe8e7;
+  }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--head); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--head); letter-spacing: -0.03em; }
+  a { color: var(--accent-700); text-decoration: none; }
+  a:hover { color: var(--accent); }
+  button { font: inherit; color: inherit; }
+  *:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @keyframes ntv-slide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+</style>
+</helmet>
+
+<div style="width: 1280px; margin: 0 auto; background: var(--paper); font-size: 14px">
+
+  <header style="display: flex; align-items: center; gap: 26px; border-bottom: 1px solid var(--ink); padding: 16px 56px">
+    <p style="margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 22px; font-weight: 600; letter-spacing: -0.045em; line-height: 1"><span>nutrivo</span><span style="width: 6px; height: 6px; background: var(--accent); margin-bottom: 2px; flex-shrink: 0"></span><span style="font-size: 15px; font-weight: 400; color: var(--n600); letter-spacing: 0">.ai</span></p>
+    <div style="flex: 1; display: flex; gap: 22px">
+      <sc-for list="{{ siteNav }}" as="sn" hint-placeholder-count="4">
+        <span style="{{ sn.style }}">{{ sn.k }}</span>
+      </sc-for>
+    </div>
+    <span style="font-size: 13px; color: var(--n700)">Sign in</span>
+    <span style="background: var(--accent); color: #ffffff; padding: 9px 16px; border-radius: 3px; font-size: 13.5px; font-weight: 500">Check a label free</span>
+  </header>
+
+  <!-- ── LEAD ── -->
+  <section style="border-bottom: 1px solid var(--ink); padding: 52px 56px 44px">
+    <div style="display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 0.75fr); gap: 56px; align-items: end">
+      <div>
+        <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">Coverage</p>
+        <h1 style="margin: 14px 0 0; font-size: 52px; font-weight: 600; line-height: 1.02; letter-spacing: -0.035em; max-width: 26ch; text-wrap: balance">What we have encoded, market by market, and what we have not</h1>
+        <p style="margin: 18px 0 0; font-size: 16.5px; line-height: 1.55; color: var(--n700); max-width: 78ch; text-wrap: pretty">Every market we sell is on this page with the rules we hold for it, the method they were encoded by, the date a person last verified them, and the gaps we know about by name. It is generated from the same table the product queries when it runs a check, so it cannot drift from what the product actually does.</p>
+      </div>
+      <div>
+        <div style="border: 1px solid var(--ink); padding: 20px 22px">
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">Never on this page</p>
+          <p style="margin: 10px 0 0; font-size: 14px; line-height: 1.55; color: var(--n800)">A single coverage percentage. There is no honest number that summarises 80 markets, and any number invites a target.</p>
+        </div>
+        <p style="margin: 14px 0 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600)">GENERATED 4 SEP 2026 · RULESET 2026.08-b</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── THREE STATES ── -->
+  <section style="border-bottom: 1px solid var(--ink); padding: 44px 56px">
+    <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">Three states a market can be in</p>
+    <h2 style="margin: 14px 0 0; font-size: 32px; font-weight: 600; line-height: 1.1; max-width: 34ch">Read this before you read a table</h2>
+    <div style="margin-top: 28px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px">
+      <sc-for list="{{ states }}" as="st" hint-placeholder-count="3">
+        <div class="blueprint" style="{{ st.style }}">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <div style="display: flex; align-items: center; gap: 11px">
+            <span style="{{ st.glyph }}"></span>
+            <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.11em; text-transform: uppercase; color: {{ st.color }}">{{ st.k }}</p>
+          </div>
+          <p style="margin: 14px 0 0; font-size: 20px; font-weight: 600; line-height: 1.2">{{ st.title }}</p>
+          <p style="margin: 10px 0 0; font-size: 14px; line-height: 1.55; color: var(--n700)">{{ st.v }}</p>
+          <p style="margin: 16px 0 0; padding-top: 13px; border-top: 1px solid var(--n200); font-size: 13.5px; line-height: 1.5; color: var(--n800)"><span style="font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; color: var(--n600)">IN A CHECK · </span>{{ st.effect }}</p>
+        </div>
+      </sc-for>
+    </div>
+    <div class="blueprint" style="position: relative; margin-top: 22px; border: 1px solid var(--ink); border-left: 4px solid var(--accent); background: var(--accent-100); padding: 20px 24px">
+      <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+      <p style="margin: 0; font-size: 16px; font-weight: 600">We only offer a market we would publish the depth of</p>
+      <p style="margin: 8px 0 0; font-size: 14px; line-height: 1.6; color: var(--n800); max-width: 112ch">Publishable equals sellable. That has a cost we accept: published depth is a commitment you can hold us to, and a market that quietly goes stale is worse than one we never published. Every row below carries the date a person last checked it, so you can see for yourself which is which.</p>
+    </div>
+  </section>
+
+  <!-- ── REGION INDEX ── -->
+  <section style="border-bottom: 1px solid var(--ink); padding: 44px 56px">
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 40px">
+      <div>
+        <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">By region</p>
+        <h2 style="margin: 14px 0 0; font-size: 32px; font-weight: 600; line-height: 1.1">Markets are a tree, so coverage is too</h2>
+        <p style="margin: 12px 0 0; font-size: 15px; line-height: 1.55; color: var(--n700); max-width: 84ch">A region is a regime; a market inside it is one country, or one US state. A parent never conceals a failing child, and it never inherits a child's depth.</p>
+      </div>
+      <div style="flex: none; display: flex; gap: 8px">
+        <sc-for list="{{ regionTabs }}" as="rt" hint-placeholder-count="3">
+          <button type="button" onClick="{{ rt.go }}" style="{{ rt.style }}" style-hover="border-color: var(--accent); color: var(--accent-700)">{{ rt.k }}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="margin-top: 26px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--ink)">
+      <sc-for list="{{ regionStats }}" as="rs" hint-placeholder-count="4">
+        <div style="{{ rs.style }}">
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.11em; text-transform: uppercase; color: var(--n600)">{{ rs.k }}</p>
+          <p style="margin: 10px 0 0; font-family: var(--mono); font-size: 30px; line-height: 1; color: {{ rs.color }}">{{ rs.n }}</p>
+          <p style="margin: 8px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--n700)">{{ rs.v }}</p>
+        </div>
+      </sc-for>
+    </div>
+
+    <p style="margin: 22px 0 0; font-size: 15px; line-height: 1.55; color: var(--n700); max-width: 96ch">{{ regionLead }}</p>
+
+    <div style="margin-top: 22px; border: 1px solid var(--ink)">
+      <div style="display: grid; grid-template-columns: minmax(0, 1.25fr) 108px 136px 132px minmax(0, 1.5fr); background: var(--panel); border-bottom: 1px solid var(--ink)">
+        <sc-for list="{{ tableHead }}" as="th" hint-placeholder-count="5">
+          <p style="margin: 0; padding: 11px 15px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">{{ th }}</p>
+        </sc-for>
+      </div>
+      <sc-for list="{{ rows }}" as="r" hint-placeholder-count="10">
+        <div style="{{ r.style }}">
+          <div style="padding: 12px 15px; display: flex; gap: 10px; align-items: baseline">
+            <span style="{{ r.glyph }}"></span>
+            <div style="min-width: 0">
+              <p style="margin: 0; font-size: 13.5px; font-weight: 500; line-height: 1.3">{{ r.market }}</p>
+              <p style="margin: 3px 0 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.05em; color: var(--n500)">{{ r.code }}</p>
+            </div>
+          </div>
+          <p style="margin: 0; padding: 12px 15px; font-family: var(--mono); font-size: 13px; color: {{ r.rulesColor }}">{{ r.rules }}</p>
+          <p style="margin: 0; padding: 12px 15px; font-family: var(--mono); font-size: 11px; color: {{ r.dateColor }}">{{ r.date }}</p>
+          <p style="margin: 0; padding: 12px 15px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: {{ r.stateColor }}">{{ r.state }}</p>
+          <div style="padding: 12px 15px">
+            <p style="margin: 0; font-size: 12px; line-height: 1.45; color: var(--n700)">{{ r.gaps }}</p>
+            <sc-if value="{{ r.hasNode }}">
+              <a href="#node" onClick="{{ r.open }}" style="display: inline-block; margin-top: 6px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.07em">FULL DETAIL →</a>
+            </sc-if>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="margin-top: 14px; display: flex; flex-wrap: wrap; gap: 26px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--n600)">
+      <sc-for list="{{ legend }}" as="lg" hint-placeholder-count="5">
+        <span>{{ lg }}</span>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- ── NODE DETAIL ── -->
+  <section style="border-bottom: 1px solid var(--ink); padding: 44px 56px; background: var(--panel)">
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 40px">
+      <div>
+        <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">One market in full</p>
+        <h2 style="margin: 14px 0 0; font-size: 32px; font-weight: 600; line-height: 1.1">{{ nodeTitle }}</h2>
+        <p style="margin: 12px 0 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; color: var(--n600)">{{ nodeUrl }}</p>
+      </div>
+      <p style="margin: 0; flex: none; max-width: 42ch; font-size: 14px; line-height: 1.55; color: var(--n700)">Every result the product withholds links here, to the market and the domain that explains it. A finding we could not check is never a silence.</p>
+    </div>
+
+    <div style="margin-top: 26px; display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr); gap: 22px; align-items: start">
+      <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 24px 26px">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">By domain</p>
+        <div style="margin-top: 16px; border: 1px solid var(--rule)">
+          <div style="display: grid; grid-template-columns: minmax(0, 1fr) 92px minmax(0, 0.85fr); background: var(--panel); border-bottom: 1px solid var(--ink)">
+            <p style="margin: 0; padding: 9px 13px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Domain</p>
+            <p style="margin: 0; padding: 9px 13px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Rules</p>
+            <p style="margin: 0; padding: 9px 13px; font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)">Encoded</p>
+          </div>
+          <sc-for list="{{ nodeDomains }}" as="nd" hint-placeholder-count="6">
+            <div style="{{ nd.style }}">
+              <p style="margin: 0; padding: 10px 13px; font-size: 12.5px; line-height: 1.3">{{ nd.k }}</p>
+              <p style="margin: 0; padding: 10px 13px; font-family: var(--mono); font-size: 12px; color: {{ nd.nColor }}">{{ nd.n }}</p>
+              <p style="margin: 0; padding: 10px 13px; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.06em; color: {{ nd.stateColor }}">{{ nd.state }}</p>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin: 16px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700)">A domain is either encoded or it is not, and where it is not the gap has an identifier. There is no partial credit on a domain and no wording that lets an absence read as a pass.</p>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 20px">
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); background: var(--paper); padding: 22px 24px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--n600)">On the record</p>
+          <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px">
+            <sc-for list="{{ nodeFacts }}" as="nf" hint-placeholder-count="6">
+              <div style="display: flex; justify-content: space-between; gap: 14px; align-items: baseline; border-bottom: 1px solid var(--n200); padding-bottom: 8px">
+                <span style="font-size: 12.5px; color: var(--n700)">{{ nf.k }}</span>
+                <span style="font-family: var(--mono); font-size: 11.5px; text-align: right; color: {{ nf.color }}">{{ nf.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div class="blueprint" style="position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--none); background: var(--paper); padding: 22px 24px">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--none)">Named gaps</p>
+          <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 14px">
+            <sc-for list="{{ nodeGaps }}" as="ng" hint-placeholder-count="2">
+              <div>
+                <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--n600)">{{ ng.id }}</p>
+                <p style="margin: 6px 0 0; font-size: 13px; line-height: 1.55; color: var(--n800)">{{ ng.v }}</p>
+              </div>
+            </sc-for>
+          </div>
+          <p style="margin: 16px 0 0; padding-top: 13px; border-top: 1px solid var(--n200); font-size: 12.5px; line-height: 1.5; color: var(--n700)">A gap has an identifier because it is referenced from every result it affects, and because it has to be closable.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── HOW WE ENCODE ── -->
+  <section style="border-bottom: 1px solid var(--ink); padding: 44px 56px">
+    <p style="margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)">Method</p>
+    <h2 style="margin: 14px 0 0; font-size: 32px; font-weight: 600; line-height: 1.1; max-width: 36ch">How a rule gets into the system</h2>
+    <p style="margin: 14px 0 0; font-size: 15px; line-height: 1.6; color: var(--n700); max-width: 100ch">Machine extraction does the volume and a person accepts every entry. The critical distinction is that the machine <strong style="font-weight: 600">extracts</strong> a prescribed legal term from official source text with an article-level citation. It never <strong style="font-weight: 600">translates</strong> one. A linguistically perfect translation of a prescribed designation is still a defect.</p>
+    <div style="margin-top: 28px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px">
+      <sc-for list="{{ methods }}" as="m" hint-placeholder-count="3">
+        <div class="blueprint" style="{{ m.style }}">
+          <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+          <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; color: {{ m.color }}">{{ m.tag }}</p>
+          <p style="margin: 12px 0 0; font-size: 17px; font-weight: 600; line-height: 1.2">{{ m.k }}</p>
+          <p style="margin: 9px 0 0; font-size: 13px; line-height: 1.55; color: var(--n700); flex: 1">{{ m.v }}</p>
+          <p style="margin: 14px 0 0; padding-top: 11px; border-top: 1px solid var(--n200); font-size: 12.5px; line-height: 1.5; color: var(--n800)">{{ m.applies }}</p>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- ── CLOSE ── -->
+  <section style="padding: 48px 56px 56px">
+    <div style="display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr); gap: 48px; align-items: start">
+      <div>
+        <h2 style="margin: 0; font-size: 34px; font-weight: 600; line-height: 1.08; max-width: 30ch; text-wrap: balance">The reason this page exists</h2>
+        <p style="margin: 16px 0 0; font-size: 16px; line-height: 1.6; color: var(--n700); max-width: 82ch; text-wrap: pretty">A compliance tool that answers everything is either much better than it looks or lying. Four states, and one of them is Not assessed — shown as prominently as the rest, because a label can be fully compliant and a product still unsellable, and because a silence you cannot see is the most expensive thing we could sell you.</p>
+        <div style="margin-top: 26px; display: flex; gap: 12px; align-items: center">
+          <span style="background: var(--accent); color: #ffffff; padding: 13px 22px; border-radius: 3px; font-size: 15px; font-weight: 500">Check a label free</span>
+          <span style="border: 1px solid var(--n400); padding: 13px 20px; border-radius: 3px; font-size: 14.5px">See the plans</span>
+        </div>
+        <p style="margin: 16px 0 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600)">THREE LABELS FREE · NO CARD · NO SALES CALL</p>
+      </div>
+      <div class="blueprint" style="position: relative; border: 1px solid var(--ink); padding: 22px 24px">
+        <i class="corner tl"></i><i class="corner tr"></i><i class="corner bl"></i><i class="corner br"></i>
+        <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blocked)">What we never do, at any price</p>
+        <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 9px">
+          <sc-for list="{{ nevers }}" as="nv" hint-placeholder-count="5">
+            <div style="display: grid; grid-template-columns: 14px minmax(0, 1fr); gap: 11px; align-items: baseline">
+              <span style="width: 11px; height: 11px; flex: none; margin-top: 4px; background: var(--blocked); box-shadow: inset 0 4px 0 var(--paper), inset 0 -4px 0 var(--blocked)"></span>
+              <span style="font-size: 13px; line-height: 1.5; color: var(--n800)">{{ nv }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <p style="margin: 16px 0 0; padding-top: 13px; border-top: 1px solid var(--n200); font-size: 12.5px; line-height: 1.55; color: var(--n700)">Only the responsible operator named on the label can register a product. We name the obligation, the authority, the route, the evidence, the fee and the deadline, and pre-fill everything your product record answers. You file it.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer style="border-top: 1px solid var(--ink); padding: 22px 56px; display: flex; align-items: baseline; justify-content: space-between; gap: 30px">
+    <p style="margin: 0; font-size: 12.5px; color: var(--n600)">Nutrivo.ai is operated by Sunny Ventures AB, Karlbergsvägen 48, 113 37 Stockholm, Sweden.</p>
+    <p style="margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em; color: var(--n600)">COVERAGE GENERATED FROM THE PRODUCTION RULESET · 4 SEP 2026</p>
+  </footer>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:1000}}">
+const C = { clear: "var(--clear)", action: "var(--action)", none: "var(--none)", blocked: "var(--blocked)", accent: "var(--accent)", n600: "var(--n600)", n700: "var(--n700)", ink: "var(--ink)" };
+
+const M = (market, code, rules, method, date, verifier, state, gaps, node) =>
+  ({ market, code, rules, method, date, verifier, state, gaps, node });
+
+const DATA = {
+  EU: {
+    lead: "One supranational rulebook, then national registration, language and enforcement per member state. The EU core is encoded once and applies to all 27; what differs per member state is registration, language and national additions, and that is what each row below reports.",
+    stats: [
+      { k: "Member states offered", n: "27", v: "The region is sold whole. Every state is checkable", color: C.ink },
+      { k: "Complete", n: "21", v: "Every domain we check is encoded", color: C.clear },
+      { k: "Partial", n: "6", v: "Gaps named on the row, never summarised", color: C.action },
+      { k: "Official languages", n: "24", v: "Designations extracted with article-level citations", color: C.ink },
+    ],
+    rows: [
+      M("Germany", "EU · DE", "418", "NAMED SPECIALIST", "2026-08-14", "M. Kowalczyk", "COMPLETE", "None open.", true),
+      M("France", "EU · FR", "402", "NAMED SPECIALIST", "2026-08-14", "M. Kowalczyk", "PARTIAL", "DGCCRF guidance notes tracked, not encoded as rules."),
+      M("Netherlands", "EU · NL", "396", "NAMED SPECIALIST", "2026-08-02", "A. Bergqvist", "COMPLETE", "None open."),
+      M("Belgium", "EU · BE", "389", "NAMED SPECIALIST", "2026-07-28", "A. Bergqvist", "PARTIAL", "Regional language enforcement in Brussels-Capital not encoded."),
+      M("Italy", "EU · IT", "374", "NAMED SPECIALIST", "2026-07-19", "M. Kowalczyk", "COMPLETE", "None open."),
+      M("Poland", "EU · PL", "312", "MIXED · SEE DETAIL", "2026-07-14", "M. Kowalczyk", "PARTIAL", "GAP PL-02, GAP PL-05. Two domains not encoded.", true),
+      M("Spain", "EU · ES", "358", "OUR SYSTEM · DOUBLE", "2026-06-30", "In-house acceptance", "PARTIAL", "Autonomous-community label additions not encoded."),
+      M("Sweden", "EU · SE", "341", "OUR SYSTEM · DOUBLE", "2026-06-22", "In-house acceptance", "COMPLETE", "None open."),
+      M("Romania", "EU · RO", "298", "OUR SYSTEM · DOUBLE", "2026-05-11", "In-house acceptance", "PARTIAL", "National registration submission format not encoded."),
+      M("Malta", "EU · MT", "246", "OUR SYSTEM", "2026-04-18", "Awaiting specialist", "COMPLETE", "None open."),
+    ],
+  },
+  UK: {
+    lead: "A dual regime, and we hold it as two markets rather than one. Great Britain diverges on retained law; Northern Ireland stays EU-aligned for goods under the Windsor Framework. A rule that applies in one does not imply the other, and we never roll them up.",
+    stats: [
+      { k: "Markets offered", n: "2", v: "GB and NI, held separately", color: C.ink },
+      { k: "Complete", n: "2", v: "Both, with every domain encoded", color: C.clear },
+      { k: "Not encoded", n: "0", v: "No market in this region is offered without rules", color: C.clear },
+      { k: "Divergences tracked", n: "34", v: "GB retained-law rules that differ from NI", color: C.action },
+    ],
+    rows: [
+      M("Great Britain", "UK · GB", "374", "NAMED SPECIALIST", "2026-08-12", "R. Haldane", "COMPLETE", "None open. Four claim wordings diverging from retained law are re-checked each quarter.", true),
+      M("Northern Ireland", "UK · NI", "391", "NAMED SPECIALIST", "2026-08-12", "R. Haldane", "COMPLETE", "None open."),
+    ],
+  },
+  US: {
+    lead: "Federal safety and labelling, then a model feed bill each state adopts in its own edition, with registration state by state. We encode the federal layer once, then each state's edition and its registration route. Registration is where the states differ most, and it is the most common reason a US market cannot render as Clear.",
+    stats: [
+      { k: "Markets offered", n: "51", v: "Federal plus all fifty states", color: C.ink },
+      { k: "Complete", n: "44", v: "Every domain we check is encoded", color: C.clear },
+      { k: "Partial", n: "7", v: "Mostly registration submission formats", color: C.action },
+      { k: "Registration routes named", n: "51", v: "Authority, fee, evidence and deadline for each", color: C.clear },
+    ],
+    rows: [
+      M("Federal", "US · FED", "286", "NAMED SPECIALIST", "2026-08-14", "D. Whitfield", "COMPLETE", "None open."),
+      M("Texas", "US · TX", "214", "NAMED SPECIALIST", "2026-08-14", "D. Whitfield", "PARTIAL", "GAP TX-01, GAP TX-04. Registration submission format and tonnage reporting not encoded.", true),
+      M("California", "US · CA", "231", "NAMED SPECIALIST", "2026-08-06", "D. Whitfield", "COMPLETE", "None open."),
+      M("Florida", "US · FL", "198", "NAMED SPECIALIST", "2026-07-22", "D. Whitfield", "COMPLETE", "None open."),
+      M("New York", "US · NY", "204", "OUR SYSTEM · DOUBLE", "2026-06-14", "In-house acceptance", "COMPLETE", "None open."),
+      M("Illinois", "US · IL", "187", "OUR SYSTEM · DOUBLE", "2026-06-14", "In-house acceptance", "PARTIAL", "Tonnage reporting administration not encoded."),
+      M("Wyoming", "US · WY", "162", "OUR SYSTEM", "2026-04-02", "Awaiting specialist", "COMPLETE", "None open."),
+    ],
+  },
+};
+
+const NODES = {
+  "EU · PL": {
+    title: "Poland · EU member state",
+    url: "nutrivo.ai/coverage/eu-pl",
+    facts: [
+      { k: "Authority", v: "GIW", color: C.ink },
+      { k: "Ruleset binding", v: "2026.08", color: C.ink },
+      { k: "Rules encoded", v: "312", color: C.ink },
+      { k: "Last checked", v: "2026-07-14", color: C.ink },
+      { k: "Domains encoded", v: "4 OF 6", color: C.action },
+      { k: "Depth", v: "PARTIAL", color: C.action },
+    ],
+    domains: [
+      { k: "Mandatory particulars", n: "94", method: "OUR SYSTEM · DOUBLE", state: "ENCODED", color: C.clear },
+      { k: "Compositional labelling", n: "76", method: "OUR SYSTEM · DOUBLE", state: "ENCODED", color: C.clear },
+      { k: "Claims and wording", n: "88", method: "NAMED SPECIALIST", state: "ENCODED", color: C.clear },
+      { k: "Language and script", n: "54", method: "OUR SYSTEM", state: "ENCODED", color: C.clear },
+      { k: "Additive presentation", n: "0", method: "NOT ENCODED", state: "GAP PL-02", color: C.none },
+      { k: "National registration format", n: "0", method: "NOT ENCODED", state: "GAP PL-05", color: C.none },
+    ],
+    gaps: [
+      { id: "GAP PL-02 · OPENED 2026-05-02", v: "National additive presentation requirements beyond the EU register are not encoded. Findings in this domain are withheld for every product on this market, and the withheld result links here." },
+      { id: "GAP PL-05 · OPENED 2026-06-19", v: "The registration submission format for feed business operators is not encoded, so the obligation is named but the pack is not pre-filled." },
+    ],
+  },
+  "EU · DE": {
+    title: "Germany · EU member state",
+    url: "nutrivo.ai/coverage/eu-de",
+    facts: [
+      { k: "Authority", v: "BVL · LÄNDER", color: C.ink },
+      { k: "Ruleset binding", v: "2026.08", color: C.ink },
+      { k: "Rules encoded", v: "418", color: C.ink },
+      { k: "Last checked", v: "2026-08-14", color: C.ink },
+      { k: "Domains encoded", v: "6 OF 6", color: C.clear },
+      { k: "Depth", v: "COMPLETE", color: C.clear },
+    ],
+    domains: [
+      { k: "Mandatory particulars", n: "112", method: "OUR SYSTEM · DOUBLE", state: "ENCODED", color: C.clear },
+      { k: "Compositional labelling", n: "94", method: "OUR SYSTEM · DOUBLE", state: "ENCODED", color: C.clear },
+      { k: "Claims and wording", n: "96", method: "NAMED SPECIALIST", state: "ENCODED", color: C.clear },
+      { k: "Type size and geometry", n: "38", method: "NAMED SPECIALIST", state: "ENCODED", color: C.clear },
+      { k: "Language and script", n: "44", method: "NAMED SPECIALIST", state: "ENCODED", color: C.clear },
+      { k: "Registration and notification", n: "34", method: "OUR SYSTEM · DOUBLE", state: "ENCODED", color: C.clear },
+    ],
+    gaps: [
+      { id: "NO GAPS OPEN", v: "Every domain we check is encoded on this market, and results are reportable without qualification. That is not a claim we make about most markets, and where we cannot make it we say so on the row." },
+    ],
+  },
+  "UK · GB": {
+    title: "Great Britain · UK",
+    url: "nutrivo.ai/coverage/uk-gb",
+    facts: [
+      { k: "Authority", v: "DEFRA · APHA", color: C.ink },
+      { k: "Ruleset binding", v: "2026.08", color: C.ink },
+      { k: "Rules encoded", v: "374", color: C.ink },
+      { k: "Last checked", v: "2026-08-12", color: C.ink },
+      { k: "Domains encoded", v: "6 OF 6", color: C.clear },
+      { k: "Depth", v: "COMPLETE", color: C.clear },
+    ],
+    domains: [
+      { k: "Mandatory particulars", n: "104", method: "NAMED SPECIALIST", state: "ENCODED", color: C.clear },
+      { k: "Compositional labelling", n: "88", method: "OUR SYSTEM · DOUBLE", state: "ENCODED", color: C.clear },
+      { k: "Claims and wording", n: "82", method: "NAMED SPECIALIST", state: "ENCODED · UNDER REVIEW", color: C.action },
+      { k: "Type size and geometry", n: "36", method: "NAMED SPECIALIST", state: "ENCODED", color: C.clear },
+      { k: "Date and storage formats", n: "28", method: "NAMED SPECIALIST", state: "ENCODED", color: C.clear },
+      { k: "Registration and notification", n: "36", method: "OUR SYSTEM · DOUBLE", state: "ENCODED", color: C.clear },
+    ],
+    gaps: [
+      { id: "GB-01 · UNDER REVIEW 2026-08-12", v: "Four claim wordings diverging from retained EU law are re-checked each quarter. Until each is confirmed, a finding against it is reported with the divergence named rather than as a settled rule." },
+    ],
+  },
+  "US · TX": {
+    title: "Texas · United States",
+    url: "nutrivo.ai/coverage/us-tx",
+    facts: [
+      { k: "Authority", v: "OFFICE OF THE STATE CHEMIST", color: C.ink },
+      { k: "Ruleset binding", v: "2026.08", color: C.ink },
+      { k: "Rules encoded", v: "214", color: C.ink },
+      { k: "Last checked", v: "2026-08-14", color: C.ink },
+      { k: "Domains encoded", v: "4 OF 6", color: C.action },
+      { k: "Depth", v: "PARTIAL", color: C.action },
+    ],
+    domains: [
+      { k: "Mandatory particulars", n: "68", method: "NAMED SPECIALIST", state: "ENCODED", color: C.clear },
+      { k: "Guaranteed analysis", n: "52", method: "NAMED SPECIALIST", state: "ENCODED", color: C.clear },
+      { k: "Claims and wording", n: "44", method: "NAMED SPECIALIST", state: "ENCODED", color: C.clear },
+      { k: "Registration obligation", n: "26", method: "NAMED SPECIALIST", state: "ENCODED", color: C.clear },
+      { k: "Registration submission format", n: "0", method: "NOT ENCODED", state: "GAP TX-01", color: C.none },
+      { k: "Tonnage reporting", n: "0", method: "NOT ENCODED", state: "GAP TX-04", color: C.none },
+    ],
+    gaps: [
+      { id: "GAP TX-01 · OPENED 2026-03-30", v: "The commercial feed registration submission format is not encoded. We name the obligation, the authority, the fee and the deadline, and we do not pre-fill the form. A product whose registration is not filed here is Blocked, never Clear." },
+      { id: "GAP TX-04 · OPENED 2026-03-30", v: "Tonnage reporting administration is not encoded. The obligation is named; the reporting cycle is not tracked for you." },
+    ],
+  },
+};
+
+class Component extends DCLogic {
+  state = { region: "EU", node: "EU · PL" };
+
+  renderVals() {
+    const region = DATA[this.state.region] ? this.state.region : "EU";
+    const d = DATA[region];
+    const node = NODES[this.state.node] || NODES["EU · PL"];
+
+    const glyph = (state) => {
+      if (state === "COMPLETE") return "width: 11px; height: 11px; flex: none; display: block; background: var(--clear); margin-top: 3px";
+      if (state === "PARTIAL") return "width: 0; height: 0; flex: none; display: block; border-left: 5.5px solid transparent; border-right: 5.5px solid transparent; border-bottom: 11px solid var(--action); margin-top: 3px";
+      return "width: 11px; height: 11px; flex: none; display: block; border: 1.5px solid var(--none); border-radius: 50%; margin-top: 3px";
+    };
+    const stateColor = (st) => st === "COMPLETE" ? C.clear : st === "PARTIAL" ? C.action : C.none;
+
+    return {
+      siteNav: ["Product", "Coverage", "Pricing", "About"].map(k => ({
+        k,
+        style: "font-size: 13.5px; color: " + (k === "Coverage" ? "var(--accent-700)" : "var(--n700)") + "; font-weight: " + (k === "Coverage" ? "600" : "400"),
+      })),
+
+      states: [
+        { k: "Complete", title: "Every domain we check is encoded", color: C.clear, bar: C.clear,
+          v: "We hold rules across all of the domains a label check covers on this market. Nothing is withheld for want of a rule, and no domain is quietly absent.",
+          effect: "Every domain returns an answer." },
+        { k: "Partial", title: "Some domains encoded, the rest named", color: C.action, bar: C.action,
+          v: "We hold rules for part of this market and we say which part. The excluded domains are listed by name with a gap identifier, never summarised as a percentage.",
+          effect: "A result in an excluded domain returns Not assessed, citing the gap." },
+        { k: "Not encoded", title: "We hold no rules for this market", color: C.none, bar: C.none,
+          v: "No verdict is offered. We would rather tell you we cannot answer than produce something that looks like an answer.",
+          effect: "The market can never render as Clear." },
+      ].map(st => ({
+        k: st.k, title: st.title, v: st.v, effect: st.effect, color: st.color,
+        glyph: st.k === "Complete"
+          ? "width: 13px; height: 13px; flex: none; display: block; background: var(--clear)"
+          : st.k === "Partial"
+          ? "width: 0; height: 0; flex: none; display: block; border-left: 6.5px solid transparent; border-right: 6.5px solid transparent; border-bottom: 13px solid var(--action)"
+          : "width: 13px; height: 13px; flex: none; display: block; border: 1.5px solid var(--none); border-radius: 50%",
+        style: "position: relative; border: 1px solid var(--ink); border-top: 4px solid " + st.bar + "; padding: 22px 24px",
+      })),
+
+      regionTabs: ["EU", "UK", "US"].map(k => ({
+        k, go: () => this.setState({ region: k }),
+        style: "border: 1px solid " + (k === region ? "var(--accent)" : "var(--n400)") + "; background: " + (k === region ? "var(--accent-100)" : "var(--paper)") +
+          "; color: " + (k === region ? "var(--accent-700)" : "var(--n700)") + "; padding: 9px 20px; font-size: 14px; cursor: pointer; font-weight: " + (k === region ? "600" : "400"),
+      })),
+      regionLead: d.lead,
+      regionStats: d.stats.map((r, i) => Object.assign({}, r, {
+        style: "padding: 18px 20px; border-right: " + (i < 3 ? "1px solid var(--rule)" : "none"),
+      })),
+
+      tableHead: ["Market", "Rules", "Last checked", "Depth", "Named gaps"],
+      rows: d.rows.map((r, i, a) => ({
+        market: r.market, code: r.code, rules: r.rules, method: r.method, date: r.date,
+        verifier: r.verifier, state: r.state, gaps: r.gaps,
+        hasNode: !!r.node,
+        open: r.node ? () => this.setState({ node: r.code }) : () => {},
+        glyph: glyph(r.state),
+        stateColor: stateColor(r.state),
+        rulesColor: r.rules === "0" ? C.none : C.ink,
+        dateColor: C.ink,
+        style: "display: grid; grid-template-columns: minmax(0, 1.25fr) 108px 136px 132px minmax(0, 1.5fr); border-bottom: " +
+          (i < a.length - 1 ? "1px solid var(--n200)" : "none") + "; background: " + (i % 2 ? "var(--panel)" : "transparent"),
+      })),
+      legend: [
+        "Filled square = complete",
+        "Triangle = partial, gaps named",
+        "Hollow circle = not encoded",
+        "Rules = individual encoded rules, not documents",
+        "No aggregate figure is published",
+      ],
+
+      nodeTitle: node.title,
+      nodeUrl: node.url,
+      nodeFacts: node.facts,
+      nodeGaps: node.gaps,
+      nodeDomains: node.domains.map((nd, i, a) => ({
+        k: nd.k, n: nd.n, method: nd.method, state: nd.state,
+        nColor: nd.n === "0" ? C.none : C.ink,
+        stateColor: nd.color,
+        style: "display: grid; grid-template-columns: minmax(0, 1fr) 92px minmax(0, 0.85fr); border-bottom: " +
+          (i < a.length - 1 ? "1px solid var(--n200)" : "none") + "; background: " + (i % 2 ? "var(--panel)" : "transparent"),
+      })),
+
+      methods: [
+        { tag: "01", k: "Machine extraction", color: C.accent, bar: C.accent,
+          v: "Official source text in, candidate rule out, with an article-level citation attached. The machine extracts a prescribed designation; it never translates one.",
+          applies: "Does the volume. Publishes nothing on its own." },
+        { tag: "02", k: "Acceptance by a person", color: C.action, bar: C.action,
+          v: "Nothing publishes on extraction alone. A person accepts every entry, and numeric thresholds are extracted twice independently, with any disagreement routed to a person rather than to a tie-break rule.",
+          applies: "Prescribed designations and claim wordings are accepted only against the cited article." },
+        { tag: "03", k: "Currency", color: C.none, bar: C.none,
+          v: "Rule-level diffs with stable identity across ruleset versions, typed by effect. An editorial change never raises an alert; a tightened threshold always does.",
+          applies: "Keeps the date on every row above honest." },
+      ].map(m => ({
+        tag: m.tag, k: m.k, v: m.v, applies: m.applies, color: m.color,
+        style: "position: relative; border: 1px solid var(--ink); border-top: 4px solid " + m.bar + "; padding: 20px 22px; display: flex; flex-direction: column",
+      })),
+
+      nevers: [
+        "Submit a registration on your behalf",
+        "Pay a fee to an authority",
+        "Correspond with an authority for you",
+        "Confirm that a registration is valid",
+        "Guarantee that a label will be accepted",
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>

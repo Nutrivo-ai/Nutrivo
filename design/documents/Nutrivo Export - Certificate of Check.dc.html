@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<script src="./doc-page.js"></script>
+<style>
+  :root {
+    --ink: #101216; --rule: #dde0e6; --n200: #eef0f2; --n400: #c3c8d0;
+    --accent: #1738a8; --accent-100: #eef2ff; --accent-200: #d8e2ff; --accent-300: #b4c6ff; --accent-900: #0d1c52;
+    --n500: #8b9098; --n600: #6b7178; --n700: #42464c;
+    --head: 'Instrument Sans', system-ui, sans-serif;
+    --body: 'Instrument Sans', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', ui-monospace, monospace;
+    --clear: #0f7a4d; --clear-bg: #e6f2ec; --none: #5f6570;
+  }
+  body { margin: 0; color: var(--ink); font-family: var(--body); }
+  doc-page, doc-page p, doc-page li, doc-page td, doc-page th, doc-page span, doc-page div, doc-page ul, doc-page table { font-family: var(--body); }
+  doc-page:not(:defined) { visibility: hidden; }
+  a { color: var(--accent); }
+  a:hover { color: var(--accent-900); }
+  h1, h2 { font-family: var(--head); font-weight: 600; }
+  .mono { font-family: var(--mono); }
+  .lab { margin: 0; font-family: var(--mono); font-size: 6.5pt; letter-spacing: 0.11em; text-transform: uppercase; color: var(--n600); line-height: 1.2; }
+  .sec { display: flex; align-items: baseline; gap: 8pt; border-bottom: 1px solid var(--ink); padding-bottom: 3pt; margin-top: 12pt; }
+  .sec span { font-family: var(--mono); font-size: 7.5pt; color: var(--accent); }
+  .sec h2 { margin: 0; font-size: 11pt; line-height: 1.1; }
+</style>
+</helmet>
+<doc-page>
+  <section class="page" style="display: flex; flex-direction: column; padding: 0.5in 0.55in; box-sizing: border-box">
+
+    <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 20pt; border-bottom: 2pt solid var(--ink); padding-bottom: 8pt">
+      <div>
+        <p class="mono" style="margin: 0; font-size: 11pt; font-weight: 500; letter-spacing: 0.22em; line-height: 1.1">NUTRIVO</p>
+        <p class="mono" style="margin: 2pt 0 0; font-size: 6.5pt; letter-spacing: 0.09em; line-height: 1.2; color: var(--n600)">Feed law compliance · Nutrivo GmbH · Hamburg</p>
+      </div>
+      <div style="text-align: right">
+        <p class="mono" style="margin: 0; font-size: 7pt; letter-spacing: 0.13em; text-transform: uppercase; line-height: 1.1; color: var(--accent)">Certificate of Check</p>
+        <p class="mono" style="margin: 2pt 0 0; font-size: 8.5pt; line-height: 1.1">NL-4402-0117</p>
+      </div>
+    </div>
+
+    <h1 style="margin: 13pt 0 0; font-size: 20pt; line-height: 1.08; letter-spacing: -0.015em">Puppy Grain-Free Chicken 2 kg<br />is compliant for the Netherlands</h1>
+    <p style="margin: 6pt 0 0; font-size: 8.5pt; line-height: 1.4; max-width: 96ch">Every rule encoded for this market and product class was applied to the artwork named below and passed. This certificate states what was checked, against which ruleset, on which artwork file, and by whom.</p>
+
+    <div style="margin-top: 11pt; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule)">
+      <sc-for list="{{ headline }}" as="h" hint-placeholder-count="4">
+        <div style="background: {{ h.bg }}; padding: 8pt 10pt">
+          <p class="lab" style="color: {{ h.color }}">{{ h.k }}</p>
+          <p style="margin: 3pt 0 0; font-family: var(--head); font-size: 13pt; font-weight: 600; line-height: 1.1; color: {{ h.color }}">{{ h.v }}</p>
+          <p style="margin: 2pt 0 0; font-size: 7pt; line-height: 1.3; color: var(--n700)">{{ h.note }}</p>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top: 12pt; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10pt 20pt">
+      <sc-for list="{{ fields }}" as="f" hint-placeholder-count="6">
+        <div>
+          <p class="lab">{{ f.k }}</p>
+          <p style="margin: 3pt 0 0; font-size: 8.5pt; line-height: 1.35; font-family: {{ f.font }}">{{ f.v }}</p>
+        </div>
+      </sc-for>
+    </div>
+
+    <div class="sec"><span>01</span><h2>What was checked</h2></div>
+    <div style="margin-top: 8pt; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 9pt">
+      <sc-for list="{{ checks }}" as="c" hint-placeholder-count="5">
+        <div style="border-top: 2pt solid var(--clear); padding-top: 6pt">
+          <p class="lab">{{ c.name }}</p>
+          <p style="margin: 3pt 0 0; font-family: var(--head); font-size: 10pt; font-weight: 600; line-height: 1.1; color: var(--clear)">{{ c.state }}</p>
+          <p style="margin: 2pt 0 0; font-size: 7pt; line-height: 1.35; color: var(--n700)">{{ c.note }}</p>
+        </div>
+      </sc-for>
+    </div>
+
+    <div class="sec"><span>02</span><h2>What was not checked</h2></div>
+    <div style="margin-top: 8pt; border: 1px solid var(--n400); padding: 9pt 11pt">
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14pt">
+        <sc-for list="{{ exclusions }}" as="e" hint-placeholder-count="3">
+          <div>
+            <p class="lab" style="color: var(--none)">{{ e.k }}</p>
+            <p style="margin: 3pt 0 0; font-size: 8pt; line-height: 1.4; color: var(--n700)">{{ e.v }}</p>
+          </div>
+        </sc-for>
+      </div>
+      <p style="margin: 8pt 0 0; padding-top: 7pt; border-top: 1px solid var(--n200); font-size: 8pt; line-height: 1.4; color: var(--n700)">Stated deliberately: a certificate listing only what passed invites the reader to assume everything else was examined.</p>
+    </div>
+
+    <div class="sec"><span>03</span><h2>Chain</h2></div>
+    <div style="margin-top: 5pt">
+      <sc-for list="{{ chain }}" as="c" hint-placeholder-count="5">
+        <div style="display: grid; grid-template-columns: 70pt 1fr 112pt; gap: 10pt; border-bottom: 1px solid var(--rule); padding: 2.5pt 0; align-items: baseline">
+          <span class="mono" style="font-size: 7pt; color: var(--n600)">{{ c.when }}</span>
+          <span style="font-size: 8pt; line-height: 1.25">{{ c.event }}</span>
+          <span class="mono" style="font-size: 7pt; color: var(--n600); text-align: right">{{ c.hash }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <p style="margin: 5pt 0 0; font-size: 7.5pt; line-height: 1.35; color: var(--n700)">Append-only — a correction is a new entry. If the artwork or the ruleset changes, this certificate stays valid for the versions it names.</p>
+
+    <span style="flex: 1"></span>
+
+    <div style="border: 1px solid var(--ink); background: var(--accent-100); padding: 11pt 13pt; display: grid; grid-template-columns: 1fr 122pt; gap: 18pt; align-items: center">
+      <div>
+        <p class="lab" style="color: var(--accent)">Signed</p>
+        <p style="margin: 4pt 0 0; font-family: var(--head); font-size: 14pt; font-weight: 600; line-height: 1.1; color: var(--accent-900)">Marit Feldt</p>
+        <p style="margin: 3pt 0 0; font-size: 8pt; line-height: 1.35; color: var(--accent-900)">Regulatory Lead, Nutrivo GmbH · signing authority for NL and BE, granted 4 Mar 2026</p>
+        <p class="mono" style="margin: 4pt 0 0; font-size: 7.5pt; line-height: 1.2; color: var(--accent-900)">6 August 2026, 14:22 CEST · seal b71f…4d0c</p>
+      </div>
+      <div style="text-align: right">
+        <div style="display: inline-block; border: 1px solid var(--accent-900); padding: 5pt">
+          <div style="width: 50pt; height: 50pt; background: repeating-conic-gradient(var(--accent-900) 0% 25%, var(--accent-100) 0% 50%) 0 0 / 7.5pt 7.5pt"></div>
+        </div>
+        <p class="mono" style="margin: 4pt 0 0; font-size: 6pt; letter-spacing: 0.07em; text-transform: uppercase; line-height: 1.3; color: var(--accent-900)">Verify<br />nutrivo.eu/v/NL-4402-0117</p>
+      </div>
+    </div>
+
+    <p style="margin: 6pt 0 0; font-size: 6.5pt; line-height: 1.35; color: var(--n600)">Verification is open and requires no account: it re-computes the artwork hash from the file you hold and confirms the ruleset named here was current at signing. A certificate whose hash no longer matches reports as superseded, not invalid — the check was true for the file it was made against.</p>
+
+  </section>
+</doc-page>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      headline: [
+        { k: "Result", v: "Compliant", note: "All applicable encoded rules passed.", color: "var(--clear)", bg: "var(--clear-bg)" },
+        { k: "Market", v: "Netherlands", note: "NVWA · one market, one language.", color: "var(--ink)", bg: "#fff" },
+        { k: "Ruleset", v: "2026.08-b", note: "Current at signing and today.", color: "var(--ink)", bg: "#fff" },
+        { k: "Artwork", v: "v4", note: "Hash 8c02…19af · print PDF.", color: "var(--ink)", bg: "#fff" },
+      ],
+      fields: [
+        { k: "Product", v: "Puppy Grain-Free Chicken 2 kg", font: "var(--body)" },
+        { k: "Reference", v: "SKU 4402-NL", font: "var(--mono)" },
+        { k: "Classification", v: "Complete feed · dog, growth", font: "var(--body)" },
+        { k: "Language checked", v: "Dutch, on the rendered string", font: "var(--body)" },
+        { k: "Rules applied", v: "1 067 of 1 067 · dual-verified", font: "var(--body)" },
+        { k: "Term register", v: "v2026.08", font: "var(--mono)" },
+      ],
+      checks: [
+        { name: "Ingredients", state: "Clear", note: "No ceiling exceeded." },
+        { name: "Classification", state: "Clear", note: "Determined before checking." },
+        { name: "Label & geometry", state: "Clear", note: "Heights at or above minimum." },
+        { name: "Claims", state: "Clear", note: "Checked on the Dutch string." },
+        { name: "Dossier", state: "Clear", note: "11 of 11 documents current." },
+      ],
+      exclusions: [
+        { k: "Outside the ruleset", v: "Voluntary sector schemes such as SecureFeed are not encoded." },
+        { k: "Outside the artwork", v: "Only v4 was examined. No sleeves, leaflets or secondary packaging." },
+        { k: "Outside the scope", v: "No nutritional adequacy modelling, shelf-life or sensory testing." },
+      ],
+      chain: [
+        { when: "6 Aug 14:22", event: "Certificate signed and sealed by Marit Feldt", hash: "b71f…4d0c" },
+        { when: "6 Aug 14:19", event: "Check completed — 1 067 rules, 0 findings, 0 unassessed", hash: "a903…77e1" },
+        { when: "6 Aug 14:11", event: "Artwork v4 received and hashed", hash: "8c02…19af" },
+        { when: "6 Aug 14:10", event: "Ruleset 2026.08-b and term register v2026.08 pinned", hash: "3e56…0b2d" },
+        { when: "6 Aug 14:08", event: "Classification determined and accepted without challenge", hash: "17dd…9c41" },
+      ],
+    };
+  }
+}
+
+</script>
+</body>
+</html>
