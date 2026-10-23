@@ -36,7 +36,7 @@ Create everything under Sunny Ventures AB. Store every key in Infisical, never i
 
 | # | Service | Create | Settings that matter |
 |---|---|---|---|
-| 1 | GitHub | Private repository `nutrivo-ai/Nutrivo` in the `nutrivo-ai` organisation, on the GitHub Team plan | Everything in docs/22-github-and-team.md: `main` takes only pull requests with green CI and one founder approval; environments `staging` and `production`; production deploys only from a `v*` tag the owner creates. |
+| 1 | GitHub | Private repository `nutrivo-ai/Nutrivo` in the `nutrivo-ai` organisation, on the GitHub Team plan | Everything in docs/22-github-and-team.md: `main` takes only pull requests with green CI, merged by a founder's Claude Code session (D-24); environments `staging` and `production`; production deploys only from a `v*` tag the owner creates. |
 | 2 | Supabase | Organisation; projects `nutrivo-staging` and `nutrivo-prod` | Region **Central EU (Frankfurt)**. Prod on Pro. API → Exposed schemas: add `app` and `ref`. Auth → email confirmations on, MFA (TOTP) on. Integrations → Queues on. Database → Extensions → pg_cron on. Save the project refs, keys and database passwords in Infisical. |
 | 3 | AWS | Account; region eu-central-1 | Bedrock → request access to the Anthropic Claude models. SES → verify `mail.nutrivo.ai` and request production access. IAM user `nutrivo-worker` limited to Bedrock invoke and SES send. |
 | 4 | Stripe | Account for Sunny Ventures AB (VAT SE559429715101) | Stay in test mode. Turn on Stripe Tax with your Swedish registration, and the customer portal. Do not create products by hand: milestone 7 does it from code. |

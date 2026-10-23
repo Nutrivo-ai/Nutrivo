@@ -31,18 +31,21 @@ repository named Nutrivo under `ar835` again (that ends the redirect).
    organisation and repository level (repository Settings → Actions → General), so `claude-review` can approve
    (D-23).
 6. **Labels**: the `tracker` workflow creates every label, the two approval labels included (`scope-approved`,
-   `human-approved`). Only a founder applies those two (docs/CONTRIBUTING.md).
+   `human-approved`). Only a founder applies those two, by hand or through their own Claude Code session (D-24,
+   docs/CONTRIBUTING.md).
 
 ## 2 · Rulesets (gate G5 enforced, not just agreed)
 Imported once the set-up pull request was merged, so the rules did not block their own introduction. Repository →
 Settings → Rulesets lists both, each with Enforcement status **Active**, and Settings → Branches holds no classic
 branch protection rule (it would combine with them). To recreate one: New ruleset → **Import a ruleset**, once per
 file:
-- `.github/rulesets/main.json`: `main` only changes through a pull request with one approval (not from the last
-  pusher; normally the `claude-review` workflow's, D-23, with code-owner review off), resolved threads, and green
+- `.github/rulesets/main.json`: `main` only changes through a pull request with resolved threads and green
   `protocol`, `secrets-scan`, `database`, `worker`, `web`, `e2e` and `conformance` on a branch that is up to date with
-  `main`. Squash merges only. A later push dismisses the approval and the next review run decides again. A
-  changes-requested review stays until the workflow approves a later head or a founder dismisses it.
+  `main`. Squash merges only. It requires no approval (D-24): a founder's Claude Code session merges once the checks
+  are green, and the `claude-review` workflow (D-23) and the founders still review and approve. Set in the ruleset as
+  Require a pull request before merging → Required approvals **0**, "Require approval of the most recent reviewable
+  push" off, "Dismiss stale pull request approvals when new commits are pushed" on. A changes-requested review is
+  answered before a session merges.
 - `.github/rulesets/release-tags.json`: only repository admins can create, move or delete `v*` tags, so a production
   release is always a founder's act. Repository admins are the organisation owners, the two founders.
 
