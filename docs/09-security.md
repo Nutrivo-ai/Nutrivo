@@ -5,7 +5,9 @@ Every `app` table has RLS. Membership is derived from `auth.uid()` through `priv
 workspace id from the request. Scope narrows a membership to families and market nodes (a region id covers its
 children). External members and `access_ends_at` are enforced in the same helpers. Staff access comes from
 `app_metadata.nutrivo_staff`, which only the Supabase admin API can set. The anon role reaches nothing in `app`
-or `ref` and can execute only `verify_reference` and `coverage_snapshot`.
+or `ref` and can execute only `verify_reference` and `coverage_snapshot`. On the hosted projects the grants are the
+migrations' only: no table writes for anon or authenticated, no automatic exposure of new tables, and Queues never
+exposed through PostgREST (D-26).
 
 ## The record
 Insert-only tables (docs/03-data-model.md) have privileges revoked and a rejecting trigger, so even the service key
@@ -34,8 +36,10 @@ user id removed) while insert-only records keep the actor id. Full export is fre
 Retention periods follow the Workspace Settings design.
 
 ## Sub-processors as deployed (update the DPA draft)
-Supabase (AWS eu-central-1) · AWS Bedrock and SES (eu-central-1) · Stripe · Vercel (functions in Frankfurt) ·
-Render (Frankfurt) · Sentry (EU) · PostHog (EU) · Langfuse (EU). Naming one you do not use is a contractual problem.
+Supabase (AWS eu-central-1) · AWS Bedrock (EU Regions, through the EU geo profile; D-02) · AWS SES (eu-central-1) ·
+Stripe · Vercel (functions in Frankfurt) · Render (Frankfurt) · Sentry (EU, Frankfurt) · PostHog (EU, Frankfurt) ·
+Langfuse (EU, Ireland). Anthropic is not a sub-processor: the API is used only in development (D-11). Naming one you
+do not use is a contractual problem.
 
 ## Before the first paid contract
 Backups with point-in-time recovery and a restore drill; a pentest; Supabase security advisors clean; an

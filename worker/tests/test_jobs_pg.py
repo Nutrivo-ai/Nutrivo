@@ -1,31 +1,26 @@
 """The job loop on real Postgres and pgmq: jobs created by private.enqueue, as the RPCs create them.
 
-Runs against the local Supabase database (`make verify-fast` starts it) or NUTRIVO_TEST_DATABASE_URL. The CI `worker`
-job has no database until T-009 brings up the full stack, so there these tests skip with that reason. They use the
-diff_fanout queue, which they purge, and delete only the app.jobs rows they created."""
-import os
+Runs against the local Supabase database or NUTRIVO_TEST_DATABASE_URL (tests/pgtest.py); CI's `worker` job starts it
+and fails these tests rather than skip them. They use the diff_fanout queue, which they purge, and delete only the app.jobs rows they created."""
 import uuid
 
 import psycopg
 import pytest
+from pgtest import DSN, connect_or_skip, skip_no_database
 
 from nutrivo_worker.config import Settings
 from nutrivo_worker.db import PgStore, connect
 from nutrivo_worker.jobs import Registry, Worker, process_message, reap
 
-DSN = os.environ.get("NUTRIVO_TEST_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:54322/postgres")
 KIND = "diff_fanout"
 S = Settings(max_attempts=5, stale_after_s=900, poll_interval_s=0.05, heartbeat_every_s=3600, reap_every_s=3600)
 
 
 @pytest.fixture
 def store():
-    try:
-        conn = connect(DSN)
-    except psycopg.OperationalError:
-        pytest.skip("no local database (the CI worker job has none until T-009); run make db-start")
+    conn = connect_or_skip(connect)
     if conn.execute("select to_regnamespace('pgmq') is not null as ok").fetchone()["ok"] is False:
-        pytest.skip("pgmq is not installed in this database")
+        skip_no_database("pgmq is not installed in this database")
     conn.execute("select pgmq.purge_queue(%s)", (KIND,))
     yield PgStore(conn)
     conn.execute("delete from app.jobs where idempotency_key like 'test:t008:%'")

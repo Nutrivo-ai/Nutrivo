@@ -9,20 +9,22 @@ worker gate tests. Each prompt assumes Claude Code has read CLAUDE.md. Paste it 
 | # | Milestone | Workflows | Weeks (from start) | Lands for |
 |---|---|---|---|---|
 | M0 | Bootstrap and verify | — | 1 | — |
-| M1 | App shell, sign-in, workspace, people | A01–A07, B01, O02, N02 (switcher) | 1–2 | Breakit: live sign-up and the design system |
+| M1 | App shell, sign-in, workspace, people | A01–A07, B01, O02, N02 (switcher) | 1–2 | — |
 | M2 | Content console and first ruleset | K01–K05, J01, J02 | 2–4 (parallel) | — |
 | M3 | Artwork extraction | D01, D02, C02 | 1–5 (parallel, starts week 1) | — |
-| M4 | First demo path | C01, C03, C04, B02, D03, D04, D07, I01, I04 | 5–7 | Slush: upload → report → verify |
+| M4 | First demo path | C01, C03, C04, B02, D03, D04, D07, I01, I04 | 5–7 | Slush (18–19 Nov 2026): upload → report → verify |
 | M5 | Engine complete | D05, D06, D08, D09, F01, F04, G01, G02, G03 | 7–9 | — |
 | M6 | Sharing, notifications, public pages | I02, O01, P01, P02 | 9–10 | — |
 | M7 | Billing | M01–M06, B02 limits | 10–12 | First paid pilot |
 | M8 | Documents, suppliers, export | H01–H04, O03 | 12–13 | — |
 | M9 | Change propagation | J03, J04, J05, I05 | 13–14 | — |
 | M10 | Product briefs | E01, E02, E04 | 14–15 | — |
-| M11 | Hardening and launch | — | 15–16 | TechArena: paying pilots |
+| M11 | Hardening and launch | — | 15–16 | TechArena (3–4 Feb 2027): paying pilots |
 
-Event dates come from a founder email and are unverified (Breakit in October, Slush in December, TechArena in
-January). If Breakit is before week 3, demo the design prototype plus the M1 sign-up and the M3 extraction spike.
+Event dates verified on 21 Oct 2026 (docs/14 §8): Slush 18–19 Nov 2026, Helsinki; TechArena 3–4 Feb 2027, Stockholm.
+Breakit's October event (22 Oct 2026) has passed and is not a target. Slush is the next demo: what is on the upload →
+report → verify path by 18 Nov is what is shown, and work that does not serve that path waits. TechArena moving to
+February gives the paid-pilot milestone about two more weeks.
 
 ---
 

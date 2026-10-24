@@ -1,0 +1,12 @@
+{
+  "method": "GET",
+  "url": "https://publications.europa.eu/webapi/rdf/sparql?query=PREFIX+cdm%3A+%3Chttp%3A%2F%2Fpublications.europa.eu%2Fontology%2Fcdm%23%3E%0ASELECT+DISTINCT+%3Fcelex+WHERE+%7B+%3Fwork+cdm%3Aresource_legal_id_celex+%3Fcelex+.+FILTER%28STRSTARTS%28STR%28%3Fcelex%29%2C+%2202017R2279-%22%29%29+%7D+ORDER+BY+%3Fcelex",
+  "request_headers": {
+    "accept": "application/sparql-results+json"
+  },
+  "status": 200,
+  "headers": {
+    "content-type": "application/sparql-results+json"
+  },
+  "body_sha256": "b56d3b72d8e19ea249c43bb13e6ab94124d9bb367ae6581d352f419dc915417b"
+}

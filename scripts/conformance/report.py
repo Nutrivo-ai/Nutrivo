@@ -1,7 +1,9 @@
 """Map test results (JUnit XML, TAP) to acceptance IDs; write CONFORMANCE.md; enforce the ratchet.
   --enforce          fail when an ID in spec/conformance-baseline.json does not pass now
   --baseline-ref R   the baseline as committed on R counts too (CI: the PR's base), so a PR cannot shrink it
-  --update-baseline  add every passing ID to the baseline (the baseline never shrinks)"""
+  --update-baseline  add every passing ID to the baseline (the baseline never shrinks)
+A skipped test counts as failing. An ID that passes in a run but is not in the baseline yet is listed, so the run that
+proves it (often CI's e2e, which make verify-task does not run) says what to add."""
 import argparse, glob, json, re, subprocess, sys, xml.etree.ElementTree as ET
 from collections import defaultdict
 from pathlib import Path
@@ -17,6 +19,8 @@ ap.add_argument("--baseline-ref")
 ap.add_argument("--update-baseline", action="store_true")
 ap.add_argument("--summary")
 ap.add_argument("--out", default=str(ROOT / "CONFORMANCE.md"))
+ap.add_argument("--spec", default=str(ROOT / "spec/acceptance.yaml"))
+ap.add_argument("--baseline", default=str(ROOT / "spec/conformance-baseline.json"))
 a = ap.parse_args()
 
 outcome = defaultdict(set)  # id -> {"pass", "fail"}
@@ -38,11 +42,11 @@ for pattern in a.results:
                 if line.startswith(("ok ", "not ok ")):
                     record(line, line.startswith("ok ") and "# SKIP" not in line and "# TODO" not in line)
 
-spec = yaml.safe_load((ROOT / "spec/acceptance.yaml").read_text())["workflows"]
+spec = yaml.safe_load(Path(a.spec).read_text())["workflows"]
 required = {i: (wf, s) for wf, s in spec.items() if s["scope"] == "BUILD" for i in s["tests"]}
 status = {i: ("pass" if outcome.get(i) == {"pass"} else "fail" if "fail" in outcome.get(i, set()) else "missing") for i in required}
 passing = sorted(i for i, s in status.items() if s == "pass")
-baseline_path = ROOT / "spec/conformance-baseline.json"
+baseline_path = Path(a.baseline)
 baseline = set(json.loads(baseline_path.read_text())) if baseline_path.exists() else set()
 if a.baseline_ref:
     git = ["git", "-C", str(ROOT)]
@@ -54,6 +58,7 @@ if a.baseline_ref:
 # Only IDs the spec still requires: one a founder removed from spec/acceptance.yaml (protected) stays in the base's
 # baseline, and no later PR could pass.
 regressions = sorted(i for i in baseline if i in required and status[i] != "pass")
+unbanked = [i for i in passing if i not in baseline]
 
 by_ms = defaultdict(lambda: [0, 0])
 for i, (wf, s) in required.items():
@@ -71,6 +76,11 @@ for wf, s in spec.items():
     lines.append(f"| {wf} {s['name']} | {st.count('pass')} | {st.count('fail')} | {st.count('missing')} |")
 if regressions:
     lines += ["", "## Regressions", *[f"- `{i}` {required[i][1]['tests'][i]}" for i in regressions]]
+if unbanked:
+    lines += ["", "## Passing, not yet in the baseline",
+              "Not protected by the ratchet until spec/conformance-baseline.json lists them (`make conformance-update` "
+              "after a run that includes them, or add them in the task's pull request):",
+              *[f"- `{i}`" for i in unbanked]]
 report = "\n".join(lines) + "\n"
 Path(a.out).write_text(report)
 if a.summary:
@@ -82,5 +92,6 @@ if a.update_baseline:
     if failing:
         sys.exit("refusing to update the baseline while baseline IDs fail: " + ", ".join(failing))
     baseline_path.write_text(json.dumps(sorted(baseline | set(passing)), indent=0) + "\n")
-print(f"conformance: {len(passing)}/{total} passing, {len(regressions)} regressions")
+print(f"conformance: {len(passing)}/{total} passing, {len(regressions)} regressions"
+      + (f": {', '.join(regressions)}" if regressions else ""))
 sys.exit(1 if (a.enforce and regressions) else 0)
