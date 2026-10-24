@@ -6,8 +6,7 @@ requires-python = ">=3.12"
 # Licences checked 8 Oct 2026 (PyPI): all permissive or LGPL. PyMuPDF is deliberately absent (AGPL-3.0 or
 # commercial licence from Artifex). Do not add it without a purchased licence: see docs/02-decisions.md D-15.
 dependencies = [
-  "pypdfium2>=5.14",                 # BSD-3 / Apache-2.0: glyph boxes, rendering
-  "pdfplumber>=0.11",                # MIT: layout, characters, fonts
+  "pypdfium2>=5.14",                 # BSD-3 / Apache-2.0: the extraction engine (characters, glyph boxes, objects)
   "fonttools>=4.66",                 # MIT: embedded font programmes, glyph metrics
   "lingua-language-detector>=2.2",   # Apache-2.0: language per panel (needs Python 3.12)
   "psycopg[binary]>=3.3",            # LGPL-3.0
@@ -22,7 +21,9 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest>=8", "reportlab>=5.0", "pypdf>=5", "ruff>=0.6", "mypy>=1.11"]
+# pdfplumber (MIT) is a development-only cross-check under D-15: the spike, tests and review of real print PDFs.
+# Production code never imports it (tests/test_extraction.py checks).
+dev = ["pytest>=8", "reportlab>=5.0", "pypdf>=5", "ruff>=0.6", "mypy>=1.11", "pdfplumber>=0.11"]
 
 [project.scripts]
 nutrivo = "nutrivo_worker.cli:main"
