@@ -187,24 +187,24 @@ def test_A03_fail_1_no_seat_left_is_P0033_and_nothing_is_written(world):
                               {"ws": world.ws}).fetchone()["n"] == 0
 
 
-def test_A03_fail_2_a_second_invite_for_a_pending_address_never_duplicates(world):
+def test_A03_fail_2_a_second_invite_for_a_pending_address_resends_and_never_duplicates(world):
     maria = world.address("maria")
     inv = world.invite(world.admin, maria)
     world.send_invitation(inv)
-    refused(world, "23505", world.invite, world.admin, maria)
+    first = world.token_for(maria)
+    assert world.invite(world.admin, maria, role="viewer") == inv          # the same invitation, never a second row
     assert world.conn.execute("select count(*) as n from app.invitations where workspace_id = %s",
                               (world.ws,)).fetchone()["n"] == 1
-    assert len(world.emails_to(maria)) == 1
-
-
-@pytest.mark.xfail(strict=True, raises=psycopg.Error,
-                   reason="needs a db task: app.invite_member refuses a pending address (23505) and nothing re-enqueues "
-                          "the notify job (T-105 question 1 on #27)")
-def test_A03_fail_2_a_second_invite_for_a_pending_address_resends_the_email(world):
-    maria = world.address("maria")
-    world.send_invitation(world.invite(world.admin, maria))
-    world.invite(world.admin, maria)
-    assert len(world.emails_to(maria)) == 2
+    job = world.run("notify", f"invite:{inv}:resend:1")[1]
+    assert job["status"] == "succeeded" and job["progress"]["email"] == "sent"
+    assert job["payload"] == {"template": "invitation", "invitation_id": inv}
+    emails = world.emails_to(maria)
+    assert len(emails) == 2
+    tokens = {LINK.search(mailpit(f"/api/v1/message/{m['ID']}")["Text"]).group(1) for m in emails}
+    assert first in tokens and len(tokens) == 2
+    invitee = world.user("maria", "Maria Sand", None)
+    refused(world, "P0040", world.accept, invitee, first)                   # the resend replaced the first link
+    assert world.accept(invitee, (tokens - {first}).pop()) == world.ws
 
 
 # ── A04 · accept an invitation ─────────────────────────────────────────────────────────────────────────

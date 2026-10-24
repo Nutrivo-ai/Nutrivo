@@ -18,7 +18,7 @@ redesign rather than wiring.
 | Function | Workflow | Notes |
 |---|---|---|
 | `app.create_workspace(p_name)` | A01 | person, workspace, admin membership, allowance, audit |
-| `app.invite_member(p_ws, p_email, p_role, p_is_external, p_scope_family_ids, p_scope_node_ids, p_access_ends_at)` | A03 | seat check; the worker generates and emails the token |
+| `app.invite_member(p_ws, p_email, p_role, p_is_external, p_scope_family_ids, p_scope_node_ids, p_access_ends_at)` | A03 | seat check (P0033); the worker generates and emails the token. An address with a pending invitation in the workspace gets it resent: same id returned, no new row, no seat check, expiry renewed to 7 days, a new `notify` job (`invite:<id>:resend:<n>`), audited `invitation.resent`; role and scope stay (revoke to change them) |
 | `app.accept_invitation(p_token)` | A04 | one-time, email-bound; locks the invitation, so a concurrent revoke wins |
 | `app.register_artwork(p_product, p_storage_path, p_sha256, p_file_name, p_mime)` | D01, B02 | idempotent per file hash; allowance; dunning; enqueues extraction |
 | `app.request_check(p_product, p_nodes)` | D04 | job key = artwork, ruleset, classification, nodes |
@@ -40,7 +40,7 @@ Payloads hold ids only; outcomes land in `app.jobs.progress` (ids, counts and an
 or tokens).
 | Kind | Payload | Does | `progress.outcome` |
 |---|---|---|---|
-| `notify` (template `invitation`) | `{template, invitation_id}` | A03: mints a 32-byte token, stores its SHA-256 in `app.invitations.token_hash` while the invitation is pending, emails `${APP_BASE_URL}/invite/<token>` (Template 02). Never sends twice once `progress.email = sent`; a retry after a failed send mints a new token that replaces the undelivered one | `sent` · `already_sent` · `skipped_revoked` · `skipped_accepted` · `skipped_expired` · `skipped_not_pending` |
+| `notify` (template `invitation`) | `{template, invitation_id}`; key `invite:<id>`, a resend `invite:<id>:resend:<n>` | A03: mints a 32-byte token, stores its SHA-256 in `app.invitations.token_hash` while the invitation is pending, emails `${APP_BASE_URL}/invite/<token>` (Template 02). Never sends twice once `progress.email = sent`; a retry after a failed send mints a new token that replaces the undelivered one | `sent` · `already_sent` · `skipped_revoked` · `skipped_accepted` · `skipped_expired` · `skipped_not_pending` |
 | `session_revoke` | `{membership_id, person_id}` | A06: deletes the person's `auth.sessions` created before the membership ended (refresh tokens cascade); `progress.sessions_revoked` counts them | `revoked` · `skipped_active` · `skipped_no_user` |
 
 ## Realtime and storage
