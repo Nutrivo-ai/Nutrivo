@@ -42,6 +42,7 @@ jobs:
         run: rm -rf scripts/protocol && git restore --source=HEAD --staged --worktree -- scripts/protocol
       - run: uv run --no-project --with pyyaml python scripts/protocol/validate-plan.py
       - run: uv run --no-project --with pyyaml python -m unittest discover -s scripts/protocol -p 'test_*.py'
+      - run: uv run --no-project --with pyyaml python -m unittest discover -s scripts/conformance -p 'test_*.py'
       - run: uv run --no-project --with pyyaml python scripts/workflows/render.py --check
       # The repository scripts' own tests, including that config/secret-aliases.env parses (names only, no secrets).
       - run: python3 -m unittest discover -s scripts/env -p 'test_*.py'

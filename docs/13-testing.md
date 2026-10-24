@@ -11,7 +11,9 @@
 | Demo seed (Halden Pet Nutrition) | supabase/tests/app/fixtures/demo_halden.psql; tests in 10_demo_seed | `supabase/seed/demo/load.sh` | Claude Code |
 | Golden labels | fixtures/golden/ | Release gate from 30 labels | People only |
 | Claims evaluations | worker/evals/claims/ | Before any claim rule joins a ruleset | Labels by people |
-| Web unit and end-to-end | apps/web | `pnpm test`, `pnpm e2e` | Claude Code |
+| Worker database tests | worker/tests/*_pg.py via tests/pgtest.py | `make test` (local stack); required in CI | Claude Code |
+| Web unit and end-to-end | apps/web | `pnpm test`, `pnpm e2e`; `make e2e` runs the full stack | Claude Code |
+| Conformance report and ratchet | scripts/conformance/ (tests in test_report.py) | `make conformance`; CI's `conformance` | Claude Code |
 | Repository scripts | scripts/env/test_*.py, scripts/doctor/test_*.py | `make verify-fast`; CI's `protocol` check | Claude Code |
 
 ## The 13 gates (Backend Action Register rows tagged GATE)
