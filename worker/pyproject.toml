@@ -18,6 +18,7 @@ dependencies = [
   "weasyprint>=70.0",                # BSD: server-side report PDFs
   "langfuse>=4.17",                  # MIT: tracing, EU cloud
   "sentry-sdk>=2.71",                # MIT
+  "pyyaml>=6.0",                     # MIT: content/sources.yaml
 ]
 
 [dependency-groups]

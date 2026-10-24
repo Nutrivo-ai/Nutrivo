@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with: { version: 2.120.0 }
-      - run: supabase db start
+      - run: bash scripts/ci/supabase-start.sh db start
       - run: supabase test db
       - name: Per-test TAP for the conformance report
         run: |
@@ -45,15 +45,25 @@ jobs:
         if: always()
         with: { name: reports-database, path: reports/ }
 
+  # The worker tests on the local stack (tests/pgtest.py) run against the database, with its migrations and pgmq, and
+  # Mailpit. NUTRIVO_REQUIRE_DB=1 makes a test that would skip for want of a local service ("no local ...") fail
+  # instead (worker/tests/conftest.py). Only what the worker tests use is started.
   worker:
     runs-on: ubuntu-24.04
+    env:
+      NUTRIVO_TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+      MAILPIT_URL: http://127.0.0.1:54324
+      NUTRIVO_REQUIRE_DB: "1"
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
+        with: { version: 2.120.0 }
+      - run: bash scripts/ci/supabase-start.sh start -x studio,logflare,vector,supavisor,imgproxy,edge-runtime,realtime
       - run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
       - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
       - run: cd worker && uv sync
       - run: cd worker && uv run python ../fixtures/synth/generate.py --out ../fixtures/synth/out
-      - run: cd worker && uv run ruff check . && mkdir -p ../reports && uv run pytest -q --junitxml=../reports/worker.xml
+      - run: cd worker && uv run ruff check . && mkdir -p ../reports && uv run pytest -q -rs --junitxml=../reports/worker.xml
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with: { name: reports-worker, path: reports/ }
@@ -69,9 +79,17 @@ jobs:
         with: { version: 10 }
       - if: steps.app.outputs.ready == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with: { node-version: 22 }
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: apps/web/pnpm-lock.yaml }
       - if: steps.app.outputs.ready == 'true'
-        run: pnpm --dir apps/web install --frozen-lockfile && pnpm --dir apps/web lint && pnpm --dir apps/web typecheck && pnpm --dir apps/web test && pnpm --dir apps/web build
+        run: pnpm --dir apps/web install --frozen-lockfile && pnpm --dir apps/web lint && pnpm --dir apps/web typecheck
+      # Vitest's JUnit report carries the unit-level acceptance IDs to the conformance job.
+      - if: steps.app.outputs.ready == 'true'
+        run: mkdir -p reports && pnpm --dir apps/web test --reporter=default --reporter=junit --outputFile.junit="$PWD/reports/web.xml"
+      - if: steps.app.outputs.ready == 'true'
+        run: pnpm --dir apps/web build
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && steps.app.outputs.ready == 'true'
+        with: { name: reports-web, path: reports/ }
 
   e2e:
     needs: [database, worker, web]
@@ -93,15 +111,26 @@ jobs:
         with: { version: 10 }
       - if: steps.app.outputs.ready == 'true'
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with: { node-version: 22 }
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: apps/web/pnpm-lock.yaml }
+      # Playwright's browsers, keyed on the lockfile that pins @playwright/test; `pnpm e2e` still installs the system
+      # libraries (--with-deps) and skips the download when the cache restored it.
       - if: steps.app.outputs.ready == 'true'
-        run: supabase start && make e2e-ci
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('apps/web/pnpm-lock.yaml') }}
+      # One local stack for the whole run: the database, Auth, Storage, Realtime, Mailpit and the Edge runtime. Studio,
+      # the log pipeline, the pooler and image transformation are not used by tests, and skipping them saves the pulls.
+      - if: steps.app.outputs.ready == 'true'
+        run: bash scripts/ci/supabase-start.sh start -x studio,logflare,vector,supavisor,imgproxy && make e2e-ci
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with: { name: reports-e2e, path: reports/ }
 
+  # Reads every report the jobs above upload (pgTAP TAP, worker and Vitest JUnit, Playwright JUnit). It runs even when
+  # they fail: an ID in the baseline with a failing, skipped or missing result fails this check (the ratchet).
   conformance:
-    needs: [database, worker, e2e]
+    needs: [database, worker, web, e2e]
     if: always()
     runs-on: ubuntu-24.04
     steps:

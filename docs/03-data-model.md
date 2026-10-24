@@ -30,6 +30,7 @@ delete (BE-13).
 | Field | Values |
 |---|---|
 | memberships.role | admin · portfolio_manager · editor · viewer |
+| workspaces.default_operator | `{name, address, country (ISO 3166-1 alpha-2), approval_number?}`, exactly as printed; set by `app.set_default_operator` |
 | products.stage | brief · in_development · active · discontinued |
 | jurisdictions.node_type | region · country · state · federal (83 nodes: EU + 27, UK + GB + NI, US + federal + 50) |
 | product_nodes.label_state | clear · action · not_assessed |
@@ -48,6 +49,7 @@ delete (BE-13).
 | Code | Meaning |
 |---|---|
 | 42501 | Not permitted (role, scope or authentication) |
+| 22023 | Invalid argument: an unknown role or missing external flag, a scope naming another workspace's family or an unknown market, an end date in the past, a default operator without name, address or two-letter country |
 | P0002 / P0003 | No artwork to check / no released ruleset |
 | P0004 | BE-04: signing grant to an external or inactive membership |
 | P0005 | BE-05: insert-only table mutated |
@@ -56,7 +58,9 @@ delete (BE-13).
 | P0021 | BE-21: Clear where coverage is incomplete |
 | P0032 / P0033 / P0036 | Free allowance used / no editor seat / new artworks paused by dunning |
 | P0038 | Ruleset member is not an accepted version |
-| P0040 / P0041 / P0042 | Invitation invalid / email mismatch / already a member |
+| P0040 / P0041 / P0042 | Invitation invalid (or already accepted, so it cannot be revoked) / email mismatch / already a member |
+| P0043 | The last admin cannot be removed, demoted or given an end date: one active admin with no end date must remain |
+| P0044 | The membership has ended and cannot be changed |
 | P0291 / P0292 / P0293 | Certificate: no signing grant / two-factor required / open findings |
 
 ## Naming reconciliation

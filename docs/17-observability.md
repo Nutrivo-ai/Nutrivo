@@ -14,6 +14,9 @@ Every failure is seen within minutes, every model call can be explained later, a
 - **Cron monitors (check-ins):**
   - `worker-heartbeat`, every minute;
   - `job-reaper`, every 5 min;
+  - `source-watch` (J01, `nutrivo sources watch`): check-ins only, with no schedule declared, until a weekly
+    scheduler exists (a db or infra task); that task adds the schedule (Monday, docs/12) so no missed run is
+    reported for a run nothing makes;
   - `stripe-reconcile` and `dunning`, daily;
   - `expiry-reminders`, daily;
   - `synthetic-smoke-prod`, every 15 min after launch.
@@ -29,7 +32,8 @@ Every failure is seen within minutes, every model call can be explained later, a
   `/api/public/otel/v1/traces` with `x-langfuse-ingestion-version: 4`. Nothing uses the v3 ingestion API, which
   Langfuse Cloud retires on 2026-11-16, or the retired v3 trace reads. Langfuse's AI features stay off in the
   organisation (issue #17).
-- **Traces.** One trace per job (`job:<kind>:<id>`) and one generation per model call: model id, prompt version,
+- **Traces.** One trace per job (`job:<kind>:<id>`), or per unit of content work run from the CLI
+  (`content:extract:<rule_key>:<source_id>`, docs/12), and one generation per model call: model id, prompt version,
   input hash, tokens, cost, latency. The trace id is derived from the job, so retries of a job share one trace. The
   same ids go to `app.model_calls`.
 - **Scores.**

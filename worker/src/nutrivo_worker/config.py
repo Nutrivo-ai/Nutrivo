@@ -39,6 +39,10 @@ class Settings(BaseModel):
     heartbeat_every_s: int = 60
     reap_every_s: int = 300
 
+    # Supabase Storage for the content tooling (the 'sources' bucket); service role, worker only.
+    supabase_url: str | None = None
+    supabase_service_role_key: SecretStr | None = None
+
     # Sentry (docs/17)
     sentry_dsn: SecretStr | None = None
 
@@ -97,6 +101,8 @@ class Settings(BaseModel):
             "env": env,
             "release": get("NUTRIVO_RELEASE") or get("RENDER_GIT_COMMIT") or "dev",
             "database_url": secret("DATABASE_URL"),
+            "supabase_url": get("SUPABASE_URL"),
+            "supabase_service_role_key": secret("SUPABASE_SERVICE_ROLE_KEY"),
             "sentry_dsn": secret("SENTRY_DSN_WORKER"),
             "langfuse_public_key": secret("LANGFUSE_PUBLIC_KEY"),
             "langfuse_secret_key": secret("LANGFUSE_SECRET_KEY"),
@@ -124,3 +130,8 @@ class Settings(BaseModel):
         if not self.database_url:
             raise ConfigError("DATABASE_URL is not set")
         return self.database_url.get_secret_value()
+
+    def require_storage(self) -> tuple[str, str]:
+        if not (self.supabase_url and self.supabase_service_role_key):
+            raise ConfigError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are needed to store sources")
+        return self.supabase_url, self.supabase_service_role_key.get_secret_value()
