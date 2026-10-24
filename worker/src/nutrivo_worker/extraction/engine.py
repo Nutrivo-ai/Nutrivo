@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import ctypes
 import hashlib
+import math
 import statistics
 from dataclasses import dataclass, field
 from importlib import metadata
@@ -46,12 +47,14 @@ def idempotency_key(file_sha256: str) -> str:
 @dataclass
 class Char:
     ch: str
-    ox: float                           # origin, points, PDF space
-    oy: float
-    loose: tuple[float, float, float, float]   # l, b, r, t in points
-    top_mm: float                       # tight top above the baseline, mm
+    loose: tuple[float, float, float, float]   # l, b, r, t in points, PDF space
+    top_mm: float                       # tight glyph top above the baseline, perpendicular to it, mm
     font_key: int
-    size_pt: float                      # effective size
+    size_pt: float                      # effective size, perpendicular to the baseline
+    angle: float                        # baseline direction, degrees
+    across: float                       # the origin's offset perpendicular to the baseline, points
+    start: float                        # the loose box's extent along the baseline, points
+    end: float
 
 
 @dataclass
@@ -101,16 +104,25 @@ def _chars(tp, fonts: dict[int, FontMetrics]) -> list[Char]:
         if ch in "\r\n\x00":
             continue
         pdfium_c.FPDFText_GetMatrix(raw, i, ctypes.byref(m))      # text matrix times CTM, without the font size
-        eff = info[1] * (m.c * m.c + m.d * m.d) ** 0.5
+        hyp = math.hypot(m.a, m.b)
+        if not hyp:
+            continue
+        ux, uy = m.a / hyp, m.b / hyp                              # along the baseline
+        nx, ny = -uy, ux                                           # perpendicular: up for upright text
+        eff = info[1] * abs(m.a * m.d - m.b * m.c) / hyp           # the scale perpendicular to the baseline
         pdfium_c.FPDFText_GetCharOrigin(raw, i, ctypes.byref(ox), ctypes.byref(oy))
         pdfium_c.FPDFText_GetCharBox(raw, i, ctypes.byref(l), ctypes.byref(r), ctypes.byref(b), ctypes.byref(t))
         loose = tp.get_charbox(i, loose=True)
-        out.append(Char(ch, ox.value, oy.value, loose, (t.value - oy.value) * PT_TO_MM, info[0], eff))
+        top = max((x - ox.value) * nx + (y - oy.value) * ny for x in (l.value, r.value) for y in (b.value, t.value))
+        along = [x * ux + y * uy for x in (loose[0], loose[2]) for y in (loose[1], loose[3])]
+        out.append(Char(ch, loose, top * PT_TO_MM, info[0], eff, math.degrees(math.atan2(uy, ux)),
+                        ox.value * nx + oy.value * ny, min(along), max(along)))
     return out
 
 
 def _lines(chars: list[Char]) -> list[Line]:
-    """Characters in content order become lines: same font, same size, same baseline, no jump back or across a gap."""
+    """Characters in content order become lines along their own baseline, at any rotation: same font, size and
+    direction, same baseline, no jump back or across a gap."""
     lines: list[Line] = []
     cur: Line | None = None
     right = 0.0
@@ -122,19 +134,20 @@ def _lines(chars: list[Char]) -> list[Line]:
         if cur is not None:
             f = cur.first
             same = (c.font_key == f.font_key and abs(c.size_pt - f.size_pt) <= 0.01 * f.size_pt
-                    and abs(c.oy - f.oy) <= 0.2 * f.size_pt
-                    and right - 0.5 * f.size_pt <= c.loose[0] <= right + 1.0 * f.size_pt)
+                    and abs((c.angle - f.angle + 180) % 360 - 180) <= 1.0
+                    and abs(c.across - f.across) <= 0.2 * f.size_pt
+                    and right - 0.5 * f.size_pt <= c.start <= right + 1.0 * f.size_pt)
             if same:
-                if pending_space or c.loose[0] - right > 0.15 * f.size_pt:
+                if pending_space or c.start - right > 0.15 * f.size_pt:
                     cur.text += " "
                 cur.chars.append(c)
                 cur.text += c.ch
-                right = max(right, c.loose[2])
+                right = max(right, c.end)
                 pending_space = False
                 continue
         cur = Line([c], c.ch)
         lines.append(cur)
-        right = c.loose[2]
+        right = c.end
         pending_space = False
     return lines
 
@@ -216,17 +229,27 @@ def _flat_glyph_em(lines: list[Line]) -> dict[int, dict[str, float | None]]:
     return {k: {"cap": _median(v["cap"]), "x": _median(v["x"])} for k, v in per.items()}
 
 
+def _page_size(doc, page_no: int) -> tuple[float, float]:
+    """The page size in mm without loading the page; (0, 0) when even that cannot be read (no geometry, no guess)."""
+    size = pdfium_c.FS_SIZEF()
+    if not pdfium_c.FPDF_GetPageSizeByIndexF(doc.raw, page_no, ctypes.byref(size)):
+        return (0.0, 0.0)
+    return (_r(size.width * PT_TO_MM), _r(size.height * PT_TO_MM))
+
+
 def _page_panels(doc, page_no: int, start: int, fonts: dict[int, FontMetrics]) -> tuple[tuple[float, float], list[Panel]]:
-    page = doc[page_no]
-    w, h = page.get_size()
-    size_mm = (_r(w * PT_TO_MM), _r(h * PT_TO_MM))
+    size_mm = _page_size(doc, page_no)
     try:
+        page = doc[page_no]
+        w, h = page.get_size()
+        size_mm = (_r(w * PT_TO_MM), _r(h * PT_TO_MM))
+        trim = _mm_box(*page.get_trimbox(), h)        # falls back to the CropBox; crop marks lie outside it
         tp = page.get_textpage()
         lines = _lines(_chars(tp, fonts))
-        regions = cluster(_page_items(page, lines, h), w * PT_TO_MM, h * PT_TO_MM)
+        regions = cluster(_page_items(page, lines, h), w * PT_TO_MM, h * PT_TO_MM, trim)
         box_em = _flat_glyph_em(lines)
         return size_mm, [_panel(r, start + n, page_no, fonts, box_em) for n, r in enumerate(regions)]
-    except Exception as exc:            # one page that cannot be parsed is one named failure, not a failed file
+    except Exception as exc:            # one page that cannot be loaded or parsed is one named failure for that page
         sentry_sdk.capture_exception(exc)
         log.warning("extraction page unreadable", exc_info=exc, extra=kv(page=page_no))
         return size_mm, [Panel(start, page_no, [0.0, 0.0, size_mm[0], size_mm[1]], "und", None, "not_assessable",

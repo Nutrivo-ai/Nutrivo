@@ -19,7 +19,7 @@ FIXTURES = ["clean_3lang", "missing_batch", "small_netqty", "outlined_all", "ras
             "gutter_overflow"]
 TOL = 0.15
 
-pytestmark = pytest.mark.skipif(not (SYNTH / "gutter_overflow.pdf").exists(), reason="run make fixtures")
+pytestmark = pytest.mark.skipif(not (SYNTH / "gutter_overflow.pdf").exists(), reason="no local fixtures: run make fixtures")
 
 
 def _truth(name):
@@ -236,3 +236,159 @@ def test_ten_pages_extract_within_20_s_and_1_gb(tmp_path):
     out = json.loads(subprocess.run([sys.executable, "-c", child], check=True, capture_output=True,
                                     text=True).stdout.strip().splitlines()[-1])
     assert out["pages"] == 10 and out["s"] < 20 and out["mb"] < 1024, out
+
+
+# ── review of #130: damaged pages, bleed, crop marks, oblique and rotated text ─────────────────────────────
+EN = ["Complete feed for adult dogs", "Composition: chicken, rice, maize", "Feed twice daily with fresh water"]
+DE = ["Alleinfuttermittel für ausgewachsene Hunde", "Zusammensetzung: Huhn, Reis, Mais",
+      "Zweimal täglich mit frischem Wasser füttern"]
+
+
+def _canvas(path: Path, w_mm: float, h_mm: float):
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    from reportlab.pdfgen import canvas
+
+    pdfmetrics.registerFont(TTFont("Body", str(FONT)))
+    return canvas.Canvas(str(path), pagesize=(w_mm * MM, h_mm * MM))
+
+
+MM = 72 / 25.4
+
+
+def _block(c, lines, x_mm, top_mm, h_mm, pt=8.0):
+    """Lines from top_mm down (top-left mm), on a page h_mm tall."""
+    c.setFont("Body", pt)
+    for n, text in enumerate(lines):
+        c.drawString(x_mm * MM, (h_mm - top_mm - 5 * (n + 1)) * MM, text)
+
+
+def _image(c, x_mm, top_mm, w_mm, h_mm, page_h_mm, tmp_path):
+    from PIL import Image
+
+    png = tmp_path / "grey.png"
+    Image.new("RGB", (60, 40), (90, 90, 90)).save(png)
+    c.drawImage(str(png), x_mm * MM, (page_h_mm - top_mm - h_mm) * MM, w_mm * MM, h_mm * MM)
+
+
+needs_font = pytest.mark.skipif(not FONT.exists(), reason="DejaVu Sans not installed")
+
+
+@needs_font
+def test_a_page_pdfium_cannot_load_is_one_unreadable_panel_and_earlier_pages_survive(tmp_path):
+    import re
+
+    from pypdf import PdfReader, PdfWriter
+
+    good = tmp_path / "two.pdf"
+    w = PdfWriter()
+    w.add_page(PdfReader(str(SYNTH / "clean_3lang.pdf")).pages[0])
+    w.add_page(PdfReader(str(SYNTH / "clean_3lang.pdf")).pages[0])
+    with good.open("wb") as fh:
+        w.write(fh)
+    raw = good.read_bytes()
+    kids = re.search(rb"/Kids \[ (\d+) 0 R (\d+) 0 R \]", raw)
+    assert kids, "pypdf wrote no plain /Kids array"
+    broken = tmp_path / "dangling.pdf"
+    broken.write_bytes(raw.replace(kids.group(0), b"/Kids [ " + kids.group(1) + b" 0 R 9999 0 R ]"))
+    result = extract_artwork(broken)
+    assert [p.language for p in result.panels if p.page == 0] == ["en", "sv", "de"]
+    page1 = [p for p in result.panels if p.page == 1]
+    assert [(p.status, p.failure_code) for p in page1] == [("not_assessable", "unreadable")]
+    assert result.status == "partial" and len(result.page_size_mm) == 2
+
+
+@needs_font
+def test_a_rasterised_panel_bleeding_off_the_left_edge_is_still_a_panel(tmp_path):
+    pdf = tmp_path / "left_bleed.pdf"
+    c = _canvas(pdf, 150, 60)
+    _image(c, -3, 5, 63, 50, 60, tmp_path)
+    _block(c, EN, 80, 5, 60)
+    c.showPage()
+    c.save()
+    result = extract_artwork(pdf)
+    assert [(p.status, p.failure_code, p.language) for p in result.panels] == \
+        [("not_assessable", "rasterised", "und"), ("extracted", None, "en")]
+    assert result.status == "partial" and result.panels[0].bbox_mm[0] == 0.0     # clamped to the page
+
+
+@needs_font
+def test_a_rasterised_panel_bleeding_off_the_top_is_still_a_panel(tmp_path):
+    pdf = tmp_path / "top_bleed.pdf"
+    c = _canvas(pdf, 80, 100)
+    _image(c, 5, -3, 70, 33, 100, tmp_path)
+    _block(c, EN, 5, 50, 100)
+    c.showPage()
+    c.save()
+    result = extract_artwork(pdf)
+    assert [(p.status, p.failure_code) for p in result.panels] == \
+        [("not_assessable", "rasterised"), ("extracted", None)]
+    assert result.panels[0].bbox_mm[1] == 0.0
+
+
+@needs_font
+def test_a_band_bleeding_off_the_right_edge_does_not_merge_two_language_panels(tmp_path):
+    pdf = tmp_path / "right_bleed.pdf"
+    c = _canvas(pdf, 150, 40)
+    _block(c, DE, 5, 5, 40)
+    _block(c, EN, 80, 5, 40)
+    c.setFillGray(0.4)
+    c.rect(140 * MM, 0, 16 * MM, 40 * MM, stroke=0, fill=1)        # 140 to 156 mm on a 150 mm page
+    c.showPage()
+    c.save()
+    panels = [p for p in extract_artwork(pdf).panels if p.status == "extracted"]
+    assert [p.language for p in panels] == ["de", "en"]
+    assert all(p.bbox_mm[2] <= 150 for p in extract_artwork(pdf).panels)
+
+
+@needs_font
+def test_crop_marks_and_slug_outside_the_trim_box_are_not_panels(tmp_path):
+    pdf = tmp_path / "marks.pdf"
+    c = _canvas(pdf, 100, 80)
+    c.setTrimBox((10 * MM, 10 * MM, 90 * MM, 70 * MM))
+    _block(c, EN, 15, 10, 80)
+    c.setLineWidth(0.25)
+    for x, y in ((10, 10), (90, 10), (10, 70), (90, 70)):          # corner marks, all outside the trim box
+        c.line((x - 1 if x == 10 else x + 1) * MM, y * MM, (x - 8 if x == 10 else x + 8) * MM, y * MM)
+        c.line(x * MM, (y - 1 if y == 10 else y + 1) * MM, x * MM, (y - 8 if y == 10 else y + 8) * MM)
+    c.setFont("Body", 5)
+    c.drawString(12 * MM, 4 * MM, "Job 4711 proof 3 cyan magenta yellow black")   # the slug
+    c.showPage()
+    c.save()
+    result = extract_artwork(pdf)
+    assert [(p.status, p.language) for p in result.panels] == [("extracted", "en")]
+    assert result.status == "succeeded"
+
+
+@needs_font
+def test_oblique_text_height_is_measured_perpendicular_to_the_baseline(tmp_path):
+    pdf = tmp_path / "oblique.pdf"
+    c = _canvas(pdf, 120, 60)
+    c.translate(10 * MM, 30 * MM)
+    c.skew(0, 12)                                                   # a 12 degree shear of the vertical axis
+    c.setFont("Body", 20)
+    c.drawString(0, 0, "HEXT taxi")
+    c.showPage()
+    c.save()
+    [obj] = extract_artwork(pdf).panels[0].text_objects
+    assert abs(obj.cap_height_mm - 0.729 * 20 / MM) <= 0.02 and abs(obj.x_height_mm - 0.547 * 20 / MM) <= 0.02
+
+
+@needs_font
+@pytest.mark.parametrize("angle", [90, 180])
+def test_rotated_text_is_grouped_into_lines_along_its_baseline(tmp_path, angle):
+    pdf = tmp_path / f"rot{angle}.pdf"
+    c = _canvas(pdf, 120, 120)
+    c.translate(60 * MM, 60 * MM)
+    c.rotate(angle)
+    c.setFont("Body", 10)
+    for n, text in enumerate(EN):
+        c.drawString(-40 * MM, (10 - 6 * n) * MM, text)
+    c.showPage()
+    c.save()
+    [panel] = extract_artwork(pdf).panels
+    assert panel.status == "extracted" and panel.language == "en"
+    assert [o.text for o in panel.text_objects] == EN
+    cap, x = 0.729 * 10 / MM, 0.547 * 10 / MM
+    assert all(abs(o.cap_height_mm - cap) <= 0.02 and abs(o.x_height_mm - x) <= 0.02 for o in panel.text_objects)
+    assert all(o.confidence in (1.0, 0.8) for o in panel.text_objects)

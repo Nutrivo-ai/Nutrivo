@@ -7,6 +7,7 @@ band must be clear. An item that crosses a gutter belongs to the side where it s
 from __future__ import annotations
 
 import itertools
+import math
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -78,7 +79,7 @@ def _split(region: Region, axis: int) -> list[Region]:
     cuts = _gutters(region.items, axis)
     if not cuts:
         return [region]
-    edges = [region.bounds[axis], *cuts, region.bounds[axis + 2]]
+    edges = [-math.inf, *cuts, math.inf]   # open outer edges: bleed past the page still belongs to a panel
     parts = []
     for a, b in itertools.pairwise(edges):
         bounds = list(region.bounds)
@@ -91,9 +92,12 @@ def _split(region: Region, axis: int) -> list[Region]:
     return parts
 
 
-def cluster(items: list[Item], page_w: float, page_h: float) -> list[Region]:
-    """Panels on one page in reading order. Backgrounds are left out of the cut and added back to every panel they
-    overlap; a page with nothing but background is one panel."""
+def cluster(items: list[Item], page_w: float, page_h: float, trim: list[float] | None = None) -> list[Region]:
+    """Panels on one page in reading order. What lies wholly outside the trim box (crop marks, slug) is cut off in
+    print and left out. Backgrounds are left out of the cut and added back to every panel they overlap; a page with
+    nothing but background is one panel. Panel boxes are clamped to the page."""
+    if trim is not None:
+        items = [i for i in items if _overlaps(i.bbox, trim)]
     layout = [i for i in items if not is_background(i, page_w, page_h)]
     backgrounds = [i for i in items if is_background(i, page_w, page_h)]
     if not layout:
@@ -110,10 +114,12 @@ def cluster(items: list[Item], page_w: float, page_h: float) -> list[Region]:
                 return [leaf for p in parts for leaf in rec(p, depth + 1)]
         return [region]
 
-    leaves = rec(Region([0.0, 0.0, page_w, page_h], layout))
+    leaves = rec(Region([-math.inf, -math.inf, math.inf, math.inf], layout))
     for leaf in leaves:
-        leaf.bbox = leaf.printed_bbox()
-        leaf.items += [b for b in backgrounds if _overlaps(b.bbox, leaf.bbox)]
+        b = leaf.printed_bbox()
+        leaf.bbox = [min(max(b[0], 0.0), page_w), min(max(b[1], 0.0), page_h),
+                     min(max(b[2], 0.0), page_w), min(max(b[3], 0.0), page_h)]
+        leaf.items += [g for g in backgrounds if _overlaps(g.bbox, b)]
     return leaves
 
 

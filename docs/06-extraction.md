@@ -120,8 +120,10 @@ and is about 30 times slower. The founder decision on #39 made it development-on
 - **Text objects.** pypdfium2 characters, in content order, form one text object per line. A line breaks on a change
   of font, size or baseline, or on a jump back or across a gap wider than one em. Generated characters are skipped,
   and so is invisible text (render mode 3, an OCR layer). The bbox is the union of the loose character boxes.
-  `font_size_pt` is the effective size: the font size times the vertical scale of the character matrix (text matrix
-  times CTM), so placement scaling is measured.
+  Lines follow each character's own baseline direction from the character matrix (text matrix times CTM), so text
+  at 90° or 180° groups as it reads. `font_size_pt` is the effective size: the font size times the matrix's scale
+  perpendicular to the baseline, |ad − bc| / hypot(a, b). Placement scaling and shear are measured, not
+  overstated. A glyph's top is measured perpendicular to the baseline.
 - **Heights.** These come from the embedded programme. OS/2 `sCapHeight`/`sxHeight` are used when the table is
   version 2 or later and both are set. Otherwise the code takes the top of the first flat reference glyph the
   programme has: H E I T L F B D K N P R U Z for cap height, x z v w y for x-height. Either value is scaled by the
@@ -137,14 +139,19 @@ and is about 30 times slower. The founder decision on #39 made it development-on
   - Between columns, at most two text lines may cross a gutter. A crossing line belongs to the panel it starts in,
     and it does not widen that panel's bbox (the `gutter_overflow` fixture).
   - Between rows, the band must be clear.
+  - Only what overlaps the TrimBox (else the CropBox) counts. Crop marks and the slug lie outside it, are cut off in
+    print and are left out.
+  - The outer edges are open, so content bleeding past the page still belongs to its panel. Panel boxes are clamped
+    to the page.
   - An object covering 90% or more of the page in both directions counts as background. It is left out of the cut
     and is part of every panel it overlaps.
 - **Status.** The dominant signal decides: characters against path objects against images (the T-301 rule).
   An extracted panel whose text uses a font that is not embedded, or that has no measurable heights, becomes
   `missing_font`. A substituted system font is never measured. Not-assessable panels carry no text objects.
 - **Unreadable.** A file pdfium cannot open becomes one panel: page 0, bbox `[0, 0, 0, 0]` (no geometry), and
-  `unreadable`. A page that fails to parse becomes one `unreadable` panel spanning that page, and the exception goes
-  to Sentry. Neither raises.
+  `unreadable`. A page pdfium cannot load or parse becomes one `unreadable` panel spanning that page. Its size comes
+  from `FPDF_GetPageSizeByIndexF`, or `[0, 0]` when even that fails. The exception goes to Sentry, and the other pages
+  carry on. Neither case raises.
 - **Not raised yet.**
   - `no_true_scale` is not raised for PDFs, since a PDF page carries its physical size. It applies to photo uploads
     (T-303).
