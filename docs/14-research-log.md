@@ -103,8 +103,25 @@ manifestation. A version that does not exist answers 404. Recorded responses: wo
 
 EU Register of Feed Additives: since 5 April 2023 the PDF register has been replaced by an online database in the
 Food and Feed Information Portal (ec.europa.eu/food/food-feed-portal/screen/feed-additives/search, with a "latest
-updates" page). There are no numbered editions any more. Whether it offers a bulk download (CSV or Excel):
-**unconfirmed** (the portal is a JavaScript application). Source: food.ec.europa.eu/food-safety/animal-feed/feed-additives_en
+updates" page). There are no numbered editions any more. Source: food.ec.europa.eu/food-safety/animal-feed/feed-additives_en
+
+T-202 (23 Oct 2026, read from the portal itself): **no bulk download, export button or documented API.** The portal
+is an Angular application; its `assets/env-json-config.json` names its back end, `ec.europa.eu/food/food-feed-portal/
+backend/api`, and its feed-additives screen reads three JSON answers from it, which need no key and meet no bot
+challenge:
+- `policy-items?foodDomain=fed&authorisationType=fed_auth`: every register entry in one answer (2,026, about 20 MB, all
+  `PUBLISHED`): identification number, name, subclass, functional-group code, and per authorisation the species,
+  holder, entry, authorisation, expiry and deletion dates and the linked legislation (by id and link type). The detail
+  page reads from the same list.
+- `food_legislations?domain_code=fed`: 1,028 acts with title, OJ reference and EUR-Lex link; every legislation id the
+  entries cite resolves (2,966 of 2,966).
+- `feed-refdata/en`: functional-group and link-type labels (Primary, Amended by, Withdrawn by, Repealed by,
+  Authorisation denied, ...).
+
+Maximum contents and conditions are not in it (they are in each authorising act). Identification numbers are not
+unique: 164 numbers are on more than one entry (different holders, preparations or species), and 473 entries have
+none (`.` or empty). Reuse: Commission Decision 2011/833/EU, CC BY 4.0 (commission.europa.eu/legal-notice_en).
+`nutrivo sources import additives` stores the three answers byte for byte (docs/12).
 
 ### 7. References in content/candidates/eu-core.yaml
 Checked only whether each cited provision covers the named subject, against 02009R0767-20181226 and
@@ -144,7 +161,7 @@ Checked only whether each cited provision covers the named subject, against 0200
    profile routes to; a Bedrock "not used for training" statement.
 3. Render background-worker pricing and any Frankfurt difference; the SES eu-central-1 rate; PostHog usage prices;
    which Stripe Tax tier applies through Billing.
-4. The consolidated versions in §6 on the EUR-Lex pages themselves; the Feed Additives Register's download format.
+4. The consolidated versions in §6 on the EUR-Lex pages themselves. (The Feed Additives Register's format: done in T-202, §6.)
 5. Haiku 4.5's retirement date on Bedrock (its earliest end-of-life date has passed).
 6. Whether Haiku 5.5 runs with Bedrock retention `none` (T-014). Its model card, checked 23 Oct 2026, gives
    `eu.anthropic.claude-haiku-5-5`, Frankfurt through the EU profile only, and EOL no sooner than 7 Oct 2027. The
@@ -177,7 +194,7 @@ Enforcement is T-014.
    [Done 23 Oct 2026: docs/11.]
 6. **content/sources.yaml (T-202 input).** The Feed Additives Register has no "current edition" any more; it is an
    online database since 5 April 2023, so the importer needs a different source shape.
-   [Done 23 Oct 2026: content/sources.yaml; the export format is checked in T-202.]
+   [Done 23 Oct 2026: content/sources.yaml. T-202 found no export: the importer reads the portal's JSON API (§6).]
 7. **content/candidates/eu-core.yaml.** Seven article references are wrong or incomplete (§7). They are candidates,
    not accepted content; the correction belongs to a content-lane task and to K01/K02 acceptance by a person.
    [Done 23 Oct 2026: references corrected in content/candidates/eu-core.yaml; a person still confirms them at acceptance.]

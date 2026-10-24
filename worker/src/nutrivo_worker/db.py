@@ -101,3 +101,38 @@ class PgStore:
                values (%(workspace_id)s, %(purpose)s, %(provider)s, %(model_id)s, %(prompt_version)s, %(input_hash)s,
                        %(output)s, %(input_tokens)s, %(output_tokens)s, %(cost_eur)s, %(latency_ms)s)""",
             {**row, "output": Jsonb(row.get("output"))})
+
+    def job_progress(self, job_id: str) -> dict[str, Any]:
+        row = self.conn.execute("select progress from app.jobs where id = %s", (job_id,)).fetchone()
+        return (row["progress"] or {}) if row else {}
+
+    # ── notify (A03) ────────────────────────────────────────────────────────────────────────────────────
+    def invitation_for_email(self, invitation_id: str) -> dict[str, Any] | None:
+        return self.conn.execute(
+            """select i.id::text, i.workspace_id::text, i.email::text, i.role, i.expires_at, i.accepted_at,
+                      i.revoked_at, w.name as workspace_name, p.display_name as inviter_name
+                 from app.invitations i
+                 join app.workspaces w on w.id = i.workspace_id
+                 join app.people p on p.id = i.invited_by
+                where i.id = %s""", (invitation_id,)).fetchone()
+
+    def set_invitation_token(self, invitation_id: str, token_hash: bytes) -> bool:
+        """Store the hash of a new token, only while the invitation is pending. A revoke holding the row wins."""
+        row = self.conn.execute(
+            """update app.invitations set token_hash = %s
+                where id = %s and accepted_at is null and revoked_at is null and expires_at > now()
+            returning id""", (token_hash, invitation_id)).fetchone()
+        return row is not None
+
+    # ── session_revoke (A06) ────────────────────────────────────────────────────────────────────────────
+    def membership_for_revoke(self, membership_id: str) -> dict[str, Any] | None:
+        return self.conn.execute(
+            """select m.id::text, m.workspace_id::text, m.person_id::text, m.ended_at, p.user_id::text
+                 from app.memberships m join app.people p on p.id = m.person_id
+                where m.id = %s""", (membership_id,)).fetchone()
+
+    def revoke_sessions(self, user_id: str, created_before: Any) -> int:
+        """Sign a user out: their sessions (and, by cascade, refresh tokens) from before the membership ended."""
+        cur = self.conn.execute("delete from auth.sessions where user_id = %s and created_at <= %s",
+                                (user_id, created_before))
+        return cur.rowcount
