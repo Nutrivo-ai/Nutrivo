@@ -17,6 +17,22 @@ Monday: source watch (J01) and the extraction batch for the week's targets. Tues
 works the review queue in /admin. Thursday: fixtures drafted for what was accepted, confirmed by the accepting
 person. Friday: release if every fixture passes; the coverage page updates itself.
 
+Source watch (J01, T-207):
+- `nutrivo sources watch --out watch.json` asks CELLAR, for each act in content/sources.yaml, which documents
+  amend, are based on, correct or cite it. It looks back 14 days by default. It also lists consolidated versions
+  dated after the run date.
+- The document kind (proposal, preparatory, legal act, corrigendum, other) comes from the CELEX id.
+- The model (`triage.v1`) only ranks the items high, medium or low and summarises their titles.
+- A summary that gives a date is withheld (BE-37). For a document that is not a legal act, any year that is not
+  part of an act number counts as a date, and so does wording such as a deadline or "next year". A summary that
+  calls such a document law is withheld too, and so is an abstention or a model failure. Withheld items rank just below high, never with the low ones.
+- The person reads the report and records what matters with
+  `nutrivo horizon record --report watch.json --celex <id> --stage <stage> [--expected-date] [--effective-from]`.
+  An effective date is refused unless the stage is adopted, published or in force. A document that is not a legal
+  act is never recorded at a law stage; its kind is worked out again from the CELEX id. Recording the same item and
+  stage again with other values is refused (`conflicts_with_existing`) rather than ignored.
+- Items already in ref.horizon_items are skipped on the next run.
+
 ## Accepting a rule: the checklist
 - The excerpt shown is from the stored official text (the sha256 matches `ref.sources`).
 - Both extractions agree, or the accepting person resolved the difference against the text.
