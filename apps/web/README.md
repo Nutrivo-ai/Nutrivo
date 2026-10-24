@@ -21,6 +21,12 @@ and `src/lib/workspace/memberships.ts` reads the person's memberships under RLS.
 exports them; without them its workspace tests are skipped. Database types are in `src/lib/database.types.ts`
 (`make typegen`).
 
+Onboarding (T-106, A01): `/onboarding` is one route whose step is read from the session (`src/lib/onboarding/state.ts`):
+signed out is step 01 (sign-up with confirmation, `signUp` in `src/lib/onboarding/actions.ts`), a confirmed account
+without a workspace is step 02 (`app.create_workspace`), and the workspace the person created without an operator is
+step 03 (`app.set_default_operator`). The screens are in `src/components/onboarding`; the decisions are pure functions
+in `src/lib/onboarding/rules.ts`. `tests/e2e/onboarding.spec.ts` follows the confirmation email through Mailpit.
+
 Wiring, all off when its variables are unset (names from `config/env.example`):
 - **Supabase:** `src/lib/supabase/{client,server}.ts` with @supabase/ssr; `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 - **Sentry:** `@sentry/nextjs` on client, server and edge; `SENTRY_DSN`, `NUTRIVO_ENV`; release = git SHA; scrubber in
