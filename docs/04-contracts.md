@@ -18,7 +18,7 @@ redesign rather than wiring.
 | Function | Workflow | Notes |
 |---|---|---|
 | `app.create_workspace(p_name)` | A01 | person, workspace, admin membership, allowance, audit |
-| `app.invite_member(p_ws, p_email, p_role, p_is_external, p_scope_family_ids, p_scope_node_ids, p_access_ends_at)` | A03 | seat check (P0033); the worker generates and emails the token. An address with a pending invitation in the workspace gets it resent: same id returned, no new row, no seat check, expiry renewed to 7 days, a new `notify` job (`invite:<id>:resend:<n>`), audited `invitation.resent`; role and scope stay (revoke to change them) |
+| `app.invite_member(p_ws, p_email, p_role, p_is_external, p_scope_family_ids, p_scope_node_ids, p_access_ends_at)` | A03 | seat check (P0033); the worker generates and emails the token. An address with a pending invitation in the workspace gets it resent: same id returned, no new row, expiry renewed to 7 days, audited `invitation.resent`; role and scope stay (revoke to change them). Renewing a lapsed editor-class invitation is seat-checked like a new one (P0033, row unchanged); one within its expiry claims nothing new. A new `notify` job (`invite:<id>:resend:<n>`) is queued unless one for the invitation is still queued or running (`after.email_queued`) |
 | `app.accept_invitation(p_token)` | A04 | one-time, email-bound; locks the invitation, so a concurrent revoke wins |
 | `app.register_artwork(p_product, p_storage_path, p_sha256, p_file_name, p_mime)` | D01, B02 | idempotent per file hash; allowance; dunning; enqueues extraction |
 | `app.request_check(p_product, p_nodes)` | D04 | job key = artwork, ruleset, classification, nodes |
