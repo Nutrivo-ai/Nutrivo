@@ -1,20 +1,18 @@
 """T-201 on real Postgres: ref.sources gets one row per distinct body, under an advisory lock; storage is faked.
 
-Runs against the local Supabase database (`make verify-fast` starts it) or NUTRIVO_TEST_DATABASE_URL, and skips where
-there is none (the CI worker job until T-009). It deletes only the rows it created."""
+Runs against the local Supabase database or NUTRIVO_TEST_DATABASE_URL (tests/pgtest.py); CI's `worker` job starts it
+and fails these tests rather than skip them. It deletes only the rows it created."""
 import dataclasses
-import os
 from datetime import UTC, datetime
 
-import psycopg
 import pytest
+from pgtest import connect_or_skip
 from test_sources import client
 
 from nutrivo_worker.db import connect
 from nutrivo_worker.sources import eurlex
 from nutrivo_worker.sources.store import Meta, PgSourceStore, StorageError
 
-DSN = os.environ.get("NUTRIVO_TEST_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:54322/postgres")
 NOW = datetime(2026, 10, 23, 3, 30, tzinfo=UTC)
 CELEX = "09999R9999-20181226"     # a test-only id, so rows a real run left in the local database never collide
 META = Meta(title="Regulation (EC) No 767/2009 · consolidated text 2018-12-26 [test:t201]")
@@ -32,10 +30,7 @@ class FakeStorage:
 
 @pytest.fixture
 def conn():
-    try:
-        c = connect(DSN)
-    except psycopg.OperationalError:
-        pytest.skip("no local database (the CI worker job has none until T-009); run make db-start")
+    c = connect_or_skip(connect)
     yield c
     c.execute("delete from ref.sources where celex = %s", (CELEX,))
     c.close()
