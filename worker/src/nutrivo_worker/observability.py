@@ -183,14 +183,15 @@ def job_observation(job: Any) -> Iterator[Any]:
 
 
 @contextlib.contextmanager
-def run_observation(name: str, run_id: str, metadata: dict[str, str]) -> Iterator[Any]:
-    """The Langfuse trace of a command run outside the job loop (`<name>:<run_id>`); its model calls nest inside."""
+def content_observation(name: str, metadata: dict[str, str]) -> Iterator[Any]:
+    """A content-operations trace (`content:extract:<rule_key>:<source_id>`), as a job trace: the id is derived from
+    the name, so a rerun of the same unit of work joins its trace, and model calls inside become its generations."""
     from langfuse import Langfuse, propagate_attributes
 
-    trace_name = f"{name}:{run_id}"
-    with langfuse().start_as_current_observation(
-            trace_context={"trace_id": Langfuse.create_trace_id(seed=trace_name)}, name=trace_name, as_type="span",
-            metadata=metadata) as span, propagate_attributes(trace_name=trace_name, metadata=metadata):
+    lf = langfuse()
+    with lf.start_as_current_observation(trace_context={"trace_id": Langfuse.create_trace_id(seed=name)}, name=name,
+                                         as_type="span", metadata=metadata) as span, \
+            propagate_attributes(trace_name=name, metadata=metadata):
         yield span
 
 

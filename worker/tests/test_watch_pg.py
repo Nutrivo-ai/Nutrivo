@@ -1,28 +1,24 @@
 """T-207 (J01) on real Postgres: a person records horizon items from a watch report into ref.horizon_items.
 
-Runs against the local Supabase database (`make verify-fast` starts it) or NUTRIVO_TEST_DATABASE_URL, and skips where
-there is none. It uses test-only CELEX ids and deletes only the rows it created."""
-import os
+Runs against the local Supabase database or NUTRIVO_TEST_DATABASE_URL (tests/pgtest.py); CI's `worker` job starts it
+and fails these tests rather than skip them. It uses test-only CELEX ids and deletes only the rows it created."""
 from datetime import date
 
 import psycopg
 import pytest
 from fakes import FakeStore
+from pgtest import connect_or_skip
 from test_watch import PROPOSAL, ScriptedModel, answer, run
 
 from nutrivo_worker.db import connect
 from nutrivo_worker.sources import horizon
 
-DSN = os.environ.get("NUTRIVO_TEST_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:54322/postgres")
 TEST_PROPOSAL, TEST_ACT = "59999PC9999", "39999R9999"
 
 
 @pytest.fixture
 def conn():
-    try:
-        c = connect(DSN)
-    except psycopg.OperationalError:
-        pytest.skip("no local database; run make db-start")
+    c = connect_or_skip(connect)
     yield c
     c.execute("delete from ref.horizon_items where celex in (%s, %s)", (TEST_PROPOSAL, TEST_ACT))
     c.close()

@@ -13,6 +13,19 @@ conformance ratchet means one that passed can never silently fail again.
 `scripts/conformance/report.py` reads JUnit XML and TAP output, maps results to IDs, writes CONFORMANCE.md, and
 fails when a baseline ID regresses (`spec/conformance-baseline.json`).
 
+| Report | Written by | CI job |
+|---|---|---|
+| `reports/database.tap` | per-file pgTAP (`make db-tap`) | database |
+| `reports/worker.xml` | pytest JUnit (`make test`, `make verify-fast`) | worker |
+| `reports/web.xml` | Vitest JUnit (`make test`, `make verify-fast`) | web |
+| `reports/e2e.xml` | Playwright JUnit (`make e2e`) | e2e |
+
+The `conformance` job downloads every report, runs even when a job before it failed, and fails when an ID in the
+baseline (the PR's own or its base's) has a failing, skipped or missing result. An ID counts as passing only when
+every result for it passes. IDs that pass but are not in the baseline yet are listed in the job summary:
+`make verify-task` adds the ones its run covers (database, worker, web unit); an ID only e2e proves is added by hand
+in the task's PR, from that list.
+
 ## When what runs
 | When | What | Where | Blocks |
 |---|---|---|---|
@@ -29,10 +42,14 @@ fails when a baseline ID regresses (`spec/conformance-baseline.json`).
   - To record by hand on dev, run `scripts/env/run.sh dev -- env MODELS_MODE=record <command>` from `worker/`.
   - Cassettes hold the model's output and token counts, never the inputs.
   - `worker/tests/cassettes/smoke/` is a real Bedrock response, recorded on 23 Oct 2026, that the suite replays.
-- **Database in worker tests.** `worker/tests/test_jobs_pg.py` runs the job loop on the local Supabase database with
-  real pgmq (`make verify-fast` starts it, or set `NUTRIVO_TEST_DATABASE_URL`). The CI `worker` job has no database
-  until T-009, so these tests skip there with that reason.
-- **Email.** Mail goes to Mailpit in the local Supabase stack; tests read it through Mailpit's API.
+- **Local stack in worker tests.** Worker tests on Postgres or Mailpit (`test_jobs_pg.py`, `test_sources_pg.py`,
+  the fixtures runner's store) use `worker/tests/pgtest.py`: the local Supabase database with real pgmq and its
+  Mailpit (`make verify-fast` starts them), or `NUTRIVO_TEST_DATABASE_URL` and `MAILPIT_URL`. Without them they skip
+  locally, with a reason starting `no local ` (`connect_or_skip`, `skip_no_database`, `skip_no_service("Mailpit")`).
+  The CI `worker` job starts the database and Mailpit and sets `NUTRIVO_REQUIRE_DB=1`, and `conftest.py` turns such a
+  skip into a failure, so these tests never pass CI unrun.
+- **Email.** Mail goes to Mailpit in the local Supabase stack; tests read it through Mailpit's API at `MAILPIT_URL`
+  (`scripts/ci/e2e.sh` exports it from `supabase status`).
 - **Stripe.** Test mode. Webhooks are posted to the local function signed with the test secret.
 - **Data.**
   - The demo seed reproduces the design's mock data (Halden Pet Nutrition), so screens are comparable with design

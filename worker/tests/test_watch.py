@@ -351,7 +351,7 @@ def test_each_triage_is_a_langfuse_generation_inside_the_watch_trace():
                       span_exporter=exporter)
     try:
         provider = ScriptedModel()
-        with obs.run_observation("sources:watch", "run-7", {"request_id": "run-7"}):
+        with obs.content_observation("sources:watch:run-7", {"request_id": "run-7"}):
             run(provider, max_items=2)
         obs.langfuse().flush()
         spans = exporter.get_finished_spans()
