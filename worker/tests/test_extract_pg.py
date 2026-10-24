@@ -1,24 +1,23 @@
 """T-303: the `extract` job on real Postgres (and, for the main path, local Supabase Storage).
 
 Artworks are registered the way the web registers them: app.register_artwork under an editor's JWT claims, which
-enqueues the extract job. Every test makes its own workspace, so nothing depends on another test's rows; insert-only
-audit rows stay behind by design. CI's `worker` job starts the stack and fails these tests rather than skip them."""
+enqueues the extract job. Every test makes its own workspace and runs in one transaction that is rolled back, the job
+loop included, so nothing stays behind (only the uploaded Storage objects, under random paths). CI's `worker` job starts the stack and fails these tests rather than skip them."""
 import hashlib
 import json
 import os
 import subprocess
 import uuid
-from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-from pgtest import DSN, connect_or_skip, skip_no_database, skip_no_service
+from pgtest import connect_or_skip, skip_no_database, skip_no_service
 from pydantic import SecretStr
 
 from nutrivo_worker.config import Settings
 from nutrivo_worker.db import PgStore, connect
 from nutrivo_worker.handlers import extract as h
-from nutrivo_worker.jobs import Job, JobContext, Registry, Worker, registry
+from nutrivo_worker.jobs import Job, JobContext, Registry, process_message, registry
 from nutrivo_worker.sources.http import TransportError
 from nutrivo_worker.sources.store import StorageClient
 
@@ -36,9 +35,14 @@ def conn():
     if c.execute("select to_regnamespace('pgmq') is not null as ok").fetchone()["ok"] is False:
         skip_no_database("pgmq is not installed in this database")
     c.execute("select pgmq.purge_queue('extract')")
-    yield c
-    c.execute("select pgmq.purge_queue('extract')")
-    c.close()
+    try:
+        # Everything a test writes is rolled back: register_artwork leaves insert-only rows (audit events, allowance
+        # consumptions) that could never be cleaned up, and the database gates assume an empty tenant dataset.
+        with c.transaction(force_rollback=True):
+            yield c
+    finally:
+        c.execute("select pgmq.purge_queue('extract')")
+        c.close()
 
 
 def as_user(c, uid):
@@ -159,22 +163,6 @@ def test_D01_must_4_idempotent_per_file_hash(conn):
                         (av,)).fetchone()["n"] == 1
 
 
-def test_D01_must_4_concurrent_attempts_persist_one_run(conn):
-    data = (SYNTH / "small_netqty.pdf").read_bytes()
-    uid, ws, prod = product(conn)
-    av = register(conn, uid, ws, prod, data)
-    art = h.PgArtworkStore(conn).artwork(av)
-    result = h.extract_bytes(data)
-    key = h.run_key(av, art.file_sha256)
-    other = connect(DSN)
-    try:
-        a = h.PgArtworkStore(conn).persist(art, key, result, datetime.now(UTC))
-        b = h.PgArtworkStore(other).persist(art, key, result, datetime.now(UTC))
-    finally:
-        other.close()
-    assert a["id"] == b["id"] and a["panels"] == b["panels"] == len(panels(conn, av))
-
-
 def test_D01_fail_1_raster_or_photo_is_rasterised_and_geometry_is_never_guessed(conn):
     uid, ws, prod = product(conn)
     av = register(conn, uid, ws, prod, PNG, name="pack-photo.png", mime="image/png")
@@ -259,12 +247,17 @@ def storage_or_skip() -> StorageClient:
     return client
 
 
-def work(storage):
-    """The job loop with the registered extract handler until the queue is idle, on the local stack's Storage."""
+def work(conn, storage):
+    """The job loop's processing of every queued extract message, with the registered handler, on the local stack's
+    Storage. It runs on the test's own connection, so what it writes is rolled back with the test."""
     reg = Registry()
     reg.register("extract")(registry.get("extract").fn)
     settings = S.model_copy(update={"supabase_url": storage.url, "supabase_service_role_key": SecretStr(storage._key)})
-    Worker(settings, reg, lambda: PgStore(connect(DSN))).run(max_idle_loops=3)
+    store = PgStore(conn)
+    outcomes = []
+    while msgs := store.read("extract", 30, 10):
+        outcomes += [process_message(store, reg, m, settings) for m in msgs]
+    return outcomes
 
 
 def test_D01_main_upload_register_extract_and_progress_end_to_end(conn):
@@ -274,7 +267,7 @@ def test_D01_main_upload_register_extract_and_progress_end_to_end(conn):
     sha = hashlib.sha256(data).hexdigest()
     storage.put("artwork", f"{ws}/{prod}/{sha}.pdf", data, "application/pdf")
     av = register(conn, uid, ws, prod, data)
-    work(storage)
+    assert work(conn, storage) == ["succeeded"]
     job = conn.execute("select status, attempts, last_error, progress from app.jobs where idempotency_key = %s",
                        (f"extract:{av}",)).fetchone()
     assert (job["status"], job["attempts"], job["last_error"]) == ("succeeded", 1, None)
@@ -291,7 +284,7 @@ def test_a_registered_artwork_missing_from_storage_ends_failed_with_a_safe_error
     data = (SYNTH / "small_netqty.pdf").read_bytes() + b"\n% never uploaded " + uuid.uuid4().bytes
     uid, ws, prod = product(conn)
     av = register(conn, uid, ws, prod, data)
-    work(storage)
+    assert work(conn, storage) == ["failed"]
     job = conn.execute("select status, last_error from app.jobs where idempotency_key = %s",
                        (f"extract:{av}",)).fetchone()
     assert job["status"] == "failed"

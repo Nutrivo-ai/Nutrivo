@@ -36,6 +36,6 @@ bytes, size ≤ 25 MB; writes to the quarantine bucket) · `stripe-webhook` (POS
 `app.payment_events` idempotently by event id).
 
 ## Realtime and storage
-Progress: subscribe to Postgres changes on `app.jobs` filtered by id (RLS applies). Storage buckets (all private):
+Progress: subscribe to Postgres changes on `app.jobs` filtered by id (RLS applies). `app.jobs` is not in the `supabase_realtime` publication yet (a db change, asked on #41), so the web also re-reads the job row every 2 s until it is terminal (T-303). The extract job's progress shape is in docs/06. Storage buckets (all private):
 artwork, documents, reports, exports, sources, quarantine. Paths start with the workspace id:
-`artwork/<workspace_id>/<product_id>/<sha256>.pdf`. Viewing uses short-lived signed URLs; exports last 7 days.
+`artwork/<workspace_id>/<product_id>/<sha256>.pdf` (`.png` or `.jpg` for an image of the label). The browser checks type (by magic bytes) and size (≤ 50 MiB, the bucket limit) before any upload and computes the hash itself (T-303). Viewing uses short-lived signed URLs; exports last 7 days.
