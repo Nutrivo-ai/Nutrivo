@@ -32,6 +32,15 @@
 "B01.fail.1",
 "B01.main",
 "B01.must.1",
+"C02.fail.1",
+"D01.fail.1",
+"D01.fail.2",
+"D01.fail.3",
+"D01.main",
+"D01.must.1",
+"D01.must.2",
+"D01.must.3",
+"D01.must.4",
 "N02.main",
 "N02.must.1"
 ]
