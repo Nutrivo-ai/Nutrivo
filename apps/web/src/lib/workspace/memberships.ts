@@ -14,7 +14,14 @@ export type WorkspaceMembership = {
 
 export type ShellContext =
   | { kind: "signed-out" }
-  | { kind: "member"; person: { id: string; name: string }; memberships: WorkspaceMembership[]; current: WorkspaceMembership }
+  | {
+      kind: "member";
+      /** The auth user, for the two-step gate (T-103). */
+      userId: string;
+      person: { id: string; name: string };
+      memberships: WorkspaceMembership[];
+      current: WorkspaceMembership;
+    }
   /**
    * The workspace is not one of the person's. RLS returns nothing for a workspace that exists and for one that does
    * not, so the two read the same and the screen never tells a stranger whether a workspace exists.
@@ -74,5 +81,7 @@ export async function loadShellContext(supabase: Client, workspaceId: string): P
   const current = UUID.test(workspaceId)
     ? memberships.find((m) => m.workspaceId === workspaceId.toLowerCase())
     : undefined;
-  return current ? { kind: "member", person: who, memberships, current } : { kind: "no-access", person: who, memberships };
+  return current
+    ? { kind: "member", userId: auth.user.id, person: who, memberships, current }
+    : { kind: "no-access", person: who, memberships };
 }

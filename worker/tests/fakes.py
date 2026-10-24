@@ -3,9 +3,11 @@ from __future__ import annotations
 
 import itertools
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import Any
 
 from nutrivo_worker.jobs import Claim, Job, Message, Reaped
+from nutrivo_worker.mail import Email, MailError
 from nutrivo_worker.models import Raw
 
 MARKER = "hunter2"
@@ -40,6 +42,9 @@ class FakeStore:
         self.archived: list[int] = []
         self.deleted: list[int] = []
         self.model_calls: list[dict[str, Any]] = []
+        self.invitations: dict[str, dict[str, Any]] = {}
+        self.memberships: dict[str, dict[str, Any]] = {}
+        self.sessions: list[dict[str, Any]] = []      # {"user_id", "created_at"}
         self._ids = itertools.count(1)
 
     def add(self, job_id: str, kind: str = "notify", **kw: Any) -> Message:
@@ -102,6 +107,41 @@ class FakeStore:
 
     def insert_model_call(self, row: dict[str, Any]) -> None:
         self.model_calls.append(row)
+
+    def job_progress(self, job_id: str) -> dict[str, Any]:
+        return dict(self.jobs[job_id].progress)
+
+    def invitation_for_email(self, invitation_id: str) -> dict[str, Any] | None:
+        inv = self.invitations.get(invitation_id)
+        return {k: v for k, v in inv.items() if k != "token_hash"} if inv else None
+
+    def set_invitation_token(self, invitation_id: str, token_hash: bytes) -> bool:
+        inv = self.invitations[invitation_id]
+        if inv["accepted_at"] or inv["revoked_at"] or inv["expires_at"] <= datetime.now(UTC):
+            return False
+        inv["token_hash"] = token_hash
+        return True
+
+    def membership_for_revoke(self, membership_id: str) -> dict[str, Any] | None:
+        return self.memberships.get(membership_id)
+
+    def revoke_sessions(self, user_id: str, created_before: Any) -> int:
+        gone = [x for x in self.sessions if x["user_id"] == user_id and x["created_at"] <= created_before]
+        self.sessions = [x for x in self.sessions if x not in gone]
+        return len(gone)
+
+
+class FakeMailer:
+    def __init__(self, fail: int = 0):
+        self.sent: list[Email] = []
+        self.fail = fail
+
+    def send(self, email: Email) -> str | None:
+        if self.fail:
+            self.fail -= 1
+            raise MailError("Mailpit refused the invitation email (URLError)")
+        self.sent.append(email)
+        return f"msg-{len(self.sent)}"
 
 
 class FakeProvider:

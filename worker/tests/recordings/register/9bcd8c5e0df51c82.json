@@ -1,0 +1,12 @@
+{
+  "method": "GET",
+  "url": "https://ec.europa.eu/food/food-feed-portal/backend/api/policy-items?foodDomain=fed&authorisationType=fed_auth",
+  "request_headers": {
+    "accept": "application/json"
+  },
+  "status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body_sha256": "8750d15a4cebc1d40249fa40817ae9d5836a10749126e0e7d1de171b7cad48af"
+}

@@ -1,0 +1,14 @@
+{
+  "method": "GET",
+  "url": "https://publications.europa.eu/resource/celex/02013R0068-20220724",
+  "request_headers": {
+    "accept": "application/xhtml+xml",
+    "accept-language": "eng"
+  },
+  "status": 303,
+  "headers": {
+    "content-type": "application/xhtml+xml;charset=UTF-8",
+    "location": "http://publications.europa.eu/resource/cellar/f78b3d1c-0cfd-11ed-b11c-01aa75ed71a1.0007.02/DOC_2"
+  },
+  "body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}
