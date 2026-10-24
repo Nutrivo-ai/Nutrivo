@@ -1,6 +1,7 @@
 """O03 export handler without Postgres: the archive's shape, determinism, path scoping and idempotent upload."""
 import io
 import json
+import os
 import zipfile
 
 import pytest
@@ -146,4 +147,27 @@ def test_O03_main_an_archive_over_the_limit_fails_visibly_and_is_never_uploaded_
     storage = FakeStorage()
     with pytest.raises(PermanentJobError, match="export_too_large"):
         export.run(j, JobContext(j, store, Settings(export_max_bytes=100)), storage=storage, reader=FakeReader())
+    assert storage.puts == []
+
+
+class CountingStorage(FakeStorage):
+    def __init__(self, objects):
+        super().__init__(objects)
+        self.reads: list[str] = []
+
+    def get_if_exists(self, bucket, path):
+        self.reads.append(path)
+        return super().get_if_exists(bucket, path)
+
+
+def test_O03_main_the_limit_stops_the_build_at_the_first_file_that_crosses_it_never_after_holding_everything():
+    j = job()
+    big = os.urandom(5_000)                  # incompressible, as PDFs nearly are
+    storage = CountingStorage({("documents", f"{WS}/d{i}.pdf"): big for i in range(5)})
+    reader = FakeReader([("documents", f"{WS}/d{i}.pdf", f"documents/d{i}.pdf") for i in range(5)])
+    store = FakeStore()
+    store.jobs[j.id] = FakeJob("export", status="running", workspace_id=WS)
+    with pytest.raises(PermanentJobError, match="export_too_large"):
+        export.run(j, JobContext(j, store, Settings(export_max_bytes=8_000)), storage=storage, reader=reader)
+    assert len(storage.reads) == 2           # the second document crosses the limit; the other three are never read
     assert storage.puts == []

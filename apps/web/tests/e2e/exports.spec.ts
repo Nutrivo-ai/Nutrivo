@@ -27,6 +27,12 @@ async function axe(page: Page) {
 
 const card = (page: Page) => page.locator("[data-export-state]");
 
+async function exportJobs(ws: string) {
+  const { data, error } = await admin().schema("app").from("jobs").select("id, status").eq("workspace_id", ws).eq("kind", "export");
+  if (error) throw error;
+  return data;
+}
+
 test.describe("full export", () => {
   test.skip(!haveStack(), "needs the local Supabase stack: run through scripts/ci/e2e.sh (make e2e)");
   test.describe.configure({ mode: "serial" });
@@ -92,9 +98,18 @@ test.describe("full export", () => {
       const errors = watch(page);
       await page.goto(`/w/${ws}/settings/data`);
       await expect(page.getByText("exporting it is free on every plan, including the free one", { exact: false })).toBeVisible();
+      const before = new Set((await exportJobs(ws)).map((j) => j.id));
       await page.getByRole("button", { name: /Request (a full|a new) export/ }).click();
-      await expect(card(page)).toHaveAttribute("data-export-state", /preparing|ready/);
-      await expect(card(page)).toHaveAttribute("data-export-state", "ready", { timeout: 150_000 });
+      // A new job, not the previous ready one, is queued and succeeds for this workspace in this state.
+      let fresh: { id: string; status: string } | undefined;
+      await expect
+        .poll(async () => {
+          fresh = (await exportJobs(ws)).find((j) => !before.has(j.id));
+          return fresh?.status;
+        }, { timeout: 150_000, intervals: [500, 1_000, 2_000] })
+        .toBe("succeeded");
+      await page.reload();
+      await expect(card(page)).toHaveAttribute("data-export-state", "ready");
       expect(errors).toEqual([]);
     }
   });

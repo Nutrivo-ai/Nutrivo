@@ -150,9 +150,17 @@ def _add(zf: zipfile.ZipFile, name: str, body: bytes) -> None:
     zf.writestr(info, body)
 
 
-def build_archive(job: Job, reader: Reader, storage: Storage,
+def _fits(buf: io.BytesIO, adding: int, max_bytes: int) -> None:
+    """Fail as soon as the archive would cross the limit, before the next entry is added, so a workspace with
+    gigabytes of documents never builds (or holds) an archive it could not upload."""
+    if buf.tell() + adding > max_bytes:
+        raise PermanentJobError(f"{TOO_LARGE}: over the {max_bytes} byte limit")
+
+
+def build_archive(job: Job, reader: Reader, storage: Storage, max_bytes: int,
                   progress: Callable[..., None] = lambda **_: None) -> tuple[bytes, dict[str, Any]]:
-    """The zip and its manifest. Deterministic for the same rows and files."""
+    """The zip and its manifest. Deterministic for the same rows and files. Every entry is checked against
+    max_bytes before it is added (its uncompressed size, so the check is conservative)."""
     ws = job.workspace_id
     assert ws is not None
     counts: dict[str, int] = {}
@@ -163,7 +171,9 @@ def build_archive(job: Job, reader: Reader, storage: Storage,
         for table in TABLES:
             with sentry_sdk.start_span(op="export.table", name=table.file):
                 columns, rows = reader.rows(table, ws)
-            _add(zf, table.file, to_csv(columns, rows))
+            body = to_csv(columns, rows)
+            _fits(buf, len(body), max_bytes)
+            _add(zf, table.file, body)
             counts[table.file] = len(rows)
             progress(stage="records", tables_done=len(counts), tables=len(TABLES))
         for bucket, path, name in reader.files(ws):
@@ -175,6 +185,7 @@ def build_archive(job: Job, reader: Reader, storage: Storage,
             if body is None:                       # outside the workspace's folder, or gone: listed, never guessed
                 missing.append(name)
                 continue
+            _fits(buf, len(body), max_bytes)
             _add(zf, name, body)
             files.append(name)
             progress(stage="files", files_done=len(files) + len(missing))
@@ -207,9 +218,9 @@ def run(job: Job, ctx: JobContext, *, storage: Storage | None = None, reader: Re
         raise PermanentJobError("export job has no workspace_id")
     storage = storage or _default_storage(ctx)
     reader = reader or PgReader(ctx.store.conn)  # type: ignore[attr-defined]  # PgStore
-    body, manifest = build_archive(job, reader, storage, ctx.heartbeat)
-    if len(body) > ctx.settings.export_max_bytes:   # never truncated: the export fails, visibly, and says why
-        raise PermanentJobError(f"{TOO_LARGE}: {len(body)} bytes over the {ctx.settings.export_max_bytes} limit")
+    body, manifest = build_archive(job, reader, storage, ctx.settings.export_max_bytes, ctx.heartbeat)
+    if len(body) > ctx.settings.export_max_bytes:   # the zip's own directory and manifest: never truncated either
+        raise PermanentJobError(f"{TOO_LARGE}: over the {ctx.settings.export_max_bytes} byte limit")
     path = archive_path(job.workspace_id, job.id)
     with sentry_sdk.start_span(op="export.upload", name=BUCKET):
         storage.put(BUCKET, path, body, "application/zip")
