@@ -5,5 +5,8 @@
            challenges automated clients; CELLAR serves the same manifestations to machines)
   store    the 'sources' bucket and ref.sources, idempotent by (celex, language, sha256)
   fetch    the run over content/sources.yaml behind `nutrivo sources fetch`
+  imports  the outcomes an import run reports
+  register the EU Register of Feed Additives → ref.feed_additives (`nutrivo sources import additives`)
+  catalogue the Catalogue of feed materials → ref.feed_materials (`nutrivo sources import materials`)
   watch    new documents linked to those acts, triaged by the model for a person (J01), behind `nutrivo sources watch`
   horizon  a person records horizon items from a watch report (`nutrivo horizon record`)"""

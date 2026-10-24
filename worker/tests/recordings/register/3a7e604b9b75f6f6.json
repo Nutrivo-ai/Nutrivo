@@ -1,0 +1,12 @@
+{
+  "method": "GET",
+  "url": "https://ec.europa.eu/food/food-feed-portal/backend/api/feed-refdata/en",
+  "request_headers": {
+    "accept": "application/json"
+  },
+  "status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body_sha256": "d8ef64515f3fcdaf81941f595d6be5b50b2b61f163f2765edfa7bed78d0e4f3b"
+}

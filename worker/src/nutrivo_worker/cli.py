@@ -3,6 +3,7 @@
   nutrivo work     the job loop: every registered handler, the Sentry heartbeat, the reaper every 5 minutes
   nutrivo reap     one reaper pass
   nutrivo sources fetch   official texts from content/sources.yaml into the 'sources' bucket and ref.sources
+  nutrivo sources import  the Feed Additives Register → ref.feed_additives; the Catalogue → ref.feed_materials
   nutrivo sources watch   new documents linked to those acts, triaged by the model into a report for a person (J01)
   nutrivo horizon record  a person records a horizon item from a watch report, with the stage and dates they give
   nutrivo content extract  K01/K02: candidates from content/candidates/eu-core.yaml over the stored sources
@@ -101,6 +102,52 @@ def cmd_sources_fetch(settings: Settings, args: argparse.Namespace) -> int:
     return 1 if counts.get("failed") else 0
 
 
+def cmd_sources_import(settings: Settings, args: argparse.Namespace) -> int:
+    """Exit 0 when every pull is stored, unchanged or (dry run) fetched; 1 when any failed. Skipped and stale entries
+    are reported, not failures: they are the register as it stands (docs/12)."""
+    from contextlib import nullcontext
+
+    import sentry_sdk
+
+    from .logs import log_context
+    from .sources import catalogue, fetch, register
+    from .sources.http import PoliteClient, RecordingTransport, ReplayTransport, Transport, UrllibTransport
+    from .sources.imports import summary
+
+    acts, languages, licence = fetch.load_sources(Path(args.sources))
+    transport: Transport = ReplayTransport(Path(args.replay)) if args.replay else UrllibTransport()
+    if args.record:
+        transport = RecordingTransport(transport, Path(args.record))
+    client = PoliteClient(transport, min_interval_s=0.0 if args.replay else args.min_interval,
+                          https_hosts=("publications.europa.eu", "eur-lex.europa.eu", "ec.europa.eu"))
+
+    conn = store = None
+    if not args.dry_run:
+        from .db import connect
+        from .sources.store import PgSourceStore, StorageClient
+
+        storage = StorageClient(*settings.require_storage())
+        conn = connect(settings.require_database())
+        store = PgSourceStore(conn, storage)
+    transaction = conn.transaction if conn is not None else nullcontext
+    with log_context(request_id=str(uuid.uuid4())), \
+            sentry_sdk.start_transaction(op="content", name=f"sources:import:{args.what}"):
+        if args.what == "additives":
+            table = register.PgAdditiveTable(conn) if conn is not None else None
+            outcomes = register.run(client, store, table, licence=licence, transaction=transaction)
+        else:
+            act = next((a for a in acts if a.celex == catalogue.ACT), None)
+            if act is None:
+                print(f"nutrivo: {catalogue.ACT} is not in the sources file", file=sys.stderr)
+                return 2
+            mtable = catalogue.PgMaterialTable(conn) if conn is not None else None
+            outcomes = catalogue.run(client, store, mtable, languages, title=act.title, licence=licence,
+                                     transaction=transaction)
+    for o in outcomes:
+        print(json.dumps(o.as_dict(), ensure_ascii=False))
+    print(json.dumps({"summary": summary(outcomes), "requests": client.requests_sent}))
+    observability.flush()
+    return 1 if any(o.status == "failed" for o in outcomes) else 0
 def cmd_sources_watch(settings: Settings, args: argparse.Namespace) -> int:
     """Exit 0 when every act was queried (withheld items are not failures); 1 when any act failed."""
     from datetime import UTC, datetime, timedelta
@@ -341,6 +388,13 @@ def main(argv: list[str] | None = None) -> int:
     f.add_argument("--min-interval", type=float, default=2.0, help="seconds between requests (default 2)")
     f.add_argument("--record", metavar="DIR", help="also write every exchange to DIR (test recordings)")
     f.add_argument("--replay", metavar="DIR", help="serve recorded exchanges from DIR instead of the network")
+    imp = sources_sub.add_parser("import", help="import the Feed Additives Register or the Catalogue of feed materials")
+    imp.add_argument("what", choices=("additives", "materials"))
+    imp.add_argument("--sources", default=str(WORKER_ROOT.parent / "content" / "sources.yaml"))
+    imp.add_argument("--dry-run", action="store_true", help="fetch, hash and plan only; write nothing")
+    imp.add_argument("--min-interval", type=float, default=2.0, help="seconds between requests (default 2)")
+    imp.add_argument("--record", metavar="DIR", help="also write every exchange to DIR (test recordings)")
+    imp.add_argument("--replay", metavar="DIR", help="serve recorded exchanges from DIR instead of the network")
     w = sources_sub.add_parser("watch", help="list new documents linked to the followed acts, triaged for a person")
     w.add_argument("--sources", default=str(WORKER_ROOT.parent / "content" / "sources.yaml"))
     w.add_argument("--celex", action="append", help="only this act (repeatable)")
@@ -412,6 +466,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "sources":
             if args.sources_command == "watch":
                 return cmd_sources_watch(settings, args)
+            if args.sources_command == "import":
+                return cmd_sources_import(settings, args)
             return cmd_sources_fetch(settings, args)
         if args.command == "horizon":
             return cmd_horizon_record(settings, args)

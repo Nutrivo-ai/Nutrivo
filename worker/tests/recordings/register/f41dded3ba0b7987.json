@@ -1,0 +1,12 @@
+{
+  "method": "GET",
+  "url": "https://ec.europa.eu/food/food-feed-portal/backend/api/food_legislations?domain_code=fed",
+  "request_headers": {
+    "accept": "application/json"
+  },
+  "status": 200,
+  "headers": {
+    "content-type": "application/json"
+  },
+  "body_sha256": "e1e15fc92a90b14f10a80b6ae6b045411407e7ece6b4d2c1df4e952560b821d5"
+}
