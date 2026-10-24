@@ -1,0 +1,12 @@
+{
+  "method": "GET",
+  "url": "https://publications.europa.eu/webapi/rdf/sparql?query=PREFIX+cdm%3A+%3Chttp%3A%2F%2Fpublications.europa.eu%2Fontology%2Fcdm%23%3E%0ASELECT+%3Fcelex+%3Fdate+%3Frel+%3Ftitle+WHERE+%7B+%3Fact+cdm%3Aresource_legal_id_celex+%3FactCelex+.+FILTER%28STR%28%3FactCelex%29+%3D+%2232009R0767%22%29+VALUES+%3Frel+%7B+cdm%3Aresource_legal_amends_resource_legal+cdm%3Aresource_legal_based_on_resource_legal+cdm%3Aresource_legal_corrects_resource_legal+cdm%3Awork_cites_work+%7D+%3Fw+%3Frel+%3Fact+.+%3Fw+cdm%3Aresource_legal_id_celex+%3Fcelex+.+%3Fw+cdm%3Awork_date_document+%3Fdate+.+FILTER%28%3Fdate+%3E%3D+%222025-10-01%22%5E%5E%3Chttp%3A%2F%2Fwww.w3.org%2F2001%2FXMLSchema%23date%3E%29+OPTIONAL+%7B+%3Fe+cdm%3Aexpression_belongs_to_work+%3Fw+%3B+cdm%3Aexpression_uses_language+%3Chttp%3A%2F%2Fpublications.europa.eu%2Fresource%2Fauthority%2Flanguage%2FENG%3E+%3B+cdm%3Aexpression_title+%3Ftitle+%7D+%7D+ORDER+BY+%3Fdate+%3Fcelex+%3Frel",
+  "request_headers": {
+    "accept": "application/sparql-results+json"
+  },
+  "status": 200,
+  "headers": {
+    "content-type": "application/sparql-results+json"
+  },
+  "body_sha256": "3c0b57c0f91124f390abbfd4d084d103cf8f7d2a3acd9bf524012442363de559"
+}
