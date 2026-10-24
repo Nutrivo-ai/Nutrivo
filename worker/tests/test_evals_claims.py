@@ -278,12 +278,31 @@ def test_a_run_records_a_dataset_run_with_case_and_run_scores(tmp_path):
 
 
 def test_without_langfuse_keys_nothing_is_sent_and_the_report_is_the_same(tmp_path):
-    cases = [case(1)]
-    provider = ScriptedModel({cases[0].text: answer()})
+    cases = [case(1), case(2, "prohibited")]
+    provider = ScriptedModel({cases[0].text: answer(), cases[1].text: answer("prohibited")})
     api = FakeApi()
     report = claims.run(make_models(tmp_path, provider), spec(), {"sv": cases}, recorder(api, send=False), now=NOW)
     assert api.requests == [] and report.languages[0].cases[0].agrees and report.complete
     assert report.to_dict()["langfuse"] == {"sent": False, "failures": 0}
+    sent = claims.run(make_models(tmp_path, provider), spec(), {"sv": cases}, recorder(FakeApi()), now=NOW)
+
+    def comparable(r):
+        d = r.to_dict()
+        del d["langfuse"]
+        for lang in d["languages"]:
+            del lang["dataset_run_id"]
+        return d
+
+    assert sent.languages[0].dataset_run_id and comparable(sent) == comparable(report)
+
+
+def test_the_labellers_name_never_reaches_langfuse(tmp_path):
+    c = case(1)
+    api = FakeApi()
+    claims.run(make_models(tmp_path, ScriptedModel({c.text: answer()})), spec(), {"sv": [c]}, recorder(api), now=NOW)
+    [item] = api.of("dataset_items")
+    assert c.labelled_by == "person" and "labelled_by" not in item["metadata"]
+    assert "person" not in json.dumps(api.requests, default=str)
 
 
 def test_a_failed_langfuse_request_leaves_the_run_incomplete_and_the_judgements_unchanged(tmp_path):

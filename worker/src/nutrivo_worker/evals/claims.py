@@ -419,8 +419,10 @@ def run_language(models: Any, spec: RuleSpec, cases: list[Case], lang: str, reco
     run_id: str | None = None
     for case in scored:
         item_id = _id(dataset, case.id, case.sha256)
+        # Never the labeller's name: names and emails do not go to Langfuse (docs/17), and item metadata cannot be
+        # withdrawn once upserted.
         recorder.upsert_item(dataset, item_id, case, {"case_id": case.id, "synthetic": case.synthetic,
-                                                      "source": case.source, "labelled_by": case.labelled_by})
+                                                      "source": case.source})
         trace_name = f"eval:claims:{spec.rule_key}:{lang}:{case.id}:{run_name}"
         with recorder.case_trace(trace_name, {"case_id": case.id, "rule_key": spec.rule_key, "lang": lang,
                                               "run_name": run_name}) as (trace_id, observation_id):
