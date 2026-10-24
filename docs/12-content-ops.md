@@ -109,7 +109,8 @@ target × source. It never writes a rule.
   not verbatim, and always for `threshold` and `prescribed_wording`. Nothing here sets `accepted`, writes
   `decided_by`, or touches `ref.rules`, `ref.rule_versions` or a ruleset. Acceptance is a person's click (K03, T-204).
   Until the second key has run, the candidate has `agree` null. The accept RPC must refuse such a candidate.
-- **Not extracted yet.** `claim_judgement` targets are skipped (`needs_claims_harness`, T-501), and so are
+- **Not extracted yet.** `claim_judgement` targets are skipped (`needs_claims_harness`; the harness itself is in place,
+  docs/07, but no task yet extracts claim_judgement params), and so are
   `additive_condition` targets (`needs_additive_register`, T-202). Drafting fixtures for the reviewer comes with
   acceptance.
 - **Idempotent.** There is one candidate per (source_id, rule key), under an advisory lock.

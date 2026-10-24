@@ -1,0 +1,3 @@
+{"id": "syn-da-1", "rule_key": "HARNESS.SYNTHETIC.COLOUR", "text": "Sprøde gule stykker", "label": "prohibited", "synthetic": true}
+{"id": "syn-da-2", "rule_key": "HARNESS.SYNTHETIC.COLOUR", "text": "Med laks", "label": "permitted", "synthetic": true}
+{"id": "syn-da-3", "rule_key": "HARNESS.SYNTHETIC.COLOUR", "text": "Mere smag end før", "label": "needs_evidence", "synthetic": true}
