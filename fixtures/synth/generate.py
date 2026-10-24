@@ -81,13 +81,15 @@ def draw_panel(c, m: Metrics, page_h: float, box: list[float], lang: str, idx: i
         for ln in wrap(body, width, pt):
             line(key + "_text", ln, pt)
 
-    line("type_of_feed", t["type"], TYPE_PT)
+    for ln in wrap(t["type"], width, TYPE_PT):         # every line wraps inside its panel; only the
+        line("type_of_feed", ln, TYPE_PT)             # gutter_overflow fixture crosses a gutter, on purpose (#39)
     block("composition", t["composition"], t["ingredients"])
     block("analytical_constituents", t["analytical"],
           f'{t["protein"]} 32 %, {t["fat"]} 14 %, {t["fibre"]} 2.5 %, {t["ash"]} 7 %, {t["moisture"]} 8 %')
     block("additives", t["additives"], t["additives_list"])
     block("feeding_instructions", t["feeding"], t["feeding_text"])
-    line("operator", "Nordic Pet Foods AB, Exempelgatan 1, 111 22 Stockholm, Sweden", BODY_PT)
+    for ln in wrap("Nordic Pet Foods AB, Exempelgatan 1, 111 22 Stockholm, Sweden", width, BODY_PT):
+        line("operator", ln, BODY_PT)
     line("approval_number", f'{t["approval"]} SE-12345', BODY_PT)
     if "batch" not in missing:
         line("batch", f'{t["batch"]}: L2611-07', BODY_PT)
@@ -95,6 +97,8 @@ def draw_panel(c, m: Metrics, page_h: float, box: list[float], lang: str, idx: i
     line("contact", f'{t["contact"]}: 020-123 45 67', BODY_PT)
     net_pt = m.pt_for_figure_mm(spec.get("netqty_mm", 6.2))
     line("net_quantity", spec.get("netqty_text", "1,5 kg"), net_pt)
+    if "overflow_text" in spec:                         # deliberately unwrapped: it crosses the gutter (#39)
+        line("gutter_overflow", spec["overflow_text"], BODY_PT)
     return {"index": idx, "language": lang, "bbox_mm": box, "particulars": particulars,
             "missing": sorted(missing), "text_objects": objects}
 
@@ -142,6 +146,11 @@ FIXTURES = [
     {"name": "mixed_9panels", "cols": 3, "rows": 3, "langs": ["en", "sv", "da", "fi", "de", "en", "sv", "da", "fi"],
      "post": "mixed", "outlined_panels": [2, 5, 7],
      "why": "BE-18: nine panels, three outlined. Expect six extracted and three named failures."},
+    {"name": "gutter_overflow", "cols": 3, "rows": 1, "langs": ["en", "sv", "de"], "post": None,
+     "panel_overrides": {0: {"overflow_text": "Recyclable packaging: rinse, flatten and sort with soft plastics "
+                                              "at your local collection point"}},
+     "why": "One unwrapped line starts in panel 0 and runs across the gutter into panel 1. "
+            "Expect three panels, the line attributed to panel 0 (expected_attribution)."},
 ]
 
 
@@ -182,12 +191,15 @@ def build(spec: dict, m: Metrics, out: Path):
             p["expected_status"], p["expected_failure"] = "not_assessable", "rasterised"
         else:
             p["expected_status"], p["expected_failure"] = "extracted", None
+    attribution = [{"text": o["text"], "panel_index": p["index"]} for p in truth for o in p["text_objects"]
+                   if o["key"] == "gutter_overflow"]
     sample = [o for p in truth if p["expected_status"] == "extracted"
               for o in p["text_objects"] if o["key"] in ("net_quantity", "composition", "type_of_feed")]
     (out / f'{spec["name"]}.truth.json').write_text(json.dumps({
         "fixture": spec["name"], "why": spec["why"], "page_size_mm": [round(size[0], 3), round(size[1], 3)],
         "coordinate_system": "mm, origin top-left of the page", "font": "DejaVu Sans (embedded)",
-        "panels": truth, "text_objects_sample": sample}, ensure_ascii=False, indent=1), encoding="utf-8")
+        "panels": truth, "text_objects_sample": sample,
+        **({"expected_attribution": attribution} if attribution else {})}, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
 def main():

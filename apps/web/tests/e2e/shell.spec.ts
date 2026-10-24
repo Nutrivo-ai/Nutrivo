@@ -213,9 +213,10 @@ test.describe("workspace shell", () => {
     await axe(page);
     expect(errors).toEqual([]);
     await context.clearCookies();
-    // The route streams, so Next answers 200 and renders its not-found page (marked noindex) in place of the shell.
+    // Signed out, a workspace route goes to /sign-in and comes back afterwards (T-103), showing nothing of it.
     await page.goto(`/w/${north}`);
-    await expect(page.getByText("This page could not be found.")).toBeVisible();
+    await expect(page).toHaveURL(new RegExp(`/sign-in\\?next=%2Fw%2F${north}$`));
+    await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
     await expect(page.locator('nav[aria-label="Workspace"]')).toHaveCount(0);
     expect(await page.locator("body").textContent()).not.toContain(NORTH);
   });
