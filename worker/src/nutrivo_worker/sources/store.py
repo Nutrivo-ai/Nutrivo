@@ -11,7 +11,7 @@ import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal, Protocol
+from typing import Any, Literal, Protocol
 from urllib.parse import quote
 
 from psycopg.rows import dict_row
@@ -25,6 +25,10 @@ BUCKET = "sources"
 
 class StorageError(SafeError):
     reason = "storage_error"
+
+    def __init__(self, message: str, status: int | None = None):
+        super().__init__(message)
+        self.status = status
 
 
 @dataclass(frozen=True)
@@ -60,14 +64,23 @@ class StorageClient:
             return
         if resp.status in (400, 409) and _already_exists(resp.body):
             return
-        raise StorageError(f"storage upload to {bucket} answered HTTP {resp.status}")
+        raise StorageError(f"storage upload to {bucket} answered HTTP {resp.status}", resp.status)
+
+    def get_if_exists(self, bucket: str, path: str, **kw: Any) -> bytes | None:
+        """Like get, but None when the object does not exist (Storage answers 400 or 404 for a missing object)."""
+        try:
+            return self.get(bucket, path, **kw)
+        except StorageError as exc:
+            if exc.status in (400, 404):
+                return None
+            raise
 
     def get(self, bucket: str, path: str, *, attempts: int = 3,
             sleep: Callable[[float], None] = time.sleep) -> bytes:
         """A stored object's bytes. Network errors and 5xx retry with backoff, `attempts` times in all."""
         headers: Mapping[str, str] = {"Authorization": f"Bearer {self._key}", "apikey": self._key}
         url = f"{self.url}/storage/v1/object/authenticated/{bucket}/{quote(path)}"
-        last = "no attempt"
+        last, status = "no attempt", None
         for attempt in range(attempts):
             if attempt:
                 sleep(2.0 ** (attempt - 1))
@@ -78,10 +91,10 @@ class StorageClient:
                 continue
             if resp.status == 200:
                 return resp.body
-            last = f"HTTP {resp.status}"
+            last, status = f"HTTP {resp.status}", resp.status
             if resp.status < 500:
                 break
-        raise StorageError(f"storage read from {bucket} failed ({last})")
+        raise StorageError(f"storage read from {bucket} failed ({last})", status)
 
 
 def _already_exists(body: bytes) -> bool:
