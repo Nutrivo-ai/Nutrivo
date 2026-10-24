@@ -9,7 +9,8 @@ Never gated (BE-44): nothing here reads the plan, the subscription or the worksp
 dormant or closed workspace exports exactly as an active one does.
 
 Idempotent: the object is `<workspace_id>/<job_id>.zip`, uploaded without upsert, so a retry after an upload that
-succeeded finds it present and moves on. On success the path, size and hash go into app.jobs.progress. A signed URL
+succeeded finds it present and moves on. An archive over settings.export_max_bytes fails as export_too_large; nothing is ever
+left out to make it fit. On success the path, size and hash go into app.jobs.progress. A signed URL
 is never stored there, because every member can read their workspace's jobs; the web signs one on demand for an
 admin (docs/04: exports last 7 days)."""
 from __future__ import annotations
@@ -34,6 +35,7 @@ log = get_logger(__name__)
 
 BUCKET = "exports"
 FORMAT = "nutrivo-export/1"
+TOO_LARGE = "export_too_large"
 _EPOCH = (1980, 1, 1, 0, 0, 0)   # fixed zip timestamps: the same rows give the same bytes
 
 
@@ -206,6 +208,8 @@ def run(job: Job, ctx: JobContext, *, storage: Storage | None = None, reader: Re
     storage = storage or _default_storage(ctx)
     reader = reader or PgReader(ctx.store.conn)  # type: ignore[attr-defined]  # PgStore
     body, manifest = build_archive(job, reader, storage, ctx.heartbeat)
+    if len(body) > ctx.settings.export_max_bytes:   # never truncated: the export fails, visibly, and says why
+        raise PermanentJobError(f"{TOO_LARGE}: {len(body)} bytes over the {ctx.settings.export_max_bytes} limit")
     path = archive_path(job.workspace_id, job.id)
     with sentry_sdk.start_span(op="export.upload", name=BUCKET):
         storage.put(BUCKET, path, body, "application/zip")

@@ -47,6 +47,12 @@ describe("[O03.main] export state", () => {
     expect(exportState(row({ status: "cancelled" }), WS, NOW)).toMatchObject({ kind: "failed" });
   });
 
+  it("says when the archive was too large, rather than offering part of it", () => {
+    const tooLarge = row({ status: "failed", progress: {}, last_error: "PermanentJobError: export_too_large: 60 bytes" });
+    expect(exportState(tooLarge, WS, NOW)).toMatchObject({ kind: "failed", reason: "too_large" });
+    expect(exportState(row({ status: "failed", progress: {} }), WS, NOW)).toMatchObject({ reason: "other" });
+  });
+
   it("reads the path only from progress, never a URL", () => {
     expect(archivePath(row(), WS)).toBe(`${WS}/job-1.zip`);
     expect(archivePath(row({ progress: null }), WS)).toBeNull();

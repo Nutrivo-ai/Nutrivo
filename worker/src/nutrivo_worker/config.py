@@ -42,6 +42,8 @@ class Settings(BaseModel):
     # Supabase Storage for the content tooling (the 'sources' bucket); service role, worker only.
     supabase_url: str | None = None
     supabase_service_role_key: SecretStr | None = None
+    # O03: one archive per export, uploaded in one request; hosted Supabase's default object limit is 50 MB.
+    export_max_bytes: int = Field(50 * 1024 * 1024, ge=1)
 
     # Sentry (docs/17)
     sentry_dsn: SecretStr | None = None

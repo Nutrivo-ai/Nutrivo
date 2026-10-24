@@ -20,7 +20,7 @@ export type ExportState =
   | { kind: "preparing"; jobId: string; requestedAt: string }
   | { kind: "ready"; jobId: string; readyAt: string; expiresAt: string; bytes: number | null }
   | { kind: "expired"; jobId: string; expiredAt: string }
-  | { kind: "failed"; jobId: string; failedAt: string };
+  | { kind: "failed"; jobId: string; failedAt: string; reason: "too_large" | "other" };
 
 export class ExportReadError extends Error {
   constructor(cause: { message: string; code?: string }) {
@@ -59,7 +59,9 @@ export function exportState(row: ExportJobRow | null, workspaceId: string, now: 
     };
   }
   // failed, cancelled, or succeeded without a usable path: never offered as a download
-  return { kind: "failed", jobId: row.id, failedAt: row.updated_at };
+  // export_too_large comes from the worker's own message (ids and codes only, never customer text)
+  const reason = row.last_error?.includes("export_too_large") ? "too_large" : "other";
+  return { kind: "failed", jobId: row.id, failedAt: row.updated_at, reason };
 }
 
 export const EXPORT_COLUMNS = "id, status, progress, last_error, created_at, updated_at";

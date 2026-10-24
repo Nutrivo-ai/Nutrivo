@@ -137,3 +137,13 @@ def test_object_paths_stay_inside_the_workspace_folder(path, expected):
 def test_csv_cells_are_plain_text_json_or_empty():
     body = export.to_csv(["a", "b", "c", "ruleset_version", "d"], [{"a": None, "b": {"x": 1}, "c": True, "ruleset_version": "v", "d": ["k"]}]).decode()
     assert body.splitlines() == ["a,b,c,d,ruleset_version", ',"{""x"": 1}",true,"[""k""]",v']
+
+
+def test_O03_main_an_archive_over_the_limit_fails_visibly_and_is_never_uploaded_truncated():
+    j = job()
+    store = FakeStore()
+    store.jobs[j.id] = FakeJob("export", status="running", workspace_id=WS)
+    storage = FakeStorage()
+    with pytest.raises(PermanentJobError, match="export_too_large"):
+        export.run(j, JobContext(j, store, Settings(export_max_bytes=100)), storage=storage, reader=FakeReader())
+    assert storage.puts == []
