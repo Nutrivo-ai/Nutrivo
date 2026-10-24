@@ -4,11 +4,10 @@ app.remove_member (A06).
 
 Each test runs in one transaction that is rolled back (audit_events is insert-only, so nothing could be cleaned up
 otherwise); the worker's PgStore shares that connection. Emails really reach Mailpit, each to a fresh address, and
-are deleted afterwards. Like tests/test_jobs_pg.py these skip without the local database, so they skip in CI's
-worker job until T-009 brings the full stack to it (T-105 question 5 on #27)."""
+are deleted afterwards. Locally they skip without the stack; CI's worker job starts it and fails such a skip
+(tests/pgtest.py)."""
 import hashlib
 import json
-import os
 import re
 import urllib.parse
 import urllib.request
@@ -17,14 +16,14 @@ from contextlib import contextmanager
 
 import psycopg
 import pytest
+from pgtest import DSN, MAILPIT_URL, connect_or_skip, skip_no_service
 
 from nutrivo_worker.config import Settings
 from nutrivo_worker.db import PgStore, connect
 from nutrivo_worker.handlers import notify  # also registers session_revoke
 from nutrivo_worker.jobs import Message, process_message, registry
 
-DSN = os.environ.get("NUTRIVO_TEST_DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:54322/postgres")
-MAILPIT = os.environ.get("MAILPIT_URL", "http://127.0.0.1:54324")
+MAILPIT = MAILPIT_URL
 S = Settings(max_attempts=5, mailpit_url=MAILPIT)
 LINK = re.compile(r"/invite/([A-Za-z0-9_-]{43})")
 
@@ -113,15 +112,12 @@ class World:
 
 @pytest.fixture
 def world():
-    try:
-        conn = connect(DSN)
-    except psycopg.OperationalError:
-        pytest.skip("no local database (the CI worker job has none until T-009); run make db-start")
+    conn = connect_or_skip(connect, DSN)
     try:
         mailpit("/api/v1/info")
     except OSError:
         conn.close()
-        pytest.skip("no local Mailpit (the CI worker job has none until T-009); run make db-start")
+        skip_no_service("Mailpit")
     conn.autocommit = False
     w = World(conn)
     try:
