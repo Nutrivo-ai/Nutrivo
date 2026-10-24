@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(19);
+select plan(26);
 set local client_min_messages = warning;
 
 -- ─── A: Alice (admin), Carl (editor), Vera (viewer), active, free. B: Bob (admin). C: Cara (admin), closed, free,
@@ -11,7 +11,9 @@ set local client_min_messages = warning;
 insert into auth.users (id, email) values
   ('00000000-0000-4000-8804-0000000000a1','alice@a.test'), ('00000000-0000-4000-8804-0000000000c1','carl@a.test'),
   ('00000000-0000-4000-8804-0000000000f1','vera@a.test'),  ('00000000-0000-4000-8804-0000000000b1','bob@b.test'),
-  ('00000000-0000-4000-8804-0000000000c2','cara@c.test'),  ('00000000-0000-4000-8804-0000000000d2','dora@d.test');
+  ('00000000-0000-4000-8804-0000000000c2','cara@c.test'),  ('00000000-0000-4000-8804-0000000000d2','dora@d.test'),
+  ('00000000-0000-4000-8804-0000000000e1','ezra@agency.test'), ('00000000-0000-4000-8804-0000000000e2','sam@a.test'),
+  ('00000000-0000-4000-8804-0000000000e3','olga@a.test');
 insert into app.people (id, user_id, display_name, email)
 select ('10000000' || substr(u.id::text, 9))::uuid, u.id, split_part(u.email, '@', 1), u.email
 from auth.users u where u.id::text like '00000000-0000-4000-8804-%';
@@ -30,6 +32,11 @@ insert into app.memberships (workspace_id, person_id, role) values
   ('20000000-0000-4000-8804-00000000000b','10000000-0000-4000-8804-0000000000b1','admin'),
   ('20000000-0000-4000-8804-00000000000c','10000000-0000-4000-8804-0000000000c2','admin'),
   ('20000000-0000-4000-8804-00000000000d','10000000-0000-4000-8804-0000000000d2','admin');
+-- A's other admins: Ezra external, Sam scoped to one market, Olga whose access ended yesterday.
+insert into app.memberships (workspace_id, person_id, role, is_external, scope_node_ids, access_ends_at) values
+  ('20000000-0000-4000-8804-00000000000a','10000000-0000-4000-8804-0000000000e1','admin',true,null,null),
+  ('20000000-0000-4000-8804-00000000000a','10000000-0000-4000-8804-0000000000e2','admin',false,'{EU-DE}',null),
+  ('20000000-0000-4000-8804-00000000000a','10000000-0000-4000-8804-0000000000e3','admin',false,null,now() - interval '1 day');
 
 create temp table t_jobs (name text primary key, id uuid);
 grant all on t_jobs to authenticated;
@@ -77,6 +84,15 @@ select throws_ok($$select app.request_export('20000000-0000-4000-8804-0000000000
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8804-0000000000b1","role":"authenticated"}', true);
 select throws_ok($$select app.request_export('20000000-0000-4000-8804-00000000000a')$$, '42501', null,
                  '[O03.main] an admin of another workspace cannot request this one''s export');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8804-0000000000e1","role":"authenticated"}', true);
+select throws_ok($$select app.request_export('20000000-0000-4000-8804-00000000000a')$$, '42501', null,
+                 '[O03.main] an external admin cannot request a full export (it carries every product)');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8804-0000000000e2","role":"authenticated"}', true);
+select throws_ok($$select app.request_export('20000000-0000-4000-8804-00000000000a')$$, '42501', null,
+                 '[O03.main] a scoped admin cannot request a full export');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8804-0000000000e3","role":"authenticated"}', true);
+select throws_ok($$select app.request_export('20000000-0000-4000-8804-00000000000a')$$, '42501', null,
+                 '[O03.main] an admin whose access has ended cannot request a full export');
 reset role;
 
 -- ─── O03.must.1: free on every plan, never gated ────────────────────────────────────────────────────────────
@@ -97,7 +113,9 @@ select is((select count(*)::int from app.jobs where kind = 'export' and workspac
 -- ─── Storage: only an admin of the workspace reads its exports ──────────────────────────────────────────────
 insert into storage.objects (bucket_id, name) values
   ('exports', '20000000-0000-4000-8804-00000000000a/one.zip'),
-  ('reports', '20000000-0000-4000-8804-00000000000a/report.pdf');
+  ('reports', '20000000-0000-4000-8804-00000000000a/report.pdf'),
+  ('artwork', '20000000-0000-4000-8804-00000000000a/art.pdf'),
+  ('documents', '20000000-0000-4000-8804-00000000000a/spec.pdf');
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8804-0000000000a1","role":"authenticated"}', true);
 set local role authenticated;
 select is((select count(*)::int from storage.objects where bucket_id = 'exports'), 1,
@@ -105,15 +123,26 @@ select is((select count(*)::int from storage.objects where bucket_id = 'exports'
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8804-0000000000c1","role":"authenticated"}', true);
 select is((select count(*)::int from storage.objects where bucket_id = 'exports'), 0,
           '[O03.main] an editor cannot read the export');
-select is((select count(*)::int from storage.objects where bucket_id = 'reports'
-           and name like '20000000-0000-4000-8804-00000000000a/%'), 1,
-          '[T-804] members still read the workspace''s reports');
+select is((select count(*)::int from storage.objects where bucket_id in ('artwork','documents','reports')
+           and name like '20000000-0000-4000-8804-00000000000a/%'), 3,
+          '[T-804] members still read the workspace''s artwork, documents and reports');
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8804-0000000000f1","role":"authenticated"}', true);
 select is((select count(*)::int from storage.objects where bucket_id = 'exports'), 0,
           '[O03.main] a viewer cannot read the export');
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8804-0000000000b1","role":"authenticated"}', true);
 select is((select count(*)::int from storage.objects where bucket_id = 'exports'), 0,
           '[O03.main] an admin of another workspace cannot read the export');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8804-0000000000e1","role":"authenticated"}', true);
+select is((select count(*)::int from storage.objects where bucket_id = 'exports'), 0,
+          '[O03.main] an external admin cannot read the export');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8804-0000000000e2","role":"authenticated"}', true);
+select is((select count(*)::int from storage.objects where bucket_id = 'exports'), 0,
+          '[O03.main] a scoped admin cannot read the export');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8804-0000000000e3","role":"authenticated"}', true);
+select is((select count(*)::int from storage.objects where bucket_id = 'exports'), 0,
+          '[O03.main] an admin whose access has ended cannot read the export');
+select ok(not has_function_privilege('anon', 'private.can_export(uuid)', 'execute'),
+          '[T-804] private.can_export is not executable by anon');
 reset role;
 
 select * from finish();
