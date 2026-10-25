@@ -157,8 +157,30 @@ test.describe("A01 sign up and create a workspace", () => {
     await expect(operator.getByRole("alert")).toHaveCount(0); // the address changed since that refusal
     await operator.getByLabel("Establishment or approval number").blur(); // no focus ring in the crop
     await expectLikeBaseline(page, operator.getByTestId("onboarding-operator-block"), "S-ONB-003", CARD["S-ONB-003"], maxDiff);
+    // While the fixed operator saves, the refusal it fixes is not shown or announced again: any alert added to the
+    // page is reported, and the save is held for a second so the "Saving…" state is long enough to watch.
+    const alerts: string[] = [];
+    await page.exposeFunction("alertAdded", (text: string) => alerts.push(text));
+    await page.evaluate(() => {
+      new MutationObserver((records) => {
+        for (const r of records) {
+          for (const n of Array.from(r.addedNodes)) {
+            if (n instanceof HTMLElement && (n.matches("[role=alert]") || n.querySelector("[role=alert]"))) {
+              (window as unknown as { alertAdded: (t: string) => void }).alertAdded(n.textContent ?? "");
+            }
+          }
+        }
+      }).observe(document.body, { childList: true, subtree: true });
+    });
+    await page.route("**/onboarding", async (route) => {
+      if (route.request().method() === "POST") await new Promise((r) => setTimeout(r, 1_000));
+      await route.continue();
+    });
     await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByRole("button", { name: "Saving…" })).toBeVisible();
+    await expect(operator.getByRole("alert")).toHaveCount(0);
     await expect(page).toHaveURL(/\/w\/[0-9a-f-]{36}$/);
+    expect(alerts.filter((t) => t.includes("could not be read"))).toEqual([]);
     const ws = page.url().split("/w/")[1];
 
     const db = admin().schema("app");
@@ -217,6 +239,7 @@ test.describe("A01 sign up and create a workspace", () => {
     const operator = page.getByTestId("onboarding-operator");
     const line = operator.locator("#onb-country");
     await expect(line).toHaveText("COUNTRY · READ FROM THE END OF THE ADDRESS");
+    await page.waitForLoadState("networkidle"); // hydrated: typing before that reaches no React handler
     // Every text the line shows while the address is typed, recorded in the page.
     await line.evaluate((el) => {
       const seen: string[] = ((window as unknown as { seen: string[] }).seen = []);
@@ -231,6 +254,16 @@ test.describe("A01 sign up and create a workspace", () => {
     expect(seen.some((t) => t.includes("LESOTHO"))).toBe(false);
     expect(seen).toEqual(["COUNTRY TO BE SAVED · GB · UNITED KINGDOM"]);
     await expect(address).toHaveAttribute("aria-describedby", "onb-country");
+
+    // A problem an address edit cannot fix (here, a blank name) stays when the address changes, until the next answer.
+    await operator.getByLabel("Operator name").fill(" "); // passes the browser's required check; the server trims it
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(operator.getByRole("alert")).toContainText("operator's name");
+    await address.fill("1 Park Row, Leeds LS1 4AB, GB.");
+    await expect(operator.getByRole("alert")).toContainText("operator's name");
+    // And the same refusal again is shown again.
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(operator.getByRole("alert")).toContainText("operator's name");
   });
 
   test("step 03 can be left for later: the workspace stays, without an operator, and onboarding picks up there", async ({ page, context, baseURL }) => {

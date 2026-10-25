@@ -61,7 +61,7 @@ export const ACCOUNT_PROBLEM: Record<AccountProblem, string> = {
   workspace: `The workspace needs a name of 1 to ${MAX_WORKSPACE_NAME} characters. Rename it before you continue.`,
 };
 
-/** The regulatory regions of S-ONB-002. Free is the EU only (docs/08-billing, A01 step 2); the UK and the US come with a paid plan. */
+/** The regulatory regions of S-ONB-002. Free is the EU only (docs/08-billing, A01 steps 2 and 3); the UK and the US come with a paid plan. */
 export const FREE_REGION = "EU";
 
 export type Operator = { name: string; address: string; country: string; approval_number?: string };

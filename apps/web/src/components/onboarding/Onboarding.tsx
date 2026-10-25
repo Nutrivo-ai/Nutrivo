@@ -9,6 +9,7 @@ import { createWorkspace, setOperator, signUp, type OnboardingState } from "@/li
 import {
   FREE_REGION,
   MAX_WORKSPACE_NAME,
+  OPERATOR_PROBLEM,
   STEPS,
   countryLabel,
   countryOf,
@@ -110,7 +111,8 @@ export function Onboarding(props: Props) {
               workspaceId={props.workspaceId}
               workspaceName={props.workspaceName}
               action={operatorAction}
-              problem={operator.status === "problem" ? operator.problem : null}
+              outcome={operator}
+              saving={saving}
             />
           )}
         </div>
@@ -360,7 +362,7 @@ function CheckEmail({ email }: { email: string }) {
   );
 }
 
-/** S-ONB-002: the region, sold whole. Free is the EU (docs/08-billing, A01 step 2); the UK and the US come with a paid plan. */
+/** S-ONB-002: the region, sold whole. Free is the EU (docs/08-billing, A01 steps 2 and 3); the UK and the US come with a paid plan. */
 function RegionStep({
   regions,
   region,
@@ -488,12 +490,15 @@ function OperatorStep({
   workspaceId,
   workspaceName,
   action,
-  problem,
+  outcome,
+  saving,
 }: {
   workspaceId: string;
   workspaceName: string;
   action: (form: FormData) => void;
-  problem: string | null;
+  /** The latest answer of setOperator: a new object for every answer, a repeated refusal included. */
+  outcome: OnboardingState;
+  saving: boolean;
 }) {
   // Controlled, so a refused submission keeps what was typed (a form action resets uncontrolled fields).
   const [name, setName] = useState("");
@@ -502,8 +507,15 @@ function OperatorStep({
   // The country line reads the address as it stands when the field is left or the form is sent, never per keystroke:
   // "Leeds LS…" or "PARIS" would otherwise flash Lesotho or Panama, and the live region would announce each one.
   const [committed, setCommitted] = useState("");
-  // A refused submission's problem stays until the address is changed again.
-  const [edited, setEdited] = useState(false);
+  // An address or country problem is one an address edit can fix, so it is hidden once the address changes. Every
+  // other problem (name, approval number, permission, a failed save) stays until the next answer. While saving, the
+  // last answer's problem is hidden, so the refusal being fixed is not shown and announced again.
+  // The answer the address was last edited against: any newer answer, the same refusal again included, is shown.
+  const [editedAfter, setEditedAfter] = useState<OnboardingState | null>(null);
+  const edited = editedAfter === outcome;
+  const problem = outcome.status === "problem" ? outcome.problem : null;
+  const addressProblem = problem === OPERATOR_PROBLEM.country || problem === OPERATOR_PROBLEM.address;
+  const shown = problem && !saving && !(addressProblem && edited) ? problem : null;
   const country = countryOf(committed);
   return (
     <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] gap-[24px] items-start">
@@ -516,10 +528,7 @@ function OperatorStep({
         <form
           id={FORM}
           action={action}
-          onSubmit={() => {
-            setCommitted(address);
-            setEdited(false);
-          }}
+          onSubmit={() => setCommitted(address)}
         >
           <input type="hidden" name="workspaceId" value={workspaceId} />
           <div data-testid="onboarding-operator-block" className="mt-[22px] pt-[16px] border-t border-n200">
@@ -534,7 +543,7 @@ function OperatorStep({
                 value={address}
                 onChange={(e) => {
                   setAddress(e.target.value);
-                  setEdited(true);
+                  setEditedAfter(outcome);
                 }}
                 onBlur={(e) => setCommitted(e.currentTarget.value)}
                 type="text"
@@ -559,7 +568,7 @@ function OperatorStep({
                 ? `COUNTRY TO BE SAVED · ${countryLabel(country).toUpperCase()}`
                 : "COUNTRY · NOT FOUND AT THE END OF THE ADDRESS"}
           </p>
-          {problem && !edited ? <Problem>{problem}</Problem> : null}
+          {shown ? <Problem>{shown}</Problem> : null}
         </form>
       </section>
       <section aria-labelledby="onb-why" className="border border-ink border-l-4 border-l-blocked bg-paper py-[20px] px-[22px]">
