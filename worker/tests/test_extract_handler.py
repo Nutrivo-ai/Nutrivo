@@ -11,7 +11,7 @@ from nutrivo_worker.errors import PermanentJobError
 from nutrivo_worker.extraction import idempotency_key
 from nutrivo_worker.handlers import extract as h
 from nutrivo_worker.jobs import Job, JobContext, Registry, process_message, registry
-from nutrivo_worker.sources.store import StorageError
+from nutrivo_worker.sources.store import StorageClient, StorageError, StorageNotFound
 
 ROOT = Path(__file__).resolve().parents[2]
 SYNTH = ROOT / "fixtures" / "synth" / "out"
@@ -38,8 +38,9 @@ class MemArtworks:
         return self.runs[key]
 
 
-def art_for(data: bytes, path="ws/prod/file.pdf"):
-    return h.Artwork("av-1", "ws", "prod", hashlib.sha256(data).hexdigest(), path)
+def art_for(data: bytes, ext="pdf", path=None):
+    sha = hashlib.sha256(data).hexdigest()
+    return h.Artwork("av-1", "ws", "prod", sha, path or f"ws/prod/{sha}.{ext}")
 
 
 def ctx_for(payload):
@@ -83,10 +84,34 @@ def test_a_file_that_is_not_a_pdf_or_image_is_a_named_unreadable_panel_not_a_job
 def test_the_object_is_read_from_the_artwork_bucket_at_the_registered_path():
     data = (SYNTH / "small_netqty.pdf").read_bytes()
     seen = []
-    store = MemArtworks(art_for(data, "w1/p1/abc.pdf"))
+    store = MemArtworks(art_for(data))
     job, ctx, _ = ctx_for({"artwork_version_id": "av-1"})
     h.run_extract(job, ctx, store, lambda bucket, path: seen.append((bucket, path)) or data)
-    assert seen == [("artwork", "w1/p1/abc.pdf")]
+    assert seen == [("artwork", f"ws/prod/{hashlib.sha256(data).hexdigest()}.pdf")]
+
+
+@pytest.mark.parametrize("path", [
+    "other-ws/other-prod/{sha}.pdf",          # another workspace's object, registered with its hash
+    "ws/other-prod/{sha}.pdf",                # another product
+    "ws/prod/../../other-ws/x/{sha}.pdf",
+    "ws/prod/{sha}.gif",
+    "ws/prod/{sha}",
+])
+def test_only_the_artworks_own_content_addressed_path_is_ever_read(path):
+    sha = hashlib.sha256(PNG).hexdigest()
+    store = MemArtworks(art_for(PNG, path=path.format(sha=sha)))
+    job, ctx, _ = ctx_for({"artwork_version_id": "av-1"})
+    with pytest.raises(PermanentJobError) as err:
+        h.run_extract(job, ctx, store, lambda b, p: pytest.fail("fetched"))
+    assert "other" not in str(err.value) and sha not in str(err.value)   # ids only, never the path
+    assert store.persisted == []
+
+
+@pytest.mark.parametrize("ext", ["pdf", "png", "jpg"])
+def test_each_upload_extension_is_its_own_path(ext):
+    store = MemArtworks(art_for(PNG, ext=ext))
+    job, ctx, _ = ctx_for({"artwork_version_id": "av-1"})
+    assert h.run_extract(job, ctx, store, lambda b, p: PNG)["failure_codes"] == ["rasterised"]
 
 
 def test_a_persisted_run_is_not_read_or_extracted_again():
@@ -110,21 +135,47 @@ def test_a_job_without_its_artwork_fails_permanently(payload):
         h.run_extract(job, ctx, MemArtworks(), lambda b, p: b"")
 
 
-def test_a_missing_object_fails_permanently_and_an_outage_retries():
+def test_a_missing_object_fails_permanently():
     store = MemArtworks(art_for(PNG))
     job, ctx, _ = ctx_for({"artwork_version_id": "av-1"})
 
     def missing(b, p):
-        raise StorageError("storage read from artwork failed (HTTP 404)")
-
-    def outage(b, p):
-        raise StorageError("storage read from artwork failed (HTTP 503)")
+        raise StorageNotFound("storage read from artwork failed (not found)")
 
     with pytest.raises(PermanentJobError, match="missing from storage"):
         h.run_extract(job, ctx, store, missing)
-    with pytest.raises(StorageError):
-        h.run_extract(job, ctx, store, outage)
     assert store.persisted == []
+
+
+@pytest.mark.parametrize("status", [401, 403, 429, 500, 503])
+def test_any_other_storage_answer_retries_with_backoff(status):
+    store = MemArtworks(art_for(PNG))
+    job, ctx, _ = ctx_for({"artwork_version_id": "av-1"})
+
+    def failing(b, p):
+        raise StorageError(f"storage read from artwork failed (HTTP {status})")
+
+    with pytest.raises(StorageError) as err:
+        h.run_extract(job, ctx, store, failing)
+    assert not isinstance(err.value, PermanentJobError)
+    assert store.persisted == []
+
+
+@pytest.mark.parametrize(("status", "body", "missing"), [
+    (404, b"", True),
+    (400, b'{"statusCode":"404","error":"not_found","message":"Object not found","code":"NoSuchKey"}', True),
+    (400, b'{"statusCode":"400","error":"invalid"}', False),
+    (429, b"", False),
+])
+def test_storage_names_a_missing_object_as_supabase_answers_it(status, body, missing):
+    class Once:
+        def send(self, method, url, headers, body_=None):
+            return type("R", (), {"status": status, "body": body})()
+
+    client = StorageClient("http://storage.test", "service", Once())
+    with pytest.raises(StorageError) as err:
+        client.get("artwork", "ws/p/x.pdf", attempts=1, sleep=lambda s: None)
+    assert isinstance(err.value, StorageNotFound) is missing
 
 
 def test_a_file_that_does_not_match_its_registered_hash_is_never_extracted():

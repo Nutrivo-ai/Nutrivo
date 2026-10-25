@@ -16,6 +16,7 @@ from pydantic import SecretStr
 
 from nutrivo_worker.config import Settings
 from nutrivo_worker.db import PgStore, connect
+from nutrivo_worker.errors import PermanentJobError
 from nutrivo_worker.handlers import extract as h
 from nutrivo_worker.jobs import Job, JobContext, Registry, process_message, registry
 from nutrivo_worker.sources.http import TransportError
@@ -209,6 +210,25 @@ def test_D01_fail_3_fonts_not_embedded_is_missing_font(conn, tmp_path):
     rows = panels(conn, av)
     assert rows and {(r["status"], r["failure_code"]) for r in rows} == {("not_assessable", "missing_font")}
     assert text_objects(conn, av) == [] and result["failure_codes"] == ["missing_font"]
+
+
+def test_an_editor_cannot_extract_another_workspaces_file_by_registering_its_path(conn):
+    data = (SYNTH / "clean_3lang.pdf").read_bytes()
+    sha = hashlib.sha256(data).hexdigest()
+    _, ws_b, prod_b = product(conn)                                   # the victim's file sits at its own path
+    uid, _, prod_a = product(conn)
+    as_user(conn, uid)
+    av = str(conn.execute("select app.register_artwork(%s, %s, %s) as id",
+                          (prod_a, f"{ws_b}/{prod_b}/{sha}.pdf", sha)).fetchone()["id"])
+    as_owner(conn)
+    job = job_of(conn, av)
+    with pytest.raises(PermanentJobError) as err:
+        h.run_extract(job, JobContext(job, PgStore(conn), S), h.PgArtworkStore(conn),
+                      lambda b, p: pytest.fail("the other workspace's object was fetched"))
+    assert ws_b not in str(err.value) and prod_b not in str(err.value)
+    assert panels(conn, av) == [] and text_objects(conn, av) == []
+    assert conn.execute("select count(*) as n from app.extraction_runs where artwork_version_id = %s",
+                        (av,)).fetchone()["n"] == 0
 
 
 def test_a_member_of_another_workspace_cannot_read_the_extraction(conn):

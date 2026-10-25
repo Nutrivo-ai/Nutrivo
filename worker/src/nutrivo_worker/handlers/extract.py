@@ -7,8 +7,12 @@ app.artwork_panels and app.text_objects, exactly to the docs/06 contract.
 - **Raster uploads.** A PNG or JPEG never reaches pdfium: it has no physical scale and no text, so it is one panel,
   not_assessable 'rasterised', with no geometry (bbox [0, 0, 0, 0], no page size). Geometry is never guessed
   (D01.fail.1).
-- **Partial results (BE-18).** Every failure the engine finds is a named panel status. Only a missing object or a hash
-  mismatch fails the job, as a PermanentJobError with ids only; a storage outage retries within the runtime's bounds.
+- **Only its own file.** register_artwork stores the path it is sent and the service role reads past Storage RLS, so
+  only `<workspace>/<product>/<sha256>.<pdf|png|jpg>` of this artwork version is ever read; any other path fails the
+  job before a fetch, with ids only.
+- **Partial results (BE-18).** Every failure the engine finds is a named panel status. Only a foreign path, a missing
+  object (404) or a hash mismatch fails the job, as a PermanentJobError with ids only; any other storage answer (401,
+  429, 5xx, the network) retries within the runtime's bounds.
 - **Idempotency.** One extraction run per (artwork version, engine): its key is the engine's key plus the artwork
   version id, and the run, its panels and their text objects are written in one transaction that inserts the run
   first with `on conflict do nothing`. A retry, a duplicate message or a reaped job finds the run and writes nothing.
@@ -30,7 +34,7 @@ from ..errors import PermanentJobError
 from ..extraction import ENGINE, ExtractionResult, Panel, engine_version, extract_artwork, idempotency_key
 from ..jobs import Job, JobContext, handler
 from ..logs import get_logger, kv
-from ..sources.store import StorageClient, StorageError
+from ..sources.store import StorageClient, StorageNotFound
 
 log = get_logger(__name__)
 
@@ -80,6 +84,11 @@ def extract_bytes(data: bytes) -> ExtractionResult:
         return extract_artwork(path)
 
 
+def expected_paths(art: Artwork) -> set[str]:
+    """artwork/<workspace>/<product>/<sha256>.<ext>, the only paths the web uploads to (apps/web/src/lib/artwork)."""
+    return {f"{art.workspace_id}/{art.product_id}/{art.file_sha256}.{ext}" for ext in ("pdf", "png", "jpg")}
+
+
 def run_key(artwork_version_id: str, sha: str) -> str:
     """extraction_runs.idempotency_key: the engine's key (file and engine versions) for this artwork version."""
     return f"{idempotency_key(sha)}:{artwork_version_id}"
@@ -106,14 +115,16 @@ def run_extract(job: Job, ctx: JobContext, store: ArtworkStore, fetch: Any) -> d
         ctx.heartbeat(**summary(done))
         return done
 
+    if art.storage_path not in expected_paths(art):
+        # register_artwork stores the path it is sent, and the service role reads past Storage RLS: only the
+        # workspace's own content-addressed path may be read, or one workspace could extract another's file.
+        raise PermanentJobError(f"artwork version {art.id}: the storage path is not this artwork's own")
     started_at = datetime.now(UTC)
     ctx.heartbeat(stage="reading", artwork_version_id=art.id)
     try:
         data = fetch(BUCKET, art.storage_path)
-    except StorageError as exc:
-        if "HTTP 4" in str(exc):             # 400/404: the object is not there, and retrying will not bring it
-            raise PermanentJobError(f"artwork version {art.id}: the file is missing from storage") from exc
-        raise                                # a storage outage: the runtime retries with backoff
+    except StorageNotFound as exc:            # retrying will not bring it; 429, 401 and 5xx retry with backoff
+        raise PermanentJobError(f"artwork version {art.id}: the file is missing from storage") from exc
     if hashlib.sha256(data).hexdigest() != art.file_sha256:
         raise PermanentJobError(f"artwork version {art.id}: the stored file does not match its registered hash")
 

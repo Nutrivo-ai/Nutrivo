@@ -176,9 +176,15 @@ and is about 30 times slower. The founder decision on #39 made it development-on
 ## The extract job (T-303)
 `worker/src/nutrivo_worker/handlers/extract.py`, registered for the `extract` kind that app.register_artwork enqueues.
 - **Input.** The payload is `{artwork_version_id}`. The bytes come from the private `artwork` bucket with the service
-  role, at the row's `storage_path`, and must hash to its `file_sha256`. Anything else is a `PermanentJobError` with ids
-  only: a missing object (HTTP 4xx) or a hash mismatch fails the job at once. A storage outage (network, 5xx) retries
-  through the runtime (5 attempts, backoff).
+  role. They are read only from the artwork's own content-addressed path, `<workspace>/<product>/<sha256>.<pdf|png|jpg>`.
+  register_artwork stores whatever path it is sent, and the service role reads past Storage RLS, so any other path
+  fails the job before a fetch (the matching check inside register_artwork is a db follow-up on #41). The bytes must
+  hash to `file_sha256`.
+- **Failing.** A foreign path, a missing object (404, or Supabase's 400 with a 404 body) or a hash mismatch is a
+  `PermanentJobError` with ids only, and fails the job at once. Any other storage answer (401, 429, 5xx, the network)
+  retries through the runtime (5 attempts, backoff).
+- **No retry from the screen yet.** A failed job stays failed: registering the same bytes again returns the same
+  artwork version and its job. A retry needs an RPC (db follow-up, #41), so the screen offers no "try again" for it.
 - **Raster uploads.** PNG and JPEG are typed by their magic numbers and never reach pdfium. They are one panel,
   not_assessable `rasterised`, bbox `[0, 0, 0, 0]`, with no page count or size, because geometry is never guessed
   (D01.fail.1). Every other file goes to the engine, which names one it cannot open `unreadable`.
@@ -191,5 +197,7 @@ and is about 30 times slower. The founder decision on #39 made it development-on
   ids and counts, never label text.
 - **Run status.** `succeeded` when every panel was read, `partial` when some were, and `failed` when none were. All
   three are a succeeded job: a failure is a panel's status, never the file's (BE-18).
+- **Known limit.** The run key includes the engine and library versions. A job retried after a library upgrade, between
+  its attempts, can write a second run under the new key; screens read the latest run.
 - **request_id.** It is taken from the payload when present. register_artwork does not put one there yet (db, asked
   on #41).

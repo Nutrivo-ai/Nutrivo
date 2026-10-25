@@ -59,10 +59,21 @@ export function describeJob(row: JobRow | null): JobView {
 }
 
 /** last_error holds ids and reason codes only (worker errors.py); the person sees what it means, never the raw text. */
+// Re-registering the same bytes returns the same artwork version and its finished job, so no copy here offers to
+// upload the same file again. Retrying a failed extraction needs an RPC that does not exist yet (db follow-up, #41).
 export function safeReason(lastError: string | null): string {
-  if (lastError?.includes("missing from storage")) return "The file never reached storage. Upload it again.";
-  if (lastError?.includes("registered hash")) return "The stored file is not the one that was registered. Upload it again.";
-  return "Extraction stopped after its retries. Upload the file again; nothing is counted twice.";
+  const after = "Nothing on this file is assessed, and nothing was counted twice. A different file, such as a fresh export of the label, starts a new extraction.";
+  if (lastError?.includes("missing from storage")) return `The file never reached storage, so it could not be read. ${after}`;
+  if (lastError?.includes("registered hash")) return `The stored file is not the one that was registered, so it was not read. ${after}`;
+  if (lastError?.includes("not this artwork's own")) return `The file is not stored where this product's artwork belongs, so it was not read. ${after}`;
+  return `Extraction stopped after its retries. ${after}`;
+}
+
+/** The hook's state, keyed by the artwork version it describes: a row read for one version never shows for another. */
+export type JobState = { artworkVersionId: string | null; row: JobRow | null; error: boolean };
+
+export function currentJob(state: JobState, artworkVersionId: string | null): { row: JobRow | null; error: boolean } {
+  return state.artworkVersionId === artworkVersionId ? { row: state.row, error: state.error } : { row: null, error: false };
 }
 
 export const TERMINAL = new Set<JobRow["status"]>(["succeeded", "failed", "cancelled"]);
@@ -82,8 +93,7 @@ async function readJob(db: Db, artworkVersionId: string): Promise<JobRow | null>
 
 /** The extract job of an artwork version, kept current over Realtime and polling until it is terminal. */
 export function useExtractJob(db: Db, artworkVersionId: string | null) {
-  const [row, setRow] = useState<JobRow | null>(null);
-  const [error, setError] = useState(false);
+  const [state, setState] = useState<JobState>({ artworkVersionId: null, row: null, error: false });
 
   useEffect(() => {
     if (!artworkVersionId) return;
@@ -93,15 +103,20 @@ export function useExtractJob(db: Db, artworkVersionId: string | null) {
 
     const apply = (next: JobRow | null) => {
       if (stopped) return;
-      setRow(next);
-      setError(false);
+      setState({ artworkVersionId, row: next, error: false });
       if (next && !channel) {
         channel = db
           .channel(`job:${next.id}`)
           .on(
             "postgres_changes",
             { event: "UPDATE", schema: "app", table: "jobs", filter: `id=eq.${next.id}` },
-            (payload) => !stopped && setRow((prev) => ({ ...(prev ?? next), ...(payload.new as JobRow) })),
+            (payload) =>
+              !stopped &&
+              setState((prev) =>
+                prev.artworkVersionId === artworkVersionId
+                  ? { ...prev, row: { ...(prev.row ?? next), ...(payload.new as JobRow) } }
+                  : prev,
+              ),
           )
           .subscribe();
       }
@@ -112,7 +127,7 @@ export function useExtractJob(db: Db, artworkVersionId: string | null) {
         apply(next);
         if (next && TERMINAL.has(next.status)) return;
       } catch {
-        if (!stopped) setError(true);
+        if (!stopped) setState((prev) => ({ artworkVersionId, row: prev.artworkVersionId === artworkVersionId ? prev.row : null, error: true }));
       }
       if (!stopped) timer = setTimeout(poll, POLL_MS);
     };
@@ -124,5 +139,6 @@ export function useExtractJob(db: Db, artworkVersionId: string | null) {
     };
   }, [db, artworkVersionId]);
 
+  const { row, error } = currentJob(state, artworkVersionId);
   return { row, view: describeJob(row), error };
 }

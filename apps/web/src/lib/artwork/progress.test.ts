@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { describeJob, safeReason, type JobRow } from "./progress";
+import { currentJob, describeJob, safeReason, type JobRow } from "./progress";
 
 const row = (over: Partial<JobRow>): JobRow => ({ id: "j", status: "queued", progress: {}, last_error: null, attempts: 0, ...over });
 
@@ -17,7 +17,23 @@ describe("extraction progress from app.jobs", () => {
 
   it("a failed job is a visible terminal state that never shows the raw error", () => {
     const view = describeJob(row({ status: "failed", last_error: "PermanentJobError: artwork version x: the file is missing from storage" }));
-    expect(view).toEqual({ phase: "failed", reason: "The file never reached storage. Upload it again." });
-    expect(safeReason("RuntimeError")).toMatch(/after its retries/);
+    expect(view).toMatchObject({ phase: "failed", reason: expect.stringContaining("The file never reached storage") });
+    for (const err of [null, "RuntimeError", "PermanentJobError: x: the stored file does not match its registered hash"]) {
+      const reason = safeReason(err);
+      expect(reason).not.toMatch(/PermanentJobError|RuntimeError/);
+      // The same bytes register as the same version with the same failed job: never offer to upload them again.
+      expect(reason).not.toMatch(/upload (it|the file) again/i);
+    }
+  });
+});
+
+describe("the job shown belongs to the artwork being extracted", () => {
+  it("a second upload in the same visit never shows the first upload's finished job", () => {
+    const first = row({ id: "job-1", status: "succeeded", progress: { status: "succeeded", panels: 3, panels_extracted: 3 } });
+    const state = { artworkVersionId: "av-1", row: first, error: false };
+    expect(currentJob(state, "av-1").row).toBe(first);
+    expect(currentJob(state, "av-2")).toEqual({ row: null, error: false });
+    expect(describeJob(currentJob(state, "av-2").row)).toEqual({ phase: "waiting" });
+    expect(currentJob({ artworkVersionId: "av-1", row: null, error: true }, "av-2").error).toBe(false);
   });
 });
