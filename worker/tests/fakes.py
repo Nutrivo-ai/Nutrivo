@@ -45,6 +45,19 @@ class FakeStore:
         self.invitations: dict[str, dict[str, Any]] = {}
         self.memberships: dict[str, dict[str, Any]] = {}
         self.sessions: list[dict[str, Any]] = []      # {"user_id", "created_at"}
+        # notify (O01): what the PgStore queries would return, keyed by id, and the rows written
+        self.prefs: dict[tuple[str, str, str], bool] = {}          # (person_id, kind, channel) -> enabled
+        self.members: set[str] = set()                             # active members of every test workspace
+        self.notifications: list[dict[str, Any]] = []
+        self.shares: dict[str, dict[str, Any]] = {}
+        self.reports: dict[str, dict[str, Any]] = {}
+        self.diffs: dict[str, dict[str, Any]] = {}
+        self.affected: dict[str, list[dict[str, Any]]] = {}       # rule_diff_id -> recipient rows
+        self.documents: dict[str, dict[str, Any]] = {}
+        self.people: list[dict[str, Any]] = []                     # {"person_id", "email", "role"}
+        self.allowances: dict[str, dict[str, Any]] = {}
+        self.payments: dict[str, dict[str, Any]] = {}
+        self.pdfs: dict[str, bytes] = {}
         self._ids = itertools.count(1)
 
     def add(self, job_id: str, kind: str = "notify", **kw: Any) -> Message:
@@ -122,6 +135,53 @@ class FakeStore:
         inv["token_hash"] = token_hash
         return True
 
+    def notification_prefs(self, person_ids: list[str], kind: str) -> dict[tuple[str, str], bool]:
+        return {(p, ch): on for (p, k, ch), on in self.prefs.items() if k == kind and p in person_ids}
+
+    def insert_notifications(self, job_id: str, workspace_id: str, kind: str, severity: str,
+                             rows: list[tuple[str, dict[str, Any]]]) -> int:
+        new = [{"workspace_id": workspace_id, "person_id": p, "kind": kind, "severity": severity, "object_ref": ref,
+                "read_at": None} for p, ref in rows if p in self.members]
+        self.notifications += new
+        self.jobs[job_id].progress["in_app"] = len(new)        # the same transaction as the rows
+        return len(new)
+
+    def share_for_email(self, share_id: str) -> dict[str, Any] | None:
+        share = self.shares.get(share_id)
+        return {k: v for k, v in share.items() if k != "token_hash"} if share else None
+
+    def set_share_token(self, share_id: str, token_hash: bytes) -> bool:
+        share = self.shares[share_id]
+        if share["revoked_at"] or (share["expires_at"] and share["expires_at"] <= datetime.now(UTC)):
+            return False
+        share["token_hash"] = token_hash
+        return True
+
+    def report_summary(self, report_id: str) -> dict[str, Any] | None:
+        return self.reports.get(report_id)
+
+    def rule_diff(self, rule_diff_id: str) -> dict[str, Any] | None:
+        return self.diffs.get(rule_diff_id)
+
+    def rule_change_recipients(self, rule_diff_id: str, workspace_id: str) -> list[dict[str, Any]]:
+        return [r for r in self.affected.get(rule_diff_id, []) if r["person_id"] in self.members]
+
+    def document_for_notice(self, document_id: str) -> dict[str, Any] | None:
+        return self.documents.get(document_id)
+
+    def members_for_notice(self, workspace_id: str, person_ids: list[str], admins: bool) -> list[dict[str, Any]]:
+        return [{"person_id": p["person_id"], "email": p["email"]} for p in self.people
+                if p["person_id"] in self.members and (p["person_id"] in person_ids or (admins and p["role"] == "admin"))]
+
+    def allowance_for_notice(self, workspace_id: str) -> dict[str, Any] | None:
+        return self.allowances.get(workspace_id)
+
+    def payment_for_receipt(self, payment_event_id: str) -> dict[str, Any] | None:
+        return self.payments.get(payment_event_id)
+
+    def invoice_pdf(self, payment_event_id: str) -> bytes | None:
+        return self.pdfs.get(payment_event_id)
+
     def membership_for_revoke(self, membership_id: str) -> dict[str, Any] | None:
         return self.memberships.get(membership_id)
 
@@ -139,7 +199,7 @@ class FakeMailer:
     def send(self, email: Email) -> str | None:
         if self.fail:
             self.fail -= 1
-            raise MailError("Mailpit refused the invitation email (URLError)")
+            raise MailError(f"Mailpit refused the {email.template} email (URLError)")
         self.sent.append(email)
         return f"msg-{len(self.sent)}"
 
