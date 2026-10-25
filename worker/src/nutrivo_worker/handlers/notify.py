@@ -7,7 +7,8 @@ gives every payload, key and outcome. Payloads hold ids only.
 One delivery (`deliver`): an `app.notifications` row for each recipient who is a member, written together with
 progress.in_app in one transaction so a retry never writes a second row, then one email per recipient, each recorded
 in progress.emailed (person ids) as it goes, so a retry never emails anybody twice. An address the provider rejects
-for good is recorded in progress.rejected and the others still get theirs (outcome `partly_sent` or `rejected`). Templates 03 and 04 honour each
+for good is recorded in progress.rejected and the others still get theirs (outcome `partly_sent`, reported to Sentry
+as a warning); when nobody could be emailed the job fails. Account-level provider errors retry, then fail. Templates 03 and 04 honour each
 person's notification_prefs per channel (a missing row means enabled); 01, 02, 05 and 06 always send. Recipients who
 are not members (a report's addressee, an invoice's payer) get the email and no row.
 
@@ -23,6 +24,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from typing import Any, Protocol
+
+import sentry_sdk
 
 from .. import email_templates, mail
 from ..errors import PermanentJobError
@@ -53,7 +56,7 @@ class NotifyStore(Protocol):
     def invoice_pdf(self, payment_event_id: str) -> bytes | None: ...
 
 
-SHARE_PATH = "/share/"   # the shared-report page T-601 serves; the route is a founder item on #59
+SHARE_PATH = "/share/"   # the shared-report page T-601 serves; the route is in the T-602 PR's founder items
 
 
 def new_token() -> tuple[str, bytes]:
@@ -132,7 +135,7 @@ def deliver(job: Job, ctx: JobContext, store: NotifyStore, d: Delivery, mailer: 
     for r in due:
         try:
             message_id = mail.send(mailer, d.render(r))  # type: ignore[arg-type]  # set whenever anything is due
-        except mail.PermanentMailError as exc:   # this address can never succeed: record it, carry on
+        except mail.RecipientRejectedError as exc:   # this address can never succeed: record it, carry on
             rejected.append(r.key)
             ctx.heartbeat(rejected=rejected)
             log.warning("notify email rejected", extra=kv(recipient=r.key, error=str(exc)))
@@ -140,9 +143,14 @@ def deliver(job: Job, ctx: JobContext, store: NotifyStore, d: Delivery, mailer: 
         emailed.append(r.key)
         ctx.heartbeat(emailed=emailed)
         log.info("notify email sent", extra=kv(recipient=r.key, message_id=message_id or ""))
-    outcome = "sent" if not rejected else ("partly_sent" if emailed else "rejected")
+    if rejected and not emailed:
+        raise PermanentJobError(f"no recipient could be emailed ({len(rejected)} rejected)")
     ctx.heartbeat(email="sent")
-    _done(ctx, outcome, in_app=in_app, emails=len(emailed), **({"rejections": len(rejected)} if rejected else {}))
+    if rejected:
+        sentry_sdk.capture_message(f"notify {d.kind}: {len(rejected)} of {len(rejected) + len(emailed)} recipients "
+                                   "rejected", level="warning")
+    _done(ctx, "partly_sent" if rejected else "sent", in_app=in_app, emails=len(emailed),
+          **({"rejections": len(rejected)} if rejected else {}))
 
 
 # ── Template 02 · invitation (A03) ─────────────────────────────────────────────────────────────────────
@@ -153,8 +161,7 @@ def send_invitation(job: Job, ctx: JobContext, store: NotifyStore, mailer: mail.
     inv = store.invitation_for_email(invitation_id)
     if inv is None:
         raise PermanentJobError(f"invitation {invitation_id} does not exist")
-    if job.workspace_id and inv["workspace_id"] != job.workspace_id:
-        raise PermanentJobError(f"invitation {invitation_id} belongs to another workspace")
+    _same_workspace(job, inv["workspace_id"], f"invitation {invitation_id}")
     if inv["revoked_at"] is not None:
         return _done(ctx, "skipped_revoked")
     if inv["accepted_at"] is not None:
@@ -257,8 +264,6 @@ def send_document_expiring(job: Job, ctx: JobContext, store: NotifyStore, mailer
     if days not in email_templates.NOTICE_DAYS:
         raise PermanentJobError("payload notice_days is not 60, 30 or 7")
     owners = payload_uuids(job.payload.get("person_ids", []), "person_ids")
-    if not job.workspace_id:
-        raise PermanentJobError("the job names no workspace")
     if store.job_progress(job.id).get("email") == "sent":
         return _done(ctx, "already_sent")
     doc = store.document_for_notice(document_id)
@@ -380,4 +385,6 @@ def notify(job: Job, ctx: JobContext) -> None:
     template = job.payload.get("template")
     if template not in TEMPLATES:
         raise PermanentJobError(f"unknown notify template {str(template)[:40]!r}")
+    if not job.workspace_id:   # every notify job names its workspace (docs/04-contracts.md), checked before any read
+        raise PermanentJobError("the job names no workspace")
     TEMPLATES[template](job, ctx, ctx.store)  # type: ignore[arg-type]  # PgStore implements NotifyStore

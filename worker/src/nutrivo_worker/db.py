@@ -260,8 +260,8 @@ class PgStore:
                 where e.stripe_event_id = %s""", (payment_event_id,)).fetchone()
 
     def invoice_pdf(self, payment_event_id: str) -> bytes | None:
-        """Where the invoice PDF comes from is a founder item on #59 (no Stripe fetch from here), so there is none
-        yet, and Template 06 fails rather than sending a receipt without it."""
+        """Where the invoice PDF comes from is in the T-602 pull request's founder items (no Stripe fetch from here),
+        so there is none yet, and Template 06 fails rather than sending a receipt without it."""
         return None
 
     # ── session_revoke (A06) ────────────────────────────────────────────────────────────────────────────

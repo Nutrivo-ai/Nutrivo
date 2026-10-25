@@ -57,14 +57,16 @@ class MailError(SafeError):
     """The provider refused or could not be reached. The job retries from the queue (docs/18)."""
 
 
-class PermanentMailError(MailError, PermanentJobError):
-    """The provider rejected this message for good (a bad address, an unverified sender, a suspended account, an
-    oversize message): retrying cannot help. A delivery records the recipient and carries on with the others."""
+class RecipientRejectedError(MailError, PermanentJobError):
+    """The provider rejected this recipient for good (the address): retrying cannot help, and a delivery records the
+    person and carries on with the others. Account and sender problems (sending paused, account suspended, sender not
+    verified) are never this: they stay MailError, so the job retries and then fails visibly, and nobody is skipped."""
 
 
-# SES v2 errors no retry can fix; throttling, limits and service errors stay MailError and retry.
-SES_PERMANENT = frozenset({"BadRequestException", "MessageRejected", "MailFromDomainNotVerifiedException",
-                           "AccountSuspendedException", "SendingPausedException", "NotFoundException"})
+def _about_address(exc: Any) -> bool:
+    """SES's BadRequestException is about the recipient only when its message says so. The message can quote the
+    address, so it is only inspected here, never kept."""
+    return "address" in str(exc.response.get("Error", {}).get("Message", "")).lower()
 
 
 class Mailer(Protocol):
@@ -98,7 +100,8 @@ class SesMailer:
             )
         except ClientError as exc:                    # its message can quote the recipient: keep the code
             code = str(exc.response.get("Error", {}).get("Code", ""))
-            cls = PermanentMailError if code in SES_PERMANENT else MailError
+            recipient = code == "MessageRejected" or (code == "BadRequestException" and _about_address(exc))
+            cls = RecipientRejectedError if recipient else MailError
             raise cls(f"SES refused the {email.template} email ({code or type(exc).__name__})") from None
         except BotoCoreError as exc:
             raise MailError(f"SES refused the {email.template} email ({type(exc).__name__})") from None
@@ -125,7 +128,7 @@ class MailpitMailer:
             with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
                 return str(json.loads(resp.read() or b"{}").get("ID") or "") or None
         except urllib.error.HTTPError as exc:
-            cls = PermanentMailError if 400 <= exc.code < 500 else MailError
+            cls = RecipientRejectedError if 400 <= exc.code < 500 and exc.code not in (408, 429) else MailError
             raise cls(f"Mailpit refused the {email.template} email (HTTP {exc.code})") from None
         except (urllib.error.URLError, OSError, ValueError) as exc:
             raise MailError(f"Mailpit refused the {email.template} email ({type(exc).__name__})") from None

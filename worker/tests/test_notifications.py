@@ -14,7 +14,7 @@ from fakes import FakeMailer, FakeStore
 from nutrivo_worker import email_templates as T
 from nutrivo_worker import mail
 from nutrivo_worker.config import Settings
-from nutrivo_worker.handlers import notify  # noqa: F401  registers notify
+from nutrivo_worker.handlers import notify
 from nutrivo_worker.jobs import process_message, registry
 
 S = Settings(max_attempts=3)
@@ -137,7 +137,7 @@ def test_a_rejected_address_is_recorded_and_the_others_still_get_their_email(mon
 
     def send(e):
         if e.to == "boris@halden.test":
-            raise mail.PermanentMailError("SES refused the rule_changed email (MessageRejected)")
+            raise mail.RecipientRejectedError("SES refused the rule_changed email (MessageRejected)")
         return m.send(e)
 
     monkeypatch.setattr(mail, "mailer_for", lambda settings: type("M", (), {"send": staticmethod(send)})())
@@ -450,3 +450,109 @@ def test_mailpit_receives_the_attachment_base64(monkeypatch):
     assert mail.MailpitMailer("http://mailpit.test").send(receipt_email()) == "mp-1"
     assert seen["Attachments"] == [{"Filename": "NTV-1.pdf", "ContentType": "application/pdf",
                                     "Content": "JVBERi0xLjcgeA=="}]
+
+
+# ── Rejections: per recipient only when the address is the problem ─────────────────────────────────────
+class Ses:
+    def __init__(self, fail_for=(), code="MessageRejected", message="Email address is not verified."):
+        self.fail_for, self.code, self.message, self.sent = set(fail_for), code, message, []
+
+    def send_email(self, **kw):
+        from botocore.exceptions import ClientError
+
+        to = kw["Destination"]["ToAddresses"][0]
+        if to in self.fail_for or "*" in self.fail_for:
+            raise ClientError({"Error": {"Code": self.code, "Message": self.message}}, "SendEmail")
+        self.sent.append(to)
+        return {"MessageId": f"ses-{len(self.sent)}"}
+
+
+def ses(monkeypatch, client):
+    m = mail.SesMailer("noreply@mail.nutrivo.test", client)
+    monkeypatch.setattr(mail, "mailer_for", lambda settings: m)
+
+
+@pytest.mark.parametrize("code", ["SendingPausedException", "AccountSuspendedException",
+                                  "MailFromDomainNotVerifiedException", "NotFoundException", "TooManyRequestsException"])
+def test_an_account_or_sender_error_retries_the_job_and_rejects_nobody(monkeypatch, code):
+    ses(monkeypatch, Ses(fail_for={"*"}, code=code, message="Sending paused for this account."))
+    store = rule_world()
+    assert run(store, {"template": "rule_changed", "rule_diff_id": DIFF}) == "retry"
+    progress = store.jobs["job-1"].progress
+    assert "rejected" not in progress and progress.get("emailed", []) == [] and "email" not in progress
+    assert store.jobs["job-1"].last_error == f"MailError: SES refused the rule_changed email ({code})"
+
+
+def test_ses_message_rejected_takes_the_per_recipient_path_and_reports_partly_sent(monkeypatch):
+    warnings = []
+    monkeypatch.setattr(notify.sentry_sdk, "capture_message", lambda msg, level: warnings.append((msg, level)))
+    client = Ses(fail_for={"boris@halden.test"})
+    ses(monkeypatch, client)
+    store = rule_world()
+    assert run(store, {"template": "rule_changed", "rule_diff_id": DIFF}) == "succeeded"
+    assert client.sent == ["anna@halden.test"]
+    assert store.jobs["job-1"].progress["rejected"] == [BORIS]
+    assert store.jobs["job-1"].progress["outcome"] == "partly_sent"
+    assert warnings == [("notify rule_changed: 1 of 2 recipients rejected", "warning")]
+    assert "boris" not in repr(warnings)
+
+
+def test_a_bad_request_counts_as_a_rejection_only_when_it_is_about_the_address(monkeypatch):
+    ses(monkeypatch, Ses(fail_for={"*"}, code="BadRequestException", message="Message length exceeded."))
+    store = rule_world()
+    assert run(store, {"template": "rule_changed", "rule_diff_id": DIFF}) == "retry"
+    assert "rejected" not in store.jobs["job-1"].progress
+
+
+def test_when_nobody_can_be_emailed_the_job_fails_and_keeps_its_rows(monkeypatch):
+    ses(monkeypatch, Ses(fail_for={"*"}))
+    store = rule_world()
+    assert run(store, {"template": "rule_changed", "rule_diff_id": DIFF}) == "failed"
+    job = store.jobs["job-1"]
+    assert job.last_error == "PermanentJobError: no recipient could be emailed (2 rejected)"
+    assert job.progress["rejected"] == [ANNA, BORIS] and "email" not in job.progress
+    assert len(store.notifications) == 2
+
+
+def test_a_report_whose_only_addressee_is_rejected_fails_rather_than_looking_sent(monkeypatch):
+    ses(monkeypatch, Ses(fail_for={"buyer@retail.test"}))
+    store = report_world()
+    assert run(store, {"template": "report", "share_id": SHARE}) == "failed"
+    assert store.jobs["job-1"].last_error.endswith("no recipient could be emailed (1 rejected)")
+    assert store.jobs["job-1"].progress.get("email") != "sent"
+
+
+@pytest.mark.parametrize("status,recipient", [(400, True), (422, True), (408, False), (429, False), (503, False)])
+def test_mailpit_rejects_a_recipient_only_on_a_lasting_client_error(monkeypatch, status, recipient):
+    import io
+    import urllib.error
+    import urllib.request
+
+    def urlopen(req, timeout):
+        raise urllib.error.HTTPError(req.full_url, status, "x", {}, io.BytesIO(b""))
+
+    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+    with pytest.raises(mail.MailError) as exc:
+        mail.MailpitMailer("http://mailpit.test").send(receipt_email())
+    assert isinstance(exc.value, mail.RecipientRejectedError) is recipient
+
+
+# ── Every template refuses a job with no workspace, before reading anything ────────────────────────────
+@pytest.mark.parametrize("payload", [
+    {"template": "invitation", "invitation_id": SHARE},
+    {"template": "report", "share_id": SHARE},
+    {"template": "rule_changed", "rule_diff_id": DIFF},
+    {"template": "document_expiring", "document_id": DOC, "notice_days": 30, "person_ids": [ANNA]},
+    {"template": "allowance_used"},
+    {"template": "receipt", "payment_event_id": EVT},
+])
+def test_every_template_refuses_a_job_with_no_workspace_before_any_read(mailer, payload):
+    store = rule_world(effect_type="editorial")       # an editorial diff would otherwise succeed as skipped
+    reads = []
+    for name in notify.NotifyStore.__dict__:
+        if not name.startswith("_") and callable(getattr(store, name, None)):
+            original = getattr(store, name)
+            setattr(store, name, lambda *a, _n=name, _f=original, **kw: reads.append(_n) or _f(*a, **kw))
+    assert run(store, payload, ws=None) == "failed"
+    assert store.jobs["job-1"].last_error == "PermanentJobError: the job names no workspace"
+    assert reads == [] and mailer.sent == []
