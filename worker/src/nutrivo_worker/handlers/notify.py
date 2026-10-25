@@ -6,7 +6,8 @@ gives every payload, key and outcome. Payloads hold ids only.
 
 One delivery (`deliver`): an `app.notifications` row for each recipient who is a member, written together with
 progress.in_app in one transaction so a retry never writes a second row, then one email per recipient, each recorded
-in progress.emailed (person ids) as it goes, so a retry never emails anybody twice. Templates 03 and 04 honour each
+in progress.emailed (person ids) as it goes, so a retry never emails anybody twice. An address the provider rejects
+for good is recorded in progress.rejected and the others still get theirs (outcome `partly_sent` or `rejected`). Templates 03 and 04 honour each
 person's notification_prefs per channel (a missing row means enabled); 01, 02, 05 and 06 always send. Recipients who
 are not members (a report's addressee, an invoice's payer) get the email and no row.
 
@@ -42,7 +43,7 @@ class NotifyStore(Protocol):
                              rows: list[tuple[str, dict[str, Any]]]) -> int: ...
     def share_for_email(self, share_id: str) -> dict[str, Any] | None: ...
     def set_share_token(self, share_id: str, token_hash: bytes) -> bool: ...
-    def report_summary(self, report_id: str) -> dict[str, Any] | None: ...
+    def report_summary(self, report_id: str, workspace_id: str) -> dict[str, Any] | None: ...
     def rule_diff(self, rule_diff_id: str) -> dict[str, Any] | None: ...
     def rule_change_recipients(self, rule_diff_id: str, workspace_id: str) -> list[dict[str, Any]]: ...
     def document_for_notice(self, document_id: str) -> dict[str, Any] | None: ...
@@ -80,9 +81,12 @@ def _done(ctx: JobContext, outcome: str, **counts: Any) -> None:
 
 
 def _same_workspace(job: Job, workspace_id: str | None, what: str) -> str:
-    if workspace_id is None or (job.workspace_id and workspace_id != job.workspace_id):
+    """The job's workspace, which must be the object's: every notify job names one (docs/04-contracts.md)."""
+    if not job.workspace_id:
+        raise PermanentJobError("the job names no workspace")
+    if workspace_id != job.workspace_id:
         raise PermanentJobError(f"{what} belongs to another workspace")
-    return workspace_id
+    return job.workspace_id
 
 
 # ── One delivery: in-app rows, then emails ─────────────────────────────────────────────────────────────
@@ -121,15 +125,24 @@ def deliver(job: Job, ctx: JobContext, store: NotifyStore, d: Delivery, mailer: 
         if not rows:
             ctx.heartbeat(in_app=0)
     emailed: list[str] = list(progress.get("emailed", []))
-    due = [r for r in d.recipients if r.key not in emailed and r.email and on(r, "email")]
+    rejected: list[str] = list(progress.get("rejected", []))
+    due = [r for r in d.recipients if r.key not in emailed + rejected and r.email and on(r, "email")]
     if due:
         mailer = mailer or mail.mailer_for(ctx.settings)
     for r in due:
-        mail.send(mailer, d.render(r))  # type: ignore[arg-type]  # set above whenever anything is due
+        try:
+            message_id = mail.send(mailer, d.render(r))  # type: ignore[arg-type]  # set whenever anything is due
+        except mail.PermanentMailError as exc:   # this address can never succeed: record it, carry on
+            rejected.append(r.key)
+            ctx.heartbeat(rejected=rejected)
+            log.warning("notify email rejected", extra=kv(recipient=r.key, error=str(exc)))
+            continue
         emailed.append(r.key)
         ctx.heartbeat(emailed=emailed)
+        log.info("notify email sent", extra=kv(recipient=r.key, message_id=message_id or ""))
+    outcome = "sent" if not rejected else ("partly_sent" if emailed else "rejected")
     ctx.heartbeat(email="sent")
-    _done(ctx, "sent", in_app=in_app, emails=len(emailed))
+    _done(ctx, outcome, in_app=in_app, emails=len(emailed), **({"rejections": len(rejected)} if rejected else {}))
 
 
 # ── Template 02 · invitation (A03) ─────────────────────────────────────────────────────────────────────
@@ -182,7 +195,7 @@ def send_report(job: Job, ctx: JobContext, store: NotifyStore, mailer: mail.Mail
         return _done(ctx, "skipped_revoked")
     if share["expires_at"] is not None and share["expires_at"] <= datetime.now(UTC):
         return _done(ctx, "skipped_expired")
-    summary = store.report_summary(share["report_id"])
+    summary = store.report_summary(share["report_id"], share["workspace_id"])
     if summary is None:
         raise PermanentJobError(f"report of share {share_id} does not exist")
     base_url = ctx.settings.require_app_base_url()
@@ -244,12 +257,16 @@ def send_document_expiring(job: Job, ctx: JobContext, store: NotifyStore, mailer
     if days not in email_templates.NOTICE_DAYS:
         raise PermanentJobError("payload notice_days is not 60, 30 or 7")
     owners = payload_uuids(job.payload.get("person_ids", []), "person_ids")
+    if not job.workspace_id:
+        raise PermanentJobError("the job names no workspace")
     if store.job_progress(job.id).get("email") == "sent":
         return _done(ctx, "already_sent")
     doc = store.document_for_notice(document_id)
     if doc is None:
         raise PermanentJobError(f"document {document_id} does not exist")
     ws = _same_workspace(job, doc["workspace_id"], f"document {document_id}")
+    if not doc["display_name"]:
+        raise PermanentJobError(f"document {document_id} has no display name")   # never print a doc_type key
     expires_on: date | None = doc["valid_to"]
     remaining = (expires_on - datetime.now(UTC).date()).days if expires_on else -1
     if not 0 <= remaining <= days:
@@ -263,8 +280,9 @@ def send_document_expiring(job: Job, ctx: JobContext, store: NotifyStore, mailer
 
     def render(r: Recipient) -> mail.Email:
         return email_templates.document_expiring(
-            to=r.email or "", document=doc["doc_type"], supplier=doc["supplier_name"], expires_on=expires_on,
-            days=remaining, recipes=doc["recipes"], registrations=doc["registrations"], url=url)
+            to=r.email or "", document=doc["display_name"], supplier=doc["supplier_name"], expires_on=expires_on,
+            days=remaining, recipes=doc["recipes"], registrations=doc["registrations"], url=url,
+            owner=r.key in owners)
 
     deliver(job, ctx, store, Delivery("document_expiring", recipients, render, gated=True, severity="warning"),
             mailer)
@@ -299,6 +317,16 @@ def _day(ts: Any) -> date:
     return datetime.fromtimestamp(int(ts), UTC).date()
 
 
+def _tax_cents(obj: dict[str, Any]) -> int:
+    """Stripe moved an invoice's tax to `total_taxes` (API 2025-03-31.basil); older versions carry `tax`. Neither
+    means the invoice cannot say its VAT, so it is not sent: a missing amount must never print as €0.00."""
+    if isinstance(obj.get("total_taxes"), list):
+        return sum(int(t["amount"]) for t in obj["total_taxes"])
+    if obj.get("tax") is not None:
+        return int(obj["tax"])
+    raise PermanentJobError("the invoice states no tax")
+
+
 def invoice_of(event: dict[str, Any], sub: dict[str, Any]) -> tuple[str, str, email_templates.Invoice]:
     """(invoice id, payer email, invoice) from a stored Stripe invoice event, without calling Stripe."""
     obj = (event.get("data") or {}).get("object") or {}
@@ -311,7 +339,7 @@ def invoice_of(event: dict[str, Any], sub: dict[str, Any]) -> tuple[str, str, em
         return str(obj["id"]), str(obj["customer_email"] or ""), email_templates.Invoice(
             number=str(obj["number"]), plan=PLAN_NAMES[sub["plan"]], term={"monthly": "monthly", "annual": "annual"}[sub["term"]],
             period_start=_day(period["start"]), period_end=_day(period["end"]),
-            subtotal_cents=int(obj["subtotal"]), tax_cents=int(obj.get("tax") or 0), total_cents=total,
+            subtotal_cents=int(obj["subtotal"]), tax_cents=_tax_cents(obj), total_cents=total,
             next_renewal=sub["current_period_end"].date() if sub.get("current_period_end") else None)
     except (KeyError, TypeError, ValueError, IndexError):
         raise PermanentJobError("the payment event is not a complete invoice") from None

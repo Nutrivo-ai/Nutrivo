@@ -204,9 +204,13 @@ def test_ses_sends_html_and_text_from_the_configured_sender_in_eu_central_1():
 
 def test_an_ses_error_becomes_a_safe_error_without_the_recipient():
     err = ClientError({"Error": {"Code": "MessageRejected", "Message": "maria@halden.test is not verified"}}, "Send")
-    with pytest.raises(mail.MailError) as exc:
+    with pytest.raises(mail.PermanentMailError) as exc:
         mail.SesMailer("noreply@mail.nutrivo.test", FakeSes(err)).send(render())
-    assert "maria" not in str(exc.value) and "ClientError" in str(exc.value)
+    assert "maria" not in str(exc.value) and "(MessageRejected)" in str(exc.value)
+    throttled = ClientError({"Error": {"Code": "TooManyRequestsException", "Message": "slow down"}}, "Send")
+    with pytest.raises(mail.MailError) as exc:
+        mail.SesMailer("noreply@mail.nutrivo.test", FakeSes(throttled)).send(render())
+    assert not isinstance(exc.value, mail.PermanentMailError)               # throttling retries
 
 
 # ── session_revoke (A06) ───────────────────────────────────────────────────────────────────────────────

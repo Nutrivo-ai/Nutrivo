@@ -6,8 +6,9 @@ stripped. Inline styles only, with the design's tokens as hex values, because ma
 Every value is escaped; names come from customers.
 
 The words are the design's. Where a design sentence narrates its sample (a Texas registration, "fourteen other rules")
-and nothing stored can fill it truthfully, the template leaves the sentence out rather than writing a new one; each
-omission is named at its template and was settled on #59. Numbers, names and dates always come from the data."""
+and nothing stored can fill it truthfully, the template leaves the sentence out rather than writing a new one. Each
+omission, and each phrase adapted to fit the data, is named at its template and listed for founder review on the
+T-602 pull request; only Template 05's shape was settled on #59. Numbers, names and dates always come from the data."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -215,7 +216,8 @@ class ReportSummary:
 
 
 def report(*, to: str, sender: str, workspace: str, summary: ReportSummary, url: str) -> Email:
-    """Template 01. Left out: the Blocked-market paragraph, which narrates the sample's Texas registration (#59).
+    """Template 01. Left out (for founder review): the Blocked-market paragraph, which narrates the sample's Texas
+    registration.
     The four counts are always all present: Not assessed is never dropped from a count."""
     s = summary
     markets = cap(counted(s.markets, "market"))
@@ -257,8 +259,9 @@ def rule_changed(*, to: str, effect_type: str, held_in: str, rule_title: str, ef
                  recipes: list[str], markets: list[str], url: str, today: date) -> Email:
     """Template 03, one material change for one person, naming the recipes in their scope. Editorial diffs never
     reach this function (O01.must.1): EFFECTS has no editorial entry, so one would fail loudly here too.
-    Left out (#59): the sample's narration of prepress artwork, "re-checked already" (true only once J05 has run)
-    and "nothing else in your portfolio is affected"."""
+    For founder review: left out, the sample's narration of prepress artwork, "re-checked already" (true only once
+    J05 has run) and "nothing else in your portfolio is affected"; adapted, the heading "A rule changed in …" for
+    effect types the design's subject does not cover, and the body "<recipes> use it."."""
     label = EFFECTS[effect_type]
     heading = (f"A prescribed wording changed in {held_in}" if effect_type == "prescribed_wording"
                else f"A rule changed in {held_in}")
@@ -288,9 +291,11 @@ NOTICE_DAYS = (60, 30, 7)
 
 
 def document_expiring(*, to: str, document: str, supplier: str | None, expires_on: date, days: int, recipes: int,
-                      registrations: int, url: str) -> Email:
-    """Template 04 at 60, 30 or 7 days. Left out (#59): the paragraphs on which rules go Not assessed and on the
-    sample's Texas registration, which nothing stored links to a document yet."""
+                      registrations: int, url: str, owner: bool = True) -> Email:
+    """Template 04 at 60, 30 or 7 days. For founder review: left out, the paragraphs on which rules go Not assessed
+    and on the sample's Texas registration, which nothing stored links to a document yet; adapted, the heading "A
+    document you rely on" (the design names the document's kind). The footer says "you own the document pack", so an
+    admin who is not an owner (the 7-day notice) gets no footer until one is written."""
     cites = [counted(recipes, "recipe")] if recipes else []
     cites += [counted(registrations, "registration")] if registrations else []
     rows = [("Recipes citing it", str(recipes)), ("Registrations at risk", str(registrations)),
@@ -309,7 +314,7 @@ def document_expiring(*, to: str, document: str, supplier: str | None, expires_o
         cta="Request the current version", cta_url=url,
         secondary="Or upload it yourself if a newer copy is already in your inbox.",
         footer=("You received this because you own the document pack for these recipes. We send this at sixty days, "
-                "thirty days and seven days, then stop."),
+                "thirty days and seven days, then stop.") if owner else "",
     ))
 
 
@@ -377,7 +382,7 @@ class Invoice:
 
 def receipt(*, to: str, invoice: Invoice, url: str, pdf: bytes) -> Email:
     """Template 06, always with its PDF ("Sends the receipt without the PDF attached" is one of its nevers).
-    Left out (#59): the paragraphs on carried-over recipes, itemised lines and purchase-order settings, which describe
+    Left out (for founder review): the paragraphs on carried-over recipes, itemised lines and purchase-order settings, which describe
     the sample's upgrade and settings that do not exist; the VAT row's country and rate and the payment method, which
     the stored invoice does not carry; and the footer, whose finance address and reply-to are founder items."""
     i = invoice

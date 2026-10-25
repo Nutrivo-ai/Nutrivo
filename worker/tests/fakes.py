@@ -157,8 +157,9 @@ class FakeStore:
         share["token_hash"] = token_hash
         return True
 
-    def report_summary(self, report_id: str) -> dict[str, Any] | None:
-        return self.reports.get(report_id)
+    def report_summary(self, report_id: str, workspace_id: str) -> dict[str, Any] | None:
+        r = self.reports.get(report_id)
+        return r if r and r.get("workspace_id", workspace_id) == workspace_id else None
 
     def rule_diff(self, rule_diff_id: str) -> dict[str, Any] | None:
         return self.diffs.get(rule_diff_id)

@@ -155,7 +155,10 @@ class PgStore:
                       s.revoked_at, w.name as workspace_name, p.display_name as sender_name
                  from app.shares s
                  join app.workspaces w on w.id = s.workspace_id
-                 left join app.people p on p.id = s.created_by
+                 left join app.people p on p.id = s.created_by and p.tombstoned_at is null
+                      and exists (select 1 from app.memberships m
+                                   where m.workspace_id = s.workspace_id and m.person_id = p.id and m.ended_at is null
+                                     and (m.access_ends_at is null or m.access_ends_at > now()))
                 where s.id = %s""", (share_id,)).fetchone()
 
     def set_share_token(self, share_id: str, token_hash: bytes) -> bool:
@@ -166,11 +169,12 @@ class PgStore:
             returning id""", (token_hash, share_id)).fetchone()
         return row is not None
 
-    def report_summary(self, report_id: str) -> dict[str, Any] | None:
-        """Template 01's counts over the report's pinned checks (docs/04-contracts.md)."""
+    def report_summary(self, report_id: str, workspace_id: str) -> dict[str, Any] | None:
+        """Template 01's counts over the report's pinned checks (docs/04-contracts.md), within the share's workspace."""
         return self.conn.execute(
-            """with r as (select * from app.reports where id = %s),
-                    c as (select c.* from app.checks c join r on c.id = any(r.check_ids))
+            """with r as (select * from app.reports where id = %s and workspace_id = %s),
+                    c as (select c.* from app.checks c join r on c.id = any(r.check_ids)
+                           where c.workspace_id = r.workspace_id)
                select pr.name as product, r.ruleset_version, r.created_at as checked_at,
                       (select count(distinct c.node_id) from c)::int as markets,
                       (select count(distinct c.panel_id) from c)::int as panels,
@@ -182,7 +186,7 @@ class PgStore:
                       (select count(*) from app.product_nodes pn
                         where pn.product_id = r.product_id and pn.display_state = 'blocked'
                           and pn.node_id in (select c.node_id from c))::int as blocked
-                 from r join app.products pr on pr.id = r.product_id""", (report_id,)).fetchone()
+                 from r join app.products pr on pr.id = r.product_id""", (report_id, workspace_id)).fetchone()
 
     def rule_diff(self, rule_diff_id: str) -> dict[str, Any] | None:
         return self.conn.execute(
@@ -212,7 +216,10 @@ class PgStore:
 
     def document_for_notice(self, document_id: str) -> dict[str, Any] | None:
         return self.conn.execute(
-            """select d.id::text, d.workspace_id::text, d.doc_type, d.valid_to, s.name as supplier_name,
+            # display_name: app.supplier_documents.doc_type is a key and nothing stores a document's human name yet
+            # (a founder item on the T-602 pull request), so Template 04 fails visibly rather than print the key.
+            """select d.id::text, d.workspace_id::text, d.doc_type, null::text as display_name, d.valid_to,
+                      s.name as supplier_name,
                       (select count(distinct pr.family_id) from app.products pr
                         where pr.id = d.product_id
                            or pr.id in (select g.product_id from app.registrations g

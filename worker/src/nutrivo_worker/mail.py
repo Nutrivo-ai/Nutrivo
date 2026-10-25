@@ -18,7 +18,7 @@ from typing import Any, Protocol
 import sentry_sdk
 
 from .config import Settings
-from .errors import SafeError
+from .errors import PermanentJobError, SafeError
 
 SES_REGION = "eu-central-1"   # D-02 and D-16: never another region
 FROM_NAME = "Nutrivo"
@@ -57,6 +57,16 @@ class MailError(SafeError):
     """The provider refused or could not be reached. The job retries from the queue (docs/18)."""
 
 
+class PermanentMailError(MailError, PermanentJobError):
+    """The provider rejected this message for good (a bad address, an unverified sender, a suspended account, an
+    oversize message): retrying cannot help. A delivery records the recipient and carries on with the others."""
+
+
+# SES v2 errors no retry can fix; throttling, limits and service errors stay MailError and retry.
+SES_PERMANENT = frozenset({"BadRequestException", "MessageRejected", "MailFromDomainNotVerifiedException",
+                           "AccountSuspendedException", "SendingPausedException", "NotFoundException"})
+
+
 class Mailer(Protocol):
     def send(self, email: Email) -> str | None: ...
 
@@ -86,7 +96,11 @@ class SesMailer:
                 Content=content,
                 EmailTags=[{"Name": "template", "Value": email.template}],
             )
-        except (BotoCoreError, ClientError) as exc:   # their messages can quote the recipient: keep the type
+        except ClientError as exc:                    # its message can quote the recipient: keep the code
+            code = str(exc.response.get("Error", {}).get("Code", ""))
+            cls = PermanentMailError if code in SES_PERMANENT else MailError
+            raise cls(f"SES refused the {email.template} email ({code or type(exc).__name__})") from None
+        except BotoCoreError as exc:
             raise MailError(f"SES refused the {email.template} email ({type(exc).__name__})") from None
         return str(out.get("MessageId")) if out.get("MessageId") else None
 
@@ -110,6 +124,9 @@ class MailpitMailer:
         try:
             with urllib.request.urlopen(req, timeout=self.timeout_s) as resp:
                 return str(json.loads(resp.read() or b"{}").get("ID") or "") or None
+        except urllib.error.HTTPError as exc:
+            cls = PermanentMailError if 400 <= exc.code < 500 else MailError
+            raise cls(f"Mailpit refused the {email.template} email (HTTP {exc.code})") from None
         except (urllib.error.URLError, OSError, ValueError) as exc:
             raise MailError(f"Mailpit refused the {email.template} email ({type(exc).__name__})") from None
 

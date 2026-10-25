@@ -132,6 +132,24 @@ def test_a_failed_email_retries_without_a_second_row_or_a_second_email_to_anyone
     assert [e.to for e in m.sent] == ["anna@halden.test", "boris@halden.test"]   # nobody emailed twice
 
 
+def test_a_rejected_address_is_recorded_and_the_others_still_get_their_email(monkeypatch):
+    m = FakeMailer()
+
+    def send(e):
+        if e.to == "boris@halden.test":
+            raise mail.PermanentMailError("SES refused the rule_changed email (MessageRejected)")
+        return m.send(e)
+
+    monkeypatch.setattr(mail, "mailer_for", lambda settings: type("M", (), {"send": staticmethod(send)})())
+    store = rule_world()
+    store.members.add(CARL)
+    assert run(store, {"template": "rule_changed", "rule_diff_id": DIFF}) == "succeeded"
+    assert [e.to for e in m.sent] == ["anna@halden.test", "carl@halden.test"]       # Boris is in the middle
+    progress = store.jobs["job-1"].progress
+    assert progress["outcome"] == "partly_sent" and progress["rejected"] == [BORIS]
+    assert progress["emailed"] == [ANNA, CARL] and progress["rejections"] == 1 and len(store.notifications) == 3
+
+
 def test_a_redelivered_job_that_already_sent_does_nothing(mailer):
     store = rule_world()
     msg = store.add("job-1", "notify", workspace_id=WS, payload={"template": "rule_changed", "rule_diff_id": DIFF})
@@ -184,8 +202,8 @@ def doc_world(valid_to=TODAY + timedelta(days=30)):
     store.members |= {ANNA, BORIS}
     store.people = [{"person_id": ANNA, "email": "anna@halden.test", "role": "editor"},
                     {"person_id": BORIS, "email": "boris@halden.test", "role": "admin"}]
-    store.documents[DOC] = {"id": DOC, "workspace_id": WS, "doc_type": "PMX-118 premix specification",
-                            "valid_to": valid_to, "supplier_name": "Nordwild Feeds", "recipes": 3, "registrations": 1}
+    store.documents[DOC] = {"id": DOC, "workspace_id": WS, "doc_type": "certificate_of_analysis",
+                            "display_name": "PMX-118 premix specification", "valid_to": valid_to, "supplier_name": "Nordwild Feeds", "recipes": 3, "registrations": 1}
     return store
 
 
@@ -202,10 +220,29 @@ def test_a_document_notice_goes_to_its_owners_and_to_admins_only_at_seven_days(m
                  "You can request a current version from Nordwild Feeds", f"Request the current version: http://localhost:3000/w/{WS}/documents"):
         assert part in e.text
 
+    assert "certificate_of_analysis" not in e.subject + e.text + e.html          # never the doc_type key
+
     store = doc_world(valid_to=TODAY + timedelta(days=7))
     mailer.sent.clear()
     run(store, {"template": "document_expiring", "document_id": DOC, "notice_days": 7, "person_ids": [ANNA]})
-    assert sorted(e.to for e in mailer.sent) == ["anna@halden.test", "boris@halden.test"]
+    owner, admin = sorted(mailer.sent, key=lambda e: e.to)
+    assert (owner.to, admin.to) == ("anna@halden.test", "boris@halden.test")
+    assert "you own the document pack" in owner.text and "you own the document pack" not in admin.text
+
+
+def test_a_document_with_no_display_name_fails_visibly_instead_of_printing_its_key(mailer):
+    store = doc_world()
+    store.documents[DOC]["display_name"] = None
+    assert run(store, {"template": "document_expiring", "document_id": DOC, "notice_days": 30,
+                       "person_ids": [ANNA]}) == "failed"
+    assert store.jobs["job-1"].last_error.endswith("has no display name") and mailer.sent == []
+
+
+def test_a_document_job_without_a_workspace_is_refused_up_front(mailer):
+    store = doc_world()
+    assert run(store, {"template": "document_expiring", "document_id": DOC, "notice_days": 30, "person_ids": [ANNA]},
+               ws=None) == "failed"
+    assert store.jobs["job-1"].last_error.endswith("the job names no workspace") and store.notifications == []
 
 
 def test_document_notices_honour_preferences_and_skip_a_document_not_yet_due(mailer):
@@ -345,6 +382,20 @@ def test_the_receipt_goes_to_the_payer_with_its_pdf_and_writes_no_row(mailer):
                  f"View invoice: http://localhost:3000/w/{WS}/billing/invoices/in_1T602"):
         assert part in e.text
     assert not re.search(r"(?i)upgrade|advanced", e.text)                  # never upsells
+
+
+def test_the_receipt_reads_vat_from_total_taxes_on_basil_invoices_and_never_prints_a_missing_tax_as_zero(mailer):
+    store = receipt_world()
+    obj = store.payments[EVT]["payload"]["data"]["object"]
+    del obj["tax"]
+    obj["total_taxes"] = [{"amount": 100000, "tax_behavior": "exclusive"}, {"amount": 24750}]
+    assert run(store, {"template": "receipt", "payment_event_id": EVT}) == "succeeded"
+    assert "- VAT: €1,247.50" in mailer.sent[0].text
+
+    store = receipt_world()
+    del store.payments[EVT]["payload"]["data"]["object"]["tax"]
+    assert run(store, {"template": "receipt", "payment_event_id": EVT}, job="job-2") == "failed"
+    assert store.jobs["job-2"].last_error.endswith("the invoice states no tax") and len(mailer.sent) == 1
 
 
 def test_no_pdf_no_receipt_the_job_fails_visibly(mailer):
