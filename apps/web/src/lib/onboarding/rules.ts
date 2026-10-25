@@ -31,7 +31,7 @@ export function workspaceNameFromEmail(email: string, fullName = ""): { name: st
       .filter(Boolean)
       .map((w) => w[0].toUpperCase() + w.slice(1))
       .join(" ");
-    return { name, fromDomain: true };
+    if (name) return { name, fromDomain: true }; // a label of separators only ("a@-.com") falls through
   }
   const person = fullName.trim();
   return { name: person ? `${person}'s workspace` : "My workspace", fromDomain: false };
@@ -61,7 +61,7 @@ export const ACCOUNT_PROBLEM: Record<AccountProblem, string> = {
   workspace: `The workspace needs a name of 1 to ${MAX_WORKSPACE_NAME} characters. Rename it before you continue.`,
 };
 
-/** The regulatory regions of S-ONB-002. Free is the EU only (D-03); a workspace starts entitled to {EU}. */
+/** The regulatory regions of S-ONB-002. Free is the EU only (docs/08-billing, A01 step 2); the UK and the US come with a paid plan. */
 export const FREE_REGION = "EU";
 
 export type Operator = { name: string; address: string; country: string; approval_number?: string };
@@ -124,7 +124,7 @@ export const OPERATOR_PROBLEM: Record<OperatorProblem, string> = {
   name: "Type the operator's name exactly as it is printed on the label.",
   address: "Type the operator's address exactly as it is printed on the label.",
   country:
-    "The country could not be read from the end of the address. Keep the address exactly as printed, and choose “I'll do this later” to set the operator from the workspace instead.",
+    "The country could not be read from the end of the address. Keep the address exactly as printed and choose “I'll do this later”; the operator stays unset for now.",
   approval: "The establishment number is at most 100 characters. Leave it empty if you do not hold one.",
 };
 

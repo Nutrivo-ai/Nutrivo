@@ -13,6 +13,10 @@ describe("workspaceNameFromEmail (S-ONB-001)", () => {
     expect(workspaceNameFromEmail("johanna@gmail.com", "Johanna Holm")).toEqual({ name: "Johanna Holm's workspace", fromDomain: false });
     expect(workspaceNameFromEmail("johanna@outlook.com")).toEqual({ name: "My workspace", fromDomain: false });
   });
+
+  it("falls back the same way when the domain's first label is only separators", () => {
+    expect(workspaceNameFromEmail("a@-.com", "Johanna Holm")).toEqual({ name: "Johanna Holm's workspace", fromDomain: false });
+  });
 });
 
 describe("checkAccount (S-ONB-001)", () => {

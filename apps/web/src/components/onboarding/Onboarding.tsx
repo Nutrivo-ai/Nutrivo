@@ -360,7 +360,7 @@ function CheckEmail({ email }: { email: string }) {
   );
 }
 
-/** S-ONB-002: the region, sold whole. Free is the EU (D-03); the UK and the US are a plan change (issue #28, question 1). */
+/** S-ONB-002: the region, sold whole. Free is the EU (docs/08-billing, A01 step 2); the UK and the US come with a paid plan. */
 function RegionStep({
   regions,
   region,
@@ -499,7 +499,12 @@ function OperatorStep({
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [approval, setApproval] = useState("");
-  const country = countryOf(address);
+  // The country line reads the address as it stands when the field is left or the form is sent, never per keystroke:
+  // "Leeds LS…" or "PARIS" would otherwise flash Lesotho or Panama, and the live region would announce each one.
+  const [committed, setCommitted] = useState("");
+  // A refused submission's problem stays until the address is changed again.
+  const [edited, setEdited] = useState(false);
+  const country = countryOf(committed);
   return (
     <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] gap-[24px] items-start">
       <section data-testid="onboarding-operator" aria-labelledby="onb-title" className={cx(CARD, "py-[26px] px-[28px]")}>
@@ -508,7 +513,14 @@ function OperatorStep({
             {workspaceName} is ready. Name the business responsible for your labels; every product inherits it unless it names its own.
           </StepHead>
         </div>
-        <form id={FORM} action={action}>
+        <form
+          id={FORM}
+          action={action}
+          onSubmit={() => {
+            setCommitted(address);
+            setEdited(false);
+          }}
+        >
           <input type="hidden" name="workspaceId" value={workspaceId} />
           <div data-testid="onboarding-operator-block" className="mt-[22px] pt-[16px] border-t border-n200">
             <div className="flex items-baseline gap-[10px]">
@@ -517,7 +529,22 @@ function OperatorStep({
             </div>
             <div className="mt-[12px] flex flex-col gap-[12px]">
               <input name="operatorName" value={name} onChange={(e) => setName(e.target.value)} type="text" required maxLength={300} aria-label="Operator name" placeholder="Operator name" className={INPUT} />
-              <input name="operatorAddress" value={address} onChange={(e) => setAddress(e.target.value)} type="text" required maxLength={500} aria-label="Operator address" placeholder="Exactly as printed, ending with the country code" aria-describedby="onb-country" className={INPUT} />
+              <input
+                name="operatorAddress"
+                value={address}
+                onChange={(e) => {
+                  setAddress(e.target.value);
+                  setEdited(true);
+                }}
+                onBlur={(e) => setCommitted(e.currentTarget.value)}
+                type="text"
+                required
+                maxLength={500}
+                aria-label="Operator address"
+                placeholder="Exactly as printed on the label"
+                aria-describedby="onb-country"
+                className={INPUT}
+              />
               <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-[12px] items-end">
                 <input name="approval" value={approval} onChange={(e) => setApproval(e.target.value)} type="text" maxLength={100} aria-label="Establishment or approval number" aria-describedby="onb-approval-hint" className={INPUT} />
                 <p id="onb-approval-hint" className="m-0 text-[11.5px] leading-[1.4] text-n600">Establishment number, if you hold one. Optional.</p>
@@ -526,13 +553,13 @@ function OperatorStep({
           </div>
           {/* The country set_default_operator stores, read from the end of the address: shown, never silently guessed. */}
           <p id="onb-country" aria-live="polite" className="mt-[10px] mb-0 font-mono text-[10.5px] tracking-[0.05em] text-n700">
-            {!address.trim()
+            {!committed.trim()
               ? "COUNTRY · READ FROM THE END OF THE ADDRESS"
               : country
-                ? `COUNTRY SAVED · ${countryLabel(country).toUpperCase()}`
+                ? `COUNTRY TO BE SAVED · ${countryLabel(country).toUpperCase()}`
                 : "COUNTRY · NOT FOUND AT THE END OF THE ADDRESS"}
           </p>
-          {problem ? <Problem>{problem}</Problem> : null}
+          {problem && !edited ? <Problem>{problem}</Problem> : null}
         </form>
       </section>
       <section aria-labelledby="onb-why" className="border border-ink border-l-4 border-l-blocked bg-paper py-[20px] px-[22px]">

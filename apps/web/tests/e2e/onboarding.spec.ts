@@ -148,11 +148,14 @@ test.describe("A01 sign up and create a workspace", () => {
     await page.getByRole("button", { name: "Continue" }).click();
     // No code at the end: the address stays as printed, and the person is pointed to "I'll do this later".
     await expect(operator.getByRole("alert")).toContainText("could not be read from the end of the address");
+    await expect(operator.getByRole("alert")).toContainText("the operator stays unset for now");
     await expect(operator).toContainText("COUNTRY · NOT FOUND AT THE END OF THE ADDRESS");
     await expect(operator.getByLabel("Operator address")).toHaveValue("Industrivägen 4, 412 63 Göteborg, Sweden");
     await operator.getByLabel("Operator address").fill("Industrivägen 4, 412 63 Göteborg, SE");
-    await operator.getByLabel("Establishment or approval number").fill("SE 14 2231 α");
-    await expect(operator).toContainText("COUNTRY SAVED · SE · SWEDEN");
+    await operator.getByLabel("Establishment or approval number").fill("SE 14 2231 α"); // leaves the address field
+    await expect(operator).toContainText("COUNTRY TO BE SAVED · SE · SWEDEN");
+    await expect(operator.getByRole("alert")).toHaveCount(0); // the address changed since that refusal
+    await operator.getByLabel("Establishment or approval number").blur(); // no focus ring in the crop
     await expectLikeBaseline(page, operator.getByTestId("onboarding-operator-block"), "S-ONB-003", CARD["S-ONB-003"], maxDiff);
     await page.getByRole("button", { name: "Continue" }).click();
     await expect(page).toHaveURL(/\/w\/[0-9a-f-]{36}$/);
@@ -204,6 +207,30 @@ test.describe("A01 sign up and create a workspace", () => {
     const me = await personOf(user.id);
     const { data } = await admin().schema("app").from("workspaces").select("name").eq("created_by", me!.id);
     expect(data).toEqual([{ name: "Halden Pet Nutrition" }]);
+  });
+
+  test("step 03 reads the country when the address is left, never per keystroke", async ({ page, context, baseURL }) => {
+    const who = await person("a01-country");
+    await workspace(who, "Country Reading");
+    await signIn(context, who, baseURL!);
+    await page.goto("/onboarding");
+    const operator = page.getByTestId("onboarding-operator");
+    const line = operator.locator("#onb-country");
+    await expect(line).toHaveText("COUNTRY · READ FROM THE END OF THE ADDRESS");
+    // Every text the line shows while the address is typed, recorded in the page.
+    await line.evaluate((el) => {
+      const seen: string[] = ((window as unknown as { seen: string[] }).seen = []);
+      new MutationObserver(() => seen.push(el.textContent ?? "")).observe(el, { childList: true, characterData: true, subtree: true });
+    });
+    const address = operator.getByLabel("Operator address");
+    await expect(address).toHaveAttribute("placeholder", "Exactly as printed on the label");
+    await address.pressSequentially("1 Park Row, Leeds LS1 4AB, GB");
+    await address.press("Tab"); // leaving the field reads it
+    await expect(line).toHaveText("COUNTRY TO BE SAVED · GB · UNITED KINGDOM");
+    const seen = await page.evaluate(() => (window as unknown as { seen: string[] }).seen);
+    expect(seen.some((t) => t.includes("LESOTHO"))).toBe(false);
+    expect(seen).toEqual(["COUNTRY TO BE SAVED · GB · UNITED KINGDOM"]);
+    await expect(address).toHaveAttribute("aria-describedby", "onb-country");
   });
 
   test("step 03 can be left for later: the workspace stays, without an operator, and onboarding picks up there", async ({ page, context, baseURL }) => {
