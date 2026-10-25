@@ -49,10 +49,10 @@ tasks:
   # ── M3 · Artwork extraction ─────────────────────────────────────────────────────────────────────────
   - {id: T-301, ms: M3, lanes: [worker], deps: [T-008], title: "Extraction spike: pypdfium2 against pdfplumber, results recorded in docs/06"}
   - {id: T-302, ms: M3, lanes: [worker], deps: [T-301], title: "Extraction to the contract: worker gates BE-16, BE-17, BE-18 pass; pypdfium2 + fontTools engine with pdfplumber moved to dev dependencies (D-15); synthetic generator wraps the operator line and adds one deliberate gutter-overflow fixture with expected panel attribution (#39)"}
-  - {id: T-303, ms: M3, lanes: [web, worker], deps: [T-302, T-102], wf: [D01, C02], title: "Upload flow: signed upload, register_artwork, extract job, Realtime progress, product from artwork"}
+  - {id: T-303, ms: M3, lanes: [web, worker], deps: [T-302, T-102], wf: [D01], title: "Upload flow: signed upload into an existing product, register_artwork, extract job, Realtime progress, unsupported file types rejected before upload; creating the product from the artwork (C02) moves to T-401"}
   - {id: T-304, ms: M3, lanes: [web], deps: [T-303], wf: [D02], title: "Panel triage view"}
   # ── M4 · First demo path ────────────────────────────────────────────────────────────────────────────
-  - {id: T-401, ms: M4, lanes: [web, db], deps: [T-102, T-204], wf: [C01, C03, C04, B02], title: "Products, families, stages and the free-allowance experience"}
+  - {id: T-401, ms: M4, lanes: [web, db], deps: [T-102, T-204, T-303], wf: [C01, C02, C03, C04, B02], title: "Products, families, stages and the free-allowance experience, including a product created from an artwork (C02, moved from T-303)"}
   - {id: T-402, ms: M4, lanes: [worker, web], deps: [T-303, T-203], wf: [D03], title: "Classification: model suggestion, person confirmation, citation"}
   - {id: T-403, ms: M4, lanes: [worker], deps: [T-302, T-204, T-206], wf: [D04], title: "Rules engine core with evaluators mandatory_particular and prescribed_wording"}
   - {id: T-404, ms: M4, lanes: [web], deps: [T-403], wf: [D07], title: "Label report: per-language results, artwork pins, Not assessed with gap links"}
