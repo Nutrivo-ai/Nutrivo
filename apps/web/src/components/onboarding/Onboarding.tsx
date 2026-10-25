@@ -6,7 +6,16 @@ import { cx } from "@/components/kit";
 import { Wordmark } from "@/components/shell/Wordmark";
 import { track } from "@/lib/analytics";
 import { createWorkspace, setOperator, signUp, type OnboardingState } from "@/lib/onboarding/actions";
-import { FREE_REGION, MAX_WORKSPACE_NAME, STEPS, workspaceNameFromEmail, type RegionCard, type Step } from "@/lib/onboarding/rules";
+import {
+  FREE_REGION,
+  MAX_WORKSPACE_NAME,
+  STEPS,
+  countryLabel,
+  countryOf,
+  workspaceNameFromEmail,
+  type RegionCard,
+  type Step,
+} from "@/lib/onboarding/rules";
 
 // The Onboarding Flow file (S-ONB-001 to S-ONB-003): one route, the step is state. The design's own header buttons
 // ("Restart at step 01", "View the invited-user page") move between its frames and are not part of the screen; "Continue
@@ -25,7 +34,7 @@ type Props =
 
 const NOTE: Record<Step, string> = {
   1: "Three fields, then confirm one region.",
-  2: "Pre-selected from your email domain. Change it if we guessed wrong.",
+  2: "Free starts with the EU.",
   3: "Exactly as printed. The establishment number is optional.",
 };
 
@@ -48,15 +57,16 @@ export function Onboarding(props: Props) {
   const router = useRouter();
 
   useEffect(() => {
-    if (created.status !== "created") return;
-    track("workspace_created", { workspace_id: created.workspaceId, plan: "free", region: FREE_REGION });
-    router.refresh(); // the page reads the new workspace and moves on to step 03
+    if (created.status !== "created" && created.status !== "exists") return;
+    // Only a workspace this action created is recorded; one that already existed (a repeat click) records nothing.
+    if (created.status === "created") track("workspace_created", { workspace_id: created.workspaceId, plan: "free", region: FREE_REGION });
+    router.refresh(); // the page reads the workspace and moves on to step 03
   }, [created, router]);
 
   const step = props.step;
   const sent = account.status === "sent";
   // Between app.create_workspace answering and the page re-reading the person, step 02 waits on the new workspace.
-  const moving = step === 2 && created.status === "created";
+  const moving = step === 2 && (created.status === "created" || created.status === "exists");
   const pending = signingUp || creating || saving || moving;
   const canContinue = !pending && !(step === 1 && sent) && !(step === 2 && region !== FREE_REGION);
   const nextLabel = step === 1 ? (signingUp ? "Creating…" : "Continue") : step === 2 ? (creating || moving ? "Creating the workspace…" : "Continue") : saving ? "Saving…" : "Continue";
@@ -118,7 +128,13 @@ export function Onboarding(props: Props) {
               I&apos;ll do this later — take me to the platform
             </a>
           ) : null}
-          <button type="submit" form={FORM} disabled={!canContinue} className={cx(PRIMARY, "py-[11px] px-[22px] text-[14px]")}>
+          <button
+            type="submit"
+            form={FORM}
+            disabled={!canContinue}
+            aria-describedby={step === 2 && region !== FREE_REGION ? "onb-region-note" : undefined}
+            className={cx(PRIMARY, "py-[11px] px-[22px] text-[14px]")}
+          >
             {nextLabel}
           </button>
         </div>
@@ -211,7 +227,8 @@ function AccountStep({ action, pending, problem }: { action: (form: FormData) =>
   const [show, setShow] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [rename, setRename] = useState("");
-  const workspaceName = renaming ? rename : workspaceNameFromEmail(email, fullName);
+  const derived = workspaceNameFromEmail(email, fullName);
+  const workspaceName = renaming ? rename : derived.name;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-[24px] items-start">
@@ -260,10 +277,11 @@ function AccountStep({ action, pending, problem }: { action: (form: FormData) =>
                 <span className="text-[12.5px] text-n700">
                   {email.includes("@") ? (
                     <>
-                      Workspace will be called <strong className="font-semibold">{workspaceName}</strong>, from your email domain.
+                      Workspace will be called <strong className="font-semibold">{workspaceName}</strong>
+                      {derived.fromDomain ? ", from your email domain." : "."}
                     </>
                   ) : (
-                    "The workspace is named from your email domain. You can rename it."
+                    "The workspace is named when you type your email. You can rename it."
                   )}
                 </span>
                 <button
@@ -361,8 +379,8 @@ function RegionStep({
     <section data-testid="onboarding-region" aria-labelledby="onb-title" className={cx(CARD, "py-[26px] px-[28px]")}>
       <div id="onb-title">
         <StepHead n={2} title="Where do you sell">
-          EU is pre-selected from your email domain — change it if we guessed wrong. A region is sold whole, because a state is one edition of a
-          national rulebook rather than a rulebook of its own. Every market inside it is checkable from the first minute.
+          Free starts with the EU. A region is sold whole, because a state is one edition of a national rulebook rather than a rulebook of its
+          own.
         </StepHead>
       </div>
       <form id={FORM} action={action}>
@@ -411,8 +429,8 @@ function RegionStep({
           Selling in more than one region? Pick the one you sell most in now. A second region is a plan change, not a second onboarding.
         </p>
         {picked.id !== FREE_REGION ? (
-          <p role="status" className="mt-[12px] mb-0 border-l-[3px] border-action pl-[12px] text-[12.5px] leading-[1.5] text-n800">
-            Free covers the EU. {picked.k} is a plan change once the workspace exists: choose EU to start, and add {picked.k} from Billing.
+          <p id="onb-region-note" role="status" className="mt-[12px] mb-0 border-l-[3px] border-action pl-[12px] text-[12.5px] leading-[1.5] text-n800">
+            Free covers the EU. {picked.k} comes with a paid plan.
           </p>
         ) : null}
       </div>
@@ -481,6 +499,7 @@ function OperatorStep({
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [approval, setApproval] = useState("");
+  const country = countryOf(address);
   return (
     <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] gap-[24px] items-start">
       <section data-testid="onboarding-operator" aria-labelledby="onb-title" className={cx(CARD, "py-[26px] px-[28px]")}>
@@ -491,20 +510,28 @@ function OperatorStep({
         </div>
         <form id={FORM} action={action}>
           <input type="hidden" name="workspaceId" value={workspaceId} />
-          <div className="mt-[22px] pt-[16px] border-t border-n200">
+          <div data-testid="onboarding-operator-block" className="mt-[22px] pt-[16px] border-t border-n200">
             <div className="flex items-baseline gap-[10px]">
               <p id="onb-operator" className="m-0 text-[13.5px] font-semibold">Responsible operator, exactly as printed on the label</p>
               <span className="font-mono text-[9.5px] tracking-[0.08em] text-blocked">REQUIRED</span>
             </div>
             <div className="mt-[12px] flex flex-col gap-[12px]">
               <input name="operatorName" value={name} onChange={(e) => setName(e.target.value)} type="text" required maxLength={300} aria-label="Operator name" placeholder="Operator name" className={INPUT} />
-              <input name="operatorAddress" value={address} onChange={(e) => setAddress(e.target.value)} type="text" required maxLength={500} aria-label="Operator address" placeholder="Street, postcode and town, country code" className={INPUT} />
+              <input name="operatorAddress" value={address} onChange={(e) => setAddress(e.target.value)} type="text" required maxLength={500} aria-label="Operator address" placeholder="Exactly as printed, ending with the country code" aria-describedby="onb-country" className={INPUT} />
               <div className="grid grid-cols-1 md:grid-cols-[1.4fr_1fr] gap-[12px] items-end">
                 <input name="approval" value={approval} onChange={(e) => setApproval(e.target.value)} type="text" maxLength={100} aria-label="Establishment or approval number" aria-describedby="onb-approval-hint" className={INPUT} />
                 <p id="onb-approval-hint" className="m-0 text-[11.5px] leading-[1.4] text-n600">Establishment number, if you hold one. Optional.</p>
               </div>
             </div>
           </div>
+          {/* The country set_default_operator stores, read from the end of the address: shown, never silently guessed. */}
+          <p id="onb-country" aria-live="polite" className="mt-[10px] mb-0 font-mono text-[10.5px] tracking-[0.05em] text-n700">
+            {!address.trim()
+              ? "COUNTRY · READ FROM THE END OF THE ADDRESS"
+              : country
+                ? `COUNTRY SAVED · ${countryLabel(country).toUpperCase()}`
+                : "COUNTRY · NOT FOUND AT THE END OF THE ADDRESS"}
+          </p>
           {problem ? <Problem>{problem}</Problem> : null}
         </form>
       </section>

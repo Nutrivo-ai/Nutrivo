@@ -19,20 +19,22 @@ const PERSONAL = new Set([
 
 /**
  * S-ONB-001: "Workspace will be called …, from your email domain." The domain's first label, capitalised
- * (haldenpet.com → Haldenpet); a personal mail provider gives "<full name>'s workspace". RENAME changes it.
+ * (haldenpet.com → Haldenpet). A personal mail provider says nothing about the company, so the name is then
+ * "<full name>'s workspace" and `fromDomain` is false: the screen says "from your email domain" only when it is.
  */
-export function workspaceNameFromEmail(email: string, fullName = ""): string {
+export function workspaceNameFromEmail(email: string, fullName = ""): { name: string; fromDomain: boolean } {
   const domain = email.trim().toLowerCase().split("@")[1] ?? "";
   const label = domain.split(".")[0] ?? "";
   if (label && !PERSONAL.has(label)) {
-    return label
+    const name = label
       .split(/[-_]+/)
       .filter(Boolean)
       .map((w) => w[0].toUpperCase() + w.slice(1))
       .join(" ");
+    return { name, fromDomain: true };
   }
-  const name = fullName.trim();
-  return name ? `${name}'s workspace` : "My workspace";
+  const person = fullName.trim();
+  return { name: person ? `${person}'s workspace` : "My workspace", fromDomain: false };
 }
 
 /** app.workspaces.name: 1 to 200 characters (the table's own check). */
@@ -67,9 +69,42 @@ export type Operator = { name: string; address: string; country: string; approva
 export type OperatorProblem = "name" | "address" | "country" | "approval";
 
 /**
- * S-ONB-003 (B01): the responsible operator exactly as printed. The design draws no country field and an address
- * ending ", SE", so the country is the address's trailing two-letter code (question 2 on issue #28). The approval
- * number is optional. The limits are app.set_default_operator's own.
+ * ISO 3166-1 alpha-2, every assigned code. Nothing else is a country here: not UK (GB), not EL (GR), not the letters
+ * of a Dutch postcode ("1012 AB"). Nothing is converted either: an address ending ", UK" has no country to read.
+ */
+export const ISO_COUNTRIES = new Set(
+  (
+    "AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ " +
+    "CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR " +
+    "GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO " +
+    "JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR " +
+    "MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO " +
+    "RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV " +
+    "TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW"
+  ).split(" "),
+);
+
+/** The country an address ends with, as an ISO 3166-1 alpha-2 code, or null when it does not end with one. */
+export function countryOf(address: string): string | null {
+  const code = /(?:^|[\s,])([A-Z]{2})\.?$/.exec(address.trim())?.[1];
+  return code && ISO_COUNTRIES.has(code) ? code : null;
+}
+
+/** "SE · Sweden": the code and its English name, so the person sees which country will be saved. */
+export function countryLabel(code: string): string {
+  let name: string | undefined;
+  try {
+    name = new Intl.DisplayNames(["en"], { type: "region", fallback: "none" }).of(code);
+  } catch {
+    name = undefined;
+  }
+  return name ? `${code} · ${name}` : code;
+}
+
+/**
+ * S-ONB-003 (B01): the responsible operator exactly as printed. The design draws no country field, so the country is
+ * the ISO code the address ends with (issue #28, answer 2), shown on screen before it is saved. The approval number
+ * is optional. The limits are app.set_default_operator's own.
  */
 export function readOperator(input: { name: string; address: string; approval: string }):
   | { ok: true; operator: Operator }
@@ -79,8 +114,8 @@ export function readOperator(input: { name: string; address: string; approval: s
   const approval = input.approval.trim();
   if (!name || name.length > 300) return { ok: false, problem: "name" };
   if (!address || address.length > 500) return { ok: false, problem: "address" };
-  const country = /(?:^|[\s,])([A-Za-z]{2})\.?$/.exec(address)?.[1];
-  if (!country || country !== country.toUpperCase()) return { ok: false, problem: "country" };
+  const country = countryOf(address);
+  if (!country) return { ok: false, problem: "country" };
   if (approval.length > 100) return { ok: false, problem: "approval" };
   return { ok: true, operator: { name, address, country, ...(approval ? { approval_number: approval } : {}) } };
 }
@@ -88,7 +123,8 @@ export function readOperator(input: { name: string; address: string; approval: s
 export const OPERATOR_PROBLEM: Record<OperatorProblem, string> = {
   name: "Type the operator's name exactly as it is printed on the label.",
   address: "Type the operator's address exactly as it is printed on the label.",
-  country: "End the address with the operator's two-letter country code, as printed: for example “…, 412 63 Göteborg, SE”.",
+  country:
+    "The country could not be read from the end of the address. Keep the address exactly as printed, and choose “I'll do this later” to set the operator from the workspace instead.",
   approval: "The establishment number is at most 100 characters. Leave it empty if you do not hold one.",
 };
 

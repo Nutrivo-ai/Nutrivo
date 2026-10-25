@@ -25,6 +25,8 @@ const maxDiff = nfr.quality.visual_max_diff_pixel_ratio;
 const CARD = {
   "S-ONB-001": { x: 280, y: 167, width: 584, height: 625, fractionY: 0.734 },
   "S-ONB-002": { x: 280, y: 167, width: 1040, height: 480, fractionY: 0.734 },
+  // S-ONB-003: only the operator sub-block, from its rule to the approval row (the recipe half is T-401's).
+  "S-ONB-003": { x: 309, y: 490, width: 551, height: 210, fractionY: 0.359 },
 } as const;
 
 const secret = () => `onboarding ${randomUUID()}`; // never a literal password in the repository
@@ -115,7 +117,7 @@ test.describe("A01 sign up and create a workspace", () => {
 
     const [user] = await usersWith(email);
     expect(user.email_confirmed_at ?? null).toBeNull();
-    expect(user.user_metadata).toMatchObject({ full_name: "Johanna Holm", workspace_name: "Example" });
+    expect(user.user_metadata).toMatchObject({ display_name: "Johanna Holm", workspace_name: "Example" });
     expect(await personOf(user.id)).toBeNull(); // nothing in app until a confirmed account creates a workspace
 
     // The confirmation link comes back through /auth/callback to step 02.
@@ -128,10 +130,12 @@ test.describe("A01 sign up and create a workspace", () => {
     await expectLikeBaseline(page, region, "S-ONB-002", CARD["S-ONB-002"], maxDiff);
     await axe(page);
 
-    // The UK is a plan change on Free: picking it says so and holds Continue, so nothing false is created.
+    // The UK comes with a paid plan: picking it says so and holds Continue, so nothing false is created.
+    await expect(region).toContainText("Free starts with the EU.");
     await region.getByRole("button", { name: /^UK/ }).click();
-    await expect(region.getByRole("status")).toContainText("Free covers the EU");
+    await expect(region.getByRole("status")).toHaveText("Free covers the EU. UK comes with a paid plan.");
     await expect(page.getByRole("button", { name: "Continue" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Continue" })).toHaveAccessibleDescription("Free covers the EU. UK comes with a paid plan.");
     await region.getByRole("button", { name: /^EU/ }).click();
     await region.getByLabel("Your password, once more").fill(password);
     await page.getByRole("button", { name: "Continue" }).click();
@@ -142,9 +146,14 @@ test.describe("A01 sign up and create a workspace", () => {
     await operator.getByLabel("Operator name").fill("Halden Pet Nutrition AB");
     await operator.getByLabel("Operator address").fill("Industrivägen 4, 412 63 Göteborg, Sweden");
     await page.getByRole("button", { name: "Continue" }).click();
-    await expect(operator.getByRole("alert")).toContainText("two-letter country code");
+    // No code at the end: the address stays as printed, and the person is pointed to "I'll do this later".
+    await expect(operator.getByRole("alert")).toContainText("could not be read from the end of the address");
+    await expect(operator).toContainText("COUNTRY · NOT FOUND AT THE END OF THE ADDRESS");
+    await expect(operator.getByLabel("Operator address")).toHaveValue("Industrivägen 4, 412 63 Göteborg, Sweden");
     await operator.getByLabel("Operator address").fill("Industrivägen 4, 412 63 Göteborg, SE");
     await operator.getByLabel("Establishment or approval number").fill("SE 14 2231 α");
+    await expect(operator).toContainText("COUNTRY SAVED · SE · SWEDEN");
+    await expectLikeBaseline(page, operator.getByTestId("onboarding-operator-block"), "S-ONB-003", CARD["S-ONB-003"], maxDiff);
     await page.getByRole("button", { name: "Continue" }).click();
     await expect(page).toHaveURL(/\/w\/[0-9a-f-]{36}$/);
     const ws = page.url().split("/w/")[1];
@@ -164,6 +173,37 @@ test.describe("A01 sign up and create a workspace", () => {
     await page.goto("/onboarding");
     await expect(page).toHaveURL(new RegExp(`/w/${ws}$`));
     expect(errors).toEqual([]);
+  });
+
+  test("[A01.main] a renamed workspace keeps its name through confirmation, and only a domain name is said to come from the domain", async ({ page }) => {
+    // A personal address: the fallback name is not "from your email domain".
+    await page.goto("/onboarding");
+    const account = page.getByTestId("onboarding-account");
+    await fillAccount(page, `someone-${randomUUID().slice(0, 8)}@gmail.com`, "Johanna Holm", secret());
+    await expect(account).toContainText("Workspace will be called Johanna Holm's workspace.");
+    await expect(account).not.toContainText("from your email domain");
+
+    const email = emailFor("a01-rename");
+    const password = secret();
+    await page.goto("/onboarding");
+    await fillAccount(page, email, "Johanna Holm", password);
+    await expect(account).toContainText("Workspace will be called Example, from your email domain.");
+    await account.getByRole("button", { name: "RENAME" }).click();
+    await account.getByLabel("Workspace name").fill("Halden Pet Nutrition");
+    await expect(account).not.toContainText("from your email domain");
+    await page.getByRole("button", { name: "Create workspace" }).click();
+    await expect(page.getByTestId("onboarding-check-email")).toBeVisible();
+    const [user] = await usersWith(email);
+    expect(user.user_metadata).toMatchObject({ workspace_name: "Halden Pet Nutrition" });
+
+    await page.goto(await linkFromEmail(email));
+    const region = page.getByTestId("onboarding-region");
+    await region.getByLabel("Your password, once more").fill(password);
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByTestId("onboarding-operator")).toContainText("Halden Pet Nutrition is ready.");
+    const me = await personOf(user.id);
+    const { data } = await admin().schema("app").from("workspaces").select("name").eq("created_by", me!.id);
+    expect(data).toEqual([{ name: "Halden Pet Nutrition" }]);
   });
 
   test("step 03 can be left for later: the workspace stays, without an operator, and onboarding picks up there", async ({ page, context, baseURL }) => {

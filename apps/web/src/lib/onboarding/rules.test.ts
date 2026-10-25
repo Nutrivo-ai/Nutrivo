@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { checkAccount, readOperator, regionCards, workspaceNameFromEmail, type JurisdictionRow } from "./rules";
+import { ISO_COUNTRIES, checkAccount, countryLabel, countryOf, readOperator, regionCards, workspaceNameFromEmail, type JurisdictionRow } from "./rules";
 
 const long = (n: number) => "w".repeat(n);
 
 describe("workspaceNameFromEmail (S-ONB-001)", () => {
-  it("names the workspace from the email domain", () => {
-    expect(workspaceNameFromEmail("j.holm@haldenpet.com")).toBe("Haldenpet");
-    expect(workspaceNameFromEmail("a@north-feed.co.uk")).toBe("North Feed");
+  it("names the workspace from the email domain, and says so", () => {
+    expect(workspaceNameFromEmail("j.holm@haldenpet.com")).toEqual({ name: "Haldenpet", fromDomain: true });
+    expect(workspaceNameFromEmail("a@north-feed.co.uk")).toEqual({ name: "North Feed", fromDomain: true });
   });
 
-  it("uses the person's name for a personal mail provider, never the provider's", () => {
-    expect(workspaceNameFromEmail("johanna@gmail.com", "Johanna Holm")).toBe("Johanna Holm's workspace");
-    expect(workspaceNameFromEmail("johanna@outlook.com")).toBe("My workspace");
+  it("uses the person's name for a personal mail provider, and does not claim it came from the domain", () => {
+    expect(workspaceNameFromEmail("johanna@gmail.com", "Johanna Holm")).toEqual({ name: "Johanna Holm's workspace", fromDomain: false });
+    expect(workspaceNameFromEmail("johanna@outlook.com")).toEqual({ name: "My workspace", fromDomain: false });
   });
 });
 
@@ -43,9 +43,25 @@ describe("readOperator (S-ONB-003, B01)", () => {
     });
   });
 
-  it("asks for the country code when the address does not end with one", () => {
-    expect(readOperator({ name: "Halden", address: "Industrivägen 4, Göteborg, Sweden", approval: "" })).toEqual({ ok: false, problem: "country" });
-    expect(readOperator({ name: "Halden", address: "Industrivägen 4, Göteborg, se", approval: "" })).toEqual({ ok: false, problem: "country" });
+  it("refuses an address that does not end with an ISO 3166-1 code, and converts nothing", () => {
+    for (const address of ["10 Downing Street, London, UK", "Ermou 1, 105 63 Athens, EL", "Keizersgracht 1, 1012 AB", "Industrivägen 4, Göteborg, Sweden", "Industrivägen 4, Göteborg, se"]) {
+      expect(readOperator({ name: "Halden", address, approval: "" })).toEqual({ ok: false, problem: "country" });
+    }
+  });
+
+  it("reads GB, and DE even where the address may mean Delaware: the screen shows which country is saved", () => {
+    expect(readOperator({ name: "Halden UK Ltd", address: "1 Mill Lane, Leeds LS1 4AB, GB", approval: "" })).toEqual({
+      ok: true,
+      operator: { name: "Halden UK Ltd", address: "1 Mill Lane, Leeds LS1 4AB, GB", country: "GB" },
+    });
+    expect(countryOf("1 Main Street, Wilmington, DE")).toBe("DE");
+    expect(countryLabel("DE")).toBe("DE · Germany");
+    expect(countryLabel("SE")).toBe("SE · Sweden");
+  });
+
+  it("knows every assigned ISO 3166-1 alpha-2 code and nothing else", () => {
+    expect(ISO_COUNTRIES.size).toBe(249);
+    for (const notACode of ["UK", "EL", "EU", "AB", "XK"]) expect(ISO_COUNTRIES.has(notACode)).toBe(false);
   });
 
   it("needs a name and an address, and keeps set_default_operator's limits", () => {

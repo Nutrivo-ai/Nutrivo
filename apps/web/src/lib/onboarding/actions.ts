@@ -24,7 +24,9 @@ export type OnboardingState =
   | { status: "idle" }
   | { status: "sent"; email: string }
   | { status: "problem"; problem: string }
-  | { status: "created"; workspaceId: string };
+  | { status: "created"; workspaceId: string }
+  /** The workspace already existed (a repeat click or a second tab): nothing was created, nothing is recorded. */
+  | { status: "exists"; workspaceId: string };
 
 const text = (form: FormData, name: string) => {
   const value = form.get(name);
@@ -85,7 +87,7 @@ export async function signUp(_: OnboardingState, form: FormData): Promise<Onboar
     options: {
       emailRedirectTo: await callback(ONBOARDING),
       // Read back at step 02. Supabase Auth keeps it in the EU project with the account (D-02).
-      data: { full_name: fullName, workspace_name: workspaceName },
+      data: { display_name: fullName, workspace_name: workspaceName }, // display_name: the demo seed's key (issue #28, answer 4)
     },
   });
   if (error) {
@@ -130,10 +132,10 @@ export async function createWorkspace(_: OnboardingState, form: FormData): Promi
     return { status: "problem", problem: "Confirm your email first: open the link we sent you, then continue here." };
   }
   if (region !== FREE_REGION) {
-    return { status: "problem", problem: "Free covers the EU. Choose EU to continue; the UK and the US are a plan change once the workspace exists." };
+    return { status: "problem", problem: `Free covers the EU. ${region === "UK" || region === "US" ? region : "That region"} comes with a paid plan.` };
   }
   const already = await pickStep(supabase, auth.user.id);
-  if (already.step === 3) return { status: "created", workspaceId: already.workspaceId };
+  if (already.step === 3) return { status: "exists", workspaceId: already.workspaceId };
   if (already.step === "done") redirect(CONTINUE);
 
   // Pre-account takeover: whoever signed this address up first, and never confirmed it, chose the password Supabase
