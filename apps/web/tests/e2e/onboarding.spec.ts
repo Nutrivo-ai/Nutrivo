@@ -19,10 +19,12 @@ const nfr = parse(fs.readFileSync(path.join(REPO_ROOT, "spec/nfr.yaml"), "utf8")
 };
 const maxDiff = nfr.quality.visual_max_diff_pixel_ratio;
 
-// The step cards of the Onboarding Flow baselines at 1600 px: each starts at x 280, y 167.734.
+// The step cards of the Onboarding Flow baselines at 1600 px: each starts at x 280, y 167.734. Step 02's card is
+// compared down to the end of its "Inside EU" panel: below it the route adds the password typed once more, which the
+// design does not draw (pre-account takeover, issue #28).
 const CARD = {
   "S-ONB-001": { x: 280, y: 167, width: 584, height: 625, fractionY: 0.734 },
-  "S-ONB-002": { x: 280, y: 167, width: 1040, height: 507, fractionY: 0.734 },
+  "S-ONB-002": { x: 280, y: 167, width: 1040, height: 480, fractionY: 0.734 },
 } as const;
 
 const secret = () => `onboarding ${randomUUID()}`; // never a literal password in the repository
@@ -106,7 +108,8 @@ test.describe("A01 sign up and create a workspace", () => {
     const errors = watch(page);
     const email = emailFor("a01-main");
     await page.goto("/onboarding");
-    await fillAccount(page, email, "Johanna Holm", secret());
+    const password = secret();
+    await fillAccount(page, email, "Johanna Holm", password);
     await page.getByRole("button", { name: "Create workspace" }).click();
     await expect(page.getByTestId("onboarding-check-email")).toContainText(`We sent a link to ${email}.`);
 
@@ -130,6 +133,7 @@ test.describe("A01 sign up and create a workspace", () => {
     await expect(region.getByRole("status")).toContainText("Free covers the EU");
     await expect(page.getByRole("button", { name: "Continue" })).toBeDisabled();
     await region.getByRole("button", { name: /^EU/ }).click();
+    await region.getByLabel("Your password, once more").fill(password);
     await page.getByRole("button", { name: "Continue" }).click();
 
     const operator = page.getByTestId("onboarding-operator");
@@ -205,6 +209,74 @@ test.describe("A01 sign up and create a workspace", () => {
     const ws = await workspace(who, "After The Failure");
     const { count: memberships } = await db.from("memberships").select("id", { count: "exact", head: true }).eq("workspace_id", ws);
     expect(memberships).toBe(1);
+  });
+
+  test("[A01.main] a password chosen by whoever signed the address up first, unconfirmed, stops working before the workspace exists", async ({ page }) => {
+    const email = emailFor("a01-takeover");
+    const attacker = secret();
+    const victim = secret();
+    // The attacker's unconfirmed signup: Supabase Auth keeps this password when the real owner signs up later.
+    const early = await admin().auth.admin.createUser({ email, password: attacker, email_confirm: false });
+    if (early.error) throw early.error;
+
+    await page.goto("/onboarding");
+    await fillAccount(page, email, "Real Owner", victim);
+    await page.getByRole("button", { name: "Create workspace" }).click();
+    await expect(page.getByTestId("onboarding-check-email")).toBeVisible();
+    await page.goto(await linkFromEmail(email));
+    const region = page.getByTestId("onboarding-region");
+    await expect(region).toBeVisible();
+
+    // Confirmed now, so the attacker's password signs in: it holds a session until step 02 is done.
+    const theirs = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const before = await theirs.auth.signInWithPassword({ email, password: attacker });
+    expect(before.error).toBeNull();
+
+    await region.getByLabel("Your password, once more").fill(victim);
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page.getByTestId("onboarding-operator")).toBeVisible();
+
+    // The attacker's session is ended and their password no longer works; the owner's does.
+    const refreshed = await theirs.auth.refreshSession();
+    expect(refreshed.error).not.toBeNull();
+    const again = await theirs.auth.signInWithPassword({ email, password: attacker });
+    expect(again.error?.code).toBe("invalid_credentials");
+    const owner = await theirs.auth.signInWithPassword({ email, password: victim });
+    expect(owner.error).toBeNull();
+    expect(await usersWith(email)).toHaveLength(1);
+  });
+
+  test("[A01.fail.1] a new and a registered address read the same when Supabase Auth rate-limits the email, too", async ({ page }) => {
+    const owner = await person("a01-known-busy");
+    const fresh = emailFor("a01-fresh-busy");
+    const anon = () =>
+      createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+        auth: { persistSession: false },
+      });
+    /** Submits step 01 for `email`; `before` runs just before the click, to put the address inside the email window. */
+    const answer = async (email: string, before?: () => Promise<unknown>) => {
+      await page.goto("/onboarding");
+      await fillAccount(page, email, "Somebody", secret());
+      await before?.();
+      await page.getByRole("button", { name: "Create workspace" }).click();
+      const shown = page.getByTestId("onboarding-check-email").or(page.getByTestId("onboarding-account").getByRole("alert"));
+      await expect(shown).toBeVisible();
+      return (await shown.innerText()).replace(email, "EMAIL");
+    };
+    // Supabase Auth refuses a second email to one address inside its window (max_frequency: 1 s on the local stack,
+    // 60 s hosted). An email sent to each address just before the click puts both paths inside it: the new address's
+    // signup and the registered address's sign-in link are both refused, and must read the same.
+    const fresh2 = emailFor("a01-fresh-busy2");
+    const busyNew = await answer(fresh2, () => anon().auth.signUp({ email: fresh2, password: secret() }));
+    const busyKnown = await answer(owner.email, () => anon().auth.signInWithOtp({ email: owner.email, options: { shouldCreateUser: false } }));
+    expect(busyNew).toContain("could not be created just now");
+    expect(busyKnown).toBe(busyNew);
+    // Outside the window both read "sent", alike.
+    await page.waitForTimeout(1_500);
+    expect(await answer(owner.email)).toBe(await answer(fresh));
+    expect(await usersWith(owner.email)).toHaveLength(1);
   });
 
   test("[A01.fail.1] an email that is already registered gets the sign-in path, and never a second user", async ({ page }) => {

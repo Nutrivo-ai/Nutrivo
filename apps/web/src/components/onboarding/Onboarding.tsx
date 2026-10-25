@@ -416,8 +416,52 @@ function RegionStep({
           </p>
         ) : null}
       </div>
+      <PasswordAgain />
       {problem ? <Problem>{problem}</Problem> : null}
     </section>
+  );
+}
+
+/**
+ * Below the design's step 02 card: the password, typed once more. Whoever signed an address up first and never
+ * confirmed it chose the password Supabase Auth keeps, so the person who confirmed from the inbox sets it again before
+ * the workspace exists, and every other session ends (issue #28, pre-account takeover). Controlled, so a refused
+ * submission keeps it.
+ */
+function PasswordAgain() {
+  const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
+  return (
+    <div className="mt-[20px] pt-[16px] border-t border-n200 max-w-[526px]">
+      <div className="flex justify-between items-baseline gap-[12px] mb-[6px]">
+        <label htmlFor="f-pass-again" className="text-[12.5px] font-medium">Your password, once more</label>
+        <button
+          type="button"
+          aria-controls="f-pass-again"
+          aria-pressed={show}
+          onClick={() => setShow(!show)}
+          className="bg-transparent border-0 p-0 font-mono text-[10px] tracking-[0.06em] text-accent-700 cursor-pointer hover:text-accent"
+        >
+          {show ? "HIDE" : "SHOW"}
+        </button>
+      </div>
+      <input
+        id="f-pass-again"
+        name="password"
+        form={FORM}
+        type={show ? "text" : "password"}
+        autoComplete="new-password"
+        required
+        minLength={12}
+        aria-describedby="f-pass-again-hint"
+        className={INPUT}
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <p id="f-pass-again-hint" className="mt-[6px] mb-0 text-[12px] text-n600">
+        The one you chose at step 01. It proves the account is yours before the workspace is created, and signs out anywhere else.
+      </p>
+    </div>
   );
 }
 

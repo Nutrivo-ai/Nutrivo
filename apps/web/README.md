@@ -23,7 +23,8 @@ exports them; without them its workspace tests are skipped. Database types are i
 
 Onboarding (T-106, A01): `/onboarding` is one route whose step is read from the session (`src/lib/onboarding/state.ts`):
 signed out is step 01 (sign-up with confirmation, `signUp` in `src/lib/onboarding/actions.ts`), a confirmed account
-without a workspace is step 02 (`app.create_workspace`), and the workspace the person created without an operator is
+without a workspace is step 02 (the password typed again and set with `updateUser`, other sessions signed out, then
+`app.create_workspace`: an unconfirmed earlier signup's password never survives), and the workspace the person created without an operator is
 step 03 (`app.set_default_operator`). The screens are in `src/components/onboarding`; the decisions are pure functions
 in `src/lib/onboarding/rules.ts`. `tests/e2e/onboarding.spec.ts` follows the confirmation email through Mailpit.
 
