@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(68);
+select plan(69);
 set local client_min_messages = warning;
 
 -- ─── Staff (Sam) and a non-staff member (Nina) ──────────────────────────────────────────────────────
@@ -203,6 +203,16 @@ values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), false, private.r
 set local role authenticated;
 select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
                  '[K05.must.1] the latest run is the last recorded, whatever time it claims: a back-dated failure blocks');
+reset role;
+insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
+values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), true, private.ruleset_draft_fixture_count('2026.90-a'), 'test');
+-- Same number of fixtures, different content: only the digest can tell.
+update ref.rule_fixtures set input = '{"panel":"synthetic, changed"}'
+where rule_key = 'TEST.T204.B' and version = 1 and expected_outcome = 'failed';
+set local role authenticated;
+select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039',
+                 'K05: members or fixtures changed after the latest fixture run; run the fixtures again',
+                 '[K05.must.1] a passing run is stale once a fixture''s content changes, even with the same fixture count');
 reset role;
 insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
 values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), true, private.ruleset_draft_fixture_count('2026.90-a'), 'test');
