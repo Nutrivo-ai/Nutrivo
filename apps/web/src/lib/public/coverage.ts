@@ -92,6 +92,11 @@ const domainRank = (domain: string) => {
   return i < 0 ? DOMAINS.length : i;
 };
 
+/** A domain the snapshot holds no row for: not encoded, as private.verdict_guard treats a missing node × domain. */
+const missing = (node_id: string, domain: string): SnapshotRow => ({
+  node_id, domain, state: "not_encoded", rules_encoded: 0, method: "", last_checked_at: null, gap_id: null,
+});
+
 export function shapeCoverage(snapshot: Snapshot): Coverage {
   const byNode = new Map<string, SnapshotRow[]>();
   for (const row of snapshot.nodes ?? []) {
@@ -99,8 +104,10 @@ export function shapeCoverage(snapshot: Snapshot): Coverage {
     rows.push(row);
     byNode.set(row.node_id, rows);
   }
-  const nodes: NodeCoverage[] = [...byNode.entries()].map(([id, rows]) => {
-    const domains = [...rows].sort((a, b) => domainRank(a.domain) - domainRank(b.domain) || a.domain.localeCompare(b.domain));
+  const nodes: NodeCoverage[] = [...byNode.entries()].map(([id, present]) => {
+    // Every node is judged on all six domains (CLAUDE.md 3: never imply Clear): a domain with no row is not encoded.
+    const rows = [...present, ...DOMAINS.filter((d) => !present.some((r) => r.domain === d)).map((d) => missing(id, d))];
+    const domains = rows.sort((a, b) => domainRank(a.domain) - domainRank(b.domain) || a.domain.localeCompare(b.domain));
     const dates = domains.map((d) => d.last_checked_at).filter((d): d is string => Boolean(d)).sort();
     return {
       id,

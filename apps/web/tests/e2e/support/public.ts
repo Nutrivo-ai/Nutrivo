@@ -117,3 +117,27 @@ export const INVENTED = [
   "Awaiting specialist",
   "In-house acceptance",
 ];
+
+/**
+ * Claims the review on PR #142 removed from the landing, pricing and coverage pages: regions sold whole or named beyond
+ * the released ruleset (D-01, D-22), what comes after launch (docs/00), and the hero's unbacked comparisons. The legal
+ * drafts keep their own wording for counsel, so this list is checked on those three routes.
+ */
+export const REMOVED_IN_REVIEW = [
+  "sold whole",
+  "all twenty-seven",
+  "every state",
+  "fifty states",
+  "Texas",
+  "regulatory approved",
+  "fraction of the current cost",
+  "pet food professionals",
+  "Single sign-on",
+  "signed certificate, not",
+  "Selling into all three regions",
+  "Somebody has to sign for a label",
+  "Tells you whether a label is legal",
+  "UK and US",
+  "Markets offered",
+  "Member states offered",
+];

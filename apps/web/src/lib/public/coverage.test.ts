@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { depthOf, nodeName, shapeCoverage, type SnapshotRow } from "./coverage";
+import { depthOf, DOMAINS, nodeName, shapeCoverage, type SnapshotRow } from "./coverage";
 
 const row = (node_id: string, domain: string, state: SnapshotRow["state"], rules = 0, last: string | null = null): SnapshotRow => ({
   node_id, domain, state, rules_encoded: rules, method: "machine_extraction_person_accepted", last_checked_at: last,
@@ -22,17 +22,28 @@ describe("public coverage, computed only from public.coverage_snapshot()", () =>
     expect(coverage.regions.map((r) => r.id)).toEqual(["EU", "US"]);
     const [eu, us] = coverage.regions;
     expect(eu.nodes.map((n) => [n.id, n.name, n.depth, n.rules, n.lastChecked, n.domainsEncoded, n.gaps])).toEqual([
-      ["EU-DE", "Germany", "complete", 52, "2026-08-02", 2, []],
+      ["EU-DE", "Germany", "partial", 52, "2026-08-02", 2, []],
       ["EU-FR", "France", "partial", 30, "2026-08-14", 1, ["GAP-EU-FR-MANDATORY_PARTICULARS"]],
     ]);
-    expect(eu.nodes[0].domains.map((d) => d.domain)).toEqual(["mandatory_particulars", "composition"]);
-    expect([eu.complete, eu.partial, eu.notEncoded]).toEqual([1, 1, 0]);
-    expect(eu.domains).toEqual([
+    expect(eu.nodes[0].domains.map((d) => d.domain)).toEqual([...DOMAINS]);
+    expect([eu.complete, eu.partial, eu.notEncoded]).toEqual([0, 2, 0]);
+    expect(eu.domains.slice(0, 2)).toEqual([
       { domain: "mandatory_particulars", state: "partial" },
       { domain: "composition", state: "complete" },
     ]);
     expect(us.nodes[0]).toMatchObject({ name: "US-TX", depth: "not_encoded", rules: 0, lastChecked: null });
     expect([us.complete, us.partial, us.notEncoded]).toEqual([0, 0, 1]);
+  });
+
+  it("[P01.must.1] a node is judged on all six domains: one with no row is not encoded, so the node is never complete", () => {
+    const encoded = DOMAINS.slice(0, 5).map((d) => row("EU-SE", d, "complete", 10, "2026-09-01"));
+    const node = shapeCoverage({ ruleset_version: "2026.11-a", nodes: encoded }).regions[0].nodes[0];
+    expect(node.depth).toBe("partial");
+    expect(node.domains).toHaveLength(DOMAINS.length);
+    expect(node.domains.find((d) => d.domain === "registration")).toMatchObject({ state: "not_encoded", rules_encoded: 0 });
+    expect(node.domainsEncoded).toBe(5);
+    const all = DOMAINS.map((d) => row("EU-SE", d, "complete", 10, "2026-09-01"));
+    expect(shapeCoverage({ ruleset_version: "2026.11-a", nodes: all }).regions[0].nodes[0].depth).toBe("complete");
   });
 
   it("[P01.must.1] an empty snapshot yields no regions and no figures", () => {

@@ -8,7 +8,9 @@ import { sx } from "@/lib/public/sx";
 
 // S-PRC-001 "Four plans" (P02): the term toggle and the four plan cards. Every figure comes from config/pricing.ts
 // through @/lib/public/pricing; the copy is the Pricing Page file's. Omitted from the design (D-19, issue #60): Advanced's
-// "to 100 recipes" and "Above 100 recipes the price is quoted…", which docs/08 and config do not hold. Free's editors
+// "to 100 recipes" and "Above 100 recipes the price is quoted…", which docs/08 and config do not hold; regions named
+// or "sold whole" (D-01, D-22: regions show as config's count); and what comes after launch (docs/00): signing,
+// certificates and single sign-on, with Advanced's "who" line and Standard's "move" line that rest on them. Free's editors
 // follow D-21 and config (no seat limit, question 2), where the design drew "2". On the highlighted card the grey
 // labels are one step darker than drawn (n700), because n600 on accent-100 fails axe's contrast check.
 
@@ -38,7 +40,7 @@ export function tiers(interval: Interval): Tier[] {
       price: priceLabel("free", interval), per: "THREE LABELS · NOTHING HELD BACK", on: false, primary: false, btn: "Check three labels", href: START,
       dials: [
         { k: "Labels", v: String(FREE_ARTWORKS), color: C.ink },
-        { k: "Regions", v: `${free.regionsMax}, whole`, color: C.n700 },
+        { k: "Regions", v: String(free.regionsMax), color: C.n700 },
         { k: "People who edit", v: count(free.editors, "NO LIMIT"), color: C.n700 },
         { k: "Sending", v: "INCLUDED", color: C.clear },
       ],
@@ -48,7 +50,7 @@ export function tiers(interval: Interval): Tier[] {
       price: priceLabel("basic", interval), per, on: false, primary: false, btn: `Choose ${basic.name}`, href: START,
       dials: [
         { k: "Recipes", v: count(basic.recipes, "NO LIMIT"), color: C.ink },
-        { k: "Regions", v: `${basic.regionsMax}, whole`, color: C.ink },
+        { k: "Regions", v: String(basic.regionsMax), color: C.ink },
         { k: "People who edit", v: count(basic.editors, "FREE"), color: C.ink },
         { k: "People who read", v: "FREE", color: C.clear },
       ],
@@ -63,16 +65,15 @@ export function tiers(interval: Interval): Tier[] {
         { k: "People who read", v: "FREE", color: C.clear },
       ],
       gets: ["Everything in Basic", `A second region for ${euros(region ?? 0)} a ${interval}`, "Ask a supplier for a specification once, not per recipe", "Give a consultant or co-packer access to named recipes", "Watch every market for rule changes that touch you"],
-      move: "You move up at a third region, or when somebody has to sign for a label.", moveColor: C.n700, tick: "var(--accent)" },
-    { k: advanced.name, tag: "", who: "When somebody in your company has to put their name to a label.",
+      move: null, moveColor: C.n700, tick: "var(--accent)" },
+    { k: advanced.name, tag: "", who: "",
       price: priceLabel("advanced", interval), per, on: false, primary: false, btn: "Talk to us", href: CONTACT,
       dials: [
         { k: "Recipes", v: count(advanced.recipes, "NO LIMIT"), color: C.clear },
-        { k: "Regions", v: `ALL ${inWords(advanced.regionsIncluded).toUpperCase()}`, color: C.clear },
+        { k: "Regions", v: String(advanced.regionsIncluded), color: C.clear },
         { k: "People", v: count(advanced.editors, "FREE"), color: C.clear },
-        { k: "Signing", v: "PER MARKET", color: C.clear },
       ],
-      gets: ["Everything in Standard", "All three regions: the EU, the UK and the US", "As many people as you like, all free", "A signed certificate, not only a report", "Single sign-on, and audit history you can export"],
+      gets: ["Everything in Standard", "As many people as you like, all free"],
       move: null, moveColor: C.n700, tick: "var(--n400)" },
   ];
 }

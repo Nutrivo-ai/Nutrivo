@@ -3,14 +3,18 @@ import Link from "next/link";
 import { SiteMark } from "@/components/public/Site";
 import { Ladder } from "@/components/public/pricing/Ladder";
 import { CONTACT, PUBLIC_ROUTES, SEGMENTS, START, segmentHref } from "@/lib/public/links";
-import { addonAmount, euros, inWords, PARTNER, plan } from "@/lib/public/pricing";
+import { addonAmount, amount, euros, inWords, PARTNER, plan } from "@/lib/public/pricing";
 import { sx } from "@/lib/public/sx";
 
 export const metadata: Metadata = { title: "Pricing · Nutrivo" };
 
 // S-PRC-001 (P02): design/public/Nutrivo Pricing Page.dc.html, static, with every figure from config/pricing.ts.
 // Departures from the design, each from the plan on issue #60:
-// - The region tabs are not drawn: only the EU is offered (D-01, question 1), and one tab would be a dead control.
+// - "A region is sold whole" is omitted whole: its copy and figures ("all twenty-seven", "every state", 27 / 24 / 1) state
+//   regions and coverage that D-01 and D-22 contradict at launch (review on PR #142).
+// - Advanced's signed certificate and single sign-on, and the plan table's signing and third-region rows, are omitted:
+//   both come after launch (docs/00); so is the Texas answer and "Tells you whether a label is legal" (it overstates).
+// - Partner is labelled after launch, as docs/08 lists it.
 // - Partner keeps what docs/08 holds (€1,499 per 10 client workspaces, question 3); its per-year price, recipes per
 //   client, further-client price, people and "above 25" rows are omitted, because no source on record holds them.
 
@@ -23,9 +27,9 @@ const corners = (
 const eyebrow = "margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: var(--accent)";
 
 const QUESTIONS = [
-  { n: "What it does", k: "Tells you whether a label is legal, and what to do if it is not", v: "We read your artwork, check it against the rules we hold for every market you sell in, and report four things: what is clear, what needs action, what we did not check, and what is blocked outright." },
+  { n: "What it does", k: null, v: "We read your artwork, check it against the rules we hold for every market you sell in, and report four things: what is clear, what needs action, what we did not check, and what is blocked outright." },
   { n: "Who it is for", k: "Pet food and animal nutrition brands, and the people who answer for them", v: "Brands selling into more than one market, their contract manufacturers, and the consultants who do the regulatory work on their behalf." },
-  { n: "What it costs", k: `Three labels free. From ${euros(plan("basic").prices[0].amount)} a month after that`, v: `Your first three labels are the full product, sending included. Paid plans start at ${euros(plan("basic").prices[0].amount)} a month and are priced on what you manage: recipes, regions and people who edit.` },
+  { n: "What it costs", k: `Three labels free. From ${euros(amount("basic", "month"))} a month after that`, v: `Your first three labels are the full product, sending included. Paid plans start at ${euros(amount("basic", "month"))} a month and are priced on what you manage: recipes, regions and people who edit.` },
 ];
 
 const NEVER = ["Checks and re-checks", "Checking in the language the label is printed in", "The four states", "Where each answer came from", "What we could not check, and why", "What you must register, with whom, by when", "Reading your own answer"];
@@ -44,9 +48,7 @@ const QUALIFY = [
   { who: "One brand, one region, under ten recipes", why: "Ten recipes and three people who edit, with every pack size and artwork version free.", tier: "BASIC", color: C.accent },
   { who: "A range, or a second region coming", why: "A second region is the reason most brands move here. Thirty recipes and five people who edit.", tier: "STANDARD", color: C.accent },
   { who: "You work inside your clients' workspaces", why: "Scoped access to named recipes, every action attributed to you. Your client pays for their own plan.", tier: "STANDARD", color: C.accent },
-  { who: "Selling into all three regions", why: "The third region only exists here, along with unlimited recipes and no charge for people.", tier: "ADVANCED", color: C.accent },
-  { who: "Somebody has to sign for a label", why: "A named person in your company holding signing authority for that market, and a certificate that carries their name.", tier: "ADVANCED", color: C.accent },
-  { who: "You answer for other companies' products", why: "Ten client workspaces under one account you control, with your clients reading their own free.", tier: "PARTNER", color: C.accent },
+  { who: "You answer for other companies' products", why: "Ten client workspaces under one account you control, with your clients reading their own free.", tier: "PARTNER · AFTER LAUNCH", color: C.accent },
 ];
 
 /** An add-on's monthly price on a plan, "not available" where the plan cannot buy it, as the design's table prints it. */
@@ -62,8 +64,8 @@ const free = { v: "free", c: C.clear };
 
 const GROW = [
   { k: "One more recipe", note: "Pack sizes and artwork versions are always free", b: addonCell("recipe", "basic"), s: addonCell("recipe", "standard"), a: included },
-  { k: "A second region", note: "Whole, either of the other two", b: secondRegion("basic"), s: secondRegion("standard"), a: included },
-  { k: "A third region", note: "All three only exist on Advanced", b: thirdRegion("basic"), s: thirdRegion("standard"), a: included },
+  { k: "A second region", note: null, b: secondRegion("basic"), s: secondRegion("standard"), a: included },
+  { k: "A third region", note: null, b: thirdRegion("basic"), s: thirdRegion("standard"), a: included },
   { k: "One more person who edits", note: `Beyond the ${inWords(basic.editors ?? 0)} or ${inWords(standard.editors ?? 0)} included`, b: addonCell("editor_seat", "basic"), s: addonCell("editor_seat", "standard"), a: free },
   { k: "Somebody who only reads", note: "Internal or external, as many as you like", b: free, s: free, a: free },
   { k: "A supplier who uploads a document", note: "A scoped link, not an account", b: free, s: free, a: free },
@@ -73,14 +75,11 @@ const GROW = [
 const ANSWERS = [
   { q: "Is there a catch in the three free labels?", a: "No feature is held back. You get every finding, every market in your region, the provenance on each answer, and reports you can export, email and share. The limit is the count, not the product — and there is no clock, so a label you upload in three months still counts as one of the three.", bar: C.accent },
   { q: "Why is checking never charged for?", a: "Because a meter on a compliance check is a reason not to run one, and the check somebody skipped is the one that costs money. It also means a rule change never costs you anything to respond to.", bar: C.clear },
-  { q: "Why can I not buy a single country?", a: "Because a member state or a US state is one edition of a national rulebook, not a rulebook of its own. Selling you Texas alone would mean selling you an answer that depends on federal law we had not encoded.", bar: C.action },
   { q: "What happens if I stop paying?", a: "Your workspace stops accepting new labels. Nothing is deleted, everything you have already checked stays readable, and every report you sent stays verifiable by whoever holds it. We do not hold a compliance history hostage, and we never break a document somebody else is relying on.", bar: C.clear },
   { q: "Can I get my data out?", a: "Yes, on every plan including the free one, at no charge, with the ruleset version on every row. If you leave, you leave with everything.", bar: C.clear },
   { q: "Do you offer a discount?", a: "One, and it is the same for everybody: an annual term is ten months for twelve. We concede on term rather than on price, so nobody on your plan is paying less than you are.", bar: C.none },
 ];
 
-const regionMonth = addonAmount("region", "standard", "month") ?? 0;
-const regionYear = addonAmount("region", "standard", "year") ?? 0;
 
 export default function PricingPage() {
   return (
@@ -106,7 +105,7 @@ export default function PricingPage() {
                 <div key={q.n} className="blueprint" style={sx(`position: relative; border: 1px solid var(--ink); border-top: 4px solid ${i === 2 ? "var(--accent)" : "var(--n400)"}; background: var(--paper); padding: 20px 22px`)}>
                   {corners}
                   <p style={sx("margin: 0; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.11em; text-transform: uppercase; color: var(--n600)")}>{q.n}</p>
-                  <p style={sx("margin: 10px 0 0; font-size: 17px; font-weight: 600; line-height: 1.2")}>{q.k}</p>
+                  {q.k ? <p style={sx("margin: 10px 0 0; font-size: 17px; font-weight: 600; line-height: 1.2")}>{q.k}</p> : null}
                   <p style={sx("margin: 9px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n700)")}>{q.v}</p>
                 </div>
               ))}
@@ -115,49 +114,6 @@ export default function PricingPage() {
         </section>
 
         <Ladder />
-
-        <section data-testid="region" style={sx("border-bottom: 1px solid var(--ink)")}>
-          <div style={sx("max-width: 1180px; margin: 0 auto; padding: 38px 26px 42px")}>
-            <div style={sx("display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap")}>
-              <div>
-                <p style={sx(eyebrow)}>What you buy when you buy a region</p>
-                <h2 style={sx("margin: 12px 0 0; font-size: 30px; font-weight: 600; line-height: 1.1; max-width: 30ch")}>A region is sold whole</h2>
-                <p style={sx("margin: 10px 0 0; font-size: 14.5px; line-height: 1.6; color: var(--n700); max-width: 80ch")}>You cannot buy one member state or one US state, because a state is one edition of a national rulebook rather than a rulebook of its own. Buy the EU and you have all twenty-seven. Buy the US and you have every state.</p>
-              </div>
-            </div>
-            <div style={sx("margin-top: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; align-items: start")}>
-              <div data-testid="region-eu" className="blueprint" style={sx("position: relative; border: 1px solid var(--ink); border-top: 4px solid var(--accent); background: var(--paper); padding: 24px 26px")}>
-                {corners}
-                <div style={sx("display: flex; align-items: baseline; justify-content: space-between; gap: 16px")}>
-                  <h3 style={sx("margin: 0; font-size: 22px; font-weight: 600")}>European Union</h3>
-                  <span style={sx("font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em; color: var(--accent-700)")}>{`${euros(regionMonth)} / mo · ${euros(regionYear)} / yr as a second region`}</span>
-                </div>
-                <p style={sx("margin: 11px 0 0; font-size: 14px; line-height: 1.6; color: var(--n800)")}>All twenty-seven member states, every official language, and each country&apos;s own registration, language and enforcement rules layered on top of the EU rulebook.</p>
-                <div style={sx("margin-top: 18px; display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 14px; border-top: 1px solid var(--n200); padding-top: 16px")}>
-                  {[{ n: "27", k: "Member states, all included" }, { n: "24", k: "Official languages" }, { n: "1", k: "Rulebook, twenty-seven editions" }].map((f) => (
-                    <div key={f.k}>
-                      <p style={sx("margin: 0; font-family: var(--mono); font-size: 20px; line-height: 1")}>{f.n}</p>
-                      <p style={sx("margin: 6px 0 0; font-size: 12px; line-height: 1.4; color: var(--n700)")}>{f.k}</p>
-                    </div>
-                  ))}
-                </div>
-                <p style={sx("margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--n200); font-size: 13px; line-height: 1.55; color: var(--n700)")}>One supranational rulebook, then national law on top. A recipe cleared in Germany is not automatically cleared in France, and both are inside this region.</p>
-              </div>
-              <div data-testid="region-notes" style={sx("display: flex; flex-direction: column; gap: 16px")}>
-                <div className="blueprint" style={sx("position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--accent); background: var(--accent-100); padding: 20px 22px")}>
-                  {corners}
-                  <p style={sx("margin: 0; font-size: 15px; font-weight: 600")}>Why a whole region costs what one market would</p>
-                  <p style={sx("margin: 9px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n800)")}>A check costs what your artwork costs us to read, not what our coverage costs us to hold. Two packs are two language panels whether we hold three member states or twenty-seven. The part that grows with breadth — the authorities, the fees, the deadlines — is a lookup.</p>
-                </div>
-                <div className="blueprint" style={sx("position: relative; border: 1px solid var(--ink); border-left: 4px solid var(--action); background: var(--paper); padding: 20px 22px")}>
-                  {corners}
-                  <p style={sx("margin: 0; font-size: 15px; font-weight: 600")}>We only sell a region we have published</p>
-                  <p style={sx("margin: 9px 0 0; font-size: 13.5px; line-height: 1.6; color: var(--n700)")}>For every market in it we publish how much we hold, how it was checked, when it was last checked, and every gap by name. If we would not publish a market&apos;s depth, we do not sell it. <Link href={PUBLIC_ROUTES.coverage} style={sx("text-decoration: underline")}>Read the coverage page</Link>.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
 
         <section data-testid="never" style={sx("border-bottom: 1px solid var(--ink); background: var(--panel)")}>
           <div style={sx("max-width: 1180px; margin: 0 auto; padding: 38px 26px 42px")}>
@@ -237,7 +193,7 @@ export default function PricingPage() {
                   <div key={g.k} role="row" data-testid="grow-row" style={sx(`display: grid; grid-template-columns: minmax(0, 1fr) 96px 96px 96px; border-bottom: ${i < a.length - 1 ? "1px solid var(--n200)" : "none"}; background: ${i % 2 ? "var(--panel)" : "transparent"}`)}>
                     <div role="cell" style={sx("padding: 12px 13px")}>
                       <p style={sx("margin: 0; font-size: 13px; font-weight: 500")}>{g.k}</p>
-                      <p style={sx("margin: 4px 0 0; font-size: 11.5px; line-height: 1.4; color: var(--n600)")}>{g.note}</p>
+                      {g.note ? <p style={sx("margin: 4px 0 0; font-size: 11.5px; line-height: 1.4; color: var(--n600)")}>{g.note}</p> : null}
                     </div>
                     {[g.b, g.s, g.a].map((cell, j) => (
                       <p key={j} role="cell" style={sx(`margin: 0; padding: 12px 13px; font-family: var(--mono); font-size: 11px; color: ${cell.c}`)}>{cell.v}</p>
@@ -262,7 +218,7 @@ export default function PricingPage() {
                 </div>
                 <div>
                   <p data-testid="partner-price" style={sx("margin: 0; font-family: var(--mono); font-size: 32px; line-height: 1; color: var(--accent-700)")}>{euros(PARTNER.monthly)}</p>
-                  <p style={sx("margin: 7px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)")}>PER MONTH · EXCL. VAT</p>
+                  <p style={sx("margin: 7px 0 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em; color: var(--n600)")}>PER MONTH · EXCL. VAT · AFTER LAUNCH</p>
                   <div style={sx("margin-top: 18px; display: flex; flex-direction: column; gap: 8px")}>
                     <div style={sx("display: flex; justify-content: space-between; gap: 12px; align-items: baseline; border-bottom: 1px solid var(--n200); padding-bottom: 8px")}>
                       <span style={sx("font-size: 13px; color: var(--n700)")}>Client workspaces</span>

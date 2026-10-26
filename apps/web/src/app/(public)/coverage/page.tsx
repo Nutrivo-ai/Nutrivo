@@ -258,7 +258,9 @@ async function LiveCoverage({ searchParams }: { searchParams: Promise<Params> })
 
 function RegionIndex({ coverage, region, detail }: { coverage: Coverage; region: RegionCoverage; detail: NodeCoverage }) {
   const stats = [
-    { k: region.id === "EU" ? "Member states offered" : "Markets offered", n: region.nodes.length, v: "The region is sold whole.", color: "var(--ink)" },
+    // "Member states offered · The region is sold whole" in the design: no region is offered beyond the released ruleset
+    // (D-01, D-22, review on PR #142), so the figure is only the markets the ruleset lists.
+    { k: "Markets in the ruleset", n: region.nodes.length, v: null, color: "var(--ink)" },
     { k: "Complete", n: region.complete, v: "Every domain we check is encoded", color: "var(--clear)" },
     { k: "Partial", n: region.partial, v: "Gaps named on the row, never summarised", color: "var(--action)" },
     { k: "Not encoded", n: region.notEncoded, v: "No verdict is offered.", color: "var(--none)" },
@@ -296,7 +298,7 @@ function RegionIndex({ coverage, region, detail }: { coverage: Coverage; region:
           <div key={s.k} style={sx(`padding: 18px 20px; border-right: ${i < 3 ? "1px solid var(--rule)" : "none"}`)}>
             <p style={sx("margin: 0; font-family: var(--mono); font-size: 10px; letter-spacing: 0.11em; text-transform: uppercase; color: var(--n600)")}>{s.k}</p>
             <p data-stat={s.k} style={sx(`margin: 10px 0 0; font-family: var(--mono); font-size: 30px; line-height: 1; color: ${s.color}`)}>{s.n}</p>
-            <p style={sx("margin: 8px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--n700)")}>{s.v}</p>
+            {s.v ? <p style={sx("margin: 8px 0 0; font-size: 12.5px; line-height: 1.45; color: var(--n700)")}>{s.v}</p> : null}
           </div>
         ))}
       </div>

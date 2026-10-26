@@ -6,7 +6,7 @@ import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { REPO_ROOT } from "../visual/screens";
 import { expectLikeBaseline } from "./support/baseline";
-import { axe, crawl, INVENTED, maxDiffPixelRatio, open } from "./support/public";
+import { axe, crawl, INVENTED, maxDiffPixelRatio, open, REMOVED_IN_REVIEW } from "./support/public";
 import { createClient } from "@supabase/supabase-js";
 import { addonAmount, euros, PARTNER, plans, priceLabel } from "../../src/lib/public/pricing";
 import { isoDay, shapeCoverage, type Coverage, type Snapshot } from "../../src/lib/public/coverage";
@@ -78,15 +78,17 @@ test.describe("pricing (P02)", () => {
     for (const name of ["Core", "Portfolio", "Verified"]) await expect(page.getByText(name, { exact: true })).toHaveCount(0);
   });
 
-  // Compared as drawn: header, intro, Basic and Standard, the EU region card and its two notes, never/not sold, the
-  // plan table, growth. Not compared: the Free card (D-21 editors), the Advanced card (no "100 recipes"), the region
-  // tabs (EU only) and Partner (rows docs/08 does not hold), which also moves the answers and close 113 px up.
+  // Compared as drawn: header, the plans' heading and term toggle, never/not sold, the close and the footer, at the
+  // design's own positions. Not compared, because the review on PR #142 and the plan on #60 changed them: the intro
+  // (its first card's title), the plan cards (regions as config counts, D-21 editors, nothing after launch), the omitted
+  // "A region is sold whole" section, the plan table and growth notes (signing and third-region rows), Partner (after
+  // launch, rows docs/08 does not hold) and the answers (the Texas answer).
   test("S-PRC-001 /pricing matches its design baseline at 1600 px, region by region", async ({ page }) => {
     await open(page, "/pricing");
-    for (const id of ["header", "intro", "ladder-head", "plan-basic", "plan-standard", "region-eu", "region-notes", "never", "qualify", "grow"]) {
-      await likeDesign(page, id, "S-PRC-001");
-    }
-    for (const id of ["answers", "close"]) await likeDesign(page, id, "S-PRC-001", { dy: 113 });
+    for (const id of ["header", "ladder-head"]) await likeDesign(page, id, "S-PRC-001");
+    await likeDesign(page, "never", "S-PRC-001", { y: 2103 });
+    await likeDesign(page, "close", "S-PRC-001", { y: 4725 });
+    await likeDesign(page, "footer", "S-PRC-001", { y: 5090 });
   });
 
   test("/pricing passes axe and has no dead controls", async ({ page }) => {
@@ -98,7 +100,8 @@ test.describe("pricing (P02)", () => {
   test("/pricing shows none of the design's invented claims", async ({ page }) => {
     await open(page, "/pricing");
     const text = await page.locator("body").innerText();
-    for (const claim of [...INVENTED, "100 RECIPES", "Above 100 recipes", "€14,990", "€129/mo", "Above 25 clients"]) expect(text).not.toContain(claim);
+    for (const claim of [...INVENTED, ...REMOVED_IN_REVIEW, "100 RECIPES", "Above 100 recipes", "€14,990", "€129/mo", "Above 25 clients"]) expect(text, claim).not.toContain(claim);
+    await expect(page.getByTestId("partner")).toContainText("AFTER LAUNCH");
   });
 });
 
@@ -167,8 +170,8 @@ test.describe("coverage (P01)", () => {
       for (const claim of INVENTED) expect(text, claim).not.toContain(claim);
       expect(text, "no coverage percentage").not.toMatch(/\d\s*%/);
       const stats = page.getByTestId("region-stats");
-      const offered = region.id === "EU" ? "Member states offered" : "Markets offered";
-      await expect(stats.locator(`[data-stat="${offered}"]`)).toHaveText(String(region.nodes.length));
+      await expect(stats.locator('[data-stat="Markets in the ruleset"]')).toHaveText(String(region.nodes.length));
+      for (const claim of REMOVED_IN_REVIEW) expect(text, claim).not.toContain(claim);
       await expect(stats.locator('[data-stat="Complete"]')).toHaveText(String(region.complete));
       await expect(stats.locator('[data-stat="Partial"]')).toHaveText(String(region.partial));
       await expect(stats.locator('[data-stat="Not encoded"]')).toHaveText(String(region.notEncoded));
@@ -226,7 +229,7 @@ test.describe("landing page (P01, P02)", () => {
       }
     }
     const text = await page.locator("body").innerText();
-    for (const claim of [...INVENTED, "Watch it run", "Texas: the label passes", "€8,000", "Minutes", "Experts", "Nobody in this category"]) expect(text, claim).not.toContain(claim);
+    for (const claim of [...INVENTED, ...REMOVED_IN_REVIEW, "Watch it run", "€8,000", "Minutes", "Experts", "Nobody in this category"]) expect(text, claim).not.toContain(claim);
     expect(text, "no coverage percentage").not.toMatch(/\d\s*%/);
   });
 

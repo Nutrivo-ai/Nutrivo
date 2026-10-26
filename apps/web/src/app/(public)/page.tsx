@@ -21,7 +21,9 @@ export const metadata: Metadata = {
 // findings), "The stakes" (time and cost ranges), the sample verification card, the "How it works" sketch, the
 // comparison table (a named competitor and consultant rates, question 9), the per-region regulatory descriptions in
 // "Markets" (question 8), the per-region coverage cards and "Nobody in this category publishes this". The header links
-// and the hero button that pointed at removed sections go with them. "Rules encoded, by domain" is computed from
+// and the hero button that pointed at removed sections go with them. After the review on PR #142: the hero's two
+// paragraphs ("regulatory approved", "a fraction of the current cost", "built by pet food professionals") and the
+// whole "Markets" section (a region "sold whole", the Texas roll-up example: D-01, D-22) are omitted too. "Rules encoded, by domain" is computed from
 // public.coverage_snapshot(), and the plans from config/pricing.ts.
 
 const QUESTIONS = [
@@ -108,8 +110,6 @@ export default function LandingPage() {
             <div data-testid="hero-text">
               <p style={sx("margin: 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)")}>Label compliance for pet food and animal nutrition</p>
               <h1 style={sx("margin: 18px 0 0; font-size: 42px; font-weight: 600; line-height: 1.1; letter-spacing: -0.035em; text-wrap: balance")}>Want to sell in EU? Listing in the UK? Expanding in the US?</h1>
-              <p style={sx("margin: 20px 0 0; font-size: 17.5px; line-height: 1.5; color: var(--n700)")}>Checking if your current labels are compliant to new recipes and label generation that are compliant and regulatory approved. Nutrivo helps you.</p>
-              <p style={sx("margin: 14px 0 0; font-size: 15.5px; line-height: 1.55; color: var(--n700)")}>From an easy to use yet fully professional service we help you at a fraction of the current cost of listing your products. Powered by AI, built by pet food professionals.</p>
             </div>
             <div style={sx("margin-top: 30px; display: flex; align-items: center; gap: 12px")}>
               <Link href={START} className="pub-primary" style={sx("position: relative; background: var(--accent); color: var(--paper); font-size: 16px; font-weight: 500; padding: 15px 26px; border-radius: 3px")}>
@@ -230,21 +230,6 @@ export default function LandingPage() {
           <Suspense fallback={<div style={sx("margin-top: 30px")}><LoadingState label="READING THE RELEASED RULESET" /></div>}>
             <CoverageMatrix />
           </Suspense>
-        </section>
-
-        <section id="markets" style={sx("padding: 60px 56px; border-top: 1px solid var(--ink)")}>
-          <p style={sx(eyebrow)}>Markets</p>
-          <h2 style={sx(`${h2}; max-width: 28ch`)}>A market is not a country on a list. It is a place in a rulebook.</h2>
-          <div data-testid="markets-notes" style={sx("margin-top: 24px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px")}>
-            <div style={sx("border: 1px solid var(--rule); border-left: 3px solid var(--ink); padding: 20px 22px")}>
-              <h3 style={sx("margin: 0; font-family: var(--mono); font-size: 10.5px; font-weight: 400; line-height: normal; letter-spacing: 0.1em; text-transform: uppercase; color: var(--n600)")}>The roll-up rule</h3>
-              <p style={sx("margin: 10px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--n700)")}>A region never shows as Clear while one of its markets is not. If Texas is blocked, the US does not read clear because the other forty-nine are — you see the failing node, named.</p>
-            </div>
-            <div style={sx("border: 1px solid var(--rule); border-left: 3px solid var(--accent); padding: 20px 22px")}>
-              <h3 style={sx("margin: 0; font-family: var(--mono); font-size: 10.5px; font-weight: 400; line-height: normal; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent-700)")}>Why a region is sold whole</h3>
-              <p style={sx("margin: 10px 0 0; font-size: 14.5px; line-height: 1.55; color: var(--n700)")}>You cannot buy a single state or a single member state, because a state is an edition of a rulebook rather than a rulebook of its own. Buy the region and you have all of it.</p>
-            </div>
-          </div>
         </section>
 
         <section id="pricing" data-testid="plans" style={sx("padding: 60px 56px; border-top: 1px solid var(--ink)")}>
