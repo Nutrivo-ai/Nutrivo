@@ -7,6 +7,7 @@
 //     wordings, levels or registrations (no person has accepted them as content);
 //   - invented example data the public site may not show (INVENTED in tests/e2e/support/public.ts).
 import { CONTACT, PUBLIC_ROUTES, SEGMENTS, START } from "@/lib/public/links";
+import { amount, euros, PARTNER } from "@/lib/public/pricing";
 
 export type SegmentKey = (typeof SEGMENTS)[number]["key"];
 export type Glyph = "clear" | "action" | "none";
@@ -139,7 +140,7 @@ export const SEGMENT_CONTENT: Segment[] = [
     cta: { label: "See Partner", href: PUBLIC_ROUTES.pricing },
     cta2: { label: "Talk to us", href: CONTACT },
     // Partner's €1,499 per 10 client workspaces, net of VAT: docs/08-billing.md.
-    ctaNote: "€1,499/MO FOR TEN CLIENT WORKSPACES · EXCL. VAT",
+    ctaNote: `${euros(PARTNER.monthly)}/MO FOR TEN CLIENT WORKSPACES · EXCL. VAT`,
     heroCard: { kicker: "What we will not sell", title: "We do not do your job", body: "Representing an applicant, the borderline classification call, signing off a launch, arguing with an authority. Not sold at any price by us, and frequently the whole engagement for you.", tone: "clear", bg: "var(--clear-bg)" },
     problemTitle: "The billable work is judgement, and the hours go on measuring",
     problems: [
@@ -156,8 +157,8 @@ export const SEGMENT_CONTENT: Segment[] = [
       { n: "04", k: "Your name on the record", v: "Every check names the person and the firm who ran it, permanently, in the client's own history.", meta: "THE RECORD THEY PAY YOU FOR" },
     ],
     proofKicker: "The arithmetic", proofTitle: "Twelve clients on Standard is the wrong shape and the wrong number",
-    // €5,988 is twelve Standard subscriptions at €499 (config/pricing.ts).
-    proofBody: "Twelve separate subscriptions is €5,988 a month and twelve logins nobody wants to hold. One large workspace breaks the thing that matters most, because each client's products, findings and reports have to stay unmixable and each has a different operator on the label.",
+    // Twelve Standard subscriptions at the config/pricing.ts price (€5,988 in the design).
+    proofBody: `Twelve separate subscriptions is ${euros(12 * amount("standard", "month"))} a month and twelve logins nobody wants to hold. One large workspace breaks the thing that matters most, because each client's products, findings and reports have to stay unmixable and each has a different operator on the label.`,
     proofRows: [
       // omitted: "Partner at twelve clients is €1,757 a month, …" (needs the per-client price no source holds).
       { v: "Your client reads their own workspace free, which is how a twelve-client firm becomes our best distribution.", glyph: "clear" },
