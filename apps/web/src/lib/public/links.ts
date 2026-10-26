@@ -1,5 +1,5 @@
 // Where the public site's calls to action go (T-603, plan on issue #60).
-// "Sign in" is T-103's /sign-in. Starting the free allowance belongs to /onboarding (T-106, PR #135); until that is on
+// "Sign in" is T-103's /sign-in. Starting the free allowance belongs to /onboarding (T-106, PR 135); until that is on
 // main every start link goes to /sign-in, and START switches to "/onboarding" when it lands.
 export const SIGN_IN = "/sign-in";
 export const START = "/sign-in";
