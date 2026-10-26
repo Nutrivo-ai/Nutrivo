@@ -259,7 +259,7 @@ async function LiveCoverage({ searchParams }: { searchParams: Promise<Params> })
 function RegionIndex({ coverage, region, detail }: { coverage: Coverage; region: RegionCoverage; detail: NodeCoverage }) {
   const stats = [
     // "Member states offered · The region is sold whole" in the design: no region is offered beyond the released ruleset
-    // (D-01, D-22, review on PR #142), so the figure is only the markets the ruleset lists.
+    // (D-01, D-22, review on PR 142), so the figure is only the markets the ruleset lists.
     { k: "Markets in the ruleset", n: region.nodes.length, v: null, color: "var(--ink)" },
     { k: "Complete", n: region.complete, v: "Every domain we check is encoded", color: "var(--clear)" },
     { k: "Partial", n: region.partial, v: "Gaps named on the row, never summarised", color: "var(--action)" },

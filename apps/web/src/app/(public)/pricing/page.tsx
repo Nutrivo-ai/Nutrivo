@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Pricing · Nutrivo" };
 // S-PRC-001 (P02): design/public/Nutrivo Pricing Page.dc.html, static, with every figure from config/pricing.ts.
 // Departures from the design, each from the plan on issue #60:
 // - "A region is sold whole" is omitted whole: its copy and figures ("all twenty-seven", "every state", 27 / 24 / 1) state
-//   regions and coverage that D-01 and D-22 contradict at launch (review on PR #142).
+//   regions and coverage that D-01 and D-22 contradict at launch (review on PR 142).
 // - Advanced's signed certificate and single sign-on, and the plan table's signing and third-region rows, are omitted:
 //   both come after launch (docs/00); so is the Texas answer and "Tells you whether a label is legal" (it overstates).
 // - Partner is labelled after launch, as docs/08 lists it.

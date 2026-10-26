@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 // findings), "The stakes" (time and cost ranges), the sample verification card, the "How it works" sketch, the
 // comparison table (a named competitor and consultant rates, question 9), the per-region regulatory descriptions in
 // "Markets" (question 8), the per-region coverage cards and "Nobody in this category publishes this". The header links
-// and the hero button that pointed at removed sections go with them. After the review on PR #142: the hero's two
+// and the hero button that pointed at removed sections go with them. After the review on PR 142: the hero's two
 // paragraphs ("regulatory approved", "a fraction of the current cost", "built by pet food professionals") and the
 // whole "Markets" section (a region "sold whole", the Texas roll-up example: D-01, D-22) are omitted too. "Rules encoded, by domain" is computed from
 // public.coverage_snapshot(), and the plans from config/pricing.ts.

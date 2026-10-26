@@ -7,7 +7,7 @@ import { addonAmount, euros, FREE_ARTWORKS, inWords, monthsFree, plan, priceLabe
 import { sx } from "@/lib/public/sx";
 
 // S-LND-001 "Pricing" (P02): the landing page's own four plan cards, every figure from config/pricing.ts. Departures
-// from the Landing Page file (plan on issue #60, review on PR #142): Free's people follow D-21 and config (no seat
+// from the Landing Page file (plan on issue #60, review on PR 142): Free's people follow D-21 and config (no seat
 // limit, question 2); Advanced's experts on quotation are omitted (no source holds them); regions show as config's
 // count, never named or "whole", and the heading, lead and "Pick your region" chips that sell the EU, UK and US whole
 // are omitted (D-01, D-22); the signed certificate and the "who" line resting on it come after launch (docs/00).

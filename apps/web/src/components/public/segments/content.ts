@@ -140,7 +140,7 @@ export const SEGMENT_CONTENT: Segment[] = [
     cta: { label: "See Partner", href: PUBLIC_ROUTES.pricing },
     cta2: { label: "Talk to us", href: CONTACT },
     // Partner's €1,499 per 10 client workspaces, net of VAT: docs/08-billing.md.
-    // Partner comes after launch (docs/08, review on PR #142).
+    // Partner comes after launch (docs/08, review on PR 142).
     ctaNote: `${euros(PARTNER.monthly)}/MO FOR TEN CLIENT WORKSPACES · EXCL. VAT · AFTER LAUNCH`,
     heroCard: { kicker: "What we will not sell", title: "We do not do your job", body: "Representing an applicant, the borderline classification call, signing off a launch, arguing with an authority. Not sold at any price by us, and frequently the whole engagement for you.", tone: "clear", bg: "var(--clear-bg)" },
     problemTitle: "The billable work is judgement, and the hours go on measuring",
