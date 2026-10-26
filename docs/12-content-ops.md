@@ -144,7 +144,8 @@ target × source. It never writes a rule.
   not verbatim, and always for `threshold` and `prescribed_wording`. Nothing here sets `accepted`, writes
   `decided_by`, or touches `ref.rules`, `ref.rule_versions` or a ruleset. Acceptance is a person's click (K03, T-204).
   Until the second key has run, the candidate has `agree` null. The accept RPC must refuse such a candidate.
-- **Not extracted yet.** `claim_judgement` targets are skipped (`needs_claims_harness`, T-501), and so are
+- **Not extracted yet.** `claim_judgement` targets are skipped (`needs_claims_harness`; the harness itself is in place,
+  docs/07, but no task yet extracts claim_judgement params), and so are
   `additive_condition` targets (`needs_additive_register`, T-202). Drafting fixtures for the reviewer comes with
   acceptance.
 - **Idempotent.** There is one candidate per (source_id, rule key), under an advisory lock.
@@ -161,6 +162,19 @@ target × source. It never writes a rule.
 - **Running it.** Use `scripts/env/run.sh dev -- uv run nutrivo content extract`. It needs `DATABASE_URL`,
   `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and model configuration. `--target KEY` and `--lang xx` narrow the run.
   `--dry-run` extracts and compares, but writes nothing to the database. Langfuse still traces the calls.
+
+## Accepting and releasing (K03–K05, J02, T-204)
+Staff (`app_metadata.nutrivo_staff`) act through RPCs; each needs the caller's person record and is audited.
+- **Accept a candidate** with `app.accept_candidate`, choosing the key checked against the text. The version takes
+  that extraction's params, article reference and excerpt unchanged; the person adds title, shape, domain and node
+  (new rule keys only), applicability, the effect of the change and its dates. A candidate is refused until its
+  second key has run, and a key that is not verbatim is refused.
+- **Terms** are accepted or rejected with `app.decide_term`, only from the stored official text in the term's own
+  language.
+- **Coverage** is edited on a draft (`app.create_ruleset_draft`, `app.set_draft_member`, `app.set_draft_coverage`,
+  gaps with `app.open_coverage_gap`). Complete needs every member rule of that node and domain tested.
+- **Release** with `app.release_ruleset` once the fixture run for the draft passed (docs/05 §The release gate). It
+  writes the diffs, and alerts follow only for non-editorial ones.
 
 ## Candidate targets
 `content/candidates/eu-core.yaml` lists the first targets. **Every citation there is a candidate written from
