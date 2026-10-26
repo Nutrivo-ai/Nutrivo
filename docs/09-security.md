@@ -35,6 +35,11 @@ database (P0292). Removing a member ends the membership, revokes grants and sign
   first (`/auth/mfa`). The database enforces `aal2` only for signing (P0292). A token at `aal1` for an account with a
   factor still reads and writes under RLS through the API, outside the web app; whether to require `aal2` in the
   database for such accounts is an open question for a founder (#25, question 7).
+- **Business sign-in (D-27, T-109).**
+  - Google and Microsoft OAuth sit beside email and password; Microsoft is limited to work accounts.
+  - No new account is created for a consumer or free-mail address on any route. A Supabase Auth hook enforces this
+    in the database, against a versioned domain list; existing accounts keep working.
+  - Google and Microsoft are the customer's own identity providers, not sub-processors.
 - **Password reset.** It ends every other session (`signOut({scope: 'others'})`).
 - **Audit.** Sign-ins and password changes are audited by database triggers on `auth.sessions` and `auth.users`;
   the password, its hash and every token stay out of the audit, logs and Sentry.
