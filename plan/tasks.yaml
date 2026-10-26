@@ -37,6 +37,7 @@ tasks:
   - {id: T-106, ms: M1, lanes: [web], deps: [T-103], wf: [A01], title: "Onboarding: create the workspace and set the default operator"}
   - {id: T-107, ms: M1, lanes: [web], deps: [T-104, T-105, T-106], title: "Workspace Settings: People, Workspace, Your account (screens for A03 to A06)"}
   - {id: T-108, ms: M1, lanes: [web], deps: [T-107], wf: [O02], title: "Audit log"}
+  - {id: T-109, ms: M1, lanes: [web, db], gate: human, deps: [T-103], title: "Business sign-in (D-27): Continue with Google and Continue with Microsoft (organizations tenant) on /sign-in and sign-up; a before-user-created Auth hook that refuses consumer and free-mail domains on every route against a versioned list, existing accounts unaffected; identity linking, two-step rules unchanged; tests for each route; a founder creates the Google and Microsoft OAuth apps and stores their secrets in Infisical"}
   # ── M2 · Content operations ─────────────────────────────────────────────────────────────────────────
   - {id: T-201, ms: M2, lanes: [worker], deps: [T-008], title: "EUR-Lex source fetcher: consolidated texts in EN, SV, DA, FI, DE stored with sha256"}
   - {id: T-202, ms: M2, lanes: [worker], deps: [T-201], title: "Importers: EU Register of Feed Additives and Catalogue of feed materials"}
@@ -49,10 +50,10 @@ tasks:
   # ── M3 · Artwork extraction ─────────────────────────────────────────────────────────────────────────
   - {id: T-301, ms: M3, lanes: [worker], deps: [T-008], title: "Extraction spike: pypdfium2 against pdfplumber, results recorded in docs/06"}
   - {id: T-302, ms: M3, lanes: [worker], deps: [T-301], title: "Extraction to the contract: worker gates BE-16, BE-17, BE-18 pass; pypdfium2 + fontTools engine with pdfplumber moved to dev dependencies (D-15); synthetic generator wraps the operator line and adds one deliberate gutter-overflow fixture with expected panel attribution (#39)"}
-  - {id: T-303, ms: M3, lanes: [web, worker], deps: [T-302, T-102], wf: [D01, C02], title: "Upload flow: signed upload, register_artwork, extract job, Realtime progress, product from artwork"}
+  - {id: T-303, ms: M3, lanes: [web, worker], deps: [T-302, T-102], wf: [D01], title: "Upload flow: signed upload into an existing product, register_artwork, extract job, Realtime progress, unsupported file types rejected before upload; creating the product from the artwork (C02) moves to T-401"}
   - {id: T-304, ms: M3, lanes: [web], deps: [T-303], wf: [D02], title: "Panel triage view"}
   # ── M4 · First demo path ────────────────────────────────────────────────────────────────────────────
-  - {id: T-401, ms: M4, lanes: [web, db], deps: [T-102, T-204], wf: [C01, C03, C04, B02], title: "Products, families, stages and the free-allowance experience"}
+  - {id: T-401, ms: M4, lanes: [web, db], deps: [T-102, T-204, T-303], wf: [C01, C02, C03, C04, B02], title: "Products, families, stages and the free-allowance experience, including a product created from an artwork (C02, moved from T-303)"}
   - {id: T-402, ms: M4, lanes: [worker, web], deps: [T-303, T-203], wf: [D03], title: "Classification: model suggestion, person confirmation, citation"}
   - {id: T-403, ms: M4, lanes: [worker], deps: [T-302, T-204, T-206], wf: [D04], title: "Rules engine core with evaluators mandatory_particular and prescribed_wording"}
   - {id: T-404, ms: M4, lanes: [web], deps: [T-403], wf: [D07], title: "Label report: per-language results, artwork pins, Not assessed with gap links"}
