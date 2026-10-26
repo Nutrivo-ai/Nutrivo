@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { Blueprint, EmptyState, cx } from "@/components/kit";
 import type { RuleCandidate, TermCandidate } from "@/lib/admin/reads";
 import { languageName } from "@/lib/admin/language";
@@ -26,6 +26,18 @@ const day = (iso: string | null) => (iso ? iso.slice(0, 10) : "—");
 /** BE-11: a term is accepted only from the stored official text in its own language (app.decide_term checks it too). */
 export function fromOwnText(t: TermCandidate) {
   return Boolean(t.source?.storedOfficial && t.source.language === t.language);
+}
+
+function Item({ on, onClick, children, ...rest }: { on: boolean; onClick: () => void; className: string; "data-term-id": string; children: ReactNode }) {
+  return on ? (
+    <div aria-current="true" {...rest}>
+      {children}
+    </div>
+  ) : (
+    <button type="button" onClick={onClick} {...rest}>
+      {children}
+    </button>
+  );
 }
 
 type Outcome = { tone: "done" | "refused"; text: string } | null;
@@ -77,33 +89,33 @@ export function TermQueue({ terms, rules, initial }: { terms: TermCandidate[]; r
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-[minmax(220px,280px)_minmax(0,1fr)] gap-[22px] items-start">
+        <div className="grid grid-cols-1 md:grid-cols-[minmax(220px,280px)_minmax(0,646px)] gap-[22px] items-start">
           <div>
-            <p className="m-0 mb-[10px] font-mono text-[10px] tracking-[0.13em] uppercase text-n500">Queue · internal</p>
+            <p className="m-0 mb-[10px] font-mono text-[10px] tracking-[0.13em] uppercase text-n600">Queue · internal</p>
             <ul aria-label="Candidate terms" className="m-0 p-0 list-none border border-ink">
               {terms.map((t) => {
                 const on = t.id === selected?.id;
                 return (
                   <li key={t.id} className="border-b border-rule">
-                    <button
-                      type="button"
-                      aria-current={on ? "true" : undefined}
+                    {/* The entry on show is not a control: choosing it again would do nothing. */}
+                    <Item
+                      on={on}
                       data-term-id={t.id}
                       onClick={() => setSelectedId(t.id)}
-                      className={cx("w-full text-left border-0 cursor-pointer py-[10px] px-[12px] text-ink", on ? "bg-accent-100" : "bg-transparent hover:bg-panel")}
+                      className={cx("block w-full text-left border-0 py-[10px] px-[12px] text-ink", on ? "bg-accent-100" : "bg-transparent cursor-pointer hover:bg-panel")}
                     >
                       <span className="flex items-baseline gap-[8px]">
                         <span className={cx("flex-1 text-[13px] leading-[1.55]", on ? "font-semibold" : "font-normal")}>{t.term}</span>
-                        <span className="font-mono text-[9.5px] text-n600">{t.language.toUpperCase()}</span>
+                        <span className={cx("font-mono text-[9.5px]", on ? "text-n700" : "text-n600")}>{t.language.toUpperCase()}</span>
                       </span>
-                      <span className="block mt-[3px] font-mono text-[9.5px] tracking-[0.06em] uppercase text-n600">{label(t.kind)}</span>
-                    </button>
+                      <span className={cx("block mt-[3px] font-mono text-[9.5px] tracking-[0.06em] uppercase", on ? "text-n700" : "text-n600")}>{label(t.kind)}</span>
+                    </Item>
                   </li>
                 );
               })}
             </ul>
             <div data-region="routing" className="mt-[16px] border border-rule py-[14px] px-[16px] bg-panel">
-              <p className="m-0 font-mono text-[10px] tracking-[0.12em] uppercase text-n500">Routing by class</p>
+              <p className="m-0 font-mono text-[10px] tracking-[0.12em] uppercase text-n600">Routing by class</p>
               {ROUTING.map((r) => (
                 <p key={r.k} className="mt-[9px] mb-0 text-[12.5px] leading-[1.5] text-n700">
                   <span className={cx("font-mono text-[10px] tracking-[0.06em]", r.tone)}>{r.k}</span>
@@ -161,7 +173,7 @@ export function TermQueue({ terms, rules, initial }: { terms: TermCandidate[]; r
                       { k: "English reference only", v: selected.englishReference ?? "None recorded" },
                     ].map((f) => (
                       <div key={f.k} className="border-t border-rule py-[10px]">
-                        <dt className="m-0 font-mono text-[9.5px] tracking-[0.12em] uppercase text-n500">{f.k}</dt>
+                        <dt className="m-0 font-mono text-[9.5px] tracking-[0.12em] uppercase text-n600">{f.k}</dt>
                         <dd data-fact={f.k} className="mt-[4px] mx-0 mb-0 text-[13px] leading-[1.45]">{f.v}</dd>
                       </div>
                     ))}

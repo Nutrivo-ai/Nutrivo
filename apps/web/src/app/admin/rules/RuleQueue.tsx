@@ -55,10 +55,11 @@ function blockedReason(c: RuleCandidate): string | null {
   return null;
 }
 
-function Candidate({ c, nodes }: { c: RuleCandidate; nodes: Jurisdiction[] }) {
+type Outcome = { tone: "done" | "refused"; text: string; candidate: string } | null;
+
+function Candidate({ c, nodes, outcome, setOutcome }: { c: RuleCandidate; nodes: Jurisdiction[]; outcome: Outcome; setOutcome: (o: Outcome) => void }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [outcome, setOutcome] = useState<{ tone: "done" | "refused"; text: string } | null>(null);
   const blocked = blockedReason(c);
 
   function accept(event: FormEvent<HTMLFormElement>) {
@@ -68,9 +69,9 @@ function Candidate({ c, nodes }: { c: RuleCandidate; nodes: Jurisdiction[] }) {
       const result = await acceptCandidate(c.id, form);
       if (result.ok) {
         const v = result.value as { rule_key?: string; version?: number } | null;
-        setOutcome({ tone: "done", text: `Accepted as ${v?.rule_key ?? c.ruleKey} v${v?.version ?? "?"}, with your name and the time.` });
+        setOutcome({ tone: "done", candidate: c.id, text: `Accepted as ${v?.rule_key ?? c.ruleKey} v${v?.version ?? "?"}, with your name and the time.` });
         router.refresh();
-      } else setOutcome({ tone: "refused", text: result.message });
+      } else setOutcome({ tone: "refused", candidate: c.id, text: result.message });
     });
   }
 
@@ -78,9 +79,9 @@ function Candidate({ c, nodes }: { c: RuleCandidate; nodes: Jurisdiction[] }) {
     start(async () => {
       const result = await rejectCandidate(c.id, null);
       if (result.ok) {
-        setOutcome({ tone: "done", text: "Rejected. The candidate is kept, decided, and never becomes a rule." });
+        setOutcome({ tone: "done", candidate: c.id, text: `Rejected ${c.ruleKey ?? "the candidate"}. It is kept, decided, and never becomes a rule.` });
         router.refresh();
-      } else setOutcome({ tone: "refused", text: result.message });
+      } else setOutcome({ tone: "refused", candidate: c.id, text: result.message });
     });
   }
 
@@ -185,7 +186,7 @@ function Candidate({ c, nodes }: { c: RuleCandidate; nodes: Jurisdiction[] }) {
         )}
         <div className="mt-[10px] flex flex-wrap items-center gap-[8px]">
           <Button variant="secondary" disabled={pending} onClick={reject}>Reject</Button>
-          <p role="status" className={cx("m-0 text-[13px]", outcome?.tone === "refused" ? "text-blocked" : "text-n700")}>{outcome?.text ?? ""}</p>
+          {outcome?.candidate === c.id && outcome.tone === "refused" ? <p className="m-0 text-[13px] text-blocked">{outcome.text}</p> : null}
         </div>
       </div>
     </Blueprint>
@@ -193,8 +194,13 @@ function Candidate({ c, nodes }: { c: RuleCandidate; nodes: Jurisdiction[] }) {
 }
 
 export function RuleQueue({ candidates, nodes }: { candidates: RuleCandidate[]; nodes: Jurisdiction[] }) {
+  // Page-level, so the outcome stays on screen after a decided candidate leaves the queue.
+  const [outcome, setOutcome] = useState<Outcome>(null);
   return (
     <main className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
+      <p role="status" data-said="rules" data-tone={outcome?.tone ?? ""} className={cx("mt-0 mb-[12px] text-[13px] min-h-[20px]", outcome?.tone === "refused" ? "text-blocked" : "text-n700")}>
+        {outcome?.text ?? ""}
+      </p>
       <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px] gap-[22px] items-start">
         <div className="flex flex-col gap-[18px] min-w-0">
           {candidates.length === 0 ? (
@@ -204,11 +210,11 @@ export function RuleQueue({ candidates, nodes }: { candidates: RuleCandidate[]; 
               body="Candidates appear here after the K01 and K02 extractions have read a stored official text. Nothing becomes a rule without a person's acceptance."
             />
           ) : (
-            candidates.map((c) => <Candidate key={c.id} c={c} nodes={nodes} />)
+            candidates.map((c) => <Candidate key={c.id} c={c} nodes={nodes} outcome={outcome} setOutcome={setOutcome} />)
           )}
         </div>
         <aside className="border border-rule bg-panel py-[14px] px-[16px]">
-          <p className="m-0 font-mono text-[10px] tracking-[0.12em] uppercase text-n500">Accepting a rule: the checklist</p>
+          <p className="m-0 font-mono text-[10px] tracking-[0.12em] uppercase text-n600">Accepting a rule: the checklist</p>
           <ul className="mt-[6px] mb-0 pl-[16px] text-[12.5px] leading-[1.5] text-n700">
             {CHECKLIST.map((item) => <li key={item} className="mt-[6px]">{item}</li>)}
           </ul>

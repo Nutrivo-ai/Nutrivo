@@ -176,6 +176,24 @@ Staff (`app_metadata.nutrivo_staff`) act through RPCs; each needs the caller's p
 - **Release** with `app.release_ruleset` once the fixture run for the draft passed (docs/05 §The release gate). It
   writes the diffs, and alerts follow only for non-editorial ones.
 
+## The /admin console (K03, K04, T-205)
+Staff work the queues in `/admin`. The layout checks `app_metadata.nutrivo_staff` on the server before anything renders
+or is read, and a person who is not staff sees a no-permission page and nothing else. Candidate terms, rule candidates,
+drafts and fixture runs are readable only by the service role, so the server reads them that way after the check
+(`apps/web/src/lib/admin/server.ts`); the key is never sent to the browser. Every change is one of the staff RPCs above,
+called under the person's own session, so the database names them as the decider.
+- **`/admin/terms`** (S-NV2-029): the candidate terms, one at a time, with their stored source, its language and the
+  English row of the same term key marked *reference only*. Accept and Reject call `app.decide_term`. An entry whose
+  source is not the stored official text in its own language says why and cannot be accepted (BE-11). Hold for review
+  writes nothing and moves to the next entry (#35).
+- **`/admin/rules`**: each rule candidate with both extractions side by side and the checklist above. Accepting asks
+  for the extraction checked against the text plus what the extraction does not hold; applicability has no default.
+- **`/admin/coverage`**: start a draft, put accepted versions in it, open gaps, and set each node × domain. Complete is
+  refused (P0010) until every member rule for it is accepted and tested. The release panel lists what blocks the
+  release (missing fixtures, no fixture run, a run that failed or judged too few) and shows the database's refusal as
+  it is. Until the runner records draft runs (T-206), every release is refused, and the page says so.
+- **`/admin/glossary`**: the latest release's glossary, read only.
+
 ## Candidate targets
 `content/candidates/eu-core.yaml` lists the first targets. **Every citation there is a candidate written from
 general knowledge: paragraph letters especially must be confirmed against the consolidated text before any

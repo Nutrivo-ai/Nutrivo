@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { NoPermissionState } from "@/components/kit";
+import { LoadingState, NoPermissionState } from "@/components/kit";
 import { Wordmark } from "@/components/shell";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { sessionGate } from "@/lib/auth/session";
@@ -10,8 +10,23 @@ import { createClient } from "@/lib/supabase/server";
 
 // T-205: /admin is staff only (docs/09). The signed-in person's app_metadata.nutrivo_staff is checked here, on the
 // server, before any admin page renders or reads; the pages read through staffReader(), which checks it again. A
-// person with a second factor proves it first, as everywhere else (A02 step 4).
-export default async function AdminLayout({ children }: { children: ReactNode }) {
+// person with a second factor proves it first, as everywhere else (A02 step 4). The check reads the session at request
+// time, so it renders inside a Suspense boundary (cacheComponents); nothing of the console is in the static shell.
+export default function AdminLayout({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={
+        <main className="py-[40px] px-[16px] md:px-[30px]">
+          <LoadingState label="LOADING · ADMIN">Checking your access.</LoadingState>
+        </main>
+      }
+    >
+      <StaffOnly>{children}</StaffOnly>
+    </Suspense>
+  );
+}
+
+async function StaffOnly({ children }: { children: ReactNode }) {
   const gate = await staffGate();
   if (gate.kind === "signed-out") redirect(signInHref("/admin"));
   if (gate.kind === "not-staff") {
