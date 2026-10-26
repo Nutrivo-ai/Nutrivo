@@ -1423,14 +1423,14 @@ isOneToOne: false
                   ]
                 },"fixture_runs": {
                   Row: {
-                    "digest": string,"draft_id": string,"id": string,"passed": boolean,"ran_at": string,"rule_fixtures_ran": number,"runner": string,"summary": NonNullable<Json>
+                    "digest": string,"draft_id": string,"id": string,"passed": boolean,"ran_at": string,"rule_fixtures_ran": number,"runner": string,"seq": number,"summary": NonNullable<Json>
                   }
                   ComputedFields: never
                   Insert: {
-                    "digest": string,"draft_id": string,"id"?: string,"passed": boolean,"ran_at"?: string,"rule_fixtures_ran": number,"runner": string,"summary"?: NonNullable<Json>
+                    "digest": string,"draft_id": string,"id"?: string,"passed": boolean,"ran_at"?: string,"rule_fixtures_ran": number,"runner": string,"seq"?: never,"summary"?: NonNullable<Json>
                   }
                   Update: {
-                    "digest"?: string,"draft_id"?: string,"id"?: string,"passed"?: boolean,"ran_at"?: string,"rule_fixtures_ran"?: number,"runner"?: string,"summary"?: NonNullable<Json>
+                    "digest"?: string,"draft_id"?: string,"id"?: string,"passed"?: boolean,"ran_at"?: string,"rule_fixtures_ran"?: number,"runner"?: string,"seq"?: never,"summary"?: NonNullable<Json>
                   }
                   Relationships: [
                     {

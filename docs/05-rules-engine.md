@@ -50,10 +50,11 @@ Golden labels (`fixtures/golden/`) gate releases once there are 30 of them.
 
 ### The release gate (T-204)
 A release is prepared as a draft (`ref.ruleset_drafts`, with members and coverage). The fixture runner records each
-run against a draft in `ref.fixture_runs` (insert-only, service role only) with `passed`, `rule_fixtures_ran` and the
-draft's digest, `private.ruleset_draft_digest(draft)`: every member's version and the content of its fixtures. A run
+run against a draft in `ref.fixture_runs` (insert-only, service role only; the latest is the last inserted) with
+`passed`, `rule_fixtures_ran` and the draft's digest, `private.ruleset_draft_digest(draft)`: every member's version and the content of its fixtures. A run
 that judged no fixture cannot be recorded as passed. `app.release_ruleset` refuses (P0039) unless every member has
-fixtures and the draft's latest run passed and still matches the digest, so a fixture or member changed after the run
+passed, failed and withheld fixtures and the draft's latest run passed, judged every one of them and still matches the
+digest, so a fixture or member changed after the run
 needs a new run. Until the runner resolves draft ids (worker follow-up, #34) and T-403 adds evaluators, nothing can be
 released: that is intended.
 

@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(59);
+select plan(68);
 set local client_min_messages = warning;
 
 -- ─── Staff (Sam) and a non-staff member (Nina) ──────────────────────────────────────────────────────
@@ -41,6 +41,12 @@ insert into ref.rule_candidates (id, source_id, article, proposed_rule_key, firs
   ('70000000-0000-4000-8204-0000000000b2','60000000-0000-4000-8204-0000000000a1','Art. 2','TEST.T204.B',
    pg_temp.val('{"particular":"synthetic_b"}','Synthetic excerpt B one, reworded.'),
    pg_temp.val('{"particular":"synthetic_b"}','Synthetic excerpt B one, reworded.'), true, 'pending'),
+  ('70000000-0000-4000-8204-0000000000a3','60000000-0000-4000-8204-0000000000a1','Art. 1','TEST.T204.A',
+   pg_temp.val('{"particular":"synthetic_a2_other"}','Synthetic excerpt A two, reworded.'),
+   pg_temp.val('{"particular":"synthetic_a2_other"}','Synthetic excerpt A two, reworded.'), true, 'pending'),
+  ('70000000-0000-4000-8204-0000000000d1','60000000-0000-4000-8204-0000000000a1','Art. 4','TEST.T204.D',
+   pg_temp.val('{"particular":"synthetic_d"}','Synthetic excerpt D.'),
+   pg_temp.val('{"particular":"synthetic_d"}','Synthetic excerpt D.'), true, 'pending'),
   ('70000000-0000-4000-8204-0000000000c1','60000000-0000-4000-8204-0000000000a1','Art. 3','TEST.T204.C',
    pg_temp.val('{"particular":"synthetic_c"}','Synthetic excerpt C.'), null, null, 'pending'),
   ('70000000-0000-4000-8204-0000000000c2','60000000-0000-4000-8204-0000000000a1','Art. 3','TEST.T204.C',
@@ -70,6 +76,10 @@ select ok(not has_table_privilege('authenticated', 'ref.ruleset_drafts', 'select
           and not has_table_privilege('authenticated', 'ref.fixture_runs', 'insert')
           and not has_table_privilege('anon', 'ref.fixture_runs', 'select'),
           '[T-204] drafts and fixture runs are staff tooling: no client can read or write them');
+select ok(not has_function_privilege('authenticated', 'private.open_draft(text)', 'execute')
+          and not has_function_privilege('authenticated', 'private.coverage_supported(text,text,text)', 'execute')
+          and not has_function_privilege('authenticated', 'private.ruleset_draft_digest(text)', 'execute'),
+          '[T-204] the release helpers are not executable by clients');
 
 -- ─── Not staff: refused before anything is read ─────────────────────────────────────────────────
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8204-0000000000b1","role":"authenticated"}', true);
@@ -110,6 +120,9 @@ select throws_ok($$select app.accept_candidate('70000000-0000-4000-8204-00000000
 select throws_ok($$select app.accept_candidate('70000000-0000-4000-8204-0000000000a2', 'first', null, 'threshold',
                     null, null, '{"all": []}', 'tightened_threshold')$$,
                  '22023', null, '[J02.must.1] a rule keeps its shape across versions: a new shape needs a new key');
+select throws_ok($$select app.accept_candidate('70000000-0000-4000-8204-0000000000d1', 'first', 'D', 'mandatory_particular',
+                    'mandatory_particulars', 'EU', '{"all": []}', 'editorial')$$,
+                 '22023', null, '[J02.must.2] a rule''s first version cannot be typed editorial, so it always reaches alerts');
 select lives_ok($$select app.reject_candidate('70000000-0000-4000-8204-0000000000c3', 'synthetic: wrong article')$$,
                 '[T-204] staff reject a candidate');
 reset role;
@@ -147,13 +160,20 @@ reset role;
 insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome) values
   ('TEST.T204.A', 1, 'synthetic passed', '{"panel":"synthetic"}', 'passed'),
   ('TEST.T204.B', 1, 'synthetic passed', '{"panel":"synthetic"}', 'passed');
+set local role authenticated;
+select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
+                 '[K05.must.1] no release while a member lacks failed and withheld fixtures');
+reset role;
+insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)
+select k, 1, 'synthetic ' || o, '{"panel":"synthetic"}', o
+from unnest(array['TEST.T204.A','TEST.T204.B']) k cross join unnest(array['failed','withheld']) o;
 
 set local role authenticated;
 select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
                  '[K05.must.1] no release before a fixture run is recorded');
 reset role;
 insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
-values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), false, 2, 'test');
+values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), false, private.ruleset_draft_fixture_count('2026.90-a'), 'test');
 set local role authenticated;
 select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
                  '[K05.must.1] no release when the latest fixture run failed');
@@ -162,15 +182,30 @@ select throws_ok($$insert into ref.fixture_runs (draft_id, digest, passed, rule_
                    values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), true, 0, 'test')$$,
                  '23514', null, '[K05.must.1] a run that judged no fixture can never be recorded as passed');
 insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
-values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), true, 2, 'test');
+values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), true, private.ruleset_draft_fixture_count('2026.90-a') - 1, 'test');
+set local role authenticated;
+select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
+                 '[K05.must.1] a passing run that judged only some of the fixtures is not enough');
+reset role;
+insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
+values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), true, private.ruleset_draft_fixture_count('2026.90-a'), 'test');
 insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)
-values ('TEST.T204.A', 1, 'synthetic withheld', '{"panel":"unreadable"}', 'withheld');
+values ('TEST.T204.A', 1, 'synthetic withheld, unreadable', '{"panel":"unreadable"}', 'withheld');
 set local role authenticated;
 select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
                  '[K05.must.1] a passing run is stale once a fixture changes after it');
 reset role;
 insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
-values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), true, 3, 'test');
+values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), true, private.ruleset_draft_fixture_count('2026.90-a'), 'test');
+insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner, ran_at)
+values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), false, private.ruleset_draft_fixture_count('2026.90-a'), 'test',
+        now() - interval '1 day');
+set local role authenticated;
+select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
+                 '[K05.must.1] the latest run is the last recorded, whatever time it claims: a back-dated failure blocks');
+reset role;
+insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
+values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), true, private.ruleset_draft_fixture_count('2026.90-a'), 'test');
 select throws_ok($$update ref.fixture_runs set passed = true$$, 'P0005', null,
                  '[K05.must.1] fixture runs are insert-only');
 
@@ -178,6 +213,8 @@ set local role authenticated;
 select lives_ok($$select app.set_draft_coverage('2026.90-a', 'EU-SE', 'mandatory_particulars', 'complete',
                     null, '2026-10-26')$$,
                 '[K05.main] complete coverage once the domain''s members are accepted and tested');
+select throws_ok($$select app.set_draft_coverage('2026.90-a', 'EU', 'mandatory_particulars', 'complete')$$, '22023', null,
+                 '[T-204] BE-21: coverage rows are never added, so a region cannot be made complete on its own');
 select throws_ok($$select app.set_draft_coverage('2026.90-a', 'EU-SE', 'composition', 'complete')$$, 'P0010', null,
                  '[T-204] BE-10: complete is refused where no member covers the domain');
 select throws_ok($$select app.set_draft_coverage('2026.90-a', 'EU-SE', 'language', 'partial', null, null,
@@ -225,6 +262,9 @@ select is(app.accept_candidate('70000000-0000-4000-8204-0000000000a2', 'second',
             '{"all": [{"eq": ["species", "dog"]}]}', 'tightened_threshold', '2027-01-01', '2027-06-30'),
           '{"rule_key": "TEST.T204.A", "version": 2, "supersedes_version": 1}'::jsonb,
           '[J02.main] accepting a change writes version 2 superseding version 1');
+select lives_ok($$select app.accept_candidate('70000000-0000-4000-8204-0000000000a3', 'first', null, null, null, null,
+                    '{"all": [{"eq": ["species", "dog"]}]}', 'editorial')$$,
+                '[J02.must.2] a later editorial version of the same rule is accepted as version 3');
 select lives_ok($$select app.accept_candidate('70000000-0000-4000-8204-0000000000b2', 'first', null, null, null, null,
                     '{"all": []}', 'editorial')$$, '[J02.must.2] an editorial change is accepted as a new version');
 reset role;
@@ -238,22 +278,26 @@ select is((select params::text || ' ' || status from ref.rule_versions where rul
 
 set local role authenticated;
 select app.create_ruleset_draft('2026.90-b');
-select app.set_draft_member('2026.90-b', 'TEST.T204.A', 2);
+select app.set_draft_member('2026.90-b', 'TEST.T204.A', 3);
 select app.set_draft_member('2026.90-b', 'TEST.T204.B', 2);
 reset role;
-insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome) values
-  ('TEST.T204.A', 2, 'synthetic failed', '{"panel":"synthetic"}', 'failed'),
-  ('TEST.T204.B', 2, 'synthetic passed', '{"panel":"synthetic"}', 'passed');
+insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)
+select k, v, 'synthetic ' || o, '{"panel":"synthetic"}', o
+from (values ('TEST.T204.A', 3), ('TEST.T204.B', 2)) as m(k, v) cross join unnest(array['passed','failed','withheld']) o;
 insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
-values ('2026.90-b', private.ruleset_draft_digest('2026.90-b'), true, 2, 'test');
+values ('2026.90-b', private.ruleset_draft_digest('2026.90-b'), true, private.ruleset_draft_fixture_count('2026.90-b'), 'test');
 set local role authenticated;
 select lives_ok($$select app.release_ruleset('2026.90-b')$$, '[J02.main] the second release passes its fixture gate');
 reset role;
 
 select is((select from_version || '>' || to_version || ' ' || effect_type || ' ' || effective_from || ' ' || sell_through_until
-           from ref.rule_diffs where ruleset_version = '2026.90-b' and rule_key = 'TEST.T204.A'),
+           from ref.rule_diffs where ruleset_version = '2026.90-b' and rule_key = 'TEST.T204.A' and to_version = 2),
           '1>2 tightened_threshold 2027-01-01 2027-06-30',
           '[J02.main] the release writes a diff typed by effect with effective_from and sell_through_until');
+select is((select string_agg(from_version || '>' || to_version || ' ' || effect_type, ', ' order by to_version)
+           from ref.rule_diffs where ruleset_version = '2026.90-b' and rule_key = 'TEST.T204.A'),
+          '1>2 tightened_threshold, 2>3 editorial',
+          '[J02.main] a version stepped over keeps its own typed diff, so a later editorial one cannot hide it');
 select is((select coalesce(from_version::text, '-') || '>' || to_version || ' ' || effect_type
            from ref.rule_diffs where ruleset_version = '2026.90-a' and rule_key = 'TEST.T204.A'),
           '->1 new_obligation', '[J02.main] a rule''s first release is a diff from no version');
@@ -269,10 +313,12 @@ select is((select count(*)::int from app.jobs j join ref.rule_diffs d on d.id = 
 -- ─── Dropping a member is not decided yet (#34): refused rather than typed by guess ───────────────
 set local role authenticated;
 select app.create_ruleset_draft('2026.90-c');
+select throws_ok($$select app.set_draft_member('2026.90-c', 'TEST.T204.A', 1)$$, '22023', null,
+                 '[T-204] going back to an earlier version is refused until its effect is decided');
 select app.set_draft_member('2026.90-c', 'TEST.T204.B', null);
 reset role;
 insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
-values ('2026.90-c', private.ruleset_draft_digest('2026.90-c'), true, 1, 'test');
+values ('2026.90-c', private.ruleset_draft_digest('2026.90-c'), true, private.ruleset_draft_fixture_count('2026.90-c'), 'test');
 set local role authenticated;
 select throws_ok($$select app.release_ruleset('2026.90-c')$$, '22023', null,
                  '[T-204] a release that drops a previous member is refused until its effect is decided');

@@ -43,16 +43,17 @@ create table ref.ruleset_draft_coverage (
 
 create table ref.fixture_runs (                  -- insert-only; written by the worker's fixture runner only
   id                uuid primary key default gen_random_uuid(),
+  seq               bigint generated always as identity unique,   -- 'latest' is insertion order, never ran_at
   draft_id          text not null references ref.ruleset_drafts(id),
   digest            text not null,              -- private.ruleset_draft_digest(draft_id) when the run started
   passed            boolean not null,
-  rule_fixtures_ran int  not null check (rule_fixtures_ran >= 0),
+  rule_fixtures_ran int  not null check (rule_fixtures_ran >= 0),   -- must equal every fixture under the digest
   summary           jsonb not null default '{}',
   runner            text not null,
   ran_at            timestamptz not null default clock_timestamp(),
   check (not passed or rule_fixtures_ran > 0)   -- a runner that judged nothing never passes
 );
-create index fixture_runs_draft on ref.fixture_runs(draft_id, ran_at desc);
+create index fixture_runs_draft on ref.fixture_runs(draft_id, seq desc);
 
 revoke all on ref.ruleset_drafts, ref.ruleset_draft_members, ref.ruleset_draft_coverage, ref.fixture_runs
   from public, anon, authenticated;
@@ -89,12 +90,26 @@ language sql stable security definer set search_path = '' as $$
            m.rule_key || ':' || m.version || ':' || coalesce(f.fx, ''), E'\n' order by m.rule_key), ''), 'sha256'), 'hex')
   from ref.ruleset_draft_members m
   left join lateral (
-    select string_agg(md5(concat_ws('|', rf.id, rf.name, rf.input, rf.expected_outcome, rf.expected)), ','
+    select string_agg(md5(jsonb_build_array(rf.id, rf.name, rf.input, rf.expected_outcome, rf.expected)::text), ','
                       order by rf.id) as fx
     from ref.rule_fixtures rf where rf.rule_key = m.rule_key and rf.version = m.version) f on true
   where m.draft_id = p_draft
 $$;
-revoke execute on function private.ruleset_draft_digest(text) from authenticated;
+
+-- docs/12 checklist: a rule version is tested when it has fixtures for passed, failed and withheld.
+create function private.version_tested(p_rule_key text, p_version int) returns boolean
+language sql stable security definer set search_path = '' as $$
+  select count(distinct rf.expected_outcome) = 3 from ref.rule_fixtures rf
+  where rf.rule_key = p_rule_key and rf.version = p_version
+$$;
+
+-- The number of fixtures a run of the draft must have judged: all of them.
+create function private.ruleset_draft_fixture_count(p_draft text) returns int
+language sql stable security definer set search_path = '' as $$
+  select count(*)::int from ref.ruleset_draft_members m
+  join ref.rule_fixtures rf on rf.rule_key = m.rule_key and rf.version = m.version
+  where m.draft_id = p_draft
+$$;
 
 -- docs/05 §Applicability: the predicate language, and nothing else.
 create function private.valid_applicability(p jsonb) returns boolean
@@ -134,8 +149,23 @@ language sql stable security definer set search_path = '' as $$
     where m.draft_id = p_draft and r.domain = p_domain
       and r.node_id in (p_node, (select j.parent_id from ref.jurisdictions j where j.id = p_node)))
   select exists (select 1 from held)
-     and not exists (select 1 from held h where not exists (
-           select 1 from ref.rule_fixtures rf where rf.rule_key = h.rule_key and rf.version = h.version))
+     and not exists (select 1 from held h where not private.version_tested(h.rule_key, h.version))
+$$;
+
+-- J02: each accepted version a member steps over, after the previous release's pin up to the draft's, is one diff
+-- typed by its own effect, so a skipped version's effect is never hidden behind a later editorial one.
+create function private.release_steps(p_draft text, p_prev text)
+returns table (rule_key text, from_version int, to_version int, effect_type text, effective_from date,
+               sell_through_until date)
+language sql stable security definer set search_path = '' as $$
+  select m.rule_key,
+         coalesce(lag(rv.version) over (partition by m.rule_key order by rv.version), p.version),
+         rv.version, rv.effect_type, rv.effective_from, rv.sell_through_until
+  from ref.ruleset_draft_members m
+  left join ref.ruleset_members p on p.ruleset_version = p_prev and p.rule_key = m.rule_key
+  join ref.rule_versions rv on rv.rule_key = m.rule_key and rv.status = 'accepted'
+                            and rv.version > coalesce(p.version, 0) and rv.version <= m.version
+  where m.draft_id = p_draft
 $$;
 
 -- A draft that can still change: it exists and has not been released. Locks it for the caller's transaction.
@@ -186,6 +216,10 @@ begin
     raise exception 'the % extraction is not a verified finding with params, article and excerpt', p_use
       using errcode = '22023';
   end if;
+  if not exists (select 1 from ref.sources s where s.id = v_c.source_id and s.kind = 'eurlex'
+                 and s.sha256 is not null and s.storage_path is not null) then
+    raise exception 'the candidate''s source is not a stored official text' using errcode = '22023';
+  end if;
   if p_effect_type is null then
     raise exception 'type the change: effect_type is required' using errcode = '22023';
   end if;
@@ -211,6 +245,9 @@ begin
 
   select max(rv.version) filter (where rv.status = 'accepted'), coalesce(max(rv.version), 0) + 1
   into v_prev, v_version from ref.rule_versions rv where rv.rule_key = v_c.proposed_rule_key;
+  if v_prev is null and p_effect_type = 'editorial' then
+    raise exception 'a rule''s first version is an obligation, never editorial' using errcode = '22023';
+  end if;
 
   insert into ref.rule_versions (rule_key, version, status, params, applicability, article_ref, source_id,
                                  source_excerpt, effect_type, effective_from, sell_through_until,
@@ -262,6 +299,7 @@ begin
     raise exception 'term entry is already %', v_e.status using errcode = '22023';
   end if;
   if p_decision = 'accept' then
+    perform pg_advisory_xact_lock(hashtext('ref.term_entries:' || v_e.term_key || ':' || v_e.language));
     if not exists (select 1 from ref.sources s where s.id = v_e.source_id and s.kind = 'eurlex'
                    and s.language = v_e.language and s.sha256 is not null and s.storage_path is not null) then
       raise exception 'BE-11: a % term is accepted only from the stored official % text', v_e.language, v_e.language
@@ -351,6 +389,11 @@ begin
       raise exception 'a ruleset may only contain accepted rule versions (% v%)', p_rule_key, p_version
         using errcode = 'P0038';
     end if;
+    if exists (select 1 from ref.ruleset_members m where m.ruleset_version = v_d.based_on
+               and m.rule_key = p_rule_key and m.version > p_version) then
+      raise exception 'going back to an earlier version of % is not decided yet (#34)', p_rule_key
+        using errcode = '22023';
+    end if;
     insert into ref.ruleset_draft_members (draft_id, rule_key, version) values (p_draft, p_rule_key, p_version)
     on conflict (draft_id, rule_key) do update set version = excluded.version;
   end if;
@@ -380,17 +423,18 @@ begin
     raise exception '% coverage needs an open gap for % %', p_state, p_node, p_domain using errcode = '22023';
   end if;
   select * into v_before from ref.ruleset_draft_coverage c
+  where c.draft_id = p_draft and c.node_id = p_node and c.domain = p_domain for update;
+  if not found then
+    raise exception 'draft % holds no coverage row for % %; coverage nodes are not added here', p_draft, p_node,
+      p_domain using errcode = '22023';
+  end if;
+  update ref.ruleset_draft_coverage c
+  set state = p_state, method = coalesce(p_method, v_before.method),
+      last_checked_at = coalesce(p_last_checked_at, v_before.last_checked_at), gap_id = p_gap_id
   where c.draft_id = p_draft and c.node_id = p_node and c.domain = p_domain;
-  insert into ref.ruleset_draft_coverage (draft_id, node_id, domain, state, method, last_checked_at, gap_id)
-  values (p_draft, p_node, p_domain, p_state, coalesce(p_method, v_before.method, 'machine_extraction_person_accepted'),
-          p_last_checked_at, p_gap_id)
-  on conflict (draft_id, node_id, domain) do update
-    set state = excluded.state, method = excluded.method, last_checked_at = excluded.last_checked_at,
-        gap_id = excluded.gap_id;
   perform private.write_audit(null, 'ruleset_draft.coverage_set', 'ruleset_draft', p_draft,
-                              case when v_before.draft_id is null then null else
-                                jsonb_build_object('node_id', p_node, 'domain', p_domain, 'state', v_before.state,
-                                                   'gap_id', v_before.gap_id) end,
+                              jsonb_build_object('node_id', p_node, 'domain', p_domain, 'state', v_before.state,
+                                                 'gap_id', v_before.gap_id),
                               jsonb_build_object('node_id', p_node, 'domain', p_domain, 'state', p_state,
                                                  'gap_id', p_gap_id, 'last_checked_at', p_last_checked_at));
 end $$;
@@ -418,17 +462,21 @@ begin
   end if;
   select string_agg(m.rule_key || ' v' || m.version, ', ' order by m.rule_key) into v_bad
   from ref.ruleset_draft_members m
-  where m.draft_id = p_draft and not exists (select 1 from ref.rule_fixtures rf
-                                             where rf.rule_key = m.rule_key and rf.version = m.version);
+  where m.draft_id = p_draft and not private.version_tested(m.rule_key, m.version);
   if v_bad is not null then
-    raise exception 'K05: no release without fixtures; none for %', v_bad using errcode = 'P0039';
+    raise exception 'K05: no release without passed, failed and withheld fixtures; missing for %', v_bad
+      using errcode = 'P0039';
   end if;
-  select * into v_run from ref.fixture_runs r where r.draft_id = p_draft order by r.ran_at desc, r.id desc limit 1;
+  select * into v_run from ref.fixture_runs r where r.draft_id = p_draft order by r.seq desc limit 1;
   if not found then
     raise exception 'K05: no fixture run recorded for draft %', p_draft using errcode = 'P0039';
   end if;
   if not v_run.passed or v_run.rule_fixtures_ran = 0 then
     raise exception 'K05: the latest fixture run for draft % did not pass', p_draft using errcode = 'P0039';
+  end if;
+  if v_run.rule_fixtures_ran <> private.ruleset_draft_fixture_count(p_draft) then
+    raise exception 'K05: the latest fixture run judged % of % fixtures', v_run.rule_fixtures_ran,
+      private.ruleset_draft_fixture_count(p_draft) using errcode = 'P0039';
   end if;
   v_digest := private.ruleset_draft_digest(p_draft);
   if v_run.digest <> v_digest then
@@ -443,6 +491,12 @@ begin
   if v_bad is not null then
     raise exception 'removing % from a release is not decided yet (#34)', v_bad using errcode = '22023';
   end if;
+  select string_agg(c.node_id, ', ') into v_bad from (
+    select c.node_id from ref.ruleset_draft_coverage c where c.draft_id = p_draft
+    group by c.node_id having count(*) <> 6) c;
+  if v_bad is not null then
+    raise exception 'BE-21: coverage must hold all six domains for %', v_bad using errcode = 'P0010';
+  end if;
   select string_agg(c.node_id || ' ' || c.domain, ', ') into v_bad
   from ref.ruleset_draft_coverage c
   where c.draft_id = p_draft and c.state = 'complete'
@@ -456,11 +510,15 @@ begin
   if v_bad is not null then
     raise exception 'coverage refers to closed gaps: %', v_bad using errcode = '22023';
   end if;
-  select string_agg(m.rule_key || ' v' || m.version, ', ') into v_bad
+  select string_agg(m.rule_key, ', ') into v_bad
   from ref.ruleset_draft_members m
-  join ref.rule_versions rv on rv.rule_key = m.rule_key and rv.version = m.version
-  left join ref.ruleset_members p on p.ruleset_version = v_prev and p.rule_key = m.rule_key
-  where m.draft_id = p_draft and p.version is distinct from m.version and rv.effect_type is null;
+  join ref.ruleset_members p on p.ruleset_version = v_prev and p.rule_key = m.rule_key
+  where m.draft_id = p_draft and p.version > m.version;
+  if v_bad is not null then
+    raise exception 'going back to an earlier version of % is not decided yet (#34)', v_bad using errcode = '22023';
+  end if;
+  select string_agg(s.rule_key || ' v' || s.to_version, ', ') into v_bad
+  from private.release_steps(p_draft, v_prev) s where s.effect_type is null;
   if v_bad is not null then
     raise exception 'J02: a changed rule needs a typed effect; none on %', v_bad using errcode = '22023';
   end if;
@@ -490,11 +548,8 @@ begin
   for v_diff in
     insert into ref.rule_diffs (ruleset_version, rule_key, from_version, to_version, effect_type, effective_from,
                                 sell_through_until)
-    select p_draft, m.rule_key, p.version, m.version, rv.effect_type, rv.effective_from, rv.sell_through_until
-    from ref.ruleset_draft_members m
-    join ref.rule_versions rv on rv.rule_key = m.rule_key and rv.version = m.version
-    left join ref.ruleset_members p on p.ruleset_version = v_prev and p.rule_key = m.rule_key
-    where m.draft_id = p_draft and p.version is distinct from m.version
+    select p_draft, s.rule_key, s.from_version, s.to_version, s.effect_type, s.effective_from, s.sell_through_until
+    from private.release_steps(p_draft, v_prev) s order by s.rule_key, s.to_version
     returning id, rule_key, from_version, to_version, effect_type
   loop
     v_diffs := v_diffs || jsonb_build_object('id', v_diff.id, 'rule_key', v_diff.rule_key,
@@ -531,7 +586,11 @@ grant execute on function app.accept_candidate(uuid,text,text,text,text,text,jso
                           app.set_draft_coverage(text,text,text,text,text,date,text),
                           app.release_ruleset(text,text)
   to authenticated, service_role;
+-- The helpers run inside the RPCs (as their owner); clients get none of them.
 revoke all on function private.require_staff(), private.latest_ruleset(), private.ruleset_draft_digest(text),
+                       private.ruleset_draft_fixture_count(text), private.version_tested(text,int),
                        private.valid_applicability(jsonb), private.coverage_supported(text,text,text),
-                       private.open_draft(text)
-  from public, anon;
+                       private.open_draft(text), private.release_steps(text,text)
+  from public, anon, authenticated;
+grant execute on function private.ruleset_draft_digest(text), private.ruleset_draft_fixture_count(text)
+  to service_role;
