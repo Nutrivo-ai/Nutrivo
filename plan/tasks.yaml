@@ -37,6 +37,7 @@ tasks:
   - {id: T-106, ms: M1, lanes: [web], deps: [T-103], wf: [A01], title: "Onboarding: create the workspace and set the default operator"}
   - {id: T-107, ms: M1, lanes: [web], deps: [T-104, T-105, T-106], title: "Workspace Settings: People, Workspace, Your account (screens for A03 to A06)"}
   - {id: T-108, ms: M1, lanes: [web], deps: [T-107], wf: [O02], title: "Audit log"}
+  - {id: T-109, ms: M1, lanes: [web, db], gate: human, deps: [T-103], title: "Business sign-in (D-27): Continue with Google and Continue with Microsoft (organizations tenant) on /sign-in and sign-up; a before-user-created Auth hook that refuses consumer and free-mail domains on every route against a versioned list, existing accounts unaffected; identity linking, two-step rules unchanged; tests for each route; a founder creates the Google and Microsoft OAuth apps and stores their secrets in Infisical"}
   # ── M2 · Content operations ─────────────────────────────────────────────────────────────────────────
   - {id: T-201, ms: M2, lanes: [worker], deps: [T-008], title: "EUR-Lex source fetcher: consolidated texts in EN, SV, DA, FI, DE stored with sha256"}
   - {id: T-202, ms: M2, lanes: [worker], deps: [T-201], title: "Importers: EU Register of Feed Additives and Catalogue of feed materials"}
