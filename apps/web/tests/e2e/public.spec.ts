@@ -198,3 +198,59 @@ test.describe("coverage (P01)", () => {
     await crawl(page, "/coverage");
   });
 });
+
+test.describe("landing page (P01, P02)", () => {
+  test("[P02.must.1] Plan names and prices on the landing page match docs/08-billing.md", async ({ page }) => {
+    const table = billingTable();
+    await open(page, "/");
+    for (const p of plans) {
+      const card = page.getByTestId(`landing-plan-${p.key}`);
+      await expect(card.getByRole("heading", { level: 3 })).toHaveText(p.name);
+      const shown = (await card.getByTestId("price").innerText()).trim();
+      expect(shown).toBe(priceLabel(p.key, "month"));
+      expect(table.get(p.name)!.startsWith(shown), `${p.name}: page ${shown}, docs/08 ${table.get(p.name)}`).toBe(true);
+    }
+    await page.getByRole("button", { name: /^Annual/ }).click();
+    for (const p of plans) await expect(page.getByTestId(`landing-plan-${p.key}`).getByTestId("price")).toHaveText(priceLabel(p.key, "year"));
+  });
+
+  test("[P01.must.1] The landing page's coverage block shows only released coverage, and no invented claims", async ({ page }) => {
+    test.skip(!haveStack(), "needs the local Supabase stack: run through scripts/ci/e2e.sh (make e2e)");
+    const coverage = await snapshot();
+    await open(page, "/");
+    const matrix = page.getByTestId("coverage-matrix");
+    await expect(matrix.getByRole("columnheader")).toHaveText(["Rules encoded, by domain", ...coverage.regions.map((r) => r.id)]);
+    for (const region of coverage.regions) {
+      for (const d of region.domains) {
+        await expect(matrix.locator(`[data-domain="${d.domain}"] [data-region="${region.id}"]`)).toHaveAttribute("data-state", d.state);
+      }
+    }
+    const text = await page.locator("body").innerText();
+    for (const claim of [...INVENTED, "Watch it run", "Texas: the label passes", "€8,000", "Minutes", "Experts", "Nobody in this category"]) expect(text, claim).not.toContain(claim);
+    expect(text, "no coverage percentage").not.toMatch(/\d\s*%/);
+  });
+
+  // Compared at the design's own positions (measured in the design file at 1600 px): the introduction's text, the four
+  // states and their note, the two "never" notes, the close and the footer. Not compared: the header (its links to the
+  // removed sections are gone), the hero's right half and the sections the design reveals on scroll (blank in the
+  // baseline), the coverage matrix (the snapshot's), and the plans (Free's people, Advanced's experts, the EU-only
+  // region). The page is shorter than the design because of the omissions (plan on issue #60).
+  test("S-LND-001 / matches its design baseline at 1600 px, region by region", async ({ page }) => {
+    await open(page, "/");
+    await likeDesign(page, "hero-text", "S-LND-001");
+    await likeDesign(page, "states-cards", "S-LND-001", { y: 1448, fractionY: 0.703 });
+    await likeDesign(page, "states-note", "S-LND-001", { y: 1706, fractionY: 0.953 });
+    // The baseline (the design's first frame) draws the plans about 436 px taller than the settled design file does, so
+    // everything below them sits lower: at 8794.5, 9012.5 and 9287.5 px, located from the notes' borders and the
+    // close's ink in the baseline image.
+    await likeDesign(page, "never", "S-LND-001", { y: 8794, fractionY: 0.5 });
+    await likeDesign(page, "start", "S-LND-001", { y: 9012, fractionY: 0.5 });
+    await likeDesign(page, "footer", "S-LND-001", { y: 9287, fractionY: 0.5 });
+  });
+
+  test("/ passes axe and has no dead controls", async ({ page }) => {
+    await open(page, "/");
+    await axe(page);
+    await crawl(page, "/");
+  });
+});
