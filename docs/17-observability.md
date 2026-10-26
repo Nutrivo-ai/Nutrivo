@@ -38,7 +38,13 @@ Every failure is seen within minutes, every model call can be explained later, a
   same ids go to `app.model_calls`.
 - **Scores.**
   - The accepting person's decision in the review queue is stored as a score on the extraction generation.
-  - Claim-judgement evaluations run as Langfuse dataset runs (docs/07-ai.md).
+  - Claim-judgement evaluations run as Langfuse dataset runs (docs/07-ai.md, `nutrivo evals claims`).
+    - Each case is a trace with the model's generation, linked to its dataset item, and scored `agreement`
+      (boolean) and `outcome` (categorical).
+    - Each run is scored `n`, `withheld`, `prohibited_judged_permitted`, `threshold_passed`, `kappa` and
+      `agreement`.
+    - Datasets, run items and scores go to the REST endpoints of the v4 SDK's API client, never the v3 ingestion
+      API. Without keys nothing is sent.
 - **Prompts.** worker/prompts/ is the source of truth. The worker never fetches prompts at runtime; they are mirrored
   to Langfuse prompt management with their version for comparison.
 - **Data.** Panel text is sent (Langfuse EU is a listed sub-processor); names and emails never are.
