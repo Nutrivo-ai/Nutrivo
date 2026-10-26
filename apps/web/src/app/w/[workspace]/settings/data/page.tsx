@@ -1,6 +1,14 @@
-import { ScreenPlaceholder } from "@/components/shell";
+import { exportState, readLatestExport } from "@/lib/exports/exports";
+import { createClient } from "@/lib/supabase/server";
+import { DataAndRetention } from "./DataAndRetention";
 
-// S-WSS-004 (spec/screens.yaml): built by a later task; until then the shell and a neutral placeholder.
-export default function Page() {
-  return <ScreenPlaceholder route="/w/[workspace]/settings/data" />;
+// S-WSS-004 Data and retention (spec/screens.yaml; design: product/Nutrivo Workspace Settings.dc.html, screen "data").
+// O03: the full export, free on every plan (BE-44). The latest export job is read under RLS; a read failure goes to
+// the workspace error boundary, and loading.tsx covers the wait.
+export default async function Page({ params }: PageProps<"/w/[workspace]/settings/data">) {
+  const { workspace } = await params;
+  const row = await readLatestExport(await createClient(), workspace);
+  return (
+    <DataAndRetention route="/w/[workspace]/settings/data" workspaceId={workspace} initial={exportState(row, workspace)} />
+  );
 }
