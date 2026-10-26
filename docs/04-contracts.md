@@ -28,6 +28,7 @@ redesign rather than wiring.
 | `app.remove_member(p_membership, p_reason)` | A06 | ends the membership, revokes signing grants, enqueues `session_revoke`; last admin (P0043); idempotent |
 | `app.revoke_invitation(p_invitation)` | A03 | cancels the queued invitation email; accepted ones refused (P0040); idempotent |
 | `app.set_default_operator(p_ws, p_operator)` | B01 | `{name, address, country, approval_number?}`; approval number optional; audited before and after |
+| `app.request_export(p_ws, p_request_id)` | O03 | internal, unscoped admins only (`private.can_export`; 42501 for anyone else, external or scoped admins included); free on every plan, never gated by plan, allowance, subscription, dunning or workspace status (BE-44); returns the open `export` job while one is queued or running, else enqueues a new one (`export:<ws>:<uuid>`) with `{request_id}` only (dropped unless a plain token) and audits `export.requested`. The worker writes `exports/<ws>/<job_id>.zip` and puts `{stage, bucket, path, bytes, sha256}` in `progress`, never a URL; over 50 MB the job fails as `export_too_large`, never truncated. The web signs a link under the admin's session for the rest of the 7 days |
 | `app.my_ended_access(p_ws)` | A02 | read for S-REC-004: `{workspace_name, ended_on, admin_name, admin_email}` only to a person whose own membership there ended or expired and who has no active one; null for anybody else, so it discloses nothing NoAccess does not; the admin named is one who was already in the workspace before access ended (null when none is still active); never says why access ended |
 
 ## Edge Functions
@@ -64,3 +65,7 @@ addresses, never to rows. Editorial ruleset changes never notify, on any setting
 Progress: subscribe to Postgres changes on `app.jobs` filtered by id (RLS applies). Storage buckets (all private):
 artwork, documents, reports, exports, sources, quarantine. Paths start with the workspace id:
 `artwork/<workspace_id>/<product_id>/<sha256>.pdf`. Viewing uses short-lived signed URLs; exports last 7 days.
+Members read their workspace's artwork, documents and reports; only an internal, unscoped admin reads its exports
+(`private.can_export`: a full export carries every product, so scoped and external members, admins included, never read
+one). `app.jobs` is not yet in the `supabase_realtime`
+publication, so a screen waiting on a job re-reads it on an interval until it is added.
