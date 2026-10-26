@@ -7,6 +7,8 @@
   nutrivo sources watch   new documents linked to those acts, triaged by the model into a report for a person (J01)
   nutrivo horizon record  a person records a horizon item from a watch report, with the stage and dates they give
   nutrivo content extract  K01/K02: candidates from content/candidates/eu-core.yaml over the stored sources
+  nutrivo evals claims --rule-key <key> | --synthetic --lang xx
+                   the claims evaluation harness as a Langfuse dataset run (exit 0 threshold met, 1 not, 2 error)
   nutrivo config   the resolved settings, secrets masked
   nutrivo fixtures run --ruleset <id>
                    rule fixtures, synthetic and golden labels against a ruleset (exit 0 passed, 1 not, 2 error)"""
@@ -280,6 +282,58 @@ def cmd_content_extract(settings: Settings, args: argparse.Namespace) -> int:
     return 1 if counts.get("failed") else 0
 
 
+def cmd_evals_claims(settings: Settings, args: argparse.Namespace) -> int:
+    """Read only. Exit 0 when every language meets the threshold (a synthetic run: when every case ran and was
+    recorded), 1 when not, 2 when the set or the rule cannot be read. stdout carries the report alone."""
+    import sentry_sdk
+
+    from .evals import claims
+    from .logs import log_context
+
+    languages = sorted(set(args.lang))
+    try:
+        if args.synthetic:
+            spec = claims.load_synthetic_rule(Path(args.evals) / "synthetic")
+            cases = claims.load_sets(Path(args.evals) / "synthetic", languages, synthetic=True)
+        else:
+            from .db import connect
+
+            conn = connect(settings.require_database())
+            try:
+                conn.execute("set session characteristics as transaction read only")
+                found = claims.PgRuleReader(conn).claim_rule(args.rule_key, args.rule_version)
+            finally:
+                conn.close()
+            if found is None:
+                print(f"nutrivo: no claim_judgement rule version for {args.rule_key}", file=sys.stderr)
+                return 2
+            spec = found
+            cases = claims.load_sets(Path(args.evals), languages, synthetic=False)
+    except (claims.EvalSetInvalid, claims.RuleSpecInvalid) as exc:
+        print(f"nutrivo: {exc}", file=sys.stderr)
+        return 2
+    recorder = claims.LangfuseRecorder(observability.langfuse(), send=settings.langfuse_enabled)
+    try:
+        with log_context(request_id=str(uuid.uuid4())), \
+                sentry_sdk.start_transaction(op="eval", name="evals:claims") as txn:
+            txn.set_tag("rule_key", spec.rule_key)
+            report = claims.run(models.configure(settings), spec, cases, recorder,
+                                prompt_version=args.prompt_version)
+            txn.set_tag("passed", report.passed)
+    except claims.EvalSetInvalid as exc:
+        print(f"nutrivo: {exc}", file=sys.stderr)
+        return 2
+    finally:
+        observability.flush()
+    body = json.dumps(report.to_dict(), indent=2, ensure_ascii=False, default=str)
+    if args.out:
+        Path(args.out).write_text(body + "\n", encoding="utf-8")
+    print(body)
+    if not report.complete:
+        return 1
+    return 0 if report.synthetic or report.passed else 1
+
+
 def cmd_config(settings: Settings) -> int:
     print(settings.model_dump_json(indent=2))
     return 0
@@ -368,6 +422,17 @@ def main(argv: list[str] | None = None) -> int:
     x.add_argument("--target", action="append", help="only this rule key (repeatable)")
     x.add_argument("--lang", action="append", help="only this language (repeatable)")
     x.add_argument("--dry-run", action="store_true", help="extract and compare; write no candidate")
+    evals = sub.add_parser("evals", help="model evaluation harnesses (docs/07)")
+    evals_sub = evals.add_subparsers(dest="evals_command", metavar="command", required=True)
+    ev = evals_sub.add_parser("claims", help="judge a claim rule's evaluation sets; a Langfuse dataset run")
+    which = ev.add_mutually_exclusive_group(required=True)
+    which.add_argument("--rule-key", help="the claim_judgement rule to evaluate (its params come from ref)")
+    which.add_argument("--synthetic", action="store_true", help="the harness's own synthetic rule and cases")
+    ev.add_argument("--rule-version", type=int, help="this rule version (default: the latest not rejected)")
+    ev.add_argument("--lang", action="append", required=True, help="a language set to run (repeatable)")
+    ev.add_argument("--evals", default=str(WORKER_ROOT / "evals" / "claims"), help="the evaluation sets")
+    ev.add_argument("--prompt-version", default="v1", help="claim_judgement prompt version (default v1)")
+    ev.add_argument("--out", help="also write the JSON report to this file")
     from .fixtures_runner import GOLDEN_DIR, SYNTH_DIR
     fixtures = sub.add_parser("fixtures", help="fixture commands").add_subparsers(dest="fixtures_command",
                                                                                    metavar="subcommand")
@@ -394,8 +459,8 @@ def main(argv: list[str] | None = None) -> int:
         except ConfigError as exc:
             print(f"nutrivo: configuration error: {exc}", file=sys.stderr)
             return 2
-    if args.command != "config":   # the watch's stdout carries its report alone
-        watching = args.command == "sources" and args.sources_command == "watch"
+    if args.command != "config":   # the watch's and the harness's stdout carry their reports alone
+        watching = (args.command == "sources" and args.sources_command == "watch") or args.command == "evals"
         _start(settings, log_stream=sys.stderr if watching else None)
     try:
         if args.command == "sources":
@@ -408,6 +473,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_horizon_record(settings, args)
         if args.command == "content":
             return cmd_content_extract(settings, args)
+        if args.command == "evals":
+            return cmd_evals_claims(settings, args)
         return {"work": cmd_work, "reap": cmd_reap, "config": cmd_config}[args.command](settings)
     except ConfigError as exc:
         print(f"nutrivo: configuration error: {exc}", file=sys.stderr)

@@ -1234,6 +1234,9 @@ isOneToOne: false
 "request_check":
 { Args: { "p_nodes"?: (string)[],"p_product": string }; Returns: string
                            },
+"request_export":
+{ Args: { "p_request_id"?: string,"p_ws": string }; Returns: string
+                           },
 "revoke_invitation":
 { Args: { "p_invitation": string }; Returns: string
                            },

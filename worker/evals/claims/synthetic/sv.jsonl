@@ -1,0 +1,4 @@
+{"id": "syn-sv-1", "rule_key": "HARNESS.SYNTHETIC.COLOUR", "text": "Krispiga röda bitar", "label": "prohibited", "synthetic": true}
+{"id": "syn-sv-2", "rule_key": "HARNESS.SYNTHETIC.COLOUR", "text": "Med kyckling och ris", "label": "permitted", "synthetic": true}
+{"id": "syn-sv-3", "rule_key": "HARNESS.SYNTHETIC.COLOUR", "text": "Godare än förut", "label": "needs_evidence", "synthetic": true}
+{"id": "syn-sv-4", "rule_key": "HARNESS.SYNTHETIC.COLOUR", "text": "Gröna bitar med ärtor", "label": "prohibited", "synthetic": true}
