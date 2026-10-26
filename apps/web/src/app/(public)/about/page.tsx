@@ -21,7 +21,8 @@ export default function AboutPage() {
             heading and first paragraph (coverage claims; see about.ts). */}
         <section data-testid="about-hero" style={sx("border-bottom: 1px solid var(--ink)")}>
           <div style={sx("max-width: 1120px; margin: 0 auto; padding: 42px 26px 36px")}>
-            <p style={sx("margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)")}>About</p>
+            {/* The design's eyebrow, as the page's h1 (its heading is omitted), drawn exactly as the eyebrow. */}
+            <h1 style={sx("margin: 0; font-family: var(--mono); font-size: 10.5px; font-weight: 400; line-height: 1.55; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)")}>About</h1>
             <p style={sx("margin: 13px 0 0; font-size: 17px; line-height: 1.6; color: var(--n700); max-width: 80ch; text-wrap: pretty")}>
               What makes it worth trusting is that every answer is auditable. Each finding cites the article it came from and says whether a rule decided it or a judgement did, and we publish how much of each market we hold. A compliance answer you cannot check is not an answer.
             </p>
