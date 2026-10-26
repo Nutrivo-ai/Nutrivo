@@ -162,6 +162,19 @@ target × source. It never writes a rule.
   `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and model configuration. `--target KEY` and `--lang xx` narrow the run.
   `--dry-run` extracts and compares, but writes nothing to the database. Langfuse still traces the calls.
 
+## Accepting and releasing (K03–K05, J02, T-204)
+Staff (`app_metadata.nutrivo_staff`) act through RPCs; each needs the caller's person record and is audited.
+- **Accept a candidate** with `app.accept_candidate`, choosing the key checked against the text. The version takes
+  that extraction's params, article reference and excerpt unchanged; the person adds title, shape, domain and node
+  (new rule keys only), applicability, the effect of the change and its dates. A candidate is refused until its
+  second key has run, and a key that is not verbatim is refused.
+- **Terms** are accepted or rejected with `app.decide_term`, only from the stored official text in the term's own
+  language.
+- **Coverage** is edited on a draft (`app.create_ruleset_draft`, `app.set_draft_member`, `app.set_draft_coverage`,
+  gaps with `app.open_coverage_gap`). Complete needs every member rule of that node and domain tested.
+- **Release** with `app.release_ruleset` once the fixture run for the draft passed (docs/05 §The release gate). It
+  writes the diffs, and alerts follow only for non-editorial ones.
+
 ## Candidate targets
 `content/candidates/eu-core.yaml` lists the first targets. **Every citation there is a candidate written from
 general knowledge: paragraph letters especially must be confirmed against the consolidated text before any

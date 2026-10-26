@@ -7,7 +7,7 @@ migration.
 | Schema | Holds | Access |
 |---|---|---|
 | `app` | Tenant data (42 tables) | RLS on every table; authenticated may SELECT under policy; writes only through RPCs or the worker (service role); anon has nothing |
-| `ref` | Jurisdictions, rules and versions, rulesets, coverage and gaps, terms, glossary, obligations, document requirements, horizon, candidates, fixtures, additive register, feed-material catalogue | Authenticated read (unaccepted rule versions and terms visible to staff only); staff tables (`rule_candidates`, `sources`, `term_decisions`) service-role only |
+| `ref` | Jurisdictions, rules and versions, rulesets, coverage and gaps, terms, glossary, obligations, document requirements, horizon, candidates, fixtures, additive register, feed-material catalogue | Authenticated read (unaccepted rule versions and terms visible to staff only); staff tables (`rule_candidates`, `sources`, `term_decisions`, `ruleset_drafts`, `ruleset_draft_members`, `ruleset_draft_coverage`, `fixture_runs`) service-role only; staff write through the T-204 RPCs |
 | `private` | Helpers and guard triggers | Executable by authenticated and service_role; never exposed through the API |
 | `public` | `verify_reference(ref)`, `coverage_snapshot()` | anon may execute these two functions only |
 
@@ -22,7 +22,7 @@ audit_events.
 
 **Insert-only:** checks, check_findings, reports, certificates, supersessions, supplier_documents, audit_events,
 payment_events, allowance_consumptions, classifications, model_calls, share_access_log, ref.ruleset_versions,
-ref.ruleset_members, ref.term_decisions. Privileges are revoked and a trigger rejects UPDATE, DELETE and TRUNCATE,
+ref.ruleset_members, ref.term_decisions, ref.fixture_runs. Privileges are revoked and a trigger rejects UPDATE, DELETE and TRUNCATE,
 including for the table owner (BE-05). Accepted `ref.rule_versions` rows are permanent (BE-08). Products have no
 delete (BE-13).
 
@@ -56,9 +56,11 @@ delete (BE-13).
 | P0005 | BE-05: insert-only table mutated |
 | P0007 | BE-07: jurisdiction shape violated |
 | P0008 | BE-08: accepted rule version edited or deleted |
+| P0010 | BE-10: coverage set complete where no accepted, tested member rule covers the node and domain |
 | P0021 | BE-21: Clear where coverage is incomplete |
 | P0032 / P0033 / P0036 | Free allowance used / no editor seat / new artworks paused by dunning |
 | P0038 | Ruleset member is not an accepted version |
+| P0039 | K05: release refused: a member without fixtures, or no passing fixture run that matches the draft's members and fixtures |
 | P0040 / P0041 / P0042 | Invitation invalid (or already accepted, so it cannot be revoked) / email mismatch / already a member |
 | P0043 | The last admin cannot be removed, demoted or given an end date: one active admin with no end date must remain |
 | P0044 | The membership has ended and cannot be changed |
