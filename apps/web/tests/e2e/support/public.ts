@@ -108,4 +108,12 @@ export const INVENTED = [
   "4 Sep 2026",
   "PLACEHOLDER",
   "Office of the Texas State Chemist",
+  // Named specialists and verifiers the coverage design draws (D-19: none until real).
+  "NAMED SPECIALIST",
+  "Kowalczyk",
+  "Bergqvist",
+  "Haldane",
+  "Whitfield",
+  "Awaiting specialist",
+  "In-house acceptance",
 ];

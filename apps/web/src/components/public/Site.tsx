@@ -32,7 +32,7 @@ const NAV_HREF: Record<NavItem, string> = {
 /** The header of Coverage - public and Segment Pages: mark, four links (the current one in accent), sign in, start. */
 export function SiteHeader({ items, current }: { items: NavItem[]; current: NavItem }) {
   return (
-    <header style={sx("display: flex; align-items: center; gap: 26px; border-bottom: 1px solid var(--ink); padding: 16px 56px")}>
+    <header data-testid="header" style={sx("display: flex; align-items: center; gap: 26px; border-bottom: 1px solid var(--ink); padding: 16px 56px")}>
       <SiteMark />
       <nav aria-label="Site" style={sx("flex: 1; display: flex; gap: 22px")}>
         {items.map((k) => (
