@@ -112,8 +112,10 @@ function Release({ draft, blockers, detail }: { draft: Draft; blockers: string[]
 
 function Members({ draft, detail }: { draft: Draft; detail: DraftDetail }) {
   const { pending, outcome, write } = useWrite();
-  const pinned = new Set(detail.members.map((m) => `${m.ruleKey}:${m.version}`));
-  const offer = detail.accepted.filter((a) => !pinned.has(`${a.ruleKey}:${a.version}`));
+  // A rule not in the draft is offered at any accepted version; one in it only at a newer version (going back is
+  // not decided yet, #34).
+  const pinned = new Map(detail.members.map((m) => [m.ruleKey, m.version]));
+  const offer = detail.accepted.filter((a) => a.version > (pinned.get(a.ruleKey) ?? 0));
   function add(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const value = String(new FormData(event.currentTarget).get("member") ?? "");
@@ -148,9 +150,11 @@ function Members({ draft, detail }: { draft: Draft; detail: DraftDetail }) {
                     {m.fixtures} · {tested ? "TESTED" : `MISSING ${["failed", "passed", "withheld"].filter((o) => !m.fixtureOutcomes.includes(o)).join(", ").toUpperCase()}`}
                   </td>
                   <td className="py-[9px] text-right">
-                    <Button variant="ghost" disabled={pending} onClick={() => write(() => setDraftMember(draft.id, m.ruleKey, null), () => `${m.ruleKey} left draft ${draft.id}.`)}>
-                      Remove
-                    </Button>
+                    {draft.released ? null : (
+                      <Button variant="ghost" disabled={pending} onClick={() => write(() => setDraftMember(draft.id, m.ruleKey, null), () => `${m.ruleKey} left draft ${draft.id}.`)}>
+                        Remove
+                      </Button>
+                    )}
                   </td>
                 </tr>
               );
@@ -158,7 +162,7 @@ function Members({ draft, detail }: { draft: Draft; detail: DraftDetail }) {
           </tbody>
         </table>
       )}
-      {offer.length ? (
+      {draft.released ? null : offer.length ? (
         <form onSubmit={add} aria-label="Add a rule version" className="mt-[10px] flex flex-wrap items-end gap-[8px]">
           <label className="text-[13px] min-w-[280px]">
             <span className={caption}>Accepted rule version</span>
@@ -170,12 +174,28 @@ function Members({ draft, detail }: { draft: Draft; detail: DraftDetail }) {
           <Button type="submit" disabled={pending}>Put in the draft</Button>
         </form>
       ) : (
-        <p className="mt-[10px] mb-0 text-[12.5px] text-n600">
-          Every accepted rule version is already in the draft. <Link href="/admin/rules">Review rule candidates →</Link>
-        </p>
+        <div data-offer="none" className="mt-[10px]">
+          <p className="m-0 text-[12.5px] text-n600">Every accepted rule version is already in the draft.</p>
+          <p className="mt-[4px] mb-0 font-mono text-[10.5px]">
+            <Link href="/admin/rules" className="underline">Review rule candidates →</Link>
+          </p>
+        </div>
       )}
       <div className="mt-[6px]"><Said outcome={outcome} name="members" /></div>
     </section>
+  );
+}
+
+/** A released draft is frozen: its coverage is shown, never offered for editing (every change would be refused). */
+function FrozenCell({ row }: { row: CoverageRow }) {
+  return (
+    <div data-coverage={`${row.nodeId}:${row.domain}`} data-state={row.state}
+      className="grid grid-cols-1 md:grid-cols-[170px_120px_minmax(0,1fr)_140px] gap-[10px] items-baseline border-b border-rule py-[10px] text-[13px]">
+      <p className="m-0 font-semibold">{label(row.domain)}</p>
+      <p className={cx("m-0 font-mono text-[10px] tracking-[0.08em] uppercase", STATE_TONE[row.state])}>{label(row.state)}</p>
+      <p className="m-0">{row.gapId ?? "No gap"} · {label(row.method)}</p>
+      <p className="m-0 font-mono text-[11.5px]">{row.lastCheckedAt ?? "Not checked"}</p>
+    </div>
   );
 }
 
@@ -196,6 +216,7 @@ function CoverageCell({ draft, row, gaps }: { draft: Draft; row: CoverageRow; ga
       <div>
         <p className="m-0 text-[13px] font-semibold">{label(row.domain)}</p>
         <p className={cx("m-0 font-mono text-[10px] tracking-[0.08em] uppercase", STATE_TONE[row.state])}>{label(row.state)}</p>
+        <p className="m-0 text-[11.5px] text-n600">Method: {label(row.method)}</p>
       </div>
       <label className="text-[13px]">
         <span className={caption}>State</span>
@@ -346,7 +367,13 @@ export function CoverageConsole({
                   <p className="mt-[10px] text-[13px] text-n700">This draft holds no coverage rows.</p>
                 )}
                 <div className="mt-[6px]">
-                  {rows.map((row) => <CoverageCell key={`${row.nodeId}:${row.domain}`} draft={draft} row={row} gaps={detail.gaps} />)}
+                  {rows.map((row) =>
+                    draft.released ? (
+                      <FrozenCell key={`${row.nodeId}:${row.domain}`} row={row} />
+                    ) : (
+                      <CoverageCell key={`${row.nodeId}:${row.domain}`} draft={draft} row={row} gaps={detail.gaps} />
+                    ),
+                  )}
                 </div>
               </section>
             </>

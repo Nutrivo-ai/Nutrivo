@@ -3,6 +3,7 @@
 // them as the service role, and only after the signed-in person's own session shows app_metadata.nutrivo_staff.
 // The key is a server environment variable without the NEXT_PUBLIC_ prefix, so no bundle can carry it. Nothing here
 // writes: every change is a staff RPC called under the person's own session (src/app/admin/actions.ts).
+import "server-only";
 import { createClient as createServiceClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { User } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";

@@ -1,9 +1,13 @@
 // T-205: what the /admin screens read, as the service role after the staff check (./server.ts). Reads only. A failed
 // read throws AdminReadError, which the admin error boundary shows and Sentry records with the code only.
+import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database, Json } from "@/lib/database.types";
+import type { Database } from "@/lib/database.types";
 import { AdminReadError } from "./server";
+import { extraction, type DraftMember, type Extraction, type FixtureRun } from "./model";
 import { DOMAINS } from "./staff";
+
+export { releaseBlockers, type DraftMember, type Extraction, type FixtureRun } from "./model";
 
 type Db = SupabaseClient<Database>;
 
@@ -104,29 +108,6 @@ export async function readTermQueue(db: Db): Promise<TermCandidate[]> {
 }
 
 // ─── K01/K02 → J02 · rule candidates ──────────────────────────────────────────────────────────────
-export type Extraction = {
-  verified: boolean;
-  found: boolean;
-  articleRef: string | null;
-  excerpt: string | null;
-  params: Json | null;
-  /** Can be accepted: a verified finding with params, article and excerpt (what app.accept_candidate checks). */
-  acceptable: boolean;
-};
-
-export function extraction(value: Json | null): Extraction | null {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const x = (value as Record<string, Json>).extraction;
-  const e = x && typeof x === "object" && !Array.isArray(x) ? (x as Record<string, Json>) : {};
-  const verified = (value as Record<string, Json>).verified === true;
-  const found = e.found === true;
-  const articleRef = typeof e.article_ref === "string" ? e.article_ref : null;
-  const excerpt = typeof e.excerpt === "string" ? e.excerpt : null;
-  const params = e.params ?? null;
-  const isObject = params !== null && typeof params === "object" && !Array.isArray(params);
-  return { verified, found, articleRef, excerpt, params, acceptable: verified && found && !!articleRef && !!excerpt && isObject };
-}
-
 export type RuleCandidate = {
   id: string;
   ruleKey: string | null;
@@ -206,17 +187,6 @@ export async function readDrafts(db: Db): Promise<{ drafts: Draft[]; latestRelea
   };
 }
 
-export type DraftMember = {
-  ruleKey: string;
-  version: number;
-  title: string | null;
-  domain: string | null;
-  nodeId: string | null;
-  /** The outcomes the version's fixtures cover; tested means passed, failed and withheld (docs/12). */
-  fixtureOutcomes: string[];
-  fixtures: number;
-};
-
 export type CoverageRow = {
   nodeId: string;
   domain: string;
@@ -227,8 +197,6 @@ export type CoverageRow = {
 };
 
 export type Gap = { gapId: string; nodeId: string; domain: string; reasonCode: string; description: string; openedIn: string | null };
-
-export type FixtureRun = { id: string; passed: boolean; ruleFixturesRan: number; runner: string; ranAt: string };
 
 export type DraftDetail = {
   members: DraftMember[];
@@ -307,22 +275,6 @@ export async function readDraft(db: Db, draftId: string): Promise<DraftDetail> {
     latestRun: run ? { id: run.id, passed: run.passed, ruleFixturesRan: run.rule_fixtures_ran, runner: run.runner, ranAt: run.ran_at } : null,
     fixturesExpected: memberList.reduce((n, m) => n + m.fixtures, 0),
   };
-}
-
-/** What blocks a release, as far as the screen can tell before asking app.release_ruleset (which decides). */
-export function releaseBlockers(detail: Pick<DraftDetail, "members" | "latestRun" | "fixturesExpected">): string[] {
-  const out: string[] = [];
-  if (detail.members.length === 0) out.push("The draft has no member rules, so no fixture can pass.");
-  const untested = detail.members.filter((m) => !["failed", "passed", "withheld"].every((o) => m.fixtureOutcomes.includes(o)));
-  if (untested.length) {
-    out.push(`Fixtures for passed, failed and withheld are missing for ${untested.map((m) => `${m.ruleKey} v${m.version}`).join(", ")}.`);
-  }
-  if (!detail.latestRun) out.push("No fixture run is recorded for this draft. The fixture runner records it (T-206).");
-  else if (!detail.latestRun.passed) out.push("The latest fixture run did not pass.");
-  else if (detail.latestRun.ruleFixturesRan !== detail.fixturesExpected) {
-    out.push(`The latest fixture run judged ${detail.latestRun.ruleFixturesRan} of ${detail.fixturesExpected} fixtures.`);
-  }
-  return out;
 }
 
 export const domainOrder = (d: string) => (DOMAINS as readonly string[]).indexOf(d);

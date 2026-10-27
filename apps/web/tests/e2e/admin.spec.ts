@@ -315,6 +315,30 @@ test.describe("@local-only /admin content console", () => {
     expect(errors).toEqual([]);
   });
 
+  test("a draft holding every accepted rule's latest version offers nothing more, and reads cleanly", async ({ page, context, baseURL }) => {
+    await signIn(context, staff, baseURL!);
+    const errors = watch(page);
+    // Set up on purpose, so this state never depends on rows another test left behind.
+    const full = `2026.11-t205n${run}`;
+    const made = await staff.db.schema("app").rpc("create_ruleset_draft", { p_id: full });
+    expect(made.error).toBeNull();
+    const accepted = await admin().schema("ref").from("rule_versions").select("rule_key, version").eq("status", "accepted");
+    if (accepted.error) throw accepted.error;
+    const latest = new Map<string, number>();
+    for (const v of accepted.data) latest.set(v.rule_key, Math.max(v.version, latest.get(v.rule_key) ?? 0));
+    expect(latest.get(RULE)).toBe(1);
+    for (const [key, version] of latest) {
+      const set = await staff.db.schema("app").rpc("set_draft_member", { p_draft: full, p_rule_key: key, p_version: version });
+      expect(set.error, key).toBeNull();
+    }
+    await page.goto(`/admin/coverage?draft=${full}&node=EU-SE`);
+    await expect(page.locator(`[data-member="${RULE}"]`)).toBeVisible();
+    await expect(page.locator('[data-offer="none"]')).toContainText("Every accepted rule version is already in the draft.");
+    await expect(page.getByRole("form", { name: "Add a rule version" })).toHaveCount(0);
+    await axe(page);
+    expect(errors).toEqual([]);
+  });
+
   test("S-NV2-029: the term queue's routing note and decision row match the design at 1600 px", async ({ page, context, baseURL }) => {
     await signIn(context, staff, baseURL!);
     await page.goto(`/admin/terms?entry=${held}`);

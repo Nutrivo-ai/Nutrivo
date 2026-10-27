@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extraction, releaseBlockers, type DraftMember } from "./reads";
+import { extraction, releaseBlockers, type DraftMember } from "./model";
 import { isStaff, refusal } from "./staff";
 
 describe("/admin staff check (T-205)", () => {
