@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { extraction, releaseBlockers, type DraftMember } from "./model";
-import { isStaff, refusal } from "./staff";
+import { isStaff, refusal, staffMfa } from "./staff";
 
 describe("/admin staff check (T-205)", () => {
   it("is staff only when app_metadata.nutrivo_staff is exactly true", () => {
@@ -10,6 +10,15 @@ describe("/admin staff check (T-205)", () => {
     expect(isStaff(null)).toBe(false);
     // user_metadata is the person's own to edit, so it never counts.
     expect(isStaff({ app_metadata: {}, user_metadata: { nutrivo_staff: true } } as never)).toBe(false);
+  });
+});
+
+describe("staff work at aal2 only (#35 Q6)", () => {
+  it("challenges a staff session at aal1 with a factor, enrols one without, and lets aal2 through", () => {
+    expect(staffMfa({ currentLevel: "aal1", nextLevel: "aal2" })).toBe("challenge");
+    expect(staffMfa({ currentLevel: "aal1", nextLevel: "aal1" })).toBe("enrol");
+    expect(staffMfa({ currentLevel: null, nextLevel: null })).toBe("enrol");
+    expect(staffMfa({ currentLevel: "aal2", nextLevel: "aal2" })).toBe("ok");
   });
 });
 

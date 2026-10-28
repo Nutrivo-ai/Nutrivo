@@ -1,10 +1,22 @@
 // T-205: the rules /admin applies before anything is read, and how a staff RPC's refusal is put to the person. Pure
 // functions, so they are unit-tested without a stack.
+import { mfaGate, type Assurance, type MfaGate } from "@/lib/auth/rules";
 
 /** Staff status comes only from app_metadata.nutrivo_staff, which only the Supabase admin API can set (docs/09). */
 export function isStaff(user: { app_metadata?: Record<string, unknown> | null } | null | undefined): boolean {
   return user?.app_metadata?.nutrivo_staff === true;
 }
+
+/**
+ * #35 Q6 (founder): staff work at aal2 only. A staff member is gated as a signer is (T-103): with a verified factor
+ * they prove it (challenge), without one they enrol first.
+ */
+export function staffMfa(assurance: Assurance): MfaGate {
+  return mfaGate(assurance, true);
+}
+
+/** /auth/mfa, coming back to the console afterwards. */
+export const ADMIN_MFA = `/auth/mfa?next=${encodeURIComponent("/admin")}`;
 
 export type RpcFailure = { code?: string | null; message?: string | null };
 

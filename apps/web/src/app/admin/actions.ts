@@ -10,6 +10,7 @@ import { headers } from "next/headers";
 import type { Database, Json } from "@/lib/database.types";
 import { REQUEST_ID_HEADER, resolveRequestId } from "@/lib/observability/request-id";
 import { createClient } from "@/lib/supabase/server";
+import { staffGate } from "@/lib/admin/server";
 import { refusal, type ActionResult, type RpcFailure } from "@/lib/admin/staff";
 
 type Call = (db: Awaited<ReturnType<typeof createClient>>) => PromiseLike<{ data: unknown; error: RpcFailure | null }>;
@@ -19,6 +20,12 @@ async function run<T>(name: string, call: Call, paths: string[]): Promise<Action
   return Sentry.withScope(async (scope) => {
     scope.setTag("request_id", requestId);
     scope.setTag("rpc", name);
+    // Staff and aal2 again here: an action can be called without the layout rendering again (#35 Q6).
+    const gate = await staffGate();
+    if (gate.kind === "step-up") {
+      return { ok: false, kind: "no-permission", message: "Two-step sign-in is needed first. Prove your code on the two-step page, then try again." } as const;
+    }
+    if (gate.kind !== "staff") return { ok: false, kind: "no-permission", message: "Only Nutrivo staff can do this." } as const;
     const db = await createClient();
     const { data, error } = await call(db);
     if (error) {

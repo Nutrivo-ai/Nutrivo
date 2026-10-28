@@ -178,7 +178,9 @@ Staff (`app_metadata.nutrivo_staff`) act through RPCs; each needs the caller's p
 
 ## The /admin console (K03, K04, T-205)
 Staff work the queues in `/admin`. The layout checks `app_metadata.nutrivo_staff` on the server before anything renders
-or is read, and a person who is not staff sees a no-permission page and nothing else. Candidate terms, rule candidates,
+or is read, and a person who is not staff sees a no-permission page and nothing else. Staff work at `aal2` only: a
+session that has not proved its second factor goes to `/auth/mfa` first, and a staff action from such a session is
+refused (docs/09). Candidate terms, rule candidates,
 drafts and fixture runs are readable only by the service role, so the server reads them that way after the check
 (`apps/web/src/lib/admin/server.ts`); the key is never sent to the browser. Every change is one of the staff RPCs above,
 called under the person's own session, so the database names them as the decider.

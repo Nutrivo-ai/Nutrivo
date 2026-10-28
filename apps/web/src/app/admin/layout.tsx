@@ -3,14 +3,13 @@ import { redirect } from "next/navigation";
 import { LoadingState, NoPermissionState } from "@/components/kit";
 import { Wordmark } from "@/components/shell";
 import { AdminNav } from "@/components/admin/AdminNav";
-import { sessionGate } from "@/lib/auth/session";
 import { signInHref } from "@/lib/auth/rules";
 import { staffGate } from "@/lib/admin/server";
-import { createClient } from "@/lib/supabase/server";
+import { ADMIN_MFA } from "@/lib/admin/staff";
 
 // T-205: /admin is staff only (docs/09). The signed-in person's app_metadata.nutrivo_staff is checked here, on the
 // server, before any admin page renders or reads; the pages read through staffReader(), which checks it again. A
-// person with a second factor proves it first, as everywhere else (A02 step 4). The check reads the session at request
+// person proves a second factor first, and one without a factor enrols (aal2 for staff, #35 Q6). The check reads the session at request
 // time, so it renders inside a Suspense boundary (cacheComponents); nothing of the console is in the static shell.
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
@@ -48,9 +47,7 @@ async function StaffOnly({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  if ((await sessionGate(await createClient(), gate.user.id)) !== "ok") {
-    redirect(`/auth/mfa?next=${encodeURIComponent("/admin")}`);
-  }
+  if (gate.kind === "step-up") redirect(ADMIN_MFA);
   return (
     <div className="min-h-screen md:flex bg-paper text-ink">
       <AdminNav />

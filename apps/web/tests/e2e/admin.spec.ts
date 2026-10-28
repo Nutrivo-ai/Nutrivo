@@ -11,7 +11,10 @@ import { expect, test, type Page } from "@playwright/test";
 import { parse } from "yaml";
 import { REPO_ROOT } from "../visual/screens";
 import { expectLikeBaseline } from "./support/baseline";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "../../src/lib/database.types";
 import { admin, haveStack, person, signIn, workspace, type Person } from "./support/people";
+import { totp } from "./support/totp";
 
 const nfr = parse(fs.readFileSync(path.join(REPO_ROOT, "spec/nfr.yaml"), "utf8")) as { quality: { visual_max_diff_pixel_ratio: number } };
 
@@ -36,15 +39,41 @@ async function axe(page: Page) {
 const run = randomBytes(4).toString("hex");
 const RUN = run.toUpperCase();
 
-/** A staff person: app_metadata.nutrivo_staff set through the admin API (the only way it can be set), a person row. */
-async function staffPerson(label: string): Promise<Person> {
+type Staff = Person & { secret: string | null; enrolledAt: number };
+
+/**
+ * A staff person: app_metadata.nutrivo_staff set through the admin API (the only way it can be set) and a person
+ * row. Staff work at aal2 (#35 Q6), so by default they enrol TOTP and the session proves it, as auth.spec.ts does.
+ */
+async function staffPerson(label: string, { totp: enrol = true } = {}): Promise<Staff> {
   const who = await person(label);
   await workspace(who, `${label} home`); // the person row a staff RPC needs (private.require_staff)
+  let secret: string | null = null;
+  if (enrol) {
+    const enrolled = await who.db.auth.mfa.enroll({ factorType: "totp" });
+    if (enrolled.error) throw enrolled.error;
+    secret = enrolled.data.totp.secret;
+    const verified = await who.db.auth.mfa.challengeAndVerify({ factorId: enrolled.data.id, code: totp(secret) });
+    if (verified.error) throw verified.error;
+  }
+  const enrolledAt = Date.now();
   const set = await admin().auth.admin.updateUserById(who.userId, { app_metadata: { nutrivo_staff: true } });
   if (set.error) throw set.error;
-  const refreshed = await who.db.auth.refreshSession();
+  const refreshed = await who.db.auth.refreshSession(); // carries the new app_metadata, and keeps aal2
   if (refreshed.error || !refreshed.data.session) throw refreshed.error ?? new Error("no refreshed session");
-  return { ...who, session: refreshed.data.session };
+  return { ...who, session: refreshed.data.session, secret, enrolledAt };
+}
+
+/** A new sign-in for the same account by a magic link: aal1 until the second factor is proved. */
+async function freshSession(who: Person): Promise<Person> {
+  const link = await admin().auth.admin.generateLink({ type: "magiclink", email: who.email });
+  if (link.error) throw link.error;
+  const db = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const verified = await db.auth.verifyOtp({ type: "email", token_hash: link.data.properties.hashed_token });
+  if (verified.error || !verified.data.session) throw verified.error ?? new Error("no session from the magic link");
+  return { ...who, session: verified.data.session, db };
 }
 
 async function personId(userId: string) {
@@ -96,9 +125,9 @@ test.describe("@local-only /admin content console", () => {
   test.skip(!haveStack(), "needs the local Supabase stack: run through scripts/ci/e2e.sh (make e2e)");
   test.describe.configure({ mode: "serial" });
 
-  let staff: Person, ann: Person;
+  let staff: Staff, ann: Person;
   let plSource: string, enSource: string;
-  let plTerm: string, plReject: string, derived: string, held: string;
+  let plTerm: string, plReject: string, derived: string, held: string, gated: string;
   let candidate: string;
   const RULE = `TEST.T205.${RUN}`;
   const DRAFT = `2026.11-t205${run}`;
@@ -113,6 +142,7 @@ test.describe("@local-only /admin content console", () => {
     plTerm = await term(`TEST_T205_${RUN}_A`, "pl", PL_TEXT, plSource);
     await term(`TEST_T205_${RUN}_A`, "en", EN_TEXT, enSource);
     plReject = await term(`TEST_T205_${RUN}_B`, "pl", `TEST odrzucony ${run}`, plSource);
+    gated = await term(`TEST_T205_${RUN}_E`, "pl", `TEST dwuetapowy ${run}`, plSource);
     held = await term(`TEST_T205_${RUN}_D`, "pl", `TEST wstrzymany ${run}`, plSource);
     // K03.must.1: a Polish string whose source is the English text, i.e. derived or translated.
     derived = await term(`TEST_T205_${RUN}_C`, "pl", `TEST przetłumaczony ${run}`, enSource);
@@ -146,6 +176,45 @@ test.describe("@local-only /admin content console", () => {
     expect(refused.error?.code).toBe("42501");
     const read = await ann.db.schema("ref").from("rule_candidates").select("id").eq("id", candidate);
     expect(read.data ?? []).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
+  test("[T-205] staff need aal2: an aal1 session is sent to two-step, its actions are refused, and aal2 gets through", async ({ page, context, baseURL }) => {
+    test.setTimeout(120_000); // may wait once for the next 30-second TOTP window
+    const errors = watch(page);
+    const aal1 = await freshSession(staff);
+
+    // A page opened at aal2, whose cookies then turn into an aal1 session: the layout is not rendered again, so the
+    // action itself refuses, and nothing is written.
+    await signIn(context, staff, baseURL!);
+    await page.goto(`/admin/terms?entry=${gated}`);
+    await expect(page.locator(`[data-term-detail="${gated}"]`)).toBeVisible();
+    await signIn(context, aal1, baseURL!);
+    await page.locator(`[data-term-detail="${gated}"]`).getByRole("button", { name: "ACCEPT" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Two-step sign-in is needed first" })).toBeVisible();
+    expect(await termRow(gated)).toBe("candidate");
+
+    // Every /admin route sends the aal1 session to the challenge, and shows no content first.
+    for (const route of ["/admin/terms", "/admin/rules", "/admin/coverage", "/admin/glossary"]) {
+      await page.goto(route);
+      await expect(page).toHaveURL(/\/auth\/mfa\?next=%2Fadmin$/);
+      await expect(page.getByRole("heading", { name: "Type your two-step code" })).toBeVisible();
+      await expect(page.getByText(PL_TEXT)).toHaveCount(0);
+    }
+    // Codes are single-use per 30-second window: wait for the next one if enrolment used this one.
+    if (Math.floor(staff.enrolledAt / 30_000) === Math.floor(Date.now() / 30_000)) await page.waitForTimeout(31_000 - (Date.now() % 30_000));
+    await page.getByLabel("Six-digit code").fill(totp(staff.secret!));
+    await page.getByRole("button", { name: "Continue" }).click();
+    await expect(page).toHaveURL(/\/admin\/terms$/);
+    await expect(page.getByRole("heading", { level: 1, name: "Acceptance queue" })).toBeVisible();
+
+    // Staff without a factor enrol before anything of the console is shown.
+    const newcomer = await staffPerson("t205-newcomer", { totp: false });
+    await signIn(context, newcomer, baseURL!);
+    await page.goto("/admin/coverage");
+    await expect(page).toHaveURL(/\/auth\/mfa\?next=%2Fadmin$/);
+    await expect(page.getByRole("heading", { name: "Set up two-step sign-in" })).toBeVisible();
+    await expect(page.locator("[data-release-gate], [data-coverage]")).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 

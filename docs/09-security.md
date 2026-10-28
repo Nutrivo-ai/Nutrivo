@@ -37,6 +37,10 @@ database (P0292). Removing a member ends the membership, revokes grants and sign
   first (`/auth/mfa`). The database enforces `aal2` only for signing (P0292). A token at `aal1` for an account with a
   factor still reads and writes under RLS through the API, outside the web app; whether to require `aal2` in the
   database for such accounts is an open question for a founder (#25, question 7).
+- **Staff (T-205, #35 Q6).** `/admin` requires `aal2` for every staff member: one with a verified factor proves it,
+  one without enrols first (`/auth/mfa`). The layout, the service-role reader and every staff Server Action check it,
+  because a layout is not rendered again on client navigation. The staff RPCs themselves do not check `aal2` yet
+  (#25, question 7).
 - **Business sign-in (D-27, T-109).**
   - Google and Microsoft OAuth sit beside email and password; Microsoft is limited to work accounts.
   - No new account is created for a consumer or free-mail address on any route. A Supabase Auth hook enforces this
