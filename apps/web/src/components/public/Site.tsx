@@ -9,7 +9,7 @@ import { sx } from "@/lib/public/sx";
 /** The wordmark with its ".ai", as the public files draw it (22 px, the ".ai" at 14 or 15 px). */
 export function SiteMark({ ai = 15 }: { ai?: number }) {
   return (
-    <Link href="/" aria-label="Nutrivo home" style={sx("color: var(--ink)")}>
+    <Link href="/" aria-label="nutrivo.ai home" style={sx("color: var(--ink)")}>
       <span style={sx("margin: 0; display: flex; align-items: flex-end; gap: 4px; font-size: 22px; font-weight: 600; letter-spacing: -0.045em; line-height: 1")}>
         <span>nutrivo</span>
         <span aria-hidden="true" style={sx("width: 6px; height: 6px; background: var(--accent); margin-bottom: 2px; flex-shrink: 0")} />

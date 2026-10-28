@@ -90,7 +90,7 @@ export default function LandingPage() {
   return (
     <div style={sx("width: 1280px; margin: 0 auto; background: var(--paper); overflow: hidden; line-height: normal")}>
       <header data-testid="header" style={sx("display: flex; align-items: center; justify-content: space-between; padding: 18px 56px; border-bottom: 1px solid var(--ink); position: sticky; top: 0; z-index: 30; background: var(--paper)")}>
-        <Link href="/" aria-label="Nutrivo home" style={sx("display: flex; align-items: baseline; gap: 2px; color: var(--ink)")}>
+        <Link href="/" aria-label="nutrivo.ai home" style={sx("display: flex; align-items: baseline; gap: 2px; color: var(--ink)")}>
           <span style={sx("font-size: 21px; font-weight: 600; letter-spacing: -0.03em")}>nutrivo</span>
           <span aria-hidden="true" style={sx("width: 6px; height: 6px; background: var(--accent); display: inline-block")} />
           <span style={sx("font-size: 21px; font-weight: 400; color: var(--n600); letter-spacing: -0.03em")}>.ai</span>
