@@ -1,0 +1,9 @@
+/* Hover states the public design files draw with style-hover (design/public/). Cobalt §5: 120 ms ease-out on state
+   change, nothing animates on load, so the files' load and scroll animations are not carried over. */
+.pub-primary:hover { background: var(--accent-700) !important; color: var(--paper) !important; }
+.pub-secondary:hover { border-color: var(--ink) !important; color: var(--ink) !important; }
+.pub-ink:hover { background: var(--ink) !important; color: var(--paper) !important; }
+.pub-tab:hover { border-color: var(--accent) !important; color: var(--accent-700) !important; }
+@media (prefers-reduced-motion: no-preference) {
+  .pub-primary, .pub-secondary, .pub-ink, .pub-tab { transition: background-color 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out; }
+}

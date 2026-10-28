@@ -14,6 +14,7 @@ test("home page renders without console errors @smoke", async ({ page }) => {
   });
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Nutrivo" })).toBeVisible();
+  // The landing page (S-LND-001, T-603) replaced the placeholder home page.
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   expect(errors).toEqual([]);
 });
