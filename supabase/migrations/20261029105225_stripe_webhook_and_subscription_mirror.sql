@@ -18,15 +18,18 @@
 --                        no seat check applies (D-21)
 --   incomplete, paused → mirror only; the workspace keeps its plan and status
 -- A 'closed' or 'dormant' workspace keeps its status. A terminal state for an older subscription never downgrades a
--- workspace whose mirrored subscription is a different, live one.
+-- workspace whose mirrored subscription is a different, live one ('stale'), and a second live subscription for a
+-- workspace is refused (23505) rather than replacing the first.
 --
 -- Neither function touches app.reports, app.supersessions or public.verify_reference: verification outlives the
 -- subscription (CLAUDE.md non-negotiable 9). Both are executable by service_role only; clients have no route to them.
 
+-- Expand only: the same kinds plus two. Added not valid, then validated, so the lock is not held through the scan.
 alter table app.jobs drop constraint jobs_kind_check;
 alter table app.jobs add constraint jobs_kind_check
   check (kind in ('extract','check','recheck','bulk_recheck','report','export','notify','session_revoke','diff_fanout',
-                  'billing_sync','billing_reconcile'));
+                  'billing_sync','billing_reconcile')) not valid;
+alter table app.jobs validate constraint jobs_kind_check;
 
 do $$
 begin
@@ -35,13 +38,35 @@ begin
   end if;
 end $$;
 
--- The workspace a Stripe object belongs to: the workspace_id Nutrivo put on it at checkout (T-703 sets
--- client_reference_id and subscription_data.metadata.workspace_id), else the mirrored subscription or customer.
+-- Clients never reach the billing functions. Execute is service_role's only, and this allowlist is checked first:
+-- the service role through PostgREST (the stripe-webhook function), or a direct database session that is not one of
+-- PostgREST's (the worker, pg_cron), which carries no JWT claims.
+create function private.require_service() returns void
+language plpgsql stable set search_path = '' as $$
+begin
+  if not (auth.role() = 'service_role'
+          or (auth.role() is null and session_user not in ('authenticator', 'anon', 'authenticated'))) then
+    raise exception 'billing writes come from Stripe through the service role only' using errcode = '42501';
+  end if;
+end $$;
+revoke execute on function private.require_service() from public, anon, authenticated;
+grant execute on function private.require_service() to service_role;
+
+-- The workspace a Stripe object belongs to. A subscription already mirrored keeps its workspace whatever the object
+-- says; otherwise the workspace_id Nutrivo put on it at checkout (T-703 sets client_reference_id and
+-- subscription_data.metadata.workspace_id from an admin's own membership), else the mirrored customer.
 create function private.stripe_workspace(p_obj jsonb) returns uuid
 language plpgsql stable security definer set search_path = '' as $$
 declare v_candidate text; v_ws uuid; v_sub text;
 begin
+  perform private.require_service();
   if p_obj is null or jsonb_typeof(p_obj) <> 'object' then return null; end if;
+  v_sub := coalesce(case when p_obj->>'object' = 'subscription' then p_obj->>'id' end,
+                    p_obj->>'subscription', p_obj->'parent'->'subscription_details'->>'subscription');
+  if v_sub is not null then
+    select s.workspace_id into v_ws from app.subscriptions s where s.stripe_subscription_id = v_sub;
+    if v_ws is not null then return v_ws; end if;
+  end if;
   foreach v_candidate in array array[p_obj->'metadata'->>'workspace_id', p_obj->>'client_reference_id',
                                      p_obj->'subscription_details'->'metadata'->>'workspace_id',
                                      p_obj->'parent'->'subscription_details'->'metadata'->>'workspace_id'] loop
@@ -50,12 +75,6 @@ begin
       if v_ws is not null then return v_ws; end if;
     end if;
   end loop;
-  v_sub := coalesce(case when p_obj->>'object' = 'subscription' then p_obj->>'id' end,
-                    p_obj->>'subscription', p_obj->'parent'->'subscription_details'->>'subscription');
-  if v_sub is not null then
-    select s.workspace_id into v_ws from app.subscriptions s where s.stripe_subscription_id = v_sub;
-    if v_ws is not null then return v_ws; end if;
-  end if;
   if p_obj->>'customer' is not null then
     select s.workspace_id into v_ws from app.subscriptions s where s.stripe_customer_id = p_obj->>'customer';
   end if;
@@ -63,17 +82,6 @@ begin
 end $$;
 revoke execute on function private.stripe_workspace(jsonb) from public, anon, authenticated;
 grant execute on function private.stripe_workspace(jsonb) to service_role;
-
--- Clients never reach the billing RPCs: execute is service_role's only, and a call carrying a client JWT is refused.
-create function private.require_service() returns void
-language plpgsql stable set search_path = '' as $$
-begin
-  if coalesce(auth.role(), '') in ('anon', 'authenticated') then
-    raise exception 'billing writes come from Stripe through the service role only' using errcode = '42501';
-  end if;
-end $$;
-revoke execute on function private.require_service() from public, anon;
-grant execute on function private.require_service() to authenticated, service_role;
 
 create function app.record_stripe_event(p_event jsonb) returns jsonb
 language plpgsql security definer set search_path = '' as $$
@@ -135,9 +143,14 @@ begin
   select * into v_old from app.subscriptions s where s.workspace_id = p_ws for update;
   v_live := v_status in ('active', 'trialing', 'past_due', 'unpaid');
 
-  if v_old.stripe_subscription_id is not null and v_old.stripe_subscription_id <> v_sub and not v_live
+  if v_old.stripe_subscription_id is not null and v_old.stripe_subscription_id <> v_sub
      and v_old.status in ('active', 'trialing', 'past_due', 'unpaid') then
-    return 'stale';
+    if not v_live then
+      return 'stale';
+    end if;
+    -- Two live subscriptions for one workspace is never a normal path (plan changes keep the subscription): refuse,
+    -- so the job fails visibly and a person looks, rather than letting the second replace the first.
+    raise exception 'workspace already has a different live subscription' using errcode = '23505';
   end if;
 
   insert into app.subscriptions as s (workspace_id, stripe_customer_id, stripe_subscription_id, plan, term, status,
@@ -189,10 +202,12 @@ grant execute on function app.apply_subscription(uuid, jsonb, text, text) to ser
 -- where the platform offers it, like pgmq in 0006; the worker's Sentry cron monitor 'stripe-reconcile' alerts when
 -- a day's run is missed or fails (docs/17).
 create function private.enqueue_billing_reconcile() returns uuid
-language sql security definer set search_path = '' as $$
-  select private.enqueue('billing_reconcile', null,
-                         'billing_reconcile:' || to_char(now() at time zone 'UTC', 'YYYY-MM-DD'), '{}'::jsonb)
-$$;
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform private.require_service();
+  return private.enqueue('billing_reconcile', null,
+                         'billing_reconcile:' || to_char(now() at time zone 'UTC', 'YYYY-MM-DD'), '{}'::jsonb);
+end $$;
 revoke execute on function private.enqueue_billing_reconcile() from public, anon, authenticated;
 grant execute on function private.enqueue_billing_reconcile() to service_role;
 
@@ -201,5 +216,7 @@ begin
   if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
     create extension if not exists pg_cron;
     perform cron.schedule('stripe-reconcile', '17 3 * * *', 'select private.enqueue_billing_reconcile()');
+  else
+    raise notice 'pg_cron is not available: the daily stripe-reconcile job is not scheduled';
   end if;
 end $$;

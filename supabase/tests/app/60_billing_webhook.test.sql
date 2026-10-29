@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(35);
+select plan(38);
 set local client_min_messages = warning;
 
 -- ─── A: Alice (admin), Carl (editor), basic once subscribed. B: Bob (admin), another workspace. ─────────────────────
@@ -54,8 +54,16 @@ select ok(not has_function_privilege('anon', 'app.apply_subscription(uuid,jsonb,
           and has_function_privilege('service_role', 'app.apply_subscription(uuid,jsonb,text,text)', 'execute'),
           '[T-702] app.apply_subscription is executable by the service role only');
 select ok(not has_function_privilege('authenticated', 'private.stripe_workspace(jsonb)', 'execute')
-          and not has_function_privilege('authenticated', 'private.enqueue_billing_reconcile()', 'execute'),
+          and not has_function_privilege('anon', 'private.stripe_workspace(jsonb)', 'execute')
+          and not has_function_privilege('authenticated', 'private.enqueue_billing_reconcile()', 'execute')
+          and not has_function_privilege('anon', 'private.enqueue_billing_reconcile()', 'execute')
+          and not has_function_privilege('authenticated', 'private.require_service()', 'execute')
+          and not has_function_privilege('anon', 'private.require_service()', 'execute'),
           '[T-702] the billing helpers are not executable by clients');
+select ok(to_regnamespace('cron') is null
+          or exists (select 1 from cron.job where jobname = 'stripe-reconcile' and schedule = '17 3 * * *'
+                     and command = 'select private.enqueue_billing_reconcile()'),
+          '[T-702] pg_cron queues the reconciliation once a day where pg_cron exists');
 select ok(not has_table_privilege('authenticated', 'app.payment_events', 'insert')
           and not has_table_privilege('authenticated', 'app.subscriptions', 'update')
           and not has_table_privilege('anon', 'app.payment_events', 'select'),
@@ -138,6 +146,12 @@ select is(app.apply_subscription('20000000-0000-4000-8702-00000000000a', pg_temp
           'stale', '[T-702] the end of an older subscription never downgrades a workspace with a live one');
 select throws_ok($$select app.apply_subscription('20000000-0000-4000-8702-00000000000b', pg_temp.snap('active'), 'webhook', 'x')$$,
                  '23505', null, '[T-702] a subscription mirrored for one workspace is never applied to another');
+select throws_ok($$select app.apply_subscription('20000000-0000-4000-8702-00000000000a', pg_temp.snap('active', 'sub_A2'), 'webhook', 'x')$$,
+                 '23505', null, '[T-702] a second live subscription never replaces the workspace''s live one');
+select is(private.stripe_workspace('{"object":"subscription","id":"sub_A1","customer":"cus_A",
+            "metadata":{"workspace_id":"20000000-0000-4000-8702-00000000000b"}}'),
+          '20000000-0000-4000-8702-00000000000a'::uuid,
+          '[T-702] a mirrored subscription keeps its workspace whatever its metadata says');
 select throws_ok($$select app.apply_subscription('20000000-0000-4000-8702-00000000000a',
                    pg_temp.snap('active') || '{"plan":"partner"}', 'webhook', 'x')$$,
                  '22023', null, '[T-702] a snapshot outside the catalogue is refused');

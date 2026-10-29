@@ -88,13 +88,20 @@ to `app.subscriptions` and `app.workspaces.plan / status`.
 
 The table has a few exceptions:
 - A `closed` or `dormant` workspace keeps its status.
-- The end of an older subscription never downgrades a workspace whose mirrored subscription is a different, live one.
+- The end of an older subscription never downgrades a workspace whose mirrored subscription is a different, live one
+  (`stale`).
+- A second live subscription for a workspace is refused (23505): the job fails visibly and a person looks.
 - Day 14 (`new_artwork_stopped`) is set by the dunning schedule (T-704), not here.
 - Nothing is deleted, and none of this touches `public.verify_reference` (CLAUDE.md non-negotiable 9).
 
 **Checkout contract (T-703).**
 - A Checkout Session sets `client_reference_id` and `subscription_data.metadata.workspace_id` to the workspace id.
-- Events that carry neither are attributed through the mirrored subscription or customer id.
+- That id must come from the caller's own admin membership (`auth.uid()`), checked in the database, never from the
+  request. Otherwise a caller could attach a subscription to a workspace they do not administer.
+- Attribution order (`private.stripe_workspace`):
+  1. A subscription already in the mirror keeps its workspace, whatever its metadata says.
+  2. Otherwise the metadata or `client_reference_id`.
+  3. Otherwise the mirrored customer.
 - An event whose workspace cannot be found stays stored, and its job fails visibly.
 
 ## Dunning (BE-36)

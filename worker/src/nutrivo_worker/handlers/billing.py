@@ -21,7 +21,7 @@ from typing import Any, Protocol
 import sentry_sdk
 
 from .. import observability as obs
-from ..billing.mirror import NotNutrivo, snapshot, subscription_id_of, workspace_id
+from ..billing.mirror import NotNutrivo, snapshot, subscription_id_of
 from ..billing.stripe import StripeClient
 from ..config import ConfigError
 from ..errors import PermanentJobError, SafeError
@@ -35,7 +35,7 @@ EVENT_ID = re.compile(r"^evt_[A-Za-z0-9_]{1,250}$")
 
 class BillingStore(Protocol):
     def payment_event(self, stripe_event_id: str) -> dict[str, Any] | None: ...
-    def workspace_for_subscription(self, subscription_id: str, customer_id: str | None) -> str | None: ...
+    def workspace_for_subscription(self, sub: dict[str, Any]) -> str | None: ...
     def apply_subscription(self, workspace_id: str, snapshot: dict[str, Any], source: str, ref: str) -> str: ...
 
 
@@ -58,9 +58,9 @@ def stripe_client(ctx: JobContext) -> StripeClient:
 
 
 def _workspace(store: BillingStore, sub: dict[str, Any], known: str | None) -> str | None:
-    return (known or workspace_id(sub)
-            or store.workspace_for_subscription(sub["id"], sub.get("customer") if isinstance(sub.get("customer"), str)
-                                                else (sub.get("customer") or {}).get("id")))
+    """A subscription already mirrored keeps its workspace whatever its metadata says (the database decides, the same
+    way it attributes events); only then the event's own workspace (a checkout session's client_reference_id)."""
+    return store.workspace_for_subscription(sub) or known
 
 
 def sync(job: Job, ctx: JobContext, store: BillingStore, stripe: Stripe) -> str:

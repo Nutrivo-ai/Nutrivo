@@ -117,8 +117,8 @@ class _Store:
     def payment_event(self, stripe_event_id):
         return self.events.get(stripe_event_id)
 
-    def workspace_for_subscription(self, subscription_id, customer_id):
-        return self.ws_by_sub.get(subscription_id)
+    def workspace_for_subscription(self, sub):
+        return self.ws_by_sub.get(sub["id"]) or workspace_id(sub)
 
     def apply_subscription(self, ws, snap, source, ref):
         if snap["subscription_id"] in self.fail_for:

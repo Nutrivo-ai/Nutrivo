@@ -270,10 +270,11 @@ class PgStore:
             """select workspace_id::text, type, payload from app.payment_events where stripe_event_id = %s""",
             (stripe_event_id,)).fetchone()
 
-    def workspace_for_subscription(self, subscription_id: str, customer_id: str | None) -> str | None:
-        row = self.conn.execute("select private.stripe_workspace(%s)::text as ws",
-                                (Jsonb({"object": "subscription", "id": subscription_id, "customer": customer_id}),)
-                                ).fetchone()
+    def workspace_for_subscription(self, sub: dict[str, Any]) -> str | None:
+        """private.stripe_workspace: the mirrored subscription's workspace, else its metadata's, else the customer's."""
+        obj = {"object": "subscription", "id": sub.get("id"), "metadata": sub.get("metadata") or {},
+               "customer": sub["customer"].get("id") if isinstance(sub.get("customer"), dict) else sub.get("customer")}
+        row = self.conn.execute("select private.stripe_workspace(%s)::text as ws", (Jsonb(obj),)).fetchone()
         return row["ws"] if row else None
 
     def apply_subscription(self, workspace_id: str, snapshot: dict[str, Any], source: str, ref: str) -> str:
