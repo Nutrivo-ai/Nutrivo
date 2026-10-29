@@ -52,6 +52,51 @@ customers without one; zero outside the EU. All prices are stored and shown net;
 `invoice.payment_failed`. Each is written to `app.payment_events` once (primary key = Stripe event id), then applied
 to `app.subscriptions` and `app.workspaces.plan / status`.
 
+### How it runs (T-702)
+1. **The function.** `supabase/functions/stripe-webhook` (`verify_jwt = false`: Stripe sends no Supabase JWT)
+   verifies the `Stripe-Signature` header with `STRIPE_WEBHOOK_SECRET`: HMAC-SHA256 over `t.payload`, a 300-second
+   tolerance, and any one matching `v1` accepted (secret rotation).
+   - An unsigned, wrongly signed, stale or malformed request gets 400 and nothing is stored.
+   - Otherwise the function calls `app.record_stripe_event` with the service role and answers 200, whether the event
+     was stored now or before.
+   - A database failure answers 500, so Stripe retries.
+   - Logs hold event ids, types and outcomes only.
+2. **Storing.** `app.record_stripe_event` is service role only.
+   - It inserts the event with `on conflict do nothing` and resolves the workspace (see the checkout contract below).
+   - For the six types above it queues a `billing_sync` job whose payload is `{"stripe_event_id"}` only.
+   - Any other type is stored and queues nothing.
+3. **Applying.** The worker's `billing_sync` re-reads the subscription from Stripe rather than trusting the event
+   body, so duplicates and out-of-order deliveries converge on Stripe's current state. It applies the subscription
+   through `app.apply_subscription`.
+   - **Which item is the plan.** The plan item and the add-ons come from the catalogue's price metadata (`nutrivo_kind`,
+     `nutrivo_plan`, `nutrivo_addon`).
+   - **Seats and recipes.** These come from the plan product's `editors` and `recipes`, plus the `editor_seat` and
+     `recipe` add-on quantities. `unlimited` means no check.
+   - **Not Nutrivo's.** A subscription without exactly one Nutrivo plan price is never applied.
+4. **Reconciliation.** pg_cron queues one `billing_reconcile` job a day (03:17 UTC, idempotent by date).
+   - It applies every subscription in Stripe the same way, inside the Sentry cron check-in `stripe-reconcile`.
+   - Any correction it makes is reported to Sentry as a warning (docs/18). A subscription it cannot apply fails the run
+     after the others are applied.
+   - Outside prod the worker refuses a live key and any live-mode answer (gate G8).
+
+| Stripe subscription status | Workspace plan | Workspace status | Mirror |
+|---|---|---|---|
+| `active`, `trialing` | the subscribed plan | `active` (also from `dunning` or `new_artwork_stopped`) | plan, term, seats, recipes, period end |
+| `past_due`, `unpaid` | the subscribed plan | `active` becomes `dunning`, which restricts nothing; `new_artwork_stopped` stays | as above |
+| `canceled`, `incomplete_expired` | `free` | unchanged | Stripe's status kept, seats and recipes cleared (no seat check, D-21) |
+| `incomplete`, `paused` | unchanged | unchanged | Stripe's status |
+
+The table has a few exceptions:
+- A `closed` or `dormant` workspace keeps its status.
+- The end of an older subscription never downgrades a workspace whose mirrored subscription is a different, live one.
+- Day 14 (`new_artwork_stopped`) is set by the dunning schedule (T-704), not here.
+- Nothing is deleted, and none of this touches `public.verify_reference` (CLAUDE.md non-negotiable 9).
+
+**Checkout contract (T-703).**
+- A Checkout Session sets `client_reference_id` and `subscription_data.metadata.workspace_id` to the workspace id.
+- Events that carry neither are attributed through the mirrored subscription or customer id.
+- An event whose workspace cannot be found stays stored, and its job fails visibly.
+
 ## Dunning (BE-36)
 Days 0, 3 and 7: notify and retry, no restriction. Day 14: `status = new_artwork_stopped`, which stops new artworks
 only. Nothing is ever deleted, and verification of shared documents never breaks.

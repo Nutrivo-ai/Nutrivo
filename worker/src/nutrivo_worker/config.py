@@ -75,6 +75,10 @@ class Settings(BaseModel):
     mailpit_url: str = "http://127.0.0.1:54324"
     app_base_url: str | None = None
 
+    # Stripe (D-18, T-702): billing_sync and billing_reconcile read subscriptions; the worker never writes to Stripe.
+    # Test keys only until gate G8 (T-705): a live key is refused outside prod.
+    stripe_secret_key: SecretStr | None = None
+
     @model_validator(mode="after")
     def _email_matches_env(self) -> Settings:
         if self.email_mode_override and self.email_mode_override != self.email_mode_for_env:
@@ -88,6 +92,13 @@ class Settings(BaseModel):
         if self.env in DEPLOYED and (self.anthropic_api_key or self.anthropic_models):
             raise ConfigError(f"the Anthropic API is refused in {self.env} (D-11): unset ANTHROPIC_API_KEY and "
                               f"ANTHROPIC_MODEL_*")
+        return self
+
+    @model_validator(mode="after")
+    def _stripe_test_mode_outside_prod(self) -> Settings:
+        key = self.stripe_secret_key.get_secret_value() if self.stripe_secret_key else ""
+        if self.env != "prod" and key.startswith(("sk_live_", "rk_live_")):
+            raise ConfigError(f"a live Stripe key is refused in {self.env}: Stripe stays in test mode (gate G8)")
         return self
 
     @property
@@ -152,6 +163,7 @@ class Settings(BaseModel):
             "bedrock_models": models("BEDROCK_MODEL_"),
             "anthropic_api_key": secret("ANTHROPIC_API_KEY"),
             "anthropic_models": models("ANTHROPIC_MODEL_"),
+            "stripe_secret_key": secret("STRIPE_SECRET_KEY"),
         }
         values["email_mode_override"] = get("EMAIL_MODE")
         for field, name in (("ses_from_address", "SES_FROM_ADDRESS"), ("mailpit_url", "MAILPIT_URL"),
@@ -184,6 +196,11 @@ class Settings(BaseModel):
         if not self.database_url:
             raise ConfigError("DATABASE_URL is not set")
         return self.database_url.get_secret_value()
+
+    def require_stripe(self) -> str:
+        if not self.stripe_secret_key:
+            raise ConfigError("STRIPE_SECRET_KEY is not set")
+        return self.stripe_secret_key.get_secret_value()
 
     def require_storage(self) -> tuple[str, str]:
         if not (self.supabase_url and self.supabase_service_role_key):

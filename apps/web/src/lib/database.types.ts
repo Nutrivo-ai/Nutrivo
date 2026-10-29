@@ -1210,6 +1210,9 @@ isOneToOne: false
               "node_id": string,"product_id": string,"workspace_id": string
             }[]
                            },
+"apply_subscription":
+{ Args: { "p_ref": string,"p_snapshot": Json,"p_source": string,"p_ws": string }; Returns: string
+                           },
 "change_member":
 { Args: { "p_access_ends_at": string,"p_is_external": boolean,"p_membership": string,"p_role": string,"p_scope_family_ids": (string)[],"p_scope_node_ids": (string)[] }; Returns: string
                            },
@@ -1236,6 +1239,9 @@ isOneToOne: false
                            },
 "open_coverage_gap":
 { Args: { "p_description": string,"p_domain": string,"p_gap_id": string,"p_node": string,"p_reason_code": string }; Returns: string
+                           },
+"record_stripe_event":
+{ Args: { "p_event": Json }; Returns: Json
                            },
 "register_artwork":
 { Args: { "p_file_name"?: string,"p_mime"?: string,"p_product": string,"p_sha256": string,"p_storage_path": string }; Returns: string

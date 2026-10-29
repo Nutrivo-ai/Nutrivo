@@ -33,7 +33,8 @@ from .logs import get_logger, kv, log_context, workspace_hash
 
 log = get_logger(__name__)
 
-KINDS = ("extract", "check", "recheck", "bulk_recheck", "report", "export", "notify", "session_revoke", "diff_fanout")
+KINDS = ("extract", "check", "recheck", "bulk_recheck", "report", "export", "notify", "session_revoke", "diff_fanout",
+         "billing_sync", "billing_reconcile")
 Outcome = Literal["succeeded", "retry", "failed", "duplicate", "busy", "missing", "malformed"]
 
 
