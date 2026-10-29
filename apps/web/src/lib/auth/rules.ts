@@ -106,3 +106,49 @@ export function minutesLeft(sentAt: string | null | undefined, now: number, vali
   if (Number.isNaN(sent)) return null;
   return Math.max(0, Math.ceil((sent + validForMinutes * 60_000 - now) / 60_000));
 }
+
+// ─── T-109 · Business sign-in (D-27) ─────────────────────────────────────────────────────────────────────────────
+
+/** The two OAuth providers D-27 names, by the value their button posts and the name Supabase Auth knows them by. */
+export const PROVIDERS = { google: "google", microsoft: "azure" } as const;
+export type ProviderChoice = keyof typeof PROVIDERS;
+export function providerChoice(value: string | null | undefined): ProviderChoice | null {
+  return value === "google" || value === "microsoft" ? value : null;
+}
+
+/**
+ * The fixed marker private.before_user_created_hook puts at the start of its refusal. Supabase Auth answers signUp,
+ * signInWithOtp and inviteUserByEmail with it as the error message (403, error_code "unknown"), and hands it to
+ * /auth/callback as error_description after Google or Microsoft. It is matched, never shown.
+ */
+export const BUSINESS_EMAIL_MARKER = "business_email_required";
+
+/** True when Supabase Auth refused to create an account because the address is a consumer or free-mail one. */
+export function isBusinessEmailRefusal(error: { message?: string | null } | null | undefined): boolean {
+  return !!error?.message?.includes(BUSINESS_EMAIL_MARKER);
+}
+
+/** What /sign-in says after a refused or failed Google or Microsoft sign-in, by a fixed key in `?problem=`. */
+export const SIGN_IN_PROBLEM = {
+  business_email:
+    "Nutrivo accounts use a work email address, so that address cannot open one. Continue with your company's Google or Microsoft account, or use your work email.",
+  provider: "Google or Microsoft did not sign you in, and nothing was changed. Try again, or use your work email and password.",
+} as const;
+export type SignInProblem = keyof typeof SIGN_IN_PROBLEM;
+export function signInProblem(value: string | null | undefined): SignInProblem | null {
+  return value === "business_email" || value === "provider" ? value : null;
+}
+
+/**
+ * Where /auth/callback goes when a Google or Microsoft sign-in came back with an error instead of a code: /sign-in
+ * with a fixed problem, carrying the page asked for. The provider's description is only searched for the marker.
+ */
+export function oauthFailure(params: URLSearchParams): string | null {
+  if (params.get("via") !== "oauth") return null;
+  if (!params.get("error") && !params.get("error_code") && !params.get("error_description")) return null;
+  const problem: SignInProblem = (params.get("error_description") ?? "").includes(BUSINESS_EMAIL_MARKER) ? "business_email" : "provider";
+  const target = safeNext(params.get("next"), "");
+  const query = new URLSearchParams({ problem });
+  if (target && target !== CONTINUE) query.set("next", target);
+  return `/sign-in?${query.toString()}`;
+}

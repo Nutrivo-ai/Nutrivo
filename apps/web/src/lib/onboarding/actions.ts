@@ -9,7 +9,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { REQUEST_ID_HEADER } from "@/lib/observability/request-id";
-import { CONTINUE, checkPassword } from "@/lib/auth/rules";
+import { CONTINUE, SIGN_IN_PROBLEM, checkPassword, isBusinessEmailRefusal } from "@/lib/auth/rules";
 import {
   ACCOUNT_PROBLEM,
   FREE_REGION,
@@ -17,6 +17,7 @@ import {
   OPERATOR_PROBLEM,
   checkAccount,
   readOperator,
+  workspaceNameFromEmail,
 } from "./rules";
 import { pickStep } from "./state";
 
@@ -97,6 +98,8 @@ export async function signUp(_: OnboardingState, form: FormData): Promise<Onboar
       return AUTH_BUSY;
     }
     if (error.code === "weak_password") return { status: "problem", problem: ACCOUNT_PROBLEM.password_short };
+    // D-27 (T-109): the before-user-created hook refuses a consumer or free-mail address.
+    if (isBusinessEmailRefusal(error)) return { status: "problem", problem: SIGN_IN_PROBLEM.business_email };
     return { status: "problem", problem: "That email cannot be used to create a workspace. Check it and try again." };
   }
   if (data.user && (data.user.identities?.length ?? 0) === 0) return signInPath(email);
@@ -160,7 +163,11 @@ export async function createWorkspace(_: OnboardingState, form: FormData): Promi
   }
 
   const meta = auth.user.user_metadata ?? {};
-  const name = typeof meta.workspace_name === "string" && meta.workspace_name.trim() ? meta.workspace_name.trim() : "My workspace";
+  // Google and Microsoft (T-109) carry no workspace_name: the name follows the email domain, as step 01 shows it.
+  const name =
+    typeof meta.workspace_name === "string" && meta.workspace_name.trim()
+      ? meta.workspace_name.trim()
+      : workspaceNameFromEmail(auth.user.email ?? "", typeof meta.full_name === "string" ? meta.full_name : "").name;
   const { data, error } = await supabase.schema("app").rpc("create_workspace", { p_name: name.slice(0, 200) });
   if (error || !data) {
     await report("create_workspace", { code: error?.code });
