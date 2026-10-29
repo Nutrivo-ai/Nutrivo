@@ -103,12 +103,15 @@ export async function signUp(_: OnboardingState, form: FormData): Promise<Onboar
   return { status: "sent", email };
 }
 
-/** A01.fail.1: the existing account's owner is emailed a sign-in link; no second user is ever created. */
+/**
+ * A01.fail.1: the existing account's owner is emailed a sign-in link; no second user is ever created. The link returns
+ * to /onboarding, so an owner who confirmed but has no workspace yet picks up at step 02; anyone past it goes on.
+ */
 async function signInPath(email: string): Promise<OnboardingState> {
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
-    options: { shouldCreateUser: false, emailRedirectTo: await callback(CONTINUE) },
+    options: { shouldCreateUser: false, emailRedirectTo: await callback(ONBOARDING) },
   });
   if (error) {
     await report("sign_in_path", error);

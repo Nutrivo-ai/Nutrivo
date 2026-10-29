@@ -382,6 +382,11 @@ test.describe("A01 sign up and create a workspace", () => {
   test("[A01.fail.1] an email that is already registered gets the sign-in path, and never a second user", async ({ page }) => {
     const owner = await person("a01-known");
     const ws = await workspace(owner, "Already Here");
+    // Past onboarding: the operator is set, so the sign-in link goes on to the workspace.
+    const set = await owner.db.schema("app").rpc("set_default_operator", {
+      p_ws: ws, p_operator: { name: "Already Here AB", address: "Storgatan 1, 111 22 Stockholm, SE", country: "SE" },
+    });
+    if (set.error) throw set.error;
     const fresh = emailFor("a01-fresh");
 
     await page.goto("/onboarding");
@@ -402,6 +407,42 @@ test.describe("A01 sign up and create a workspace", () => {
     await expect(page).toHaveURL(new RegExp(`/w/${ws}$`));
     const { count } = await admin().schema("app").from("memberships").select("id", { count: "exact", head: true }).eq("workspace_id", ws);
     expect(count).toBe(1);
+  });
+
+  test("[A01.main] a confirmed account with no workspace signs in and lands on step 02, never on a dead end", async ({ page, context, baseURL }) => {
+    // They confirmed, then left before step 02 (or confirmed on another device): an account, no person, no workspace.
+    const who = await person("a01-returning");
+    const password = secret();
+    const { error } = await admin().auth.admin.updateUserById(who.userId, { password });
+    if (error) throw error;
+    expect(await personOf(who.userId)).toBeNull();
+    const errors = watch(page);
+
+    await page.goto("/sign-in");
+    await page.getByLabel("Work email").fill(who.email);
+    await page.getByLabel("Password").fill(password);
+    await page.getByRole("button", { name: "Sign in", exact: true }).click();
+    await expect(page).toHaveURL(/\/onboarding$/);
+    await expect(page.getByTestId("onboarding-region").getByRole("heading", { level: 1, name: "Where do you sell" })).toBeVisible();
+
+    // /w/none, reached directly, offers the same way in.
+    await page.goto("/w/none");
+    await expect(page.getByText("Your account is not in a workspace yet")).toBeVisible();
+    await page.getByRole("link", { name: "Create your workspace" }).click();
+    await expect(page).toHaveURL(/\/onboarding$/);
+    await expect(page.getByTestId("onboarding-region")).toBeVisible();
+    expect(errors).toEqual([]);
+
+    // Signing up again with the address (A01.fail.1's path) emails a sign-in link, which also lands on step 02.
+    await context.clearCookies();
+    await page.goto("/onboarding");
+    await fillAccount(page, who.email, "Back Again", secret());
+    await page.getByRole("button", { name: "Create workspace" }).click();
+    await expect(page.getByTestId("onboarding-check-email")).toBeVisible();
+    await page.goto(await linkFromEmail(who.email));
+    await expect(page).toHaveURL(/\/onboarding$/);
+    await expect(page.getByTestId("onboarding-region").getByRole("heading", { level: 1, name: "Where do you sell" })).toBeVisible();
+    expect(await usersWith(who.email)).toHaveLength(1);
   });
 
   test("[A01.fail.2] an unconfirmed email cannot sign in, and so cannot create a workspace", async ({ page }) => {

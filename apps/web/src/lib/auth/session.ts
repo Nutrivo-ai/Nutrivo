@@ -2,6 +2,7 @@
 // person's own session (RLS); nothing here writes.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { ONBOARDING } from "@/lib/onboarding/rules";
 import { readMemberships, ShellReadError } from "@/lib/workspace/memberships";
 import { mfaGate, type MfaGate } from "./rules";
 
@@ -43,12 +44,13 @@ export async function sessionGate(supabase: Client, userId: string): Promise<Mfa
 }
 
 /**
- * Where a signed-in person lands when no page was asked for: their first workspace by name. A person in none goes to
- * /w/none, the shell's "not in a workspace yet" state, which says how to get into one (never a dead end).
+ * Where a signed-in person lands when no page was asked for: their first workspace by name. A person with no person
+ * row or no live membership goes to /onboarding (A01 step 2: a confirmed account without a workspace creates one
+ * there), which forwards anyone past onboarding back here, so the two never loop.
  */
 export async function landingPath(supabase: Client, userId: string): Promise<string> {
   const person = await personId(supabase, userId);
-  if (!person) return "/w/none";
+  if (!person) return ONBOARDING;
   const memberships = await readMemberships(supabase, person);
-  return memberships[0] ? `/w/${memberships[0].workspaceId}` : "/w/none";
+  return memberships[0] ? `/w/${memberships[0].workspaceId}` : ONBOARDING;
 }

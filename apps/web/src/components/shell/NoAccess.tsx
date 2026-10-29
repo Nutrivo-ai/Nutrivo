@@ -1,4 +1,5 @@
 import { EmptyState, NoPermissionState } from "@/components/kit";
+import { ONBOARDING } from "@/lib/onboarding/rules";
 import type { WorkspaceMembership } from "@/lib/workspace/memberships";
 import { Wordmark } from "./Wordmark";
 import { WorkspaceList } from "./WorkspaceSwitcher";
@@ -32,7 +33,8 @@ export function NoAccess({ memberships, pathname }: { memberships: WorkspaceMemb
             where="NO WORKSPACE YET"
             title="Your account is not in a workspace yet"
             body="A workspace is created at onboarding, or opened to you by an invitation from its admin."
-            aside="Ask the admin of your company's workspace to invite you."
+            action={{ label: "Create your workspace", href: ONBOARDING, variant: "primary" }}
+            aside="Or ask the admin of your company's workspace to invite you."
           />
         )}
       </main>
