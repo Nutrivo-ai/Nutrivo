@@ -30,8 +30,9 @@ def run(job: Job, ctx: JobContext, *, storage: service.Storage | None = None,
     store = store or PgReportStore(ctx.store.conn)  # type: ignore[attr-defined]  # PgStore has a connection
     result = service.generate(store, storage or _default_storage(ctx), job_id=job.id, workspace_id=job.workspace_id,
                               check_id=check_id, heartbeat=ctx.heartbeat)
-    progress: dict[str, Any] = {"stage": "ready", "outcome": result.outcome, "report_id": result.report_id, "ref": result.ref,
-                "bucket": service.BUCKET, "path": result.pdf_path, "sha256": result.sha256}
+    progress: dict[str, Any] = {"stage": "ready", "outcome": result.outcome, "report_id": result.report_id,
+                                "ref": result.ref, "bucket": service.BUCKET, "path": result.pdf_path,
+                                "sha256": result.sha256}
     if result.bytes:
         progress["bytes"] = result.bytes
     ctx.heartbeat(**progress)
