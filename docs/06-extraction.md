@@ -115,7 +115,7 @@ and is about 30 times slower. The founder decision on #39 made it development-on
 
 ## Implementation (T-302)
 `worker/src/nutrivo_worker/extraction/`: `engine.py` (pypdfium2), `fonts.py` (heights), `layout.py` (panels),
-`language.py` (lingua), `types.py` (the contract). Persisting the result and the `extract` job are T-303's.
+`language.py` (lingua), `types.py` (the contract). Persisting the result and the `extract` job are T-303's (below).
 
 - **Text objects.** pypdfium2 characters, in content order, form one text object per line. A line breaks on a change
   of font, size or baseline, or on a jump back or across a gap wider than one em. Generated characters are skipped,
@@ -172,3 +172,32 @@ and is about 30 times slower. The founder decision on #39 made it development-on
     (D02) corrects these.
   - Objects inside form XObjects are taken with pdfium's bounds.
   - The real-artwork review in M3 is still the test that counts.
+
+## The extract job (T-303)
+`worker/src/nutrivo_worker/handlers/extract.py`, registered for the `extract` kind that app.register_artwork enqueues.
+- **Input.** The payload is `{artwork_version_id}`. The bytes come from the private `artwork` bucket with the service
+  role. They are read only from the artwork's own content-addressed path, `<workspace>/<product>/<sha256>.<pdf|png|jpg>`.
+  register_artwork stores whatever path it is sent, and the service role reads past Storage RLS, so any other path
+  fails the job before a fetch (the matching check inside register_artwork is a db follow-up on #41). The bytes must
+  hash to `file_sha256`.
+- **Failing.** A foreign path, a missing object (404, or Supabase's 400 with a 404 body) or a hash mismatch is a
+  `PermanentJobError` with ids only, and fails the job at once. Any other storage answer (401, 429, 5xx, the network)
+  retries through the runtime (5 attempts, backoff).
+- **No retry from the screen yet.** A failed job stays failed: registering the same bytes again returns the same
+  artwork version and its job. A retry needs an RPC (db follow-up, #41), so the screen offers no "try again" for it.
+- **Raster uploads.** PNG and JPEG are typed by their magic numbers and never reach pdfium. They are one panel,
+  not_assessable `rasterised`, bbox `[0, 0, 0, 0]`, with no page count or size, because geometry is never guessed
+  (D01.fail.1). Every other file goes to the engine, which names one it cannot open `unreadable`.
+- **Persisting.** One transaction inserts the `app.extraction_runs` row first, `on conflict (idempotency_key) do
+  nothing`, then its panels, their text objects (`reading_order` in content order) and `artwork_versions.page_count`
+  and `page_size_mm` (the first page). The key is the engine's key plus the artwork version id, so the same file in two
+  products is two runs, and a retry, a duplicate message or a second worker writes nothing twice.
+- **Progress.** `app.jobs.progress` goes `{stage: reading}`, `extracting`, `saving` with `pages` and `panels`, then
+  `done` with `extraction_run_id`, `status`, `panels`, `panels_extracted`, `text_objects` and `failure_codes`. These are
+  ids and counts, never label text.
+- **Run status.** `succeeded` when every panel was read, `partial` when some were, and `failed` when none were. All
+  three are a succeeded job: a failure is a panel's status, never the file's (BE-18).
+- **Known limit.** The run key includes the engine and library versions. A job retried after a library upgrade, between
+  its attempts, can write a second run under the new key; screens read the latest run.
+- **request_id.** It is taken from the payload when present. register_artwork does not put one there yet (db, asked
+  on #41).
