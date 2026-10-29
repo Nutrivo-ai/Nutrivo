@@ -26,3 +26,13 @@ export function initAnalytics(): boolean {
   posthog.init(key, posthogOptions(host));
   return true;
 }
+
+/** The only product events PostHog receives (docs/17). Properties carry ids and enums, never free text. */
+export type ProductEvent = "workspace_created" | "artwork_uploaded" | "check_completed" | "report_shared" | "checkout_started" | "plan_started";
+
+/** Sends one product event from the browser; a no-op when PostHog was not started (no key, tests, the server). */
+export function track(event: ProductEvent, properties: Record<string, string | number | boolean>): boolean {
+  if (typeof window === "undefined" || !posthog.__loaded) return false;
+  posthog.capture(event, properties);
+  return true;
+}
