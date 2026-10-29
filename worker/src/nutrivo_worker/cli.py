@@ -9,6 +9,9 @@
   nutrivo content extract  K01/K02: candidates from content/candidates/eu-core.yaml over the stored sources
   nutrivo evals claims --rule-key <key> | --synthetic --lang xx
                    the claims evaluation harness as a Langfuse dataset run (exit 0 threshold met, 1 not, 2 error)
+  nutrivo report rerender <ref> [--out file.pdf]
+                   re-render an issued label report from its stored model and compare it with the issued PDF (BE-26;
+                   exit 0 identical, 1 not, 2 unknown reference)
   nutrivo config   the resolved settings, secrets masked
   nutrivo fixtures run --ruleset <id>
                    rule fixtures, synthetic and golden labels against a ruleset (exit 0 passed, 1 not, 2 error)"""
@@ -59,6 +62,32 @@ def cmd_reap(settings: Settings) -> int:
         observability.flush()
     print(json.dumps({"reaped": [r.__dict__ for r in reaped]}))
     return 0
+
+
+def cmd_report_rerender(settings: Settings, args: argparse.Namespace) -> int:
+    """Exit 0 when the re-rendered document hashes to app.reports.pdf_sha256 and its check events still match."""
+    import sentry_sdk
+
+    from .db import connect
+    from .logs import log_context
+    from .reporting.service import ReportNotFound, rerender
+    from .reporting.store import PgReportStore
+    from .sources.store import StorageClient
+
+    storage = StorageClient(*settings.require_storage())
+    with connect(settings.require_database()) as conn, log_context(request_id=str(uuid.uuid4())), \
+            sentry_sdk.start_transaction(op="report", name="report:rerender"):
+        try:
+            result = rerender(PgReportStore(conn), storage, args.ref)
+        except ReportNotFound:
+            print(json.dumps({"ref": args.ref, "found": False}))
+            return 2
+    if args.out:
+        Path(args.out).write_bytes(result.pdf)
+    print(json.dumps({"ref": result.ref, "found": True, "identical": result.identical,
+                      "pinned_match": result.pinned_match, "sha256": result.sha256,
+                      "expected_sha256": result.expected_sha256}))
+    return 0 if result.identical and result.pinned_match else 1
 
 
 def cmd_sources_fetch(settings: Settings, args: argparse.Namespace) -> int:
@@ -415,6 +444,11 @@ def main(argv: list[str] | None = None) -> int:
     rec.add_argument("--expected-date", help="YYYY-MM-DD, as the person reads it in the official text")
     rec.add_argument("--effective-from", help="YYYY-MM-DD; only for adopted, published or in_force (BE-37)")
     rec.add_argument("--notes", help="the person's own note")
+    report = sub.add_parser("report", help="label report PDFs (I01)").add_subparsers(dest="report_command",
+                                                                                metavar="command", required=True)
+    rr = report.add_parser("rerender", help="re-render an issued report by its reference and compare (BE-26)")
+    rr.add_argument("ref", help="the report's reference, as printed on it")
+    rr.add_argument("--out", help="also write the re-rendered PDF to this file")
     content = sub.add_parser("content", help="content operations over stored sources (docs/12)")
     content_sub = content.add_subparsers(dest="content_command", metavar="command", required=True)
     x = content_sub.add_parser("extract", help="K01/K02: two independent extractions per target into candidates")
@@ -474,6 +508,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_horizon_record(settings, args)
         if args.command == "content":
             return cmd_content_extract(settings, args)
+        if args.command == "report":
+            return cmd_report_rerender(settings, args)
         if args.command == "evals":
             return cmd_evals_claims(settings, args)
         return {"work": cmd_work, "reap": cmd_reap, "config": cmd_config}[args.command](settings)
