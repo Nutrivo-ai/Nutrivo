@@ -14,6 +14,14 @@ redesign rather than wiring.
 | 7 | External flag stamped at write time (audit log) | `app.audit_events.actor_is_external`, `app.checks.actor_is_external` |
 | 8 | Verification by unguessable reference, no table access | Edge Function `verify` → `public.verify_reference(ref)` only |
 
+**How the label report reads contracts 1, 2 and 4 (T-404).** S-NV2-003 shows, per market, only the checks of the
+market's latest check job (`app.product_nodes.last_check_job_id`), one result set per check row, so an older job's
+results are never mixed in. Pins come from the checked panel's `app.text_objects` (`bbox_mm` in page millimetres, top-left
+origin, drawn relative to the panel's own `bbox_mm`); a finding is pinned when it carries `text_object_id`. A Not
+assessed finding links to `ref.coverage_gaps` by its `gap_id`. The engine's rule-level withholds (`data_missing`,
+`evaluator_*`, `model_*`) carry no `gap_id` today; the report shows them as Not assessed with "no coverage gap
+recorded" and reports them to Sentry (open on #46).
+
 ## RPCs (writes go through these; more are added per milestone in the same pattern)
 | Function | Workflow | Notes |
 |---|---|---|
