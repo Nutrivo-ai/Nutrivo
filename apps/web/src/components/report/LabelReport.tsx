@@ -1,11 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { ProductNotFound } from "@/components/artwork/ProductNotFound";
 import {
   EmptyState,
-  ErrorState,
   Finding,
-  NoPermissionState,
   ProvenanceTag,
   StateBadge,
   StateGlyph,
@@ -15,10 +14,9 @@ import {
   STATE_TEXT,
   STATE_TINT,
 } from "@/components/kit";
-import { ScreenHeader, useShell } from "@/components/shell";
+import { Screen } from "@/components/shell";
 import type { ReportPage } from "@/lib/report/queries";
 import type { MarketTile, Pin, ReportFinding, ResultSet } from "@/lib/report/model";
-import { ROLE_LABEL, roleAllows, routeFor } from "@/lib/shell/routes";
 
 // The artwork is drawn to its own scale, no taller than this, so a tall panel still fits beside its findings.
 const MAX_DRAWING_PX = 560;
@@ -38,53 +36,43 @@ export function LabelReport({
   productId: string;
   page: ReportPage;
 }) {
-  const screen = routeFor(route);
-  const { current } = useShell();
-  const allowed = roleAllows(current.role, screen.role);
   const loaded = page.kind === "loaded" ? page : null;
   const sets = loaded?.report.sets ?? [];
   const [selected, setSelected] = useState<string | null>(sets[0]?.checkId ?? null);
   const set = sets.find((s) => s.checkId === selected) ?? sets[0] ?? null;
-
-  const title = loaded
-    ? `${loaded.product.name} · ${count(loaded.markets, "jurisdiction node")}, ${count(loaded.report.languages, "language")}`
-    : screen.title;
   return (
-    <>
-      <ScreenHeader crumb="Check your label · Report" title={title} aside={set ? <RulesetChip set={set} /> : null} />
-      <main className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
-        {!allowed ? (
-          <div className="max-w-[640px]">
-            <NoPermissionState
-              where="NO PERMISSION · LABEL REPORT"
-              title="Your role cannot open the label report"
-              body={`You are a ${ROLE_LABEL[current.role]} in ${current.name}. The label report needs a ${ROLE_LABEL[screen.role]} or a role above it.`}
-              aside={`An admin of ${current.name} can change your role.`}
-            />
-          </div>
-        ) : page.kind === "not-found" ? (
-          <div className="max-w-[640px]">
-            <ErrorState
-              where="LABEL REPORT"
-              title={`This product is not in ${current.name}`}
-              body="It may have been moved, or the link is wrong. Nothing was read or changed."
-              reference={{ label: "Board", href: `/w/${workspaceId}/board` }}
-            />
-          </div>
-        ) : !set ? (
-          <div className="max-w-[640px]">
-            <EmptyState
-              where="LABEL REPORT"
-              title="No check has run on this product yet"
-              body="When a check runs, its results appear here: one set per printed language panel, each finding pinned to the artwork, and everything not assessed linked to the coverage gap behind it."
-              action={{ label: "Upload & scope", href: `/w/${workspaceId}/products/${productId}/check` }}
-            />
-          </div>
-        ) : (
-          <Report workspaceId={workspaceId} productId={productId} tiles={loaded!.report.markets} sets={sets} set={set} onSelect={setSelected} />
-        )}
-      </main>
-    </>
+    <Screen
+      route={route}
+      crumb="Check your label · Report"
+      title={
+        loaded
+          ? `${loaded.product.name} · ${count(loaded.markets, "jurisdiction node")}, ${count(loaded.report.languages, "language")}`
+          : undefined
+      }
+      aside={set ? <RulesetChip set={set} /> : null}
+    >
+      {!loaded ? (
+        <ProductNotFound workspaceId={workspaceId} />
+      ) : !set ? (
+        <div className="max-w-[640px]">
+          <EmptyState
+            where="LABEL REPORT"
+            title="No check has run on this product yet"
+            body="When a check runs, its results appear here: one set per printed language panel, each finding pinned to the artwork, and everything not assessed linked to the coverage gap behind it."
+            action={{ label: "Upload & scope", href: `/w/${workspaceId}/products/${productId}/check` }}
+          />
+        </div>
+      ) : (
+        <Report
+          workspaceId={workspaceId}
+          productId={productId}
+          tiles={loaded.report.markets}
+          sets={sets}
+          set={set}
+          onSelect={setSelected}
+        />
+      )}
+    </Screen>
   );
 }
 
@@ -106,7 +94,7 @@ function Report({
   const shown = set.findings.filter((f) => f.state !== "info");
   return (
     // The design's content width beside its Compliance Worker panel, which is LATER (#24).
-    <div data-screen="S-NV2-003" className="max-w-[948px]">
+    <div data-region="report" className="max-w-[948px]">
       <div data-region="markets" className="flex gap-px border border-rule bg-rule">
         {tiles.map((m) => (
           <MarketTileView
@@ -197,7 +185,6 @@ function MarketTileView({ tile, active, href }: { tile: MarketTile; active: bool
       href={href}
       data-node={tile.nodeId}
       aria-current={active ? "true" : undefined}
-      aria-label={`${tile.name}: ${STATE_LABEL[tile.state]}, ${tile.detail}`}
       className={cx(
         "flex-1 min-w-0 block no-underline text-left py-[11px] px-[13px] border-b-[3px] kit-transition hover:brightness-[0.97]",
         STATE_TINT[tile.state],
@@ -205,7 +192,10 @@ function MarketTileView({ tile, active, href }: { tile: MarketTile; active: bool
       )}
     >
       {/* --n700, not the design's --n600: on a state tint --n600 falls below 4.5:1 (axe). */}
-      <p className="m-0 font-mono text-[10px] tracking-[0.1em] text-n700">{tile.code}</p>
+      <p className="m-0 font-mono text-[10px] tracking-[0.1em] text-n700">
+        {tile.code}
+        <span className="sr-only"> ({tile.name})</span>
+      </p>
       <p className={cx("mt-[4px] mb-0 font-head text-[14px] font-semibold leading-[1.15] flex items-center gap-[6px]", STATE_TEXT[tile.state])}>
         <StateGlyph state={tile.state} size="sm" />
         {STATE_LABEL[tile.state]}

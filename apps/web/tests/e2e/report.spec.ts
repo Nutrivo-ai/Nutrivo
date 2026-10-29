@@ -133,7 +133,7 @@ async function databaseSets(productId: string) {
   return { checks: checks.data, findings: findings.data };
 }
 
-const report = (page: Page) => page.locator('[data-screen="S-NV2-003"]');
+const report = (page: Page) => page.locator('[data-screen="S-NV2-003"] [data-region="report"]');
 const tabs = (page: Page) => page.getByRole("group", { name: "Language" }).getByRole("button");
 const findingsPanel = (page: Page) => page.locator('[data-region="findings"]');
 
@@ -144,8 +144,10 @@ const findingsPanel = (page: Page) => page.locator('[data-region="findings"]');
 const S_NV2_003: Record<string, Region> = {
   // The switcher row's first line: "ARTWORK · DE PANEL" and "LANGUAGE" (the tabs wrap below it, as in the design).
   artworkLabel: { x: 242, y: 188, width: 528, height: 22, fractionY: 0.546875 },
-  // The findings column's heading and its rule, without the count at its right.
-  findingsHeading: { x: 790, y: 188, width: 240, height: 26, fractionY: 0.546875 },
+  // The findings column's heading and its rule; the count at its right is the seeded product's, not the design's.
+  findingsHeading: { x: 790, y: 188, width: 400, height: 26, fractionY: 0.546875, exclude: [{ x: 300, y: 0, width: 100, height: 20 }] },
+  // The artwork frame's top band: its edge and ground. The caption names the seeded panel, so it is left out.
+  artworkFrame: { x: 242, y: 252, width: 528, height: 44, fractionY: 0, exclude: [{ x: 20, y: 24, width: 488, height: 20 }] },
 };
 
 test.describe("label report", () => {
@@ -211,6 +213,7 @@ test.describe("label report", () => {
     await tabs(page).filter({ hasText: /^DE$/ }).click();
     await expectLikeBaseline(page, report(page).locator('[data-region="switcher"]'), "S-NV2-003", S_NV2_003.artworkLabel, maxDiffPixelRatio);
     await expectLikeBaseline(page, findingsPanel(page), "S-NV2-003", S_NV2_003.findingsHeading, maxDiffPixelRatio);
+    await expectLikeBaseline(page, report(page).locator('[data-region="artwork"]'), "S-NV2-003", S_NV2_003.artworkFrame, maxDiffPixelRatio);
   });
 
   test("[D07.must.1] One result set per language panel: each tab shows exactly its own check's findings", async ({ page, context, baseURL }) => {
@@ -280,7 +283,7 @@ test.describe("label report", () => {
     await axe(page);
 
     await page.goto(`/w/${ws}/products/${randomUUID()}/report`);
-    await expect(page.getByText(/This product is not in/)).toBeVisible();
+    await expect(page.getByText("This product is not in this workspace")).toBeVisible();
 
     // No dead controls (docs/20 §4) in the report itself; the shell's own controls are crawled by its tests.
     const url = `/w/${ws}/products/${productId}/report`;

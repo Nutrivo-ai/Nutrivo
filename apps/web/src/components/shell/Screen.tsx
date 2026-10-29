@@ -15,12 +15,15 @@ export function Screen({
   route,
   title,
   crumb,
+  aside,
   children,
 }: {
   route: string;
   /** The page's own title (a product name); the design's screen title otherwise. */
   title?: string;
   crumb?: string;
+  /** What the screen pins at the right of its header, such as a report's ruleset. */
+  aside?: ReactNode;
   children: ReactNode;
 }) {
   const screen = routeFor(route);
@@ -28,7 +31,11 @@ export function Screen({
   const allowed = roleAllows(current.role, screen.role);
   return (
     <>
-      <ScreenHeader crumb={crumb ?? screen.crumb} title={allowed ? (title ?? screen.title) : screen.title} />
+      <ScreenHeader
+        crumb={crumb ?? screen.crumb}
+        title={allowed ? (title ?? screen.title) : screen.title}
+        aside={allowed ? aside : undefined}
+      />
       <main className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]" data-screen={screen.screens[0]}>
         {allowed ? (
           children
