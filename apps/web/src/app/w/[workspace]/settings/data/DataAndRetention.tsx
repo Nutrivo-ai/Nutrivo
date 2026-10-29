@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { Blueprint, Button, NoPermissionState } from "@/components/kit";
-import { ScreenHeader, useShell } from "@/components/shell";
+import { SettingsHeader, SettingsMain } from "@/components/settings/SettingsFrame";
+import { useShell } from "@/components/shell";
 import { ROLE_LABEL, roleAllows, routeFor } from "@/lib/shell/routes";
 import { formatBytes, formatWhen, type ExportState } from "@/lib/exports/exports";
 import { exportLink, requestExport } from "./actions";
@@ -66,8 +67,8 @@ export function DataAndRetention({
   const allowed = roleAllows(current.role, screen.role);
   return (
     <>
-      <ScreenHeader crumb={current.name} title={screen.title} />
-      <main className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
+      <SettingsHeader title={screen.title} chip="NOTHING IS EVER DELETED" tone="clear" />
+      <SettingsMain>
         {allowed ? (
           <>
             <Blueprint edge="border-l-4 border-l-clear" className="bg-clear-bg py-[18px] px-[22px]">
@@ -136,7 +137,7 @@ export function DataAndRetention({
             />
           </div>
         )}
-      </main>
+      </SettingsMain>
     </>
   );
 }

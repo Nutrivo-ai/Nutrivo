@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { Dialog, cx } from "@/components/kit";
+import { SettingsLinks, SettingsNav, settingsKey, type SettingsKey } from "@/components/settings/SettingsFrame";
 import { MOBILE_TABS, NAV, hrefFor, matchRoute, type NavGroup } from "@/lib/shell/routes";
 import type { WorkspaceMembership } from "@/lib/workspace/memberships";
 import { ShellProvider, useOptionalShell } from "./context";
@@ -23,6 +24,7 @@ export function activeNavRoute(route: string | null, nav: NavGroup[] = NAV): str
 /**
  * The workspace shell (T-102): Nutrivo 2.0's 216 px rail beside the page at desktop widths; below 768 px the Mobile
  * file's chrome, a top bar and a bottom tab bar whose More opens the rail. Pages render their own ScreenHeader.
+ * Under /settings/ the Workspace Settings nav takes the rail's place (T-107), and More lists it above the rail.
  */
 export function Shell({
   current,
@@ -36,9 +38,16 @@ export function Shell({
   const pathname = usePathname();
   const matched = matchRoute(pathname);
   const groups = railGroups(NAV, current.workspaceId, activeNavRoute(matched?.route ?? null));
+  const settings = settingsKey(pathname);
   return (
     <ShellProvider value={{ current, memberships }}>
-      <ShellFrame groups={groups} regions={current.regions} matchedRoute={matched?.route ?? null} workspaceId={current.workspaceId}>
+      <ShellFrame
+        groups={groups}
+        regions={current.regions}
+        matchedRoute={matched?.route ?? null}
+        workspaceId={current.workspaceId}
+        settings={settings}
+      >
         {children}
       </ShellFrame>
     </ShellProvider>
@@ -51,18 +60,25 @@ export function ShellFrame({
   regions,
   matchedRoute,
   workspaceId,
+  settings = null,
   children,
 }: {
   groups: RailGroup[];
   regions: string[];
   matchedRoute: string | null;
   workspaceId: string;
+  /** The Workspace Settings section the page is in, if any: its nav replaces the rail. */
+  settings?: SettingsKey | null;
   children: ReactNode;
 }) {
   const [more, setMore] = useState(false);
   return (
     <div className="min-h-screen md:grid md:grid-cols-[216px_minmax(0,1fr)] text-[14px] text-ink bg-paper">
-      <Rail groups={groups} regions={regions} className="hidden md:block" />
+      {settings ? (
+        <SettingsNav ws={workspaceId} active={settings} className="hidden md:block" />
+      ) : (
+        <Rail groups={groups} regions={regions} className="hidden md:block" />
+      )}
       <div className="flex flex-col min-w-0 min-h-screen pb-[60px] md:pb-0">{children}</div>
       <nav
         aria-label="Workspace sections"
@@ -95,6 +111,11 @@ export function ShellFrame({
       </nav>
       <Dialog open={more} onClose={() => setMore(false)} title="Every section" kicker="Workspace">
         <div className="-mx-[12px] -mt-[16px]">
+          {settings ? (
+            <nav aria-label="Settings">
+              <SettingsLinks ws={workspaceId} active={settings} onNavigate={() => setMore(false)} />
+            </nav>
+          ) : null}
           <RailNav groups={groups} onNavigate={() => setMore(false)} />
         </div>
       </Dialog>
