@@ -90,6 +90,24 @@ test.describe("T-109 the provider buttons on /sign-in", () => {
   });
 });
 
+test.describe("T-109 the provider buttons at sign-up (onboarding step 01)", () => {
+  for (const [name, provider] of [["Google", "google"], ["Microsoft", "azure"]] as const) {
+    test(`[T-109] no dead control: Continue with ${name} in the design's SSO slot goes to Supabase Auth and comes back to /onboarding`, async ({ page }) => {
+      const seen = await atAuthorize(page, null);
+      await page.goto("/onboarding");
+      const account = page.getByTestId("onboarding-account");
+      await expect(account.getByRole("button", { name: "Create workspace" })).toBeVisible();
+      await account.getByRole("button", { name: `Continue with ${name}` }).click();
+      await expect.poll(() => seen.length).toBe(1);
+      expect(seen[0].searchParams.get("provider")).toBe(provider);
+      const back = new URL(seen[0].searchParams.get("redirect_to")!);
+      expect(back.pathname).toBe("/auth/callback");
+      expect(back.searchParams.get("next")).toBe("/onboarding");
+      expect(back.searchParams.get("via")).toBe("oauth");
+    });
+  }
+});
+
 test.describe("@local-only T-109 no new account on a free-mail address, on every route (D-27)", () => {
   test.skip(!haveStack(), "needs the local Supabase stack (scripts/ci/e2e.sh)");
 
@@ -100,6 +118,16 @@ test.describe("@local-only T-109 no new account on a free-mail address, on every
     const allowed = await anon().auth.signUp({ email: fresh("haldenpet.example"), password: "a passphrase of four words" });
     expect(allowed.error).toBeNull();
     expect(allowed.data.user?.id).toBeTruthy();
+  });
+
+  test("[T-109] onboarding: creating a workspace on a free-mail address says to use a work email", async ({ page }) => {
+    await page.goto("/onboarding");
+    const account = page.getByTestId("onboarding-account");
+    await account.getByLabel("Work email").fill(fresh("gmail.com"));
+    await account.getByLabel("Full name").fill("Pat Example");
+    await account.getByLabel("Password").fill(`t109 ${randomUUID()}`);
+    await account.getByRole("button", { name: "Create workspace" }).click();
+    await expect(account.getByRole("alert")).toHaveText(SIGN_IN_PROBLEM.business_email);
   });
 
   test("[T-109] sign-in link with shouldCreateUser: a free-mail address is refused", async () => {
