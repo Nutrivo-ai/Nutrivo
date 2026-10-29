@@ -42,3 +42,43 @@ def test_sample_rate_and_missing_database():
     assert Settings.from_env({"NUTRIVO_ENV": "staging"}).traces_sample_rate == 1.0
     with pytest.raises(ConfigError):
         Settings.from_env({}).require_database()
+
+
+@pytest.mark.parametrize("env", ["staging", "prod"])
+@pytest.mark.parametrize("name", ["ANTHROPIC_API_KEY", "ANTHROPIC_MODEL_JUDGEMENT", "ANTHROPIC_MODEL_TRIAGE",
+                                  "ANTHROPIC_MODEL_EXTRACTION", "ANTHROPIC_MODEL_SOMETHING_ELSE"])
+def test_anthropic_api_is_refused_when_deployed(env, name):
+    with pytest.raises(ConfigError, match=f"refused in {env}.*{name}") as exc:
+        Settings.from_env({"NUTRIVO_ENV": env, name: fake_secret("sk-ant-")})
+    assert MARKER not in str(exc.value)
+
+
+@pytest.mark.parametrize("env", ["staging", "prod"])
+def test_anthropic_api_refused_for_settings_built_directly(env):
+    from pydantic import SecretStr
+    with pytest.raises(ValueError, match="refused"):   # pydantic wraps the ConfigError in a ValidationError
+        Settings(env=env, anthropic_api_key=SecretStr("k"))
+    with pytest.raises(ValueError, match="refused"):
+        Settings(env=env, anthropic_models={"judgement": "claude-sonnet-4-6"})
+
+
+@pytest.mark.parametrize("env", ["staging", "prod"])
+def test_empty_anthropic_values_do_not_block_a_deployed_start(env):
+    s = Settings.from_env({"NUTRIVO_ENV": env, "ANTHROPIC_API_KEY": " ", "ANTHROPIC_MODEL_JUDGEMENT": ""})
+    assert s.anthropic_api_key is None and s.anthropic_models == {}
+
+
+@pytest.mark.parametrize("env", ["local", "dev", "ci"])
+def test_anthropic_api_stays_allowed_outside_staging_and_prod(env):
+    s = Settings.from_env({"NUTRIVO_ENV": env, "ANTHROPIC_API_KEY": "sk-ant-x",
+                           "ANTHROPIC_MODEL_JUDGEMENT": "claude-sonnet-4-6"})
+    assert s.anthropic_models == {"judgement": "claude-sonnet-4-6"}
+
+
+def test_cli_refuses_to_start_with_the_anthropic_api_in_prod(monkeypatch, capsys):
+    from nutrivo_worker import cli
+    monkeypatch.setenv("NUTRIVO_ENV", "prod")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", fake_secret("sk-ant-"))
+    assert cli.main(["work"]) == 2
+    err = capsys.readouterr().err
+    assert "ANTHROPIC_API_KEY" in err and MARKER not in err
