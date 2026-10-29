@@ -40,7 +40,19 @@
 - The deny list in `.claude/settings.json` is a convenience, not a boundary: a command can wrap a denied one and get
   past it. The boundaries are what each Infisical identity can read (docs/22 §3) and the `main` ruleset (docs/22 §2).
 - `make env-check ENV=<env>` lists names present and missing, never values.
-- `make doctor ENV=<env>` proves each service works with the stored keys.
+- `make doctor ENV=<env>` proves each service works with the stored keys. Its read-only checks of the 23 Oct
+  decisions (T-014) also run under `--readonly` in prod:
+
+  | Check | Proves | Required in |
+  |---|---|---|
+  | `bedrock-profiles` | `AWS_REGION` and every Region each `BEDROCK_MODEL_*` profile lists (`GetInferenceProfile`) are among the six of D-02; an in-Region `anthropic.*` id counts as `AWS_REGION` | dev, staging, prod |
+  | `bedrock-retention` | Bedrock data retention (`GetAccountDataRetention`) is `none` in each of those Regions (D-11). It only reads; a founder sets the mode | staging, prod (a warning in dev) |
+  | `supabase-grants` | Over `DATABASE_URL` in a read-only transaction: no INSERT, UPDATE, DELETE or TRUNCATE for anon or authenticated on any table or view in `app` or `ref`, none through default privileges on new tables, and no `pgmq_public` schema (D-26) | staging, prod |
+  | `anthropic` | In staging and prod, `ANTHROPIC_API_KEY` and every `ANTHROPIC_MODEL_*` are unset (D-11); in dev, the key is valid | staging, prod |
+
+  The AWS identities need `bedrock:GetInferenceProfile` and `bedrock:GetAccountDataRetention` for these.
+- The worker refuses to start (exit 2) when `NUTRIVO_ENV` is staging or prod and `ANTHROPIC_API_KEY` or any
+  `ANTHROPIC_MODEL_*` is set (D-11). The error names the variable, never its value.
 - Stripe keys are test mode in dev and staging, and live only in prod after gate G8.
 - Email (D-16): the worker sends through SES in eu-central-1 only when `NUTRIVO_ENV` is staging or prod, and through
   the local stack's Mailpit (`MAILPIT_URL`, default `http://127.0.0.1:54324`) everywhere else. `EMAIL_MODE` may only
