@@ -44,7 +44,7 @@ delete (BE-13).
 | rule effect_type | new_obligation · tightened_threshold · withdrawn_authorisation · prescribed_wording · editorial |
 | panel failure_code | outlined_text · rasterised · missing_font · colour_space · no_true_scale · unreadable |
 | audit_events.kind (access) | `session.started` (one row per active membership at every sign-in, `after` = `{aal}`) · `access.password_changed` (no before or after: never the secret). Written by triggers on `auth.sessions` and `auth.users`, so no client can skip or forge them; the actor is always the account holder, also when the hash changes through the admin API (T-103) |
-| withheld reason_code | coverage: not_encoded · partially_encoded · out_of_scope · pending_acceptance (need gap_id); extraction: the failure codes (need panel_id); data_missing · model_abstained · model_unavailable |
+| withheld reason_code | coverage: not_encoded · partially_encoded · out_of_scope · pending_acceptance (need gap_id); extraction: the failure codes (need panel_id); data_missing · model_abstained · model_unavailable · model_refused · model_output_invalid; engine (T-403, #45): evaluator_missing (no evaluator for the rule's shape yet) · evaluator_error (the rule's params or applicability cannot be evaluated) |
 
 ## Error codes raised by the database
 | Code | Meaning |
