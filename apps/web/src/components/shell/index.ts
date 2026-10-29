@@ -3,6 +3,7 @@
 export { ShellProvider, useOptionalShell, useShell, type ShellValue } from "./context";
 export { NoAccess } from "./NoAccess";
 export { Rail, RailNav, railGroups, regionsLine, type RailGroup, type RailItem } from "./Rail";
+export { Screen } from "./Screen";
 export { ScreenPlaceholder } from "./ScreenPlaceholder";
 export { ScreenHeader, Shell, ShellFrame, activeNavRoute } from "./Shell";
 export { ShellError, ShellLoading } from "./states";

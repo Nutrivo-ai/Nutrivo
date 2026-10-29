@@ -43,9 +43,18 @@ database (P0292). Removing a member ends the membership, revokes grants and sign
   because a layout is not rendered again on client navigation. The staff RPCs themselves do not check `aal2` yet
   (#25, question 7).
 - **Business sign-in (D-27, T-109).**
-  - Google and Microsoft OAuth sit beside email and password; Microsoft is limited to work accounts.
-  - No new account is created for a consumer or free-mail address on any route. A Supabase Auth hook enforces this
-    in the database, against a versioned domain list; existing accounts keep working.
+  - Google and Microsoft OAuth sit beside email and password on `/sign-in` (`components/auth/ProviderButtons.tsx`, for
+    onboarding too). Microsoft is the `organizations` tenant, so a personal Microsoft account is refused by Microsoft.
+    The flow is PKCE: the provider returns to `/auth/callback?via=oauth`, the code becomes a session at aal1, and the
+    T-103 two-step gate applies unchanged. A refusal returns to `/sign-in?problem=…` with fixed text; the provider's
+    description is only searched for the hook's marker, never shown or logged.
+  - No new account is created for a consumer or free-mail address on any route. `private.before_user_created_hook`
+    (Supabase Auth's Before User Created hook) refuses it with 403 and the marker `business_email_required`, against
+    `private.consumer_email_domains` (versioned by `list_version`; version `2026-10-29.1` is the domains D-27 names).
+    It runs only when a user is created, so existing accounts, sign-ins and identities linked to an existing account
+    are never refused. The service role's `admin.createUser` does not call it (test setup and staff only).
+  - A sign-up on a new free-mail address is refused, while one on an existing address is answered as usual, so the
+    answer can tell whether an account from before D-27 exists on a free-mail address (#138).
   - Google and Microsoft are the customer's own identity providers, not sub-processors.
 - **Password reset.** It ends every other session (`signOut({scope: 'others'})`).
 - **Audit.** Sign-ins and password changes are audited by database triggers on `auth.sessions` and `auth.users`;

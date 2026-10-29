@@ -34,6 +34,12 @@ class StorageError(SafeError):
         self.status = status
 
 
+class StorageNotFound(StorageError):
+    """The object is not there (Supabase answers 404, or 400 with a 404 in its JSON body): retrying will not bring it."""
+
+    reason = "storage_not_found"
+
+
 @dataclass(frozen=True)
 class Meta:
     title: str
@@ -104,9 +110,19 @@ class StorageClient:
             if resp.status == 200:
                 return resp.body
             last, status = f"HTTP {resp.status}", resp.status
+            if resp.status == 404 or (resp.status == 400 and _not_found(resp.body)):
+                raise StorageNotFound(f"storage read from {bucket} failed (HTTP {resp.status}, not found)", status)
             if resp.status < 500:
                 break
         raise StorageError(f"storage read from {bucket} failed ({last})", status)
+
+
+def _not_found(body: bytes) -> bool:
+    try:
+        err = json.loads(body)
+    except ValueError:
+        return False
+    return isinstance(err, dict) and (str(err.get("statusCode")) == "404" or err.get("code") == "NoSuchKey")
 
 
 def _already_exists(body: bytes) -> bool:

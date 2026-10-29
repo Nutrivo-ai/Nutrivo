@@ -13,8 +13,9 @@ import {
   type FormState,
   type MfaStart,
 } from "@/lib/auth/actions";
-import { checkPassword, MIN_PASSWORD, safeNext } from "@/lib/auth/rules";
+import { checkPassword, MIN_PASSWORD, safeNext, SIGN_IN_PROBLEM, signInProblem } from "@/lib/auth/rules";
 import { AuthCard, Field, Fields, Primary, Problem, QuietLink, Secondary } from "./AuthCard";
+import { ProviderButtons } from "./ProviderButtons";
 
 const IDLE: FormState = { status: "idle" };
 
@@ -34,19 +35,28 @@ function LinkSent({ email, what, again, testId }: { email: string; what: string;
   );
 }
 
-/** /sign-in (A02.main): email and password, or a sign-in link by email. */
+/** /sign-in (A02.main): email and password, a sign-in link by email, or Google or Microsoft (T-109, D-27). */
 export function SignInForm() {
-  const next = safeNext(useSearchParams().get("next"));
+  const params = useSearchParams();
+  const next = safeNext(params.get("next"));
+  const returned = signInProblem(params.get("problem")); // a refused Google or Microsoft sign-in (/auth/callback)
   const [passwordState, passwordAction, signingIn] = useActionState(signInWithPassword, IDLE);
   const [linkState, linkAction, sending] = useActionState(sendSignInLink, IDLE);
   if (linkState.status === "sent") return <LinkSent email={linkState.email} what="a sign-in link" again="/sign-in" testId="auth-sign-in" />;
-  const problem = passwordState.status === "problem" ? passwordState.problem : linkState.status === "problem" ? linkState.problem : null;
+  const problem =
+    passwordState.status === "problem"
+      ? passwordState.problem
+      : linkState.status === "problem"
+        ? linkState.problem
+        : returned
+          ? SIGN_IN_PROBLEM[returned]
+          : null;
   return (
     <AuthCard
       testId="auth-sign-in"
       mark={{ label: "SIGN IN", tone: "accent", glyph: "circle" }}
       title="Sign in"
-      body="With your work email and password, or with a link we email you that signs you in once."
+      body="With your work email and password, a link we email you that signs you in once, or your company's Google or Microsoft account."
     >
       <form action={passwordAction}>
         <input type="hidden" name="next" value={next} />
@@ -65,6 +75,7 @@ export function SignInForm() {
           {sending ? "Sending…" : "Email me a sign-in link instead"}
         </button>
       </form>
+      <ProviderButtons next={next} disabled={signingIn || sending} />
       <Secondary>
         Forgotten your password? <QuietLink href="/auth/forgot">Send yourself a way back in</QuietLink>
       </Secondary>
