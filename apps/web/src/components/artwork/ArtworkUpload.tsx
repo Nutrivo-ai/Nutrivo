@@ -194,22 +194,25 @@ export function ArtworkUpload({
 
 export function ArtworkCard({ art, workspaceId, productId }: { art: ArtworkSummary; workspaceId: string; productId: string }) {
   const status = cardStatus(art.run);
+  // The card is drawn as S-NV2-002 draws it; the link to S-NV2-025 sits under it, outside the compared region.
   return (
-    <div className="border border-solid border-rule py-[13px] px-[14px]" data-artwork-card={art.run?.status ?? "reading"}>
-      <div className="flex items-baseline gap-[10px]">
-        <span className="flex-1 font-medium">Artwork</span>
-        <span className={cx("font-mono text-[10px] tracking-[0.08em] uppercase", TONE[status.tone])}>{status.label}</span>
+    <>
+      <div className="border border-solid border-rule py-[13px] px-[14px]" data-artwork-card={art.run?.status ?? "reading"}>
+        <div className="flex items-baseline gap-[10px]">
+          <span className="flex-1 font-medium">Artwork</span>
+          <span className={cx("font-mono text-[10px] tracking-[0.08em] uppercase", TONE[status.tone])}>{status.label}</span>
+        </div>
+        <p className="mt-[5px] mb-0 font-mono text-[11px] text-n600 break-words">{fileLine(art)}</p>
+        <p className="mt-[6px] mb-0 text-[12.5px] leading-[1.45] text-n700">{unlocks(art)}</p>
       </div>
-      <p className="mt-[5px] mb-0 font-mono text-[11px] text-n600 break-all">{fileLine(art)}</p>
-      <p className="mt-[6px] mb-0 text-[12.5px] leading-[1.45] text-n700">{unlocks(art)}</p>
       {art.run ? (
-        <p className="mt-[8px] mb-0 font-mono text-[10.5px]">
+        <p className="m-0 font-mono text-[10.5px]">
           <a href={`/w/${workspaceId}/products/${productId}/artwork/${art.id}`} className="kit-transition">
             What ran, per panel →
           </a>
         </p>
       ) : null}
-    </div>
+    </>
   );
 }
 

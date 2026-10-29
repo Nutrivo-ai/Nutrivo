@@ -7,11 +7,17 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { parse } from "yaml";
 import { REPO_ROOT } from "../visual/screens";
+import { expectLikeBaseline } from "./support/baseline";
 import { admin, haveStack, person, signIn, workspace, type Person } from "./support/people";
 
 const SYNTH = path.join(REPO_ROOT, "fixtures/synth/out");
 const EXTRACTION_MS = 90_000;
+const maxDiff = (parse(fs.readFileSync(path.join(REPO_ROOT, "spec/nfr.yaml"), "utf8")) as { quality: { visual_max_diff_pixel_ratio: number } })
+  .quality.visual_max_diff_pixel_ratio;
+// S-NV2-002 at 1600 px: the "1 · What you have" Artwork card, complete, is the box at x 242, y 116, 294 × 131.
+const ARTWORK_CARD = { x: 242, y: 116, width: 294, height: 131, fractionY: 0 };
 
 function fixture(name: string) {
   const file = path.join(SYNTH, `${name}.pdf`);
@@ -90,11 +96,15 @@ test.describe("upload and extract", () => {
     // Choose the file: signed upload, register_artwork, then extraction progress over app.jobs.
     const chooser = page.waitForEvent("filechooser");
     await page.getByRole("button", { name: "Choose a file" }).click();
-    await (await chooser).setFiles(fixture("clean_3lang"));
+    // Named as the design names it, so the card can be compared with S-NV2-002.
+    const named = { name: "salmon-rice-12kg-v7.pdf", mimeType: "application/pdf", buffer: fs.readFileSync(fixture("clean_3lang")) };
+    await (await chooser).setFiles(named);
     await expect(card(page)).toHaveAttribute("data-artwork-card", "succeeded", { timeout: EXTRACTION_MS });
     await expect(card(page)).toContainText("Complete");
-    await expect(card(page)).toContainText("clean_3lang.pdf · vector text extracted");
+    await expect(card(page)).toContainText("salmon-rice-12kg-v7.pdf · vector text extracted");
     await axe(page);
+    await page.reload(); // the card as a later visit draws it, without the upload control's transient state
+    await expectLikeBaseline(page, card(page), "S-NV2-002", ARTWORK_CARD, maxDiff);
 
     // The database holds what the screen says: one version, one run, three panels with text objects.
     const service = admin();
@@ -106,7 +116,7 @@ test.describe("upload and extract", () => {
     expect(job.data).toMatchObject({ status: "succeeded", progress: { stage: "done", panels: 3, panels_extracted: 3 } });
 
     // What ran, per panel.
-    await card(page).getByRole("link", { name: "What ran, per panel →" }).click();
+    await page.getByRole("link", { name: "What ran, per panel →" }).click();
     await expect(page).toHaveURL(new RegExp(`/w/${ws}/products/${productId}/artwork/${av.id}$`));
     await expect(page.getByRole("heading", { level: 1, name: "Extraction" })).toBeVisible();
     await expect(page.locator('[data-run-status="succeeded"]')).toContainText("3 of 3 panels");
@@ -159,7 +169,7 @@ test.describe("upload and extract", () => {
     await (await chooser).setFiles(fixture("mixed_9panels"));
     await expect(card(page)).toHaveAttribute("data-artwork-card", "partial", { timeout: EXTRACTION_MS });
     await expect(card(page)).toContainText("Partial");
-    await card(page).getByRole("link", { name: "What ran, per panel →" }).click();
+    await page.getByRole("link", { name: "What ran, per panel →" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Partial extraction" })).toBeVisible();
     await expect(page.locator("tr[data-panel]")).toHaveCount(9);
     await expect(page.locator('tr[data-panel-status="not_assessable"]').first()).toContainText("Not measured");
