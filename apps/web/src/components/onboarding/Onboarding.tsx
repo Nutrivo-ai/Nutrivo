@@ -4,11 +4,13 @@ import { useActionState, useEffect, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { cx } from "@/components/kit";
 import { Wordmark } from "@/components/shell/Wordmark";
+import { ProviderButton, ProviderForm, useProviderSignIn } from "@/components/auth/ProviderButtons";
 import { track } from "@/lib/analytics";
 import { createWorkspace, setOperator, signUp, type OnboardingState } from "@/lib/onboarding/actions";
 import {
   FREE_REGION,
   MAX_WORKSPACE_NAME,
+  ONBOARDING,
   OPERATOR_PROBLEM,
   STEPS,
   countryLabel,
@@ -20,11 +22,12 @@ import {
 
 // The Onboarding Flow file (S-ONB-001 to S-ONB-003): one route, the step is state. The design's own header buttons
 // ("Restart at step 01", "View the invited-user page") move between its frames and are not part of the screen; "Continue
-// with SSO" and "READ THE COVERAGE DEPTH" wait for SSO and the public coverage page (issue #28, question 5), and the
-// recipe fields of step 03 arrive with C01 (T-401). Nothing drawn here is a control that does nothing.
+// with SSO" is Continue with Google and Continue with Microsoft (D-27, T-109), "READ THE COVERAGE DEPTH" waits for the
+// public coverage page (issue #28, question 5), and the recipe fields of step 03 arrive with C01 (T-401). Nothing drawn here is a control that does nothing.
 
 const IDLE: OnboardingState = { status: "idle" };
 const FORM = "onboarding-form";
+const PROVIDER_FORM = "onboarding-providers";
 
 type Region = RegionCard;
 
@@ -231,6 +234,8 @@ function AccountStep({ action, pending, problem }: { action: (form: FormData) =>
   const [rename, setRename] = useState("");
   const derived = workspaceNameFromEmail(email, fullName);
   const workspaceName = renaming ? rename : derived.name;
+  const [provider, providerAction, redirecting] = useProviderSignIn();
+  const shown = provider.status === "problem" ? provider.problem : problem;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-[24px] items-start">
@@ -299,14 +304,17 @@ function AccountStep({ action, pending, problem }: { action: (form: FormData) =>
               </div>
             )}
           </div>
-          {problem ? <Problem>{problem}</Problem> : null}
-          {/* As tall as the design's row, whose bordered SSO button is 47.7 px (left out until SSO exists). */}
-          <div className="mt-[24px] flex items-center gap-[14px] min-h-[47.688px]">
-            <button type="submit" disabled={pending} className={cx(PRIMARY, "py-[12px] px-[22px] text-[14.5px]")}>
+          {shown ? <Problem>{shown}</Problem> : null}
+          {/* The design's row: the primary action, then the bordered SSO button, here one per provider (T-109). */}
+          <div className="mt-[24px] flex flex-wrap items-center gap-[14px] min-h-[47.688px]">
+            <button type="submit" disabled={pending || redirecting} className={cx(PRIMARY, "py-[12px] px-[22px] text-[14.5px]")}>
               {pending ? "Creating…" : "Create workspace"}
             </button>
+            <ProviderButton choice="google" form={PROVIDER_FORM} short disabled={pending || redirecting} className="py-[12px]" />
+            <ProviderButton choice="microsoft" form={PROVIDER_FORM} short disabled={pending || redirecting} className="py-[12px]" />
           </div>
         </form>
+        <ProviderForm id={PROVIDER_FORM} action={providerAction} next={ONBOARDING} />
         <p className="mt-[16px] mb-0 pt-[14px] border-t border-n200 text-[12px] leading-[1.5] text-n600">
           By continuing you accept the terms. We never file a registration, pay a fee, correspond with an authority or guarantee acceptance.
         </p>
