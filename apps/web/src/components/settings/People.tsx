@@ -20,7 +20,7 @@ import {
   type MemberRow,
   type PeopleData,
 } from "@/lib/settings/people";
-import { ROLE_LABEL, hrefFor } from "@/lib/shell/routes";
+import { ROLE_LABEL, hrefFor, routeFor } from "@/lib/shell/routes";
 import { Field, HELP, INPUT, KICKER, ScopeFields, endsAt, type ScopeState } from "./fields";
 import { SettingsHeader, SettingsMain } from "./SettingsFrame";
 
@@ -76,14 +76,15 @@ function noticeOf(result: Result, done: string): Notice {
   return { text: result.problem ?? REFUSAL[result.reason], tone: "problem", upsell: result.reason === "no-seat" };
 }
 
-export function People({ workspaceId, data, now }: { workspaceId: string; data: PeopleData; now: string }) {
+export function People({ route, workspaceId, data, now }: { route: string; workspaceId: string; data: PeopleData; now: string }) {
+  const screen = routeFor(route);
   const { current } = useShell();
   const at = new Date(now);
   const count = seatCount(data.members, data.editorSeats, at);
   const admin = current.role === "admin";
   return (
     <>
-      <SettingsHeader title="People and roles" chip={admin ? seatChip(count) : undefined} />
+      <SettingsHeader title={screen.title} chip={admin ? seatChip(count) : undefined} />
       <SettingsMain>
         {admin ? (
           <PeopleScreen workspaceId={workspaceId} data={data} at={at} line={seatLine(count)} />
@@ -91,7 +92,7 @@ export function People({ workspaceId, data, now }: { workspaceId: string; data: 
           <div className="max-w-[640px]">
             <NoPermissionState
               where="NO PERMISSION · SETTINGS"
-              title="Your role cannot open People and roles"
+              title={`Your role cannot open ${screen.title}`}
               body={`You are ${/^[aeiou]/i.test(ROLE_LABEL[current.role]) ? "an" : "a"} ${ROLE_LABEL[current.role]} in ${current.name}. Inviting people and changing roles need an ${ROLE_LABEL.admin}.`}
               aside={`An admin of ${current.name} can invite people or change your role.`}
             />

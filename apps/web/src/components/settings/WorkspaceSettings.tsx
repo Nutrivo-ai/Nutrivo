@@ -7,7 +7,7 @@ import { Blueprint, Button, NoPermissionState, cx } from "@/components/kit";
 import { useShell } from "@/components/shell/context";
 import { saveOperator } from "@/lib/settings/actions";
 import { countryLabel, countryOf } from "@/lib/onboarding/rules";
-import { ROLE_LABEL, hrefFor } from "@/lib/shell/routes";
+import { ROLE_LABEL, hrefFor, routeFor } from "@/lib/shell/routes";
 import { HELP, INPUT, KICKER, LABEL } from "./fields";
 import { SettingsHeader, SettingsMain } from "./SettingsFrame";
 
@@ -55,12 +55,13 @@ export function discontinuedLine(n: number) {
   return `${count} ${n === 1 ? "recipe is" : "recipes are"} discontinued.`;
 }
 
-export function WorkspaceSettings({ view }: { view: WorkspaceView }) {
+export function WorkspaceSettings({ route, view }: { route: string; view: WorkspaceView }) {
+  const screen = routeFor(route);
   const { current } = useShell();
   const admin = current.role === "admin";
   return (
     <>
-      <SettingsHeader title="Workspace" chip={`${view.regions.join(" + ")} · ${view.marketsInReach} MARKETS IN REACH`} />
+      <SettingsHeader title={screen.title} chip={`${view.regions.join(" + ")} · ${view.marketsInReach} MARKETS IN REACH`} />
       <SettingsMain>
         {admin ? (
           <WorkspaceScreen view={view} />
@@ -68,7 +69,7 @@ export function WorkspaceSettings({ view }: { view: WorkspaceView }) {
           <div className="max-w-[640px]">
             <NoPermissionState
               where="NO PERMISSION · SETTINGS"
-              title="Your role cannot open Workspace"
+              title={`Your role cannot open ${screen.title}`}
               body={`You are ${/^[aeiou]/i.test(ROLE_LABEL[current.role]) ? "an" : "a"} ${ROLE_LABEL[current.role]} in ${current.name}. The workspace's defaults need an ${ROLE_LABEL.admin}.`}
               aside={`An admin of ${current.name} can change them.`}
             />

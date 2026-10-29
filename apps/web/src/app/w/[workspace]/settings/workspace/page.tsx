@@ -23,6 +23,7 @@ export default async function Page({ params }: PageProps<"/w/[workspace]/setting
   const regions = ws.data.entitled_regions;
   return (
     <WorkspaceSettings
+      route="/w/[workspace]/settings/workspace"
       view={{
         id: ws.data.id,
         name: ws.data.name,

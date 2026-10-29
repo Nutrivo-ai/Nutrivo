@@ -10,5 +10,5 @@ export default async function Page({ params }: PageProps<"/w/[workspace]/setting
   const supabase = await createClient();
   const { data: ws } = await supabase.schema("app").from("workspaces").select("entitled_regions").eq("id", workspace).maybeSingle();
   const data = await readPeople(supabase, workspace, ws?.entitled_regions ?? []);
-  return <People workspaceId={workspace} data={data} now={new Date().toISOString()} />;
+  return <People route="/w/[workspace]/settings/people" workspaceId={workspace} data={data} now={new Date().toISOString()} />;
 }
