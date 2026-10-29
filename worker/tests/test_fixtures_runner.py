@@ -34,6 +34,8 @@ def fixture(name, outcome="failed", shape="mandatory_particular", rule_key="TEST
 
 
 MEMBER = fr.Member("TEST.RULE.A", 1, "mandatory_particular")
+# The CLI registers the engine's evaluators (T-403); a shape without one still shows how withholds are reported.
+THRESHOLD = fr.Member("TEST.RULE.A", 1, "threshold")
 
 
 def write_synth(d: Path) -> Path:
@@ -205,7 +207,7 @@ def cli_env(monkeypatch, tmp_path):
 
 def test_cli_prints_json_on_stdout_and_exits_1_when_not_passed(cli_env, monkeypatch, capsys, tmp_path):
     synth, golden = cli_env
-    monkeypatch.setattr(fr, "PgFixtureStore", lambda conn: FakeStore([MEMBER], [fixture("a")]))
+    monkeypatch.setattr(fr, "PgFixtureStore", lambda conn: FakeStore([THRESHOLD], [fixture("a", shape="threshold")]))
     out, junit = tmp_path / "r.json", tmp_path / "r.xml"
     code = cli.main(["fixtures", "run", "--ruleset", RULESET, "--format", "json", "--out", str(out),
                      "--junit", str(junit), "--synth", str(synth), "--golden", str(golden)])
@@ -231,7 +233,7 @@ def test_cli_exits_2_without_a_database(monkeypatch, capsys):
 
 def test_cli_text_output_names_every_withhold(cli_env, monkeypatch, capsys):
     synth, golden = cli_env
-    monkeypatch.setattr(fr, "PgFixtureStore", lambda conn: FakeStore([MEMBER], [fixture("a")]))
+    monkeypatch.setattr(fr, "PgFixtureStore", lambda conn: FakeStore([THRESHOLD], [fixture("a", shape="threshold")]))
     assert cli.main(["fixtures", "run", "--ruleset", RULESET, "--synth", str(synth), "--golden", str(golden)]) == 1
     text = capsys.readouterr().out
     assert text.startswith(f"ruleset {RULESET}: NOT PASSED (0 matched, 0 differed, 3 withheld of 3)")

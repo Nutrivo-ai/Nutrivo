@@ -343,6 +343,7 @@ def cmd_fixtures_run(settings: Settings, args: argparse.Namespace) -> int:
     """Read only. stdout carries the report alone, so --format json stays machine-readable."""
     import sentry_sdk
 
+    from . import engine  # noqa: F401  registers the evaluators in fixtures_runner.EVALUATORS
     from . import fixtures_runner as fr
     from .db import connect
 
