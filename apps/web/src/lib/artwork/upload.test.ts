@@ -28,7 +28,13 @@ function fakeDb(rpc: { data: string | null; error: { code: string; message: stri
   const db = {
     storage: { from: (b: string) => (calls.push(`bucket ${b}`), bucket) },
     schema: () => ({
-      rpc: vi.fn(async (fn: string, args: Record<string, unknown>) => (calls.push(`rpc ${fn} ${JSON.stringify(args)}`), rpc)),
+      rpc: vi.fn((fn: string, args: Record<string, unknown>) => {
+        calls.push(`rpc ${fn} ${JSON.stringify(args)}`);
+        const call = Object.assign(Promise.resolve(rpc), {
+          setHeader: (name: string, value: string) => (calls.push(`header ${name}: ${value}`), call),
+        });
+        return call;
+      }),
     }),
   };
   return { db: db as never, calls };
@@ -78,6 +84,18 @@ describe("uploading and registering", () => {
       `put ${path}`,
       `rpc register_artwork ${JSON.stringify({ p_product: PRODUCT, p_storage_path: path, p_sha256: sha, p_file_name: "Label v7.pdf", p_mime: "application/pdf" })}`,
     ]);
+  });
+
+  it("sends the upload's request_id to register_artwork as x-request-id (docs/17)", async () => {
+    const { db, calls } = fakeDb();
+    const result = await uploadArtwork(db, {
+      workspaceId: WS,
+      productId: PRODUCT,
+      file: file(PDF, "a.pdf", "application/pdf"),
+      requestId: "req-12345678",
+    });
+    expect(result.ok).toBe(true);
+    expect(calls.at(-1)).toBe("header x-request-id: req-12345678");
   });
 
   it("an image keeps its own extension", () => {

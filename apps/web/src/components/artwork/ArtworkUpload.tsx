@@ -15,6 +15,7 @@ import {
   type RegisterFailure,
   type UploadStage,
 } from "@/lib/artwork/upload";
+import { resolveRequestId } from "@/lib/observability/request-id";
 import { createClient } from "@/lib/supabase/client";
 
 const STAGE_LABEL: Record<UploadStage, string> = {
@@ -68,8 +69,9 @@ export function ArtworkUpload({
 
   async function start(file: File) {
     setState({ step: "uploading", stage: "checking", fileName: file.name });
-    const result = await Sentry.startSpan({ name: "artwork.upload", op: "upload" }, () =>
-      uploadArtwork(db, { workspaceId, productId, file }, (stage) =>
+    const requestId = resolveRequestId(null);
+    const result = await Sentry.startSpan({ name: "artwork.upload", op: "upload", attributes: { request_id: requestId } }, () =>
+      uploadArtwork(db, { workspaceId, productId, file, requestId }, (stage) =>
         setState({ step: "uploading", stage, fileName: file.name }),
       ),
     );
@@ -77,7 +79,7 @@ export function ArtworkUpload({
     if (!result.ok) {
       if (result.stage === "checking") setState({ step: "rejected", message: rejectionMessage(result.rejection) });
       else {
-        if (result.failure.code === "unknown") Sentry.captureMessage("artwork upload failed", { tags: { stage: result.stage } });
+        if (result.failure.code === "unknown") Sentry.captureMessage("artwork upload failed", { tags: { stage: result.stage, request_id: requestId } });
         setState({ step: "failed", failure: result.failure });
       }
       return;

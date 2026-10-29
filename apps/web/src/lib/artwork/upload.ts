@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { REQUEST_ID_HEADER } from "@/lib/observability/request-id";
 
 // D01 + C02 (T-303): an artwork reaches the product as
 //   1. a type and size check in the browser, before any byte leaves it (C02.fail.1);
@@ -7,7 +8,8 @@ import type { Database } from "@/lib/database.types";
 //   3. a signed upload to artwork/<workspace>/<product>/<sha256>.<ext> under the person's own session, so the Storage
 //      insert policy (editor and above in that workspace) decides;
 //   4. app.register_artwork through the RPC only: idempotent per file hash, allowance and dunning checked there, and
-//      the 'extract' job enqueued in the same transaction.
+//      the 'extract' job enqueued in the same transaction. The upload's request_id goes with it as x-request-id
+//      (docs/17); private.enqueue does not copy it into the job payload yet (a db follow-up on #41).
 
 /** supabase/config.toml [storage] file_size_limit: the bucket refuses anything larger, so the browser does first. */
 export const MAX_ARTWORK_BYTES = 50 * 1024 * 1024;
@@ -128,7 +130,7 @@ function alreadyStored(error: { message?: string; statusCode?: string | number }
 
 export async function uploadArtwork(
   db: Db,
-  args: { workspaceId: string; productId: string; file: File },
+  args: { workspaceId: string; productId: string; file: File; requestId?: string },
   onStage: (stage: UploadStage) => void = () => {},
 ): Promise<UploadResult> {
   onStage("checking");
@@ -157,13 +159,14 @@ export async function uploadArtwork(
   }
 
   onStage("registering");
-  const { data, error } = await db.schema("app").rpc("register_artwork", {
+  const register = db.schema("app").rpc("register_artwork", {
     p_product: args.productId,
     p_storage_path: path,
     p_sha256: sha256,
     p_file_name: args.file.name,
     p_mime: mime,
   });
+  const { data, error } = await (args.requestId ? register.setHeader(REQUEST_ID_HEADER, args.requestId) : register);
   if (error || !data) return { ok: false, stage: "registering", failure: registerFailure(error?.code) };
   return { ok: true, artworkVersionId: data, sha256, kind: check.kind };
 }
