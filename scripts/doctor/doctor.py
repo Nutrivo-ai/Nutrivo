@@ -5,14 +5,18 @@ from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REQUIRED = {
-    "dev": ["bedrock", "stripe", "sentry", "langfuse", "infisical-scope"],
-    "staging": ["supabase", "supabase-management", "postgres", "bedrock", "ses", "stripe", "sentry", "langfuse",
-                "posthog", "vercel", "render"],
-    "prod": ["supabase", "supabase-management", "postgres", "bedrock", "ses", "stripe", "sentry", "langfuse",
-             "posthog", "vercel", "render"],
+    "dev": ["bedrock", "bedrock-profiles", "stripe", "sentry", "langfuse", "infisical-scope"],
+    "staging": ["supabase", "supabase-management", "postgres", "supabase-grants", "bedrock", "bedrock-profiles",
+                "bedrock-retention", "anthropic", "ses", "stripe", "sentry", "langfuse", "posthog", "vercel", "render"],
+    "prod": ["supabase", "supabase-management", "postgres", "supabase-grants", "bedrock", "bedrock-profiles",
+             "bedrock-retention", "anthropic", "ses", "stripe", "sentry", "langfuse", "posthog", "vercel", "render"],
 }
 WRITES = {"sentry", "langfuse", "posthog", "bedrock"}  # skipped with --readonly
 E = os.environ.get
+BEDROCK_MODEL_VARS = ("BEDROCK_MODEL_TRIAGE", "BEDROCK_MODEL_JUDGEMENT", "BEDROCK_MODEL_EXTRACTION")
+# D-02: the Regions the eu. geo profile may process a request in. Every other Region fails, even one named eu-*
+# (eu-central-2 is Zurich, eu-west-2 London): a new one needs a decision first.
+EU_REGIONS = ("eu-central-1", "eu-north-1", "eu-south-1", "eu-south-2", "eu-west-1", "eu-west-3")
 
 
 def _read(rel):
@@ -104,29 +108,117 @@ def c_supabase_management(env):
     return f"project in {region}"
 
 
-def c_postgres(env):
+def psql(sql):
     need("DATABASE_URL")
     if not shutil.which("psql"):
         raise Skip("psql not installed")
-    def psql(sql):
-        r = subprocess.run(["psql", E("DATABASE_URL"), "-Atc", sql], capture_output=True, text=True, timeout=30)
-        # psql's errors can quote parts of the URL, password included: report the exit code only.
-        assert r.returncode == 0, f"connection or query failed (psql exit {r.returncode})"
-        return r.stdout.strip()
+    # A read-only transaction: the doctor never changes the database it checks.
+    r = subprocess.run(["psql", E("DATABASE_URL"), "-qAt", "-v", "ON_ERROR_STOP=1",
+                        "-c", "set default_transaction_read_only = on", "-c", sql],
+                       capture_output=True, text=True, timeout=30)
+    # psql's errors can quote parts of the URL, password included: report the exit code only.
+    assert r.returncode == 0, f"connection or query failed (psql exit {r.returncode})"
+    return r.stdout.strip()
+
+
+def c_postgres(env):
     if psql("select to_regclass('ref.jurisdictions') is not null") != "t":
         raise Skip("connected; schema not deployed yet (deploy-staging, from T-010)")
     return f"{psql('select count(*) from ref.jurisdictions')} jurisdictions"
 
 
+# D-26: anon and authenticated never write a table in app or ref, now or through default privileges on a new one, and
+# Queues are never exposed through PostgREST. has_table_privilege counts grants through PUBLIC and role membership.
+GRANTS_SQL = """
+with r(role) as (values ('anon'), ('authenticated')),
+     p(priv) as (values ('INSERT'), ('UPDATE'), ('DELETE'), ('TRUNCATE'))
+select 'grant ' || p.priv || ' on ' || n.nspname || '.' || c.relname || ' to ' || r.role
+  from pg_class c join pg_namespace n on n.oid = c.relnamespace cross join r cross join p
+ where n.nspname in ('app', 'ref') and c.relkind in ('r', 'p', 'v', 'f')
+   and to_regrole(r.role) is not null and has_table_privilege(r.role, c.oid, p.priv)
+union all
+select 'default privileges in ' || n.nspname || ' give ' || a.privilege_type || ' on new tables to ' || g.rolname
+  from pg_default_acl d join pg_namespace n on n.oid = d.defaclnamespace
+  cross join lateral aclexplode(d.defaclacl) a join pg_roles g on g.oid = a.grantee
+ where d.defaclobjtype = 'r' and n.nspname in ('app', 'ref') and g.rolname in ('anon', 'authenticated')
+   and a.privilege_type in ('INSERT', 'UPDATE', 'DELETE', 'TRUNCATE')
+union all
+select 'schema pgmq_public exists (Queues exposed through PostgREST)' where to_regnamespace('pgmq_public') is not null
+order by 1
+"""
+
+
+def c_supabase_grants(env):
+    """Read only: reports what differs from D-26 and never revokes it (a migration does that, after review)."""
+    if psql("select to_regnamespace('app') is not null and to_regnamespace('ref') is not null") != "t":
+        raise Skip("connected; schema not deployed yet (deploy-staging, from T-010)")
+    found = [line for line in psql(GRANTS_SQL).splitlines() if line]
+    assert not found, (f"{len(found)} difference(s) from D-26: " + "; ".join(found[:5])
+                       + (f"; and {len(found) - 5} more" if len(found) > 5 else ""))
+    return "no table writes for anon or authenticated in app or ref, no pgmq_public"
+
+
 def c_bedrock(env):
-    need("AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "BEDROCK_MODEL_TRIAGE",
-         "BEDROCK_MODEL_JUDGEMENT", "BEDROCK_MODEL_EXTRACTION")
+    need("AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", *BEDROCK_MODEL_VARS)
     import boto3
     rt = boto3.client("bedrock-runtime", region_name=E("AWS_REGION"))
-    for key in ("BEDROCK_MODEL_TRIAGE", "BEDROCK_MODEL_JUDGEMENT", "BEDROCK_MODEL_EXTRACTION"):
+    for key in BEDROCK_MODEL_VARS:
         rt.converse(modelId=E(key), messages=[{"role": "user", "content": [{"text": "Reply with OK."}]}],
                     inferenceConfig={"maxTokens": 5})
     return f"3 models answer in {E('AWS_REGION')}"
+
+
+def _region_of(arn):
+    """arn:aws:bedrock:<region>:<account>:<resource>"""
+    parts = arn.split(":")
+    return parts[3] if len(parts) > 5 and parts[0] == "arn" else ""
+
+
+def bedrock_regions():
+    """Each configured model id → the Regions it may run in. An in-Region id (anthropic.*) runs in AWS_REGION; an
+    inference profile runs wherever GetInferenceProfile lists a model (docs/14 §1: confirm with GetInferenceProfile)."""
+    need("AWS_REGION", "AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", *BEDROCK_MODEL_VARS)
+    import boto3
+    bedrock = boto3.client("bedrock", region_name=E("AWS_REGION"))
+    out = {}
+    for key in BEDROCK_MODEL_VARS:
+        model = E(key)
+        if model.startswith("anthropic."):
+            out[key] = [E("AWS_REGION")]
+        else:
+            profile = bedrock.get_inference_profile(inferenceProfileIdentifier=model)
+            out[key] = sorted({_region_of(m.get("modelArn", "")) for m in profile.get("models") or []})
+            assert out[key], f"{key}: the inference profile lists no models"
+    return out
+
+
+def c_bedrock_profiles(env):
+    """D-02: every configured model routes only to the EU Regions, and requests leave from an EU Region."""
+    regions = bedrock_regions()
+    bad = [f"AWS_REGION is {E('AWS_REGION')}"] if E("AWS_REGION") not in EU_REGIONS else []
+    bad += [f"{key} routes to {', '.join(r or '(unreadable ARN)' for r in rs if r not in EU_REGIONS)}"
+            for key, rs in regions.items() if any(r not in EU_REGIONS for r in rs)]
+    assert not bad, "outside the EU Regions of D-02: " + "; ".join(bad)
+    return f"{len(regions)} models, EU Regions only ({', '.join(sorted({r for rs in regions.values() for r in rs}))})"
+
+
+def c_bedrock_retention(env):
+    """D-11: Bedrock data retention is `none` in every Region a configured model may run in. Read only: the doctor
+    reports the mode and never calls PutAccountDataRetention (a founder sets it)."""
+    import boto3
+    regions = sorted({E("AWS_REGION"), *(r for rs in bedrock_regions().values() for r in rs)})
+    modes = {}
+    for r in regions:
+        try:
+            modes[r] = boto3.client("bedrock", region_name=r).get_account_data_retention().get("mode")
+        except Exception as exc:  # noqa: BLE001 - botocore's ClientError; boto3 is imported here only
+            if (getattr(exc, "response", None) or {}).get("Error", {}).get("Code") != "AccessDeniedException":
+                raise
+            raise AssertionError(f"this identity may not read retention in {r}: allow bedrock:GetAccountDataRetention "
+                                 "(read only) in its IAM policy") from None
+    bad = [f"{r} is {m or 'unreadable'}" for r, m in modes.items() if m != "none"]
+    assert not bad, "data retention is not none: " + ", ".join(bad) + " (D-11; a founder sets it per Region)"
+    return f"retention none in {len(regions)} Regions ({', '.join(regions)})"
 
 
 def c_ses(env):
@@ -142,6 +234,12 @@ def c_ses(env):
 
 
 def c_anthropic(env):
+    if env in ("staging", "prod"):
+        # D-11: no Anthropic API for customer data. Names only, never values.
+        found = sorted(n for n in os.environ if (n == "ANTHROPIC_API_KEY" or n.startswith("ANTHROPIC_MODEL_"))
+                       and E(n, "").strip())
+        assert not found, f"{', '.join(found)} set in {env}; the Anthropic API stays in dev (D-11)"
+        return "not configured, as D-11 requires"
     need("ANTHROPIC_API_KEY")
     s, _ = http("GET", "https://api.anthropic.com/v1/models", {"x-api-key": E("ANTHROPIC_API_KEY"), "anthropic-version": "2023-06-01"})
     assert s == 200, f"models endpoint returned {s}"
@@ -315,8 +413,9 @@ def c_infisical_scope(env):
 
 
 CHECKS = {"supabase": c_supabase, "supabase-management": c_supabase_management, "postgres": c_postgres,
-          "bedrock": c_bedrock, "ses": c_ses, "anthropic": c_anthropic, "stripe": c_stripe, "sentry": c_sentry,
-          "langfuse": c_langfuse, "posthog": c_posthog, "vercel": c_vercel, "render": c_render, "app": c_app,
+          "supabase-grants": c_supabase_grants, "bedrock": c_bedrock, "bedrock-profiles": c_bedrock_profiles,
+          "bedrock-retention": c_bedrock_retention, "ses": c_ses, "anthropic": c_anthropic, "stripe": c_stripe,
+          "sentry": c_sentry, "langfuse": c_langfuse, "posthog": c_posthog, "vercel": c_vercel, "render": c_render, "app": c_app,
           "github": c_github, "infisical-scope": c_infisical_scope}
 
 

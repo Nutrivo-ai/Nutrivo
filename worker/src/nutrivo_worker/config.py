@@ -82,6 +82,14 @@ class Settings(BaseModel):
                               f"staging and prod send through SES, every other environment through Mailpit")
         return self
 
+    @model_validator(mode="after")
+    def _no_anthropic_api_when_deployed(self) -> Settings:
+        # D-11: the Anthropic API offers no EU processing, so its key and model ids stay in dev.
+        if self.env in DEPLOYED and (self.anthropic_api_key or self.anthropic_models):
+            raise ConfigError(f"the Anthropic API is refused in {self.env} (D-11): unset ANTHROPIC_API_KEY and "
+                              f"ANTHROPIC_MODEL_*")
+        return self
+
     @property
     def email_mode_for_env(self) -> EmailMode:
         return "ses" if self.env in DEPLOYED else "mailpit"
@@ -124,6 +132,11 @@ class Settings(BaseModel):
             return {k: v for k, v in out.items() if v}
 
         env = get("NUTRIVO_ENV") or "local"
+        if env in DEPLOYED:
+            # D-11: any ANTHROPIC_MODEL_* name, not only the three classes read below, and names only, never values.
+            refused = sorted(n for n in e if (n == "ANTHROPIC_API_KEY" or n.startswith("ANTHROPIC_MODEL_")) and get(n))
+            if refused:
+                raise ConfigError(f"the Anthropic API is refused in {env} (D-11): unset {', '.join(refused)}")
         mode = get("MODELS_MODE") or ("replay" if env == "ci" else "live")
         values: dict = {
             "env": env,

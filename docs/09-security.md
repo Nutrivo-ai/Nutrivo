@@ -9,7 +9,8 @@ the staff tooling tables server-side after checking that flag on the person's ow
 the staff RPCs under that session, never the service role. The anon role reaches nothing in `app`
 or `ref` and can execute only `verify_reference` and `coverage_snapshot`. On the hosted projects the grants are the
 migrations' only: no table writes for anon or authenticated, no automatic exposure of new tables, and Queues never
-exposed through PostgREST (D-26).
+exposed through PostgREST (D-26). The doctor's read-only `supabase-grants` check proves this on staging and production
+(docs/16).
 
 ## The record
 Insert-only tables (docs/03-data-model.md) have privileges revoked and a rejecting trigger, so even the service key
