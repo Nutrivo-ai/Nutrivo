@@ -12,7 +12,8 @@ export const INPUT =
   "placeholder:text-n500 read-only:bg-panel read-only:text-n700 disabled:bg-panel disabled:text-n700";
 export const LABEL = "block text-[12.5px] font-medium mb-[5px]";
 export const HELP = "mt-[5px] mb-0 text-[12px] leading-[1.45] text-n600";
-export const KICKER = "m-0 font-mono text-[10px] tracking-[0.12em] uppercase";
+// Drawn as paragraphs in the design, so body line-height even where the markup is a heading.
+export const KICKER = "m-0 font-mono text-[10px] leading-[1.55] tracking-[0.12em] uppercase";
 
 export function Field({ label, help, children, id }: { label: string; help?: ReactNode; children: ReactNode; id: string }) {
   return (

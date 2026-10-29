@@ -137,7 +137,7 @@ function PeopleScreen({ workspaceId, data, at, line }: { workspaceId: string; da
       <Blueprint as="section">
         <div className="flex flex-wrap items-center justify-between gap-[20px] py-[16px] px-[20px] border-b border-ink">
           <div>
-            <h2 className="m-0 text-[16px] font-semibold tracking-normal">People in this workspace</h2>
+            <h2 className="m-0 text-[16px] leading-[1.55] font-semibold tracking-normal">People in this workspace</h2>
             <p className="mt-[4px] mb-0 font-mono text-[10.5px] tracking-[0.05em] text-n600" data-testid="seat-line">
               {line}
             </p>

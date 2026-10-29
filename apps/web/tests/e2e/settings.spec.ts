@@ -56,12 +56,15 @@ async function personId(who: Person) {
 }
 
 async function membership(ws: string, who: Person) {
+  // Somebody who never joined a workspace has no person row, so no membership either.
+  const { data: me } = await admin().schema("app").from("people").select("id").eq("user_id", who.userId).maybeSingle();
+  if (!me) return null;
   const { data, error } = await admin()
     .schema("app")
     .from("memberships")
     .select("id, role, is_external, access_ends_at, ended_at")
     .eq("workspace_id", ws)
-    .eq("person_id", await personId(who))
+    .eq("person_id", me.id)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
