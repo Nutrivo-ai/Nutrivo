@@ -15,3 +15,9 @@ updates:
     directory: /apps/web
     schedule: { interval: weekly }
     groups: { all: { patterns: ["*"] } }
+    # Majors held until the toolchain supports them (founder decision, 26 Oct 2026): typescript-eslint does not support
+    # TypeScript 7, eslint-config-next is not ready for eslint 10, and @types/node follows the Node 22 engine.
+    ignore:
+      - { dependency-name: "typescript", update-types: ["version-update:semver-major"] }
+      - { dependency-name: "eslint", update-types: ["version-update:semver-major"] }
+      - { dependency-name: "@types/node", update-types: ["version-update:semver-major"] }

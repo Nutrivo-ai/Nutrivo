@@ -28,6 +28,14 @@ without a workspace is step 02 (the password typed again and set with `updateUse
 step 03 (`app.set_default_operator`). The screens are in `src/components/onboarding`; the decisions are pure functions
 in `src/lib/onboarding/rules.ts`. `tests/e2e/onboarding.spec.ts` follows the confirmation email through Mailpit.
 
+Public site (T-603): `src/app/(public)` holds `/`, `/pricing`, `/coverage`, `/faq`, `/about`, `/for/<segment>` and
+`/legal/<doc>`, each ported from its file in design/public/ with `sx()` (`src/lib/public/sx.ts`), which takes the design's
+inline style strings as written. Coverage reads only `public.coverage_snapshot()` (`src/lib/public/coverage.ts`); every
+price comes from `config/pricing.ts` (`src/lib/public/pricing.ts`), which is why Turbopack's root is the repository
+(`next.config.ts`). What each page omits from its design, and why (D-19), is commented where it was. Calls to action go
+to `START` in `src/lib/public/links.ts` (`/sign-in` until `/onboarding` lands). Tests: `tests/e2e/public*.spec.ts`,
+with `tests/e2e/support/public.ts` (axe, the no-dead-controls crawl, the invented claims no page may show).
+
 Wiring, all off when its variables are unset (names from `config/env.example`):
 - **Supabase:** `src/lib/supabase/{client,server}.ts` with @supabase/ssr; `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
 - **Sentry:** `@sentry/nextjs` on client, server and edge; `SENTRY_DSN`, `NUTRIVO_ENV`; release = git SHA; scrubber in
