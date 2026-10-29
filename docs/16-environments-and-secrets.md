@@ -27,6 +27,12 @@
 - **Switches.** Repository variables turn deployments on at their gates: `STAGING_DEPLOY_ENABLED` (T-010, G7),
   `PRODUCTION_DEPLOY_ENABLED` (T-1101, G7) and `SYNTHETIC_ENABLED` (T-1102). Until an organisation owner sets one to `true`, the
   matching workflow does nothing. docs/22-github-and-team.md has the click path.
+- **OAuth clients (D-27, T-109).** `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET`, `AZURE_OAUTH_CLIENT_ID` and
+  `AZURE_OAUTH_CLIENT_SECRET` exist in dev only: `supabase/config.toml` reads them with `env(...)` when the local stack
+  is started as `scripts/env/run.sh dev -- supabase start`. Without them the stack still starts (CI does), and the two
+  buttons reach Supabase Auth, which answers that the provider is not configured. Staging and production keep their
+  own clients in each project's Authentication → Providers settings (a founder step, like the before-user-created hook
+  under Authentication → Hooks), because no workflow pushes Auth settings to hosted projects.
 - **Existing names.** Names you already use can map to the canonical ones in `config/secret-aliases.env`
   (names only, never values): one `CANONICAL=EXISTING` per line, `#` comments allowed. `scripts/env/aliases.py` reads
   it for the run wrapper, `make env-check` and CI alike; a line that is not two upper-case names stops them with its

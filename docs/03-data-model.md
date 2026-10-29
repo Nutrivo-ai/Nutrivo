@@ -8,7 +8,7 @@ migration.
 |---|---|---|
 | `app` | Tenant data (42 tables) | RLS on every table; authenticated may SELECT under policy; writes only through RPCs or the worker (service role); anon has nothing |
 | `ref` | Jurisdictions, rules and versions, rulesets, coverage and gaps, terms, glossary, obligations, document requirements, horizon, candidates, fixtures, additive register, feed-material catalogue | Authenticated read (unaccepted rule versions and terms visible to staff only); staff tables (`rule_candidates`, `sources`, `term_decisions`, `ruleset_drafts`, `ruleset_draft_members`, `ruleset_draft_coverage`, `fixture_runs`) service-role only; staff write through the T-204 RPCs |
-| `private` | Helpers and guard triggers | Executable by authenticated and service_role; never exposed through the API |
+| `private` | Helpers and guard triggers; `consumer_email_domains` and `before_user_created_hook` (D-27, T-109) | Executable by authenticated and service_role; never exposed through the API. The free-mail list and its hook are for `supabase_auth_admin` only (service_role may read the list), versioned by `list_version` and extended only by a new migration |
 | `public` | `verify_reference(ref)`, `coverage_snapshot()` | anon may execute these two functions only |
 
 ## Table groups (app)

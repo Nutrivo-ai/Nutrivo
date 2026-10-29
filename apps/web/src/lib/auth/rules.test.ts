@@ -11,6 +11,12 @@ import {
   RESET_AFTER_MFA,
   safeNext,
   signInHref,
+  isBusinessEmailRefusal,
+  oauthFailure,
+  PROVIDERS,
+  providerChoice,
+  SIGN_IN_PROBLEM,
+  signInProblem,
 } from "./rules";
 
 describe("safeNext: where sign-in returns to", () => {
@@ -118,5 +124,48 @@ describe("minutesLeft: the reset link's hour", () => {
     expect(minutesLeft(sent, Date.parse("2026-10-23T12:00:00Z"))).toBe(0);
     expect(minutesLeft(null, 0)).toBeNull();
     expect(minutesLeft("not a date", 0)).toBeNull();
+  });
+});
+
+describe("T-109 business sign-in (D-27)", () => {
+  it("[T-109] knows the two providers by the value their button posts, and nothing else", () => {
+    expect(providerChoice("google")).toBe("google");
+    expect(providerChoice("microsoft")).toBe("microsoft");
+    expect(PROVIDERS.microsoft).toBe("azure");
+    for (const v of ["azure", "github", "", null, undefined]) expect(providerChoice(v)).toBeNull();
+  });
+
+  it("[T-109] recognises the hook's refusal by its marker, whatever the wording after it", () => {
+    expect(isBusinessEmailRefusal({ message: "business_email_required: Nutrivo accounts use a work email address." })).toBe(true);
+    expect(isBusinessEmailRefusal({ message: "Email rate limit exceeded" })).toBe(false);
+    expect(isBusinessEmailRefusal(null)).toBe(false);
+  });
+
+  it("[T-109] a refused Google or Microsoft sign-in returns to /sign-in with the business-email problem and the page asked for", () => {
+    const params = new URLSearchParams({
+      via: "oauth",
+      next: "/w/abc/board",
+      error: "server_error",
+      error_description: "business_email_required: Nutrivo accounts use a work email address.",
+    });
+    expect(oauthFailure(params)).toBe(`/sign-in?problem=business_email&next=${encodeURIComponent("/w/abc/board")}`);
+  });
+
+  it("[T-109] any other provider error is the generic problem, and never carries an off-site next", () => {
+    const params = new URLSearchParams({ via: "oauth", next: "//evil.test", error: "access_denied", error_description: "<b>x</b>" });
+    expect(oauthFailure(params)).toBe("/sign-in?problem=provider");
+  });
+
+  it("[T-109] email links keep their own failure path, and an OAuth code goes on to the exchange", () => {
+    expect(oauthFailure(new URLSearchParams({ error: "access_denied" }))).toBeNull();
+    expect(oauthFailure(new URLSearchParams({ via: "oauth", code: "abc" }))).toBeNull();
+    expect(callbackFailure(new URLSearchParams({ via: "oauth", code: "abc" }))).toBeNull();
+  });
+
+  it("[T-109] /sign-in shows only the fixed problems", () => {
+    expect(signInProblem("business_email")).toBe("business_email");
+    expect(signInProblem("provider")).toBe("provider");
+    expect(signInProblem("<script>")).toBeNull();
+    expect(SIGN_IN_PROBLEM.business_email).toMatch(/work email/);
   });
 });
