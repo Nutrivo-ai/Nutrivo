@@ -1,16 +1,19 @@
 import { NextResponse, type NextRequest } from "next/server";
 import * as Sentry from "@sentry/nextjs";
-import { EXPIRED_LINK, RESET_AFTER_MFA, callbackFailure, linkType, needsStepUp, safeNext } from "@/lib/auth/rules";
+import { EXPIRED_LINK, RESET_AFTER_MFA, callbackFailure, linkType, needsStepUp, oauthFailure, safeNext } from "@/lib/auth/rules";
 import { sessionGate } from "@/lib/auth/session";
 import { REQUEST_ID_HEADER } from "@/lib/observability/request-id";
 import { createClient } from "@/lib/supabase/server";
 
 // Every email link returns here: signup confirmation, sign-in link, password reset, email change. Supabase Auth sends
 // either a PKCE code or a token hash; both become a session in this browser. An expired, used or malformed link goes
-// to the recovery page, which offers a fresh one (A07.fail.1). Nothing from the link is logged.
+// to the recovery page, which offers a fresh one (A07.fail.1). Nothing from the link is logged. Google and Microsoft
+// (T-109, D-27) return here too, marked via=oauth: a code takes the same path, and a refusal goes back to /sign-in.
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   const to = (path: string) => NextResponse.redirect(new URL(path, request.url));
+  const refused = oauthFailure(params);
+  if (refused) return to(refused);
   const failed = callbackFailure(params);
   if (failed) return to(failed);
 

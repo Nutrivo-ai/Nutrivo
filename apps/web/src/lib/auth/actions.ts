@@ -9,7 +9,16 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { REQUEST_ID_HEADER } from "@/lib/observability/request-id";
-import { CONTINUE, EXPIRED_LINK, PASSWORD_PROBLEM, RESET_AFTER_MFA, checkPassword, safeNext } from "./rules";
+import {
+  CONTINUE,
+  EXPIRED_LINK,
+  PASSWORD_PROBLEM,
+  PROVIDERS,
+  RESET_AFTER_MFA,
+  checkPassword,
+  providerChoice,
+  safeNext,
+} from "./rules";
 import { landingPath, sessionGate } from "./session";
 
 export type FormState =
@@ -96,6 +105,33 @@ export async function sendSignInLink(_: FormState, form: FormData): Promise<Form
   });
   if (error && broken(error)) await report("magic_link", error);
   return { status: "sent", email };
+}
+
+/**
+ * T-109 (D-27): Continue with Google or Continue with Microsoft. Supabase Auth keeps the PKCE verifier in this
+ * browser's cookies and sends the person to the provider; they come back to /auth/callback with a code, which
+ * becomes a session at aal1 and goes through the same two-step gate as a password (T-103). Microsoft is the
+ * organizations tenant (supabase/config.toml), so a personal Microsoft account is refused by Microsoft itself, and a
+ * new account on a free-mail address is refused by the before-user-created hook.
+ */
+export async function continueWithProvider(_: FormState, form: FormData): Promise<FormState> {
+  const choice = providerChoice(text(form, "provider"));
+  const next = safeNext(text(form, "next"));
+  if (!choice) return { status: "problem", problem: "Choose Google or Microsoft, or sign in with your work email." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: PROVIDERS[choice],
+    options: {
+      redirectTo: `${await origin()}/auth/callback?next=${encodeURIComponent(next)}&via=oauth`,
+      scopes: choice === "microsoft" ? "email" : undefined,
+      skipBrowserRedirect: true,
+    },
+  });
+  if (error || !data.url) {
+    await report(`oauth_${choice}`, error ?? new Error("no authorize url"));
+    return { status: "problem", problem: "Signing in with that account did not start just now. Try again in a minute." };
+  }
+  redirect(data.url);
 }
 
 /** S-REC-001 (A07): a reset link, one use, one hour. The confirmation is identical whether or not an account exists. */
