@@ -14,7 +14,13 @@ import { REPO_ROOT } from "../../visual/screens";
  * different fraction, so the route's element is nudged to the same fraction before it is captured. That changes the
  * comparison's raster grid, never the layout under test.
  */
-export type Region = { x: number; y: number; width: number; height: number; fractionY?: number };
+export type Region = { x: number; y: number; width: number; height: number; fractionY?: number; exclude?: Rect[] };
+
+/**
+ * A rectangle inside the region (region coordinates) left out of the comparison: only for a part of the design that a
+ * recorded waiver says is not built yet (the waiver names it). Its pixels count neither as differing nor in the total.
+ */
+export type Rect = { x: number; y: number; width: number; height: number };
 
 export async function expectLikeBaseline(page: Page, element: Locator, screenId: string, region: Region, maxDiffPixelRatio: number) {
   await page.evaluate(() => document.fonts.ready);
@@ -60,9 +66,20 @@ export async function expectLikeBaseline(page: Page, element: Locator, screenId:
         dctx.drawImage(b, region.x, region.y, region.width, region.height, 0, 0, region.width, region.height);
         dctx.drawImage(a, 0, 0, region.width, region.height, region.width, 0, region.width, region.height);
         const marks = dctx.createImageData(region.width, region.height);
+        const excluded = (i: number) => {
+          const px = (i / 4) % region.width;
+          const py = Math.floor(i / 4 / region.width);
+          return (region.exclude ?? []).some((r) => px >= r.x && px < r.x + r.width && py >= r.y && py < r.y + r.height);
+        };
         let differing = 0;
+        let compared = 0;
         const maxDelta = 35215 * 0.2 * 0.2;
         for (let i = 0; i < pa.length; i += 4) {
+          if (excluded(i)) {
+            marks.data.set([200, 200, 200, 255], i);
+            continue;
+          }
+          compared++;
           const dr = pa[i] - pb[i];
           const dg = pa[i + 1] - pb[i + 1];
           const db = pa[i + 2] - pb[i + 2];
@@ -74,7 +91,7 @@ export async function expectLikeBaseline(page: Page, element: Locator, screenId:
           marks.data.set(hit ? [220, 30, 30, 255] : [255, 255, 255, 255], i);
         }
         dctx.putImageData(marks, region.width * 2, 0);
-        return { size: [a.width, a.height], ratio: differing / (region.width * region.height), image: diff.toDataURL("image/png") };
+        return { size: [a.width, a.height], ratio: differing / Math.max(compared, 1), image: diff.toDataURL("image/png") };
       },
       { actual, baseline, region },
     );
