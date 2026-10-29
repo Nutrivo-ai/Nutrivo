@@ -23,11 +23,14 @@ export const FAILURE_REMEDY: Record<string, string> = {
 
 const names = new Intl.DisplayNames(["en"], { type: "language" });
 
-/** A panel's language by name; 'und' or none is "Language not detected", never a guess. */
+/** A panel's language by name, its region as the design writes it ("English (GB)"); 'und' or none is "Language not
+ * detected", never a guess. */
 export function languageName(code: string | null): string {
   if (!code || code === "und") return "Language not detected";
+  const [lang, region] = code.split(/[-_]/);
   try {
-    return names.of(code) ?? code;
+    const name = names.of(lang) ?? lang;
+    return region ? `${name} (${region.toUpperCase()})` : name;
   } catch {
     return code;
   }

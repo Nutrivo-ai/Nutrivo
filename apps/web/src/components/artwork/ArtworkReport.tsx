@@ -30,74 +30,81 @@ export function ArtworkReport({
   const failures = [...new Set(panels.flatMap((p) => (p.failureCode ? [p.failureCode] : [])))];
   const read = panels.filter((p) => p.status === "extracted");
   const facts: [string, string][] = [
+    // The design's rows are File, Size, Pages, Fonts embedded, Text layers, Received. Size and fonts are not stored yet
+    // (waived on #41), so Version and Page size stand in their places.
     ["File", art.fileName ?? `version ${art.version}`],
     ["Version", String(art.version)],
     ["Pages", art.pageCount == null ? "—" : String(art.pageCount)],
     ["Page size", formatPageSize(art.pageSizeMm)],
     ["Text layers", `${read.length} of ${panels.length} panels`],
-    ["SHA-256", `${art.sha256.slice(0, 12)}…`],
     ["Received", art.createdAt.slice(0, 16).replace("T", " ")],
   ];
   return (
-        <div className="grid gap-[22px] items-start md:grid-cols-[minmax(0,1fr)_minmax(230px,300px)]">
+        <div className="grid gap-[22px] items-start md:max-w-[948px] md:grid-cols-[minmax(0,1fr)_minmax(230px,300px)]">
           <div>
-            <Blueprint edge={EDGE[headline.tone]} className="py-[18px] px-[20px]">
-              <p
-                className={cx("m-0 font-mono text-[10px] tracking-[0.13em] uppercase", TAG[headline.tone])}
-                data-run-status={run.status}
-              >
-                {headline.tag}
-              </p>
-              <p className="mt-[8px] mb-0 font-head text-[26px] font-semibold leading-[1.15]">{headline.title}</p>
-              <p className="mt-[8px] mb-0 text-[13.5px] leading-[1.55] text-n700 max-w-[68ch]">{headline.body}</p>
-            </Blueprint>
-
-            <div className="mt-[22px]">
-              <SectionHeading>What ran, per language panel</SectionHeading>
+            <div data-artwork-headline>
+              <Blueprint edge={EDGE[headline.tone]} className="py-[18px] px-[20px]">
+                <p
+                  className={cx("m-0 font-mono text-[10px] tracking-[0.13em] uppercase", TAG[headline.tone])}
+                  data-run-status={run.status}
+                >
+                  {headline.tag}
+                </p>
+                <p className="mt-[8px] mb-0 font-head text-[26px] font-semibold leading-[1.15]">{headline.title}</p>
+                <p className="mt-[8px] mb-0 text-[13.5px] leading-[1.55] text-n700 max-w-[68ch]">{headline.body}</p>
+              </Blueprint>
             </div>
-            <table className="mt-[4px] w-full border-collapse" aria-label="What ran, per language panel">
-              <thead className="sr-only">
-                <tr>
-                  <th scope="col">Panel</th>
-                  <th scope="col">Source</th>
-                  <th scope="col">Text</th>
-                  <th scope="col">Geometry</th>
-                </tr>
-              </thead>
-              <tbody>
-                {panels.map((p) => (
-                  <tr key={p.id} className="border-b border-rule" data-panel={p.index} data-panel-status={p.status}>
-                    <th scope="row" className="py-[11px] pr-[8px] text-left align-baseline text-[13.5px] font-medium">
-                      {languageName(p.language)}
-                      <span className="block font-mono text-[10px] font-normal text-n600">
-                        Page {p.page + 1} · panel {p.index + 1}
-                      </span>
-                    </th>
-                    <td className="py-[11px] pr-[8px] align-baseline font-mono text-[10.5px] uppercase text-n600">
-                      {p.status === "extracted"
-                        ? `Live text · ${p.textObjects} ${p.textObjects === 1 ? "string" : "strings"}`
-                        : (FAILURE_LABEL[p.failureCode ?? ""] ?? p.failureCode)}
-                    </td>
-                    <td
-                      className={cx(
-                        "py-[11px] pr-[8px] align-baseline font-mono text-[10px] tracking-[0.06em] uppercase",
-                        p.status === "extracted" ? "text-clear" : "text-n600",
-                      )}
-                    >
-                      {p.status === "extracted" ? "Read" : "Not read"}
-                    </td>
-                    <td
-                      className={cx(
-                        "py-[11px] align-baseline text-right font-mono text-[10px] tracking-[0.06em] uppercase",
-                        p.status === "extracted" ? "text-clear" : "text-n600",
-                      )}
-                    >
-                      {p.status === "extracted" ? "Measured" : "Not measured"}
-                    </td>
+
+            <div className="mt-[22px]" data-panel-table>
+              <SectionHeading>What ran, per language panel</SectionHeading>
+              <table className="mt-[4px] w-full border-collapse table-fixed" aria-label="What ran, per language panel">
+                {/* The design's columns at 1600 px; the verdict column is T-401–T-403's and is not drawn yet. */}
+                <colgroup>
+                  <col className="w-[144px]" />
+                  <col className="w-[218px]" />
+                  <col className="w-[86px]" />
+                  <col />
+                </colgroup>
+                <thead className="sr-only">
+                  <tr>
+                    <th scope="col">Panel</th>
+                    <th scope="col">Source</th>
+                    <th scope="col">Text</th>
+                    <th scope="col">Geometry</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {panels.map((p) => (
+                    <tr key={p.id} className="border-b border-rule" data-panel={p.index} data-panel-status={p.status}>
+                      <th scope="row" className="py-[11px] pl-0 pr-[8px] text-left align-baseline text-[13.5px] font-medium">
+                        {languageName(p.language)}
+                      </th>
+                      <td className="py-[11px] pl-0 pr-[8px] align-baseline font-mono text-[10.5px] uppercase text-n600">
+                        {p.status === "extracted"
+                          ? `Live text · ${p.textObjects} ${p.textObjects === 1 ? "string" : "strings"}`
+                          : (FAILURE_LABEL[p.failureCode ?? ""] ?? p.failureCode)}
+                      </td>
+                      <td
+                        className={cx(
+                          "py-[11px] pl-0 pr-[8px] align-baseline font-mono text-[10px] tracking-[0.06em] uppercase",
+                          p.status === "extracted" ? "text-clear" : "text-n600",
+                        )}
+                      >
+                        {p.status === "extracted" ? "Read" : "Not read"}
+                      </td>
+                      <td
+                        className={cx(
+                          "py-[11px] pl-0 align-baseline font-mono text-[10px] tracking-[0.06em] uppercase",
+                          p.status === "extracted" ? "text-clear" : "text-n600",
+                        )}
+                      >
+                        {p.status === "extracted" ? "Measured" : "Not measured"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             {failures.length ? (
               <div className="mt-[22px] border border-ink py-[16px] px-[18px] bg-na-bg">
@@ -140,8 +147,8 @@ export function ArtworkReport({
                 </p>
               </Blueprint>
             ) : null}
-            <div className="border border-rule py-[16px] px-[18px]">
-              <p className="m-0 font-mono text-[10px] tracking-[0.13em] uppercase text-n600">File as received</p>
+            <div className="border border-rule py-[16px] px-[18px]" data-file-facts>
+              <p className="m-0 font-mono text-[10px] leading-[15px] tracking-[0.13em] uppercase text-n600">File as received</p>
               <dl className="mt-[10px] mb-0 flex flex-col">
                 {facts.map(([k, v]) => (
                   <div key={k} className="flex items-baseline gap-[12px] border-t border-rule py-[8px]">

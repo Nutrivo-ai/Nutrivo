@@ -19,6 +19,112 @@ const maxDiff = (parse(fs.readFileSync(path.join(REPO_ROOT, "spec/nfr.yaml"), "u
 // S-NV2-002 at 1600 px: the "1 · What you have" Artwork card, complete, is the box at x 242, y 116, 294 × 131.
 const ARTWORK_CARD = { x: 242, y: 116, width: 294, height: 131, fractionY: 0 };
 
+// S-NV2-025 at 1600 px, compared where T-303 has the data. What is left out is waived on #41
+// (https://github.com/Nutrivo-ai/Nutrivo/issues/41#issuecomment-6489086392) until its task lands: the verdict column
+// (T-401–T-403), the copy-deck headline copy and "From copy deck" read status, file Size and Fonts embedded, and the
+// text-layer count over the markets' languages (T-401).
+const VERDICT = { x: 528, y: 0, width: 98 };
+const S_NV2_025 = {
+  // The headline frame: its edge and rules. The copy inside is the copy-deck scenario's, and its length sets where the
+  // bottom rule falls, so the comparison stops above it.
+  headline: { x: 242, y: 91, width: 626, height: 170, fractionY: 0, exclude: [{ x: 12, y: 12, width: 602, height: 158 }] },
+  // "What ran, per language panel" and the four live-text rows: Language, Source, Read and Measured.
+  table: { x: 242, y: 307, width: 626, height: 205, fractionY: 0, exclude: [{ ...VERDICT, height: 205 }] },
+  // The outlined rows' Language, Source and Measured cells; their Read cell is "From copy deck" in the design.
+  outlined: (y: number) => ({
+    x: 242,
+    y,
+    width: 626,
+    height: 40,
+    fractionY: 0,
+    exclude: [{ x: 362, y: 0, width: 86, height: 40 }, { ...VERDICT, height: 40 }],
+  }),
+  // File as received, without its Size and Fonts embedded rows and the text-layer count.
+  facts: {
+    x: 890,
+    y: 422,
+    width: 300,
+    height: 263,
+    fractionY: 0,
+    exclude: [
+      { x: 0, y: 77, width: 300, height: 34 },
+      { x: 0, y: 145, width: 300, height: 34 },
+      { x: 150, y: 179, width: 150, height: 34 },
+    ],
+  },
+};
+
+/** The design's partial extraction, as rows the worker would write: four live-text panels and two outlined ones. */
+async function seedDesignRun(workspaceId: string, productId: string) {
+  const service = admin().schema("app");
+  const sha = randomUUID().replace(/-/g, "").padEnd(64, "0");
+  const av = await service
+    .from("artwork_versions")
+    .insert({
+      workspace_id: workspaceId,
+      product_id: productId,
+      version: 1,
+      file_sha256: sha,
+      storage_path: `${workspaceId}/${productId}/${sha}.pdf`,
+      file_name: "SR-ADULT-12KG-v4.pdf",
+      mime_type: "application/pdf",
+      page_count: 3,
+      is_new_artwork: true,
+      created_at: "2026-08-24T09:12:00Z",
+    })
+    .select("id")
+    .single();
+  if (av.error) throw av.error;
+  const run = await service
+    .from("extraction_runs")
+    .insert({
+      workspace_id: workspaceId,
+      product_id: productId,
+      artwork_version_id: av.data.id,
+      engine: "pdfium",
+      engine_version: "e2e",
+      idempotency_key: `e2e:${av.data.id}`,
+      status: "partial",
+      failure_codes: ["outlined_text"],
+      started_at: "2026-08-24T09:12:00Z",
+      finished_at: "2026-08-24T09:12:30Z",
+    })
+    .select("id")
+    .single();
+  if (run.error) throw run.error;
+  const design: [string, number | null][] = [["de", 214], ["fr", 209], ["nl", 198], ["en-GB", 186], ["pl", null], ["cs", null]];
+  const base = { workspace_id: workspaceId, product_id: productId, artwork_version_id: av.data.id, extraction_run_id: run.data.id };
+  const panels = await service
+    .from("artwork_panels")
+    .insert(
+      design.map(([language, strings], i) => ({
+        ...base,
+        page: Math.floor(i / 2),
+        panel_index: i,
+        bbox_mm: [0, 0, 10, 10],
+        language,
+        status: strings == null ? "not_assessable" : "extracted",
+        failure_code: strings == null ? "outlined_text" : null,
+      })),
+    )
+    .select("id, panel_index");
+  if (panels.error) throw panels.error;
+  for (const p of panels.data) {
+    const strings = design[p.panel_index][1] ?? 0;
+    if (!strings) continue;
+    const rows = Array.from({ length: strings }, (_, n) => ({
+      workspace_id: workspaceId,
+      product_id: productId,
+      panel_id: p.id,
+      text: `string ${n}`,
+      bbox_mm: [0, 0, 1, 1],
+    }));
+    const inserted = await service.from("text_objects").insert(rows);
+    if (inserted.error) throw inserted.error;
+  }
+  return av.data.id as string;
+}
+
 function fixture(name: string) {
   const file = path.join(SYNTH, `${name}.pdf`);
   if (!fs.existsSync(file)) {
@@ -180,6 +286,23 @@ test.describe("upload and extract", () => {
     await expect(page).toHaveURL(new RegExp(`/products/${productId}/check$`));
     // Back on the upload screen, the card shows the partial result and the next version can be uploaded.
     await expect(page.getByRole("button", { name: "Upload a new version" })).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test("S-NV2-025 matches its design baseline at 1600 px where T-303 has the data (waived parts on #41)", async ({ page, context, baseURL }) => {
+    const productId = await product(ws, "Salmon & Rice Adult Dry 12 kg");
+    const artworkId = await seedDesignRun(ws, productId);
+    await signIn(context, editor, baseURL!);
+    const errors = watch(page);
+    await page.goto(`/w/${ws}/products/${productId}/artwork/${artworkId}`);
+    await expect(page.getByRole("heading", { level: 1, name: "Partial extraction" })).toBeVisible();
+    await expect(page.locator("tr[data-panel]")).toHaveCount(6);
+    await axe(page);
+    await expectLikeBaseline(page, page.locator("[data-artwork-headline]"), "S-NV2-025", S_NV2_025.headline, maxDiff);
+    await expectLikeBaseline(page, page.locator("[data-panel-table]"), "S-NV2-025", S_NV2_025.table, maxDiff);
+    await expectLikeBaseline(page, page.locator('tr[data-panel="4"]'), "S-NV2-025", S_NV2_025.outlined(511), maxDiff);
+    await expectLikeBaseline(page, page.locator('tr[data-panel="5"]'), "S-NV2-025", S_NV2_025.outlined(569), maxDiff);
+    await expectLikeBaseline(page, page.locator("[data-file-facts]"), "S-NV2-025", S_NV2_025.facts, maxDiff);
     expect(errors).toEqual([]);
   });
 

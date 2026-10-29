@@ -35,5 +35,6 @@ describe("what an extraction says", () => {
     expect(languageName("und")).toBe("Language not detected");
     expect(languageName(null)).toBe("Language not detected");
     expect(languageName("de")).toBe("German");
+    expect(languageName("en-GB")).toBe("English (GB)");
   });
 });
