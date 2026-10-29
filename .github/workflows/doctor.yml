@@ -31,7 +31,7 @@ jobs:
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
           domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
           env-slug: ${{ inputs.env }}
-      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
       - name: Names present in Infisical
         run: uv run --no-project --with pyyaml python scripts/env/check-secrets.py --env "${{ inputs.env }}" ${{ inputs.all && '--all' || '' }}
       - name: Services answer with the stored keys

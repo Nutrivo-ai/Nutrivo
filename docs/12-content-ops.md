@@ -144,7 +144,8 @@ target × source. It never writes a rule.
   not verbatim, and always for `threshold` and `prescribed_wording`. Nothing here sets `accepted`, writes
   `decided_by`, or touches `ref.rules`, `ref.rule_versions` or a ruleset. Acceptance is a person's click (K03, T-204).
   Until the second key has run, the candidate has `agree` null. The accept RPC must refuse such a candidate.
-- **Not extracted yet.** `claim_judgement` targets are skipped (`needs_claims_harness`, T-501), and so are
+- **Not extracted yet.** `claim_judgement` targets are skipped (`needs_claims_harness`; the harness itself is in place,
+  docs/07, but no task yet extracts claim_judgement params), and so are
   `additive_condition` targets (`needs_additive_register`, T-202). Drafting fixtures for the reviewer comes with
   acceptance.
 - **Idempotent.** There is one candidate per (source_id, rule key), under an advisory lock.
@@ -161,6 +162,39 @@ target × source. It never writes a rule.
 - **Running it.** Use `scripts/env/run.sh dev -- uv run nutrivo content extract`. It needs `DATABASE_URL`,
   `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and model configuration. `--target KEY` and `--lang xx` narrow the run.
   `--dry-run` extracts and compares, but writes nothing to the database. Langfuse still traces the calls.
+
+## Accepting and releasing (K03–K05, J02, T-204)
+Staff (`app_metadata.nutrivo_staff`) act through RPCs; each needs the caller's person record and is audited.
+- **Accept a candidate** with `app.accept_candidate`, choosing the key checked against the text. The version takes
+  that extraction's params, article reference and excerpt unchanged; the person adds title, shape, domain and node
+  (new rule keys only), applicability, the effect of the change and its dates. A candidate is refused until its
+  second key has run, and a key that is not verbatim is refused.
+- **Terms** are accepted or rejected with `app.decide_term`, only from the stored official text in the term's own
+  language.
+- **Coverage** is edited on a draft (`app.create_ruleset_draft`, `app.set_draft_member`, `app.set_draft_coverage`,
+  gaps with `app.open_coverage_gap`). Complete needs every member rule of that node and domain tested.
+- **Release** with `app.release_ruleset` once the fixture run for the draft passed (docs/05 §The release gate). It
+  writes the diffs, and alerts follow only for non-editorial ones.
+
+## The /admin console (K03, K04, T-205)
+Staff work the queues in `/admin`. The layout checks `app_metadata.nutrivo_staff` on the server before anything renders
+or is read, and a person who is not staff sees a no-permission page and nothing else. Staff work at `aal2` only: a
+session that has not proved its second factor goes to `/auth/mfa` first, and a staff action from such a session is
+refused (docs/09). Candidate terms, rule candidates,
+drafts and fixture runs are readable only by the service role, so the server reads them that way after the check
+(`apps/web/src/lib/admin/server.ts`); the key is never sent to the browser. Every change is one of the staff RPCs above,
+called under the person's own session, so the database names them as the decider.
+- **`/admin/terms`** (S-NV2-029): the candidate terms, one at a time, with their stored source, its language and the
+  English row of the same term key marked *reference only*. Accept and Reject call `app.decide_term`. An entry whose
+  source is not the stored official text in its own language says why and cannot be accepted (BE-11). Hold for review
+  writes nothing and moves to the next entry (#35).
+- **`/admin/rules`**: each rule candidate with both extractions side by side and the checklist above. Accepting asks
+  for the extraction checked against the text plus what the extraction does not hold; applicability has no default.
+- **`/admin/coverage`**: start a draft, put accepted versions in it, open gaps, and set each node × domain. Complete is
+  refused (P0010) until every member rule for it is accepted and tested. The release panel lists what blocks the
+  release (missing fixtures, no fixture run, a run that failed or judged too few) and shows the database's refusal as
+  it is. Until the runner records draft runs (T-206), every release is refused, and the page says so.
+- **`/admin/glossary`**: the latest release's glossary, read only.
 
 ## Candidate targets
 `content/candidates/eu-core.yaml` lists the first targets. **Every citation there is a candidate written from

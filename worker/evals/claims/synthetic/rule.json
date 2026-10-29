@@ -1,0 +1,20 @@
+{
+  "synthetic": true,
+  "note": "A harness rule that tests the harness, not law: it is unrelated to any regulation and never joins a ruleset.",
+  "rule_key": "HARNESS.SYNTHETIC.COLOUR",
+  "version": 1,
+  "params": {
+    "question": "Does the printed text name a colour?",
+    "criteria": [
+      "prohibited: the text names a colour",
+      "needs_evidence: the text names no colour but compares the product with something else (more, less, better, than)",
+      "permitted: the text names no colour and makes no comparison"
+    ],
+    "examples": [
+      {"lang": "en", "text": "Green pieces", "label": "prohibited"},
+      {"lang": "en", "text": "Crunchier than before", "label": "needs_evidence"},
+      {"lang": "en", "text": "With salmon", "label": "permitted"}
+    ],
+    "min_confidence": 0.7
+  }
+}

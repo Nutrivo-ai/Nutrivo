@@ -1,0 +1,6 @@
+/* The segment strip's hover, as the design draws it (style-hover="background: var(--accent-100)"). Cobalt §5: 120 ms
+   ease-out on state change, nothing on load. */
+.seg-tab:hover { background: var(--accent-100) !important; color: var(--ink) !important; }
+@media (prefers-reduced-motion: no-preference) {
+  .seg-tab { transition: background-color 120ms ease-out; }
+}

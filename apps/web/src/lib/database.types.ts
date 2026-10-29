@@ -1199,7 +1199,10 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "accept_invitation":
+            "accept_candidate":
+{ Args: { "p_applicability": Json,"p_candidate": string,"p_domain": string,"p_effect_type": string,"p_effective_from"?: string,"p_node": string,"p_sell_through_until"?: string,"p_shape": string,"p_title": string,"p_use": string }; Returns: Json
+                           },
+"accept_invitation":
 { Args: { "p_token": string }; Returns: string
                            },
 "affected_objects":
@@ -1210,8 +1213,14 @@ isOneToOne: false
 "change_member":
 { Args: { "p_access_ends_at": string,"p_is_external": boolean,"p_membership": string,"p_role": string,"p_scope_family_ids": (string)[],"p_scope_node_ids": (string)[] }; Returns: string
                            },
+"create_ruleset_draft":
+{ Args: { "p_id": string,"p_notes"?: string }; Returns: string
+                           },
 "create_workspace":
 { Args: { "p_name": string }; Returns: string
+                           },
+"decide_term":
+{ Args: { "p_decision": string,"p_note"?: string,"p_term_entry": string }; Returns: string
                            },
 "invite_member":
 { Args: { "p_access_ends_at"?: string,"p_email": string,"p_is_external"?: boolean,"p_role": string,"p_scope_family_ids"?: (string)[],"p_scope_node_ids"?: (string)[],"p_ws": string }; Returns: string
@@ -1225,14 +1234,26 @@ isOneToOne: false
 "my_ended_access":
 { Args: { "p_ws": string }; Returns: Json
                            },
+"open_coverage_gap":
+{ Args: { "p_description": string,"p_domain": string,"p_gap_id": string,"p_node": string,"p_reason_code": string }; Returns: string
+                           },
 "register_artwork":
 { Args: { "p_file_name"?: string,"p_mime"?: string,"p_product": string,"p_sha256": string,"p_storage_path": string }; Returns: string
+                           },
+"reject_candidate":
+{ Args: { "p_candidate": string,"p_note"?: string }; Returns: undefined
+                           },
+"release_ruleset":
+{ Args: { "p_draft": string,"p_notes"?: string }; Returns: Json
                            },
 "remove_member":
 { Args: { "p_membership": string,"p_reason"?: string }; Returns: string
                            },
 "request_check":
 { Args: { "p_nodes"?: (string)[],"p_product": string }; Returns: string
+                           },
+"request_export":
+{ Args: { "p_request_id"?: string,"p_ws": string }; Returns: string
                            },
 "revoke_invitation":
 { Args: { "p_invitation": string }; Returns: string
@@ -1242,6 +1263,12 @@ isOneToOne: false
                            },
 "set_default_operator":
 { Args: { "p_operator": Json,"p_ws": string }; Returns: string
+                           },
+"set_draft_coverage":
+{ Args: { "p_domain": string,"p_draft": string,"p_gap_id"?: string,"p_last_checked_at"?: string,"p_method"?: string,"p_node": string,"p_state": string }; Returns: undefined
+                           },
+"set_draft_member":
+{ Args: { "p_draft": string,"p_rule_key": string,"p_version": number }; Returns: undefined
                            }
           }
           Enums: {
@@ -1394,6 +1421,26 @@ isOneToOne: false
       columns: ["source_id"]
 isOneToOne: false
       referencedRelation: "sources"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"fixture_runs": {
+                  Row: {
+                    "digest": string,"draft_id": string,"id": string,"passed": boolean,"ran_at": string,"rule_fixtures_ran": number,"runner": string,"seq": number,"summary": NonNullable<Json>
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "digest": string,"draft_id": string,"id"?: string,"passed": boolean,"ran_at"?: string,"rule_fixtures_ran": number,"runner": string,"seq"?: never,"summary"?: NonNullable<Json>
+                  }
+                  Update: {
+                    "digest"?: string,"draft_id"?: string,"id"?: string,"passed"?: boolean,"ran_at"?: string,"rule_fixtures_ran"?: number,"runner"?: string,"seq"?: never,"summary"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "fixture_runs_draft_id_fkey"
+      columns: ["draft_id"]
+isOneToOne: false
+      referencedRelation: "ruleset_drafts"
       referencedColumns: ["id"]
     }
                   ]
@@ -1586,6 +1633,84 @@ isOneToOne: false
       columns: ["node_id"]
 isOneToOne: false
       referencedRelation: "jurisdictions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ruleset_draft_coverage": {
+                  Row: {
+                    "domain": string,"draft_id": string,"gap_id": string | null,"last_checked_at": string | null,"method": string,"node_id": string,"state": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "domain": string,"draft_id": string,"gap_id"?: string | null,"last_checked_at"?: string | null,"method"?: string,"node_id": string,"state": string
+                  }
+                  Update: {
+                    "domain"?: string,"draft_id"?: string,"gap_id"?: string | null,"last_checked_at"?: string | null,"method"?: string,"node_id"?: string,"state"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ruleset_draft_coverage_draft_id_fkey"
+      columns: ["draft_id"]
+isOneToOne: false
+      referencedRelation: "ruleset_drafts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ruleset_draft_coverage_gap_id_fkey"
+      columns: ["gap_id"]
+isOneToOne: false
+      referencedRelation: "coverage_gaps"
+      referencedColumns: ["gap_id"]
+    },{
+      foreignKeyName: "ruleset_draft_coverage_node_id_fkey"
+      columns: ["node_id"]
+isOneToOne: false
+      referencedRelation: "jurisdictions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ruleset_draft_members": {
+                  Row: {
+                    "draft_id": string,"rule_key": string,"version": number
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "draft_id": string,"rule_key": string,"version": number
+                  }
+                  Update: {
+                    "draft_id"?: string,"rule_key"?: string,"version"?: number
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ruleset_draft_members_draft_id_fkey"
+      columns: ["draft_id"]
+isOneToOne: false
+      referencedRelation: "ruleset_drafts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "ruleset_draft_members_rule_key_version_fkey"
+      columns: ["rule_key","version"]
+isOneToOne: false
+      referencedRelation: "rule_versions"
+      referencedColumns: ["rule_key","version"]
+    }
+                  ]
+                },"ruleset_drafts": {
+                  Row: {
+                    "based_on": string | null,"created_at": string,"created_by": string,"id": string,"notes": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "based_on"?: string | null,"created_at"?: string,"created_by": string,"id": string,"notes"?: string
+                  }
+                  Update: {
+                    "based_on"?: string | null,"created_at"?: string,"created_by"?: string,"id"?: string,"notes"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ruleset_drafts_based_on_fkey"
+      columns: ["based_on"]
+isOneToOne: false
+      referencedRelation: "ruleset_versions"
       referencedColumns: ["id"]
     }
                   ]

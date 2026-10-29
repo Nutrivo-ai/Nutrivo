@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs/config";
 
@@ -13,7 +14,11 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_NUTRIVO_ENV: process.env.NUTRIVO_ENV ?? "dev",
     NEXT_PUBLIC_SENTRY_RELEASE: release,
   },
+  // The repository root, so the public pricing page can import config/pricing.ts, the single source of prices that the
+  // Stripe catalogue script also reads (docs/08-billing.md, T-603). File tracing uses the same root.
+  outputFileTracingRoot: path.join(__dirname, "../.."),
   turbopack: {
+    root: path.join(__dirname, "../.."),
     rules: {
       "*.css": {
         loaders: ["@tailwindcss/turbopack"],
