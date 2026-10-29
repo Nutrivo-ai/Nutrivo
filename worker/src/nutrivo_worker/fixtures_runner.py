@@ -6,7 +6,8 @@ Every item ends in one of three results:
   differed  an evaluator ran and its outcome is not the expected one
   withheld  nothing judged it, with a reason code (no rule, no verdict)
 
-Evaluators come from EVALUATORS, keyed by rule shape; the rules engine (T-403) registers them. A shape without one is
+Evaluators come from EVALUATORS, keyed by rule shape; the rules engine registers them when nutrivo_worker.engine is
+imported (T-403: mandatory_particular and prescribed_wording). A shape without one is
 withheld with `evaluator_missing`, never passed, and a runner-level withhold never counts as a match even when the
 fixture expects `withheld`. Labels need extraction and the engine, so until LABEL_EVALUATOR is set they are withheld
 with `engine_unavailable`. The run passes only when every item matched and at least one rule fixture ran.
@@ -55,6 +56,9 @@ class RuleFixture:
     input: dict[str, Any]
     expected_outcome: Outcome
     expected: dict[str, Any] | None = None
+    params: dict[str, Any] = field(default_factory=dict)             # the pinned rule version's
+    applicability: dict[str, Any] = field(default_factory=lambda: {"all": []})
+    terms: dict[tuple[str, str], list[str]] = field(default_factory=dict)  # accepted register, (term_key, language)
 
 
 @dataclass(frozen=True)
@@ -149,13 +153,33 @@ class PgFixtureStore:
 
     def fixtures(self, ruleset_version: str) -> list[RuleFixture]:
         rows = self.conn.execute(
-            """select f.id, f.rule_key, f.version, r.shape, f.name, f.input, f.expected_outcome, f.expected
+            """select f.id, f.rule_key, f.version, r.shape, f.name, f.input, f.expected_outcome, f.expected,
+                      rv.params, rv.applicability
                  from ref.ruleset_members m
                  join ref.rule_fixtures f on f.rule_key = m.rule_key and f.version = m.version
+                 join ref.rule_versions rv on rv.rule_key = m.rule_key and rv.version = m.version
                  join ref.rules r on r.rule_key = m.rule_key
                 where m.ruleset_version = %s order by f.rule_key, f.name, f.id""", (ruleset_version,)).fetchall()
+        terms = accepted_terms(self.conn, ruleset_version) if rows else {}
         return [RuleFixture(str(r["id"]), r["rule_key"], r["version"], r["shape"], r["name"], r["input"] or {},
-                            r["expected_outcome"], r["expected"]) for r in rows]
+                            r["expected_outcome"], r["expected"], r["params"] or {},
+                            r["applicability"] or {"all": []}, terms) for r in rows]
+
+
+def accepted_terms(conn: Any, ruleset_version: str) -> dict[tuple[str, str], list[str]]:
+    """The accepted term register for a ruleset: entries pinned to it, else those pinned to none (#45)."""
+    rows = conn.execute(
+        """select distinct on (term_key, language, term) term_key, language, term
+             from ref.term_entries
+            where status = 'accepted' and (ruleset_version = %s or ruleset_version is null)
+              and not (ruleset_version is null and exists (
+                    select 1 from ref.term_entries p where p.status = 'accepted' and p.ruleset_version = %s
+                       and p.term_key = term_entries.term_key and p.language = term_entries.language))
+            order by term_key, language, term""", (ruleset_version, ruleset_version)).fetchall()
+    out: dict[tuple[str, str], list[str]] = {}
+    for r in rows:
+        out.setdefault((r["term_key"], r["language"]), []).append(r["term"])
+    return out
 
 
 def _panel_language(data: dict[str, Any]) -> str | None:

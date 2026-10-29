@@ -38,6 +38,41 @@ rule is withheld with `data_missing`.**
 7. Insert the `app.checks` row (applied, passed and withheld rule keys) and all findings in one transaction; then
    update `app.product_nodes` (label state, ruleset version, open actions).
 
+### The engine (T-403)
+`nutrivo_worker.engine` runs the steps above for the `check` job (docs/04 §Worker jobs). The choices below were made
+while the questions on #45 are open; each is the conservative option.
+- **Applicability** is three-valued (Kleene logic):
+  - `all` is false as soon as one part is false, and `any` is true as soon as one part is true;
+  - a comparison on a missing field is unknown, and an unknown predicate withholds the rule with `data_missing`;
+  - an unconfirmed classification counts as missing;
+  - a predicate outside the language withholds the rule with `evaluator_error`.
+- **Panels.**
+  - Each market is checked on every panel of the latest finished extraction, one `app.checks` row per panel.
+  - A panel where nothing applied is not_assessed, never clear.
+  - A market's label state is the state of its worst panel.
+- **mandatory_particular** reads `detect.term_keys` and `scope`: `each_panel_in_node_language` (the default) or
+  `any_panel`.
+- **prescribed_wording** reads `term_key`, `alternatives` (a list, or a map of language to list) and `match`:
+  `case_folded` (the default) or `exact`. It is judged only on panels printed in one of the node's languages.
+- **Matching** compares NFC text with whitespace collapsed.
+- **Terms** are the accepted `ref.term_entries` in the panel's language that are pinned to the ruleset; when none
+  are pinned to it, the ones pinned to no ruleset.
+- **Missing params.** The K02 extraction stores only `particular` and `conditions`, or `wordings` and
+  `alternatives`. A rule without the params above, or with no term in the panel's language, is withheld with
+  `data_missing`. It is never matched on other wording.
+- **Withholds.**
+  - A shape with no evaluator yet gives `evaluator_missing`. `claim_judgement` has none until T-503.
+  - An evaluator fault gives `evaluator_error` and is reported to Sentry.
+  - A model error from `nutrivo_worker.models` keeps its own reason: `model_unavailable`, `model_refused` or
+    `model_output_invalid`.
+- **Fixtures.**
+  - Importing the engine registers both evaluators in `fixtures_runner.EVALUATORS`.
+  - A rule fixture's `input` is `{panel, panels?, node: {id, languages, region}, classification, product: {format}}`.
+    A panel is `{index, language, status, failure_code, text_objects: [{text}]}`.
+  - Params, applicability and terms come from the pinned rule version and the register, never from the input.
+  - A rule that does not apply to the input is reported withheld with `not_applicable`.
+  - `LABEL_EVALUATOR` stays unset, because synthetic wording is never in the register (#36, #45).
+
 ## Claims (BE-22)
 Judged on the printed target-language string of that panel, never translated. Each claim rule ships with an
 evaluation set per language (docs/07-ai.md). Below `min_confidence`, or when the model abstains, the result is
@@ -55,7 +90,7 @@ run against a draft in `ref.fixture_runs` (insert-only, service role only; the l
 that judged no fixture cannot be recorded as passed. `app.release_ruleset` refuses (P0039) unless every member has
 passed, failed and withheld fixtures and the draft's latest run passed, judged every one of them and still matches the
 digest, so a fixture or member changed after the run
-needs a new run. Until the runner resolves draft ids (worker follow-up, #34) and T-403 adds evaluators, nothing can be
+needs a new run. Until the runner resolves draft ids (worker follow-up, #34) and labels can be judged (#36), nothing can be
 released: that is intended.
 
 ### The runner (T-206)
@@ -84,6 +119,7 @@ alone (logs go to stderr). The report holds `ruleset_version`, `passed`, a summa
 expected and actual.
 
 Evaluators register in `nutrivo_worker.fixtures_runner.EVALUATORS` by shape, and the label path in `LABEL_EVALUATOR`.
-Both are empty until T-403, so today every item is withheld and no ruleset passes. Open on #36: how an unreleased
+T-403 registers mandatory_particular and prescribed_wording (§The engine). Every other shape and every label is
+still withheld, so no ruleset passes while synthetic or golden labels are present. Open on #36: how an unreleased
 (proposed) ruleset is named before K05 writes its members, and the golden expected-results file format. Until those
 are decided, only released ruleset ids resolve, and a golden JSON file with a `panels` list is reported per panel.

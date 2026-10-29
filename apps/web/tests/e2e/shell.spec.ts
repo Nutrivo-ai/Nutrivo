@@ -209,6 +209,7 @@ test.describe("workspace shell", () => {
     const { errors } = await open(page, `/w/${north}`);
     await expect(page.getByText("This workspace is not open to you")).toBeVisible();
     await expect(page.getByText("Your account is not in a workspace yet")).toBeVisible();
+    await expect(page.getByRole("link", { name: "Create your workspace" })).toHaveAttribute("href", "/onboarding");
     await expect(page.getByText(NORTH)).toHaveCount(0);
     await axe(page);
     expect(errors).toEqual([]);

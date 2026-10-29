@@ -1,8 +1,8 @@
 import posthog from "posthog-js";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { initAnalytics, posthogOptions } from "./analytics";
+import { initAnalytics, posthogOptions, track } from "./analytics";
 
-vi.mock("posthog-js", () => ({ default: { init: vi.fn() } }));
+vi.mock("posthog-js", () => ({ default: { init: vi.fn(), capture: vi.fn(), __loaded: false } }));
 
 const HOST = "https://eu.i.posthog.com";
 
@@ -52,5 +52,26 @@ describe("initAnalytics", () => {
     vi.stubEnv("NEXT_PUBLIC_POSTHOG_HOST", HOST);
     expect(initAnalytics()).toBe(false);
     expect(posthog.init).not.toHaveBeenCalled();
+  });
+});
+
+describe("track", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.mocked(posthog.capture).mockClear();
+    (posthog as unknown as { __loaded: boolean }).__loaded = false;
+  });
+
+  it("sends nothing when PostHog was not started", () => {
+    vi.stubGlobal("window", {});
+    expect(track("workspace_created", { workspace_id: "w1" })).toBe(false);
+    expect(posthog.capture).not.toHaveBeenCalled();
+  });
+
+  it("sends a docs/17 event with its ids once PostHog is started", () => {
+    vi.stubGlobal("window", {});
+    (posthog as unknown as { __loaded: boolean }).__loaded = true;
+    expect(track("workspace_created", { workspace_id: "w1", plan: "free" })).toBe(true);
+    expect(posthog.capture).toHaveBeenCalledWith("workspace_created", { workspace_id: "w1", plan: "free" });
   });
 });

@@ -170,8 +170,9 @@ test.describe("A02 sign in and start a session", () => {
     await expectLikeBaseline(page, card, "S-REC-004", CARD["S-REC-004"], maxDiff);
     await axe(page);
     await card.getByRole("link", { name: "Or sign in to a different workspace" }).click();
-    await expect(page).toHaveURL(/\/w\/none$/);
-    await expect(page.getByText("Your account is not in a workspace yet")).toBeVisible();
+    // In no workspace now, so the way on is to create one (T-106): onboarding at step 02.
+    await expect(page).toHaveURL(/\/onboarding$/);
+    await expect(page.getByTestId("onboarding-region")).toBeVisible();
     expect(errors).toEqual([]);
   });
 
