@@ -55,6 +55,15 @@ async function personId(who: Person) {
   return data.id as string;
 }
 
+/** `who` with a new session from a magic link: for after their sessions were ended or their tokens rotated. */
+async function fresh(who: Person): Promise<Person> {
+  const link = await admin().auth.admin.generateLink({ type: "magiclink", email: who.email });
+  if (link.error) throw link.error;
+  const verified = await who.db.auth.verifyOtp({ type: "email", token_hash: link.data.properties.hashed_token });
+  if (verified.error || !verified.data.session) throw verified.error ?? new Error("no session from the magic link");
+  return { ...who, session: verified.data.session };
+}
+
 async function membership(ws: string, who: Person) {
   // Somebody who never joined a workspace has no person row, so no membership either.
   const { data: me } = await admin().schema("app").from("people").select("id").eq("user_id", who.userId).maybeSingle();
@@ -336,11 +345,14 @@ test.describe("Workspace Settings", () => {
   });
 
   test("a viewer gets the no-permission state on People and Workspace", async ({ page, context, baseURL }) => {
+    // A fresh person: Vic's session ended when Vic signed out on the invitation page (A04.fail.2).
+    const vera = await person("t107-vera");
+    await workspace(vera, "Vera's own"); // a person row, as anybody already using Nutrivo has
     const service = admin().schema("app");
-    const { data: vicPerson } = await service.from("people").select("id").eq("user_id", vic.userId).single();
-    const grant = await service.from("memberships").insert({ workspace_id: ws, person_id: vicPerson!.id, role: "viewer" });
+    const { data: veraPerson } = await service.from("people").select("id").eq("user_id", vera.userId).single();
+    const grant = await service.from("memberships").insert({ workspace_id: ws, person_id: veraPerson!.id, role: "viewer" });
     if (grant.error) throw grant.error;
-    await signIn(context, vic, baseURL!);
+    await signIn(context, vera, baseURL!);
     const errors = watch(page);
     for (const [route, title] of [["people", "People and roles"], ["workspace", "Workspace"]] as const) {
       await page.goto(`/w/${ws}/settings/${route}`);
@@ -366,7 +378,7 @@ test.describe("Workspace Settings", () => {
     await page.getByLabel("Default operator address").fill("Industrivägen 4, Göteborg");
     await expect(page.getByTestId("operator-country")).toContainText("END THE ADDRESS WITH ITS TWO-LETTER CODE");
     await page.getByRole("button", { name: "Save workspace" }).click();
-    await expect(page.getByRole("alert")).toContainText("The country could not be read");
+    await expect(page.getByRole("alert").filter({ hasText: "The country could not be read" })).toBeVisible();
 
     await page.getByLabel("Default responsible operator").fill("Halden Pet Nutrition AB (publ)");
     await page.getByLabel("Default operator address").fill("Industrivägen 6, 412 63 Göteborg, SE");
@@ -381,8 +393,10 @@ test.describe("Workspace Settings", () => {
   });
 
   test("[A07.main] S-WSS-006 Your account changes the password and signs out other sessions [A07.must.1]", async ({ page, context, baseURL }) => {
-    const other = await admin().auth.admin.updateUserById(ada.userId, { password: "the-first-password-of-ada" });
-    if (other.error) throw other.error;
+    const first = await admin().auth.admin.updateUserById(ada.userId, { password: "the-first-password-of-ada" });
+    if (first.error) throw first.error;
+    // Setting a password as the service role may end the user's sessions, so Ada signs in afresh.
+    ada = await fresh(ada);
     await signIn(context, ada, baseURL!);
     const errors = watch(page);
     await page.goto(`/account?w=${ws}`);
@@ -394,20 +408,20 @@ test.describe("Workspace Settings", () => {
     await expectLikeBaseline(page, page.getByTestId("leaving").locator(".."), "S-WSS-006", REGION.leaving, maxDiff);
     await expectLikeBaseline(page, page.getByRole("heading", { name: "What you get told about" }).locator(".."), "S-WSS-006", REGION.toldAbout, maxDiff);
 
-    await page.getByLabel("New password").fill("short");
+    await page.getByLabel("New password", { exact: true }).fill("short");
     await page.getByLabel("Confirm new password").fill("short");
     await page.getByRole("button", { name: "Save changes" }).click();
-    await expect(page.getByRole("alert")).toContainText("At least 12 characters");
+    await expect(page.getByRole("alert").filter({ hasText: "At least 12 characters" })).toBeVisible();
 
+    const { createClient } = await import("@supabase/supabase-js");
+    const anon = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
     const password = "four words make a passphrase";
-    await page.getByLabel("New password").fill(password);
+    await page.getByLabel("New password", { exact: true }).fill(password);
     await page.getByLabel("Confirm new password").fill(password);
     await page.getByRole("button", { name: "Save changes" }).click();
     await expect(page.getByRole("status").filter({ hasText: "Password changed." })).toBeVisible();
 
     // The new password works; the old one does not; the access event is audited without the secret.
-    const { createClient } = await import("@supabase/supabase-js");
-    const anon = () => createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
     expect((await anon().auth.signInWithPassword({ email: ada.email, password })).error).toBeNull();
     expect((await anon().auth.signInWithPassword({ email: ada.email, password: "the-first-password-of-ada" })).error).not.toBeNull();
     const { data: audit } = await admin().schema("app").from("audit_events").select("*").eq("actor_id", await personId(ada)).eq("kind", "access.password_changed");
@@ -420,10 +434,12 @@ test.describe("Workspace Settings", () => {
   });
 
   test("no dead controls: every settings nav link opens its page, in the settings frame", async ({ page, context, baseURL }) => {
-    await signIn(context, ada, baseURL!);
+    await signIn(context, await fresh(ada), baseURL!);
     const errors = watch(page);
     await page.goto(`/w/${ws}/settings/people`);
     const nav = page.getByRole("navigation", { name: "Settings" });
+    // The layout streams in behind /w's loading state, so wait for the nav before reading it.
+    await expect(nav.getByRole("link")).toHaveCount(10);
     const hrefs = await nav.getByRole("link").evaluateAll((links) => links.map((a) => a.getAttribute("href")!));
     expect(hrefs).toEqual([
       `/w/${ws}`,
