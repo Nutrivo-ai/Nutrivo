@@ -1,6 +1,16 @@
 import { Blueprint, ButtonLink, SectionHeading, cx } from "@/components/kit";
-import { FAILURE_LABEL, FAILURE_REMEDY, formatPageSize, languageName, runHeadline } from "@/lib/artwork/describe";
-import type { ArtworkSummary, PanelRow, RunSummary } from "@/lib/artwork/queries";
+import { STATE_TEXT } from "@/components/kit/states";
+import {
+  FAILURE_LABEL,
+  FAILURE_REMEDY,
+  formatPageSize,
+  languageName,
+  panelVerdict,
+  reasonLabel,
+  runHeadline,
+  type PanelVerdict,
+} from "@/lib/artwork/describe";
+import type { ArtworkSummary, PanelCheck, PanelRow, RunSummary } from "@/lib/artwork/queries";
 
 const EDGE: Record<string, string> = {
   clear: "border-t-[3px] border-t-clear",
@@ -9,6 +19,8 @@ const EDGE: Record<string, string> = {
 };
 const TITLE: Record<string, string> = { succeeded: "Extraction", partial: "Partial extraction", failed: "Artwork we cannot read" };
 const TAG: Record<string, string> = { clear: "text-clear", action: "text-action", blocked: "text-blocked" };
+// The per-panel state column: a verdict's own colour, and plain grey for a panel no check has reached yet.
+const VERDICT_TEXT: Record<PanelVerdict["state"], string> = { ...STATE_TEXT, not_checked: "text-n600" };
 
 /**
  * S-NV2-025: the headline, what ran per language panel, how to get the geometry check where something could not be
@@ -19,11 +31,14 @@ export function ArtworkReport({
   art,
   run,
   panels,
+  checks = [],
   checkHref,
 }: {
   art: ArtworkSummary;
   run: RunSummary;
   panels: PanelRow[];
+  /** D02: each market's latest check of these panels; empty before the first check. */
+  checks?: PanelCheck[];
   checkHref: string;
 }) {
   const headline = runHeadline(run, panels);
@@ -58,11 +73,12 @@ export function ArtworkReport({
             <div className="mt-[22px]" data-panel-table>
               <SectionHeading>What ran, per language panel</SectionHeading>
               <table className="mt-[4px] w-full border-collapse table-fixed" aria-label="What ran, per language panel">
-                {/* The design's columns at 1600 px; the verdict column is T-401–T-403's and is not drawn yet. */}
+                {/* The design's columns at 1600 px, the last one the panel's state over its markets' checks (D02). */}
                 <colgroup>
                   <col className="w-[144px]" />
                   <col className="w-[218px]" />
                   <col className="w-[86px]" />
+                  <col className="w-[90px]" />
                   <col />
                 </colgroup>
                 <thead className="sr-only">
@@ -71,37 +87,63 @@ export function ArtworkReport({
                     <th scope="col">Source</th>
                     <th scope="col">Text</th>
                     <th scope="col">Geometry</th>
+                    <th scope="col">State</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {panels.map((p) => (
-                    <tr key={p.id} className="border-b border-rule" data-panel={p.index} data-panel-status={p.status}>
-                      <th scope="row" className="py-[11px] pl-0 pr-[8px] text-left align-baseline text-[13.5px] font-medium">
-                        {languageName(p.language)}
-                      </th>
-                      <td className="py-[11px] pl-0 pr-[8px] align-baseline font-mono text-[10.5px] uppercase text-n600">
-                        {p.status === "extracted"
-                          ? `Live text · ${p.textObjects} ${p.textObjects === 1 ? "string" : "strings"}`
-                          : (FAILURE_LABEL[p.failureCode ?? ""] ?? p.failureCode)}
-                      </td>
-                      <td
-                        className={cx(
-                          "py-[11px] pl-0 pr-[8px] align-baseline font-mono text-[10px] tracking-[0.06em] uppercase",
-                          p.status === "extracted" ? "text-clear" : "text-n600",
-                        )}
+                  {panels.map((p) => {
+                    const verdict = panelVerdict(p, checks);
+                    return (
+                      <tr
+                        key={p.id}
+                        className="border-b border-rule"
+                        data-panel={p.index}
+                        data-panel-status={p.status}
+                        data-panel-state={verdict.state}
+                        data-reason-codes={verdict.reasonCodes.join(" ") || undefined}
                       >
-                        {p.status === "extracted" ? "Read" : "Not read"}
-                      </td>
-                      <td
-                        className={cx(
-                          "py-[11px] pl-0 align-baseline font-mono text-[10px] tracking-[0.06em] uppercase",
-                          p.status === "extracted" ? "text-clear" : "text-n600",
-                        )}
-                      >
-                        {p.status === "extracted" ? "Measured" : "Not measured"}
-                      </td>
-                    </tr>
-                  ))}
+                        <th scope="row" className="py-[11px] pl-0 pr-[8px] text-left align-baseline text-[13.5px] font-medium">
+                          {languageName(p.language)}
+                        </th>
+                        <td className="py-[11px] pl-0 pr-[8px] align-baseline font-mono text-[10.5px] uppercase text-n600">
+                          {p.status === "extracted"
+                            ? `Live text · ${p.textObjects} ${p.textObjects === 1 ? "string" : "strings"}`
+                            : (FAILURE_LABEL[p.failureCode ?? ""] ?? p.failureCode)}
+                        </td>
+                        <td
+                          className={cx(
+                            "py-[11px] pl-0 pr-[8px] align-baseline font-mono text-[10px] tracking-[0.06em] uppercase",
+                            p.status === "extracted" ? "text-clear" : "text-n600",
+                          )}
+                        >
+                          {p.status === "extracted" ? "Read" : "Not read"}
+                        </td>
+                        <td
+                          className={cx(
+                            "py-[11px] pl-0 pr-[8px] align-baseline font-mono text-[10px] tracking-[0.06em] uppercase",
+                            p.status === "extracted" ? "text-clear" : "text-n600",
+                          )}
+                        >
+                          {p.status === "extracted" ? "Measured" : "Not measured"}
+                        </td>
+                        <td
+                          className={cx(
+                            "py-[11px] pl-0 align-baseline text-right font-mono text-[10px] tracking-[0.06em] uppercase",
+                            VERDICT_TEXT[verdict.state],
+                          )}
+                          title={verdict.reasonCodes.length ? `Reason: ${verdict.reasonCodes.join(", ")}` : undefined}
+                        >
+                          {verdict.label}
+                          {verdict.reasonCodes.length ? (
+                            <span className="sr-only">
+                              {" "}
+                              · reason: {verdict.reasonCodes.map((c) => `${reasonLabel(c)} (${c})`).join(", ")}
+                            </span>
+                          ) : null}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
