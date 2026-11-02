@@ -1216,6 +1216,9 @@ isOneToOne: false
 "change_member":
 { Args: { "p_access_ends_at": string,"p_is_external": boolean,"p_membership": string,"p_role": string,"p_scope_family_ids": (string)[],"p_scope_node_ids": (string)[] }; Returns: string
                            },
+"confirm_classification":
+{ Args: { "p_basis": string,"p_intended_use": string,"p_life_stage": string,"p_parnut_status": string,"p_product": string,"p_product_class": string,"p_species": string }; Returns: string
+                           },
 "create_ruleset_draft":
 { Args: { "p_id": string,"p_notes"?: string }; Returns: string
                            },

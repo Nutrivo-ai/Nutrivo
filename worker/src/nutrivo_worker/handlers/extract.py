@@ -16,12 +16,16 @@ app.artwork_panels and app.text_objects, exactly to the docs/06 contract.
 - **Idempotency.** One extraction run per (artwork version, engine): its key is the engine's key plus the artwork
   version id, and the run, its panels and their text objects are written in one transaction that inserts the run
   first with `on conflict do nothing`. A retry, a duplicate message or a reaped job finds the run and writes nothing.
+- **Classification (D03, T-402).** Once the extraction is committed, the model suggests a classification for a person
+  to confirm (nutrivo_worker.classification); `progress.classification` carries its outcome. A model error never fails
+  the extraction.
 - **Observability.** The job's Sentry transaction and Langfuse trace come from the runtime; progress goes to
   app.jobs.progress through ctx.heartbeat (stage and counts, never label text)."""
 from __future__ import annotations
 
 import hashlib
 import tempfile
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -30,6 +34,7 @@ from typing import Any, Protocol
 import psycopg
 import sentry_sdk
 
+from ..classification import suggest_for_run
 from ..errors import PermanentJobError
 from ..extraction import ENGINE, ExtractionResult, Panel, engine_version, extract_artwork, idempotency_key
 from ..jobs import Job, JobContext, handler
@@ -100,7 +105,11 @@ def summary(run: dict[str, Any]) -> dict[str, Any]:
             "text_objects": run["text_objects"], "failure_codes": list(run["failure_codes"])}
 
 
-def run_extract(job: Job, ctx: JobContext, store: ArtworkStore, fetch: Any) -> dict[str, Any]:
+Classify = Callable[[Artwork, str], dict[str, Any]]
+
+
+def run_extract(job: Job, ctx: JobContext, store: ArtworkStore, fetch: Any,
+                classify: Classify | None = None) -> dict[str, Any]:
     av_id = job.payload.get("artwork_version_id")
     if not av_id:
         raise PermanentJobError(f"extract job {job.id} has no artwork_version_id")
@@ -113,6 +122,7 @@ def run_extract(job: Job, ctx: JobContext, store: ArtworkStore, fetch: Any) -> d
     if done is not None:                     # already persisted by an earlier attempt or a duplicate job
         log.info("extraction already persisted", extra=kv(artwork_version_id=art.id, extraction_run_id=done["id"]))
         ctx.heartbeat(**summary(done))
+        _classify(ctx, classify, art, done)
         return done
 
     if art.storage_path not in expected_paths(art):
@@ -136,7 +146,16 @@ def run_extract(job: Job, ctx: JobContext, store: ArtworkStore, fetch: Any) -> d
                                               status=run["status"], panels=run["panels"],
                                               failure_codes=list(run["failure_codes"])))
     ctx.heartbeat(**summary(run))
+    _classify(ctx, classify, art, run)
     return run
+
+
+def _classify(ctx: JobContext, classify: Classify | None, art: Artwork, run: dict[str, Any]) -> None:
+    """D03 (T-402): the classification suggestion, after the extraction is committed. It never fails the extraction:
+    a model error leaves every field empty for the person (nutrivo_worker.classification)."""
+    if classify is None or run["status"] == "failed" or not run["panels_extracted"]:
+        return
+    ctx.heartbeat(classification=classify(art, str(run["id"])))
 
 
 class PgArtworkStore:
@@ -212,4 +231,5 @@ def extract(job: Job, ctx: JobContext) -> None:
     if conn is None:
         raise PermanentJobError("the extract handler needs the Postgres store")
     storage = StorageClient(*ctx.settings.require_storage())
-    run_extract(job, ctx, PgArtworkStore(conn), storage.get)
+    run_extract(job, ctx, PgArtworkStore(conn), storage.get,
+                lambda art, run_id: suggest_for_run(conn, art.workspace_id, art.product_id, art.id, run_id))
