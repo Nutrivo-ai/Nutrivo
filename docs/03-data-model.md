@@ -59,6 +59,7 @@ delete (BE-13).
 | P0010 | BE-10: coverage set complete where no accepted, tested member rule covers the node and domain |
 | P0021 | BE-21: Clear where coverage is incomplete |
 | P0032 / P0033 / P0036 | Free allowance used / no editor seat / new artworks paused by dunning |
+| P0034 | BE-34: a new recipe (family) on a paid plan whose included recipes are all live; the hint names the next plan (T-401, provisional until T-704 sets the € overage cap, #43 Q1) |
 | P0038 | Ruleset member is not an accepted version |
 | P0039 | K05: release refused: a member without fixtures, or no passing fixture run that matches the draft's members and fixtures |
 | P0040 / P0041 / P0042 | Invitation invalid (or already accepted, so it cannot be revoked) / email mismatch / already a member |
