@@ -264,6 +264,23 @@ class PgStore:
         so there is none yet, and Template 06 fails rather than sending a receipt without it."""
         return None
 
+    # ── billing_sync, billing_reconcile (T-702) ─────────────────────────────────────────────────────────────
+    def payment_event(self, stripe_event_id: str) -> dict[str, Any] | None:
+        return self.conn.execute(
+            """select workspace_id::text, type, payload from app.payment_events where stripe_event_id = %s""",
+            (stripe_event_id,)).fetchone()
+
+    def workspace_for_subscription(self, sub: dict[str, Any]) -> str | None:
+        """private.stripe_workspace: the mirrored subscription's workspace, else its metadata's, else the customer's."""
+        obj = {"object": "subscription", "id": sub.get("id"), "metadata": sub.get("metadata") or {},
+               "customer": sub["customer"].get("id") if isinstance(sub.get("customer"), dict) else sub.get("customer")}
+        row = self.conn.execute("select private.stripe_workspace(%s)::text as ws", (Jsonb(obj),)).fetchone()
+        return row["ws"] if row else None
+
+    def apply_subscription(self, workspace_id: str, snapshot: dict[str, Any], source: str, ref: str) -> str:
+        return self.conn.execute("select app.apply_subscription(%s, %s, %s, %s) as outcome",
+                                 (workspace_id, Jsonb(snapshot), source, ref)).fetchone()["outcome"]
+
     # ── session_revoke (A06) ────────────────────────────────────────────────────────────────────────────
     def membership_for_revoke(self, membership_id: str) -> dict[str, Any] | None:
         return self.conn.execute(

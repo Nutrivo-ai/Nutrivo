@@ -243,7 +243,9 @@ test.describe("workspace shell", () => {
       await page.locator(`nav[aria-label="Workspace"]:visible a[href="${href}"]`).click();
       await expect(page).toHaveURL(new RegExp(`${href}$`));
       await expect(page.locator(`nav[aria-label="Workspace"]:visible a[href="${href}"]`)).toHaveAttribute("aria-current", "page");
-      await expect(page.locator("main [data-placeholder], main [data-pattern]").filter({ visible: true })).toHaveCount(1);
+      // A placeholder, a pattern state, or a built screen's own content (T-401: Add a product's form; Discontinued
+      // shows its empty pattern state in a fresh workspace).
+      await expect(page.locator("main [data-placeholder], main [data-pattern], main [data-add-product]").filter({ visible: true }).first()).toBeVisible();
     }
     // The switcher opens and closes, and each entry navigates.
     await switcher(page).click();
@@ -257,7 +259,10 @@ test.describe("workspace shell", () => {
     }
     // Every visible button and link on the page is one of the above.
     await expect(switcher(page)).toContainText(NORTH);
-    await expect(page.locator("a, button").filter({ visible: true })).toHaveCount(hrefs.length + 1);
+    // The switcher keeps the rail section, so the page is the last rail link's screen; its own controls are that
+    // screen's (Discontinued's empty state links to Add a product, covered in products.spec.ts).
+    const own = await page.locator("main a, main button").filter({ visible: true }).count();
+    await expect(page.locator("a, button").filter({ visible: true })).toHaveCount(hrefs.length + 1 + own);
     expect(errors).toEqual([]);
   });
 
