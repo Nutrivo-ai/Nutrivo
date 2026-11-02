@@ -37,6 +37,10 @@ Workspace Settings (T-107; A03 to A07, B01): under `/w/<id>/settings/*` the shel
 path yet (workspace name, region, language, your name and email, notification settings) are shown read-only (#29).
 `/invite/<token>` (`src/components/invite`, `src/lib/invite`) creates or signs in the invitee and accepts through
 `app.accept_invitation`. `tests/e2e/settings.spec.ts` follows the invitation the worker sends through Mailpit.
+Audit log (T-108; O02): `src/components/settings/AuditLog.tsx` at `/w/<id>/settings/audit` reads `app.audit_events`
+under the admin's session through `src/lib/settings/audit.ts`, which also words each stored kind (KIND, What happened,
+Who). External is the flag stamped on the event, never today's membership. Filters (`?show=`) and paging (`?before=`)
+are links; nothing on the screen writes. `tests/e2e/audit.spec.ts`.
 
 Public site (T-603): `src/app/(public)` holds `/`, `/pricing`, `/coverage`, `/faq`, `/about`, `/for/<segment>` and
 `/legal/<doc>`, each ported from its file in design/public/ with `sx()` (`src/lib/public/sx.ts`), which takes the design's
