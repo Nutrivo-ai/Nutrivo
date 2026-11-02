@@ -10,7 +10,7 @@ export function AllowanceCounter({ moment }: { moment: AllowanceMoment }) {
   if (!text) return null;
   return (
     <span
-      className="inline-flex items-center gap-[7px] py-[6px] px-[10px] border border-action bg-action-bg font-mono text-[10px] tracking-[0.1em] uppercase text-ink"
+      className="inline-flex items-center gap-[8px] py-[5px] px-[10px] border border-action bg-action-bg font-mono text-[10.5px] tracking-[0.05em] uppercase text-n800"
       data-allowance-counter
     >
       <span aria-hidden className="inline-block w-0 h-0 border-l-[5px] border-r-[5px] border-b-[9px] border-l-transparent border-r-transparent border-b-action" />
@@ -24,14 +24,18 @@ export function LastLabelPanel({ workspaceId }: { workspaceId: string }) {
   const [hidden, setHidden] = useState(false);
   if (hidden) return null;
   return (
-    <section className="border border-ink border-l-4 border-l-action bg-paper py-[20px] px-[22px]" aria-labelledby="last-label" data-last-label>
-      <h2 id="last-label" className="m-0 font-head text-[15.5px] font-semibold">One free label left</h2>
-      <p className="mt-[10px] mb-0 text-[13.5px] leading-[1.6] text-n800">
+    <section
+      className="border border-ink border-l-4 border-l-action bg-paper pt-[19px] pb-[18px] px-[20px] md:max-w-[521px] box-border"
+      aria-labelledby="last-label"
+      data-last-label
+    >
+      <h2 id="last-label" className="m-0 font-head text-[15px] leading-[1.5] font-semibold">One free label left</h2>
+      <p className="mt-[7px] mb-0 text-[13px] leading-[1.55] text-n700">
         Nothing expires and nothing is taken away. When the third is used you keep all three labels, every finding, every
         report you sent, and re-checking stays free. What stops is adding a fourth.
       </p>
-      <div className="mt-[16px] flex flex-wrap gap-[10px]">
-        <ButtonLink href={`/w/${workspaceId}/billing/plans`} variant="primary" size="md">
+      <div className="mt-[14px] flex flex-wrap gap-[10px]">
+        <ButtonLink href={`/w/${workspaceId}/billing/plans`} variant="primary" size="md" className="px-[18px]">
           See what a plan costs for this workspace
         </ButtonLink>
         <Button size="md" onClick={() => setHidden(true)}>Not now</Button>

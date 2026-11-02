@@ -1,7 +1,7 @@
 import { EmptyState, STATE_LABEL, STATE_TEXT, StateGlyph } from "@/components/kit";
 import type { DiscontinuedRow } from "@/lib/products/queries";
 
-const HEAD = "py-[9px] font-mono text-[9.5px] font-normal tracking-[0.13em] uppercase text-n600 text-left";
+const HEAD = "py-[10px] pr-[12px] font-mono text-[9.5px] font-normal tracking-[0.12em] uppercase text-n600 text-left";
 
 const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
 
@@ -13,12 +13,12 @@ const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
 export function Discontinued({ workspaceId, rows, total }: { workspaceId: string; rows: DiscontinuedRow[]; total: number }) {
   return (
     <div className="max-w-[948px]" data-discontinued>
-      <div className="flex flex-wrap items-end gap-[18px] border-b border-ink pb-[12px]">
-        <p className="m-0 flex-1 min-w-[280px] text-[13.5px] leading-[1.6] text-n800 max-w-[680px]">
+      <div className="flex flex-wrap items-end gap-[22px] border-b border-ink pb-[10px]">
+        <p className="m-0 flex-1 min-w-[280px] text-[13.5px] leading-[1.55] text-n700 max-w-[74ch]">
           Nothing is deleted. A discontinued product leaves the board, the portfolio counts, freshness and monitoring, and
           keeps every certificate and report it ever produced resolvable.
         </p>
-        <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-n600" data-discontinued-count>
+        <span className="font-mono text-[10.5px] uppercase text-n600 whitespace-nowrap" data-discontinued-count>
           {plural(rows.length, "product")} · excluded from {Math.max(0, total - rows.length)}
         </span>
       </div>
@@ -108,9 +108,9 @@ function Artefacts({ workspaceId, row }: { workspaceId: string; row: Discontinue
 
 function Note({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="border border-rule py-[16px] px-[16px]">
-      <p className="m-0 font-mono text-[10px] tracking-[0.13em] uppercase text-n600">{title}</p>
-      <p className="mt-[10px] mb-0 text-[13px] leading-[1.55] text-n800">{children}</p>
+    <div className="border border-rule py-[14px] px-[16px]">
+      <p className="m-0 font-mono text-[10px] tracking-[0.12em] uppercase text-n600">{title}</p>
+      <p className="mt-[6.5px] mb-0 text-[13px] leading-[1.5] text-n700">{children}</p>
     </div>
   );
 }

@@ -212,7 +212,7 @@ export function AddProduct({
         <FamilyPanel family={picked} draftName={name} newFamilyName={familyName} workspaceId={workspaceId} />
         <div className="bg-panel border border-rule py-[16px] px-[18px]">
           <p className="m-0 font-mono text-[10px] tracking-[0.13em] uppercase text-n600">Also accepted later</p>
-          <ul className="mt-[10px] mb-0 pl-[16px] text-[13px] leading-[1.6] text-n800">
+          <ul className="mt-[10px] mb-0 pl-[16px] text-[12.5px] leading-[1.65] text-n700">
             <li>Artwork versions, per language</li>
             <li>Supplier specifications</li>
             <li>Analytical constants</li>
