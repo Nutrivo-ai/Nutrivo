@@ -38,6 +38,9 @@ delete (BE-13).
 | product_nodes.display_state (generated) | blocked if not_registered or expired; not_assessed if clear but registration unknown; else label_state |
 | check_findings.provenance | deterministic_rule · model_judgement · authored_definition · not_assessed |
 | check_findings.state | action · not_assessed · info |
+| classifications.species · life_stage · intended_use · parnut_status | Provisional (T-402, Q3 on #44): species `dog` · `cat`; life_stage `growth` · `adult` · `senior`; intended_use none yet (always left for a person); parnut_status `parnut` only, from a printed declaration. The model may suggest only these; a person's confirmation is the classification |
+| classifications.product_class | complete · complementary · treat · mineral · dietetic · other (check constraint) |
+| classifications.citation (model suggestion) | JSON text: `{basis: "label_text", artwork_version_id, extraction_run_id, prompt_version, fields: {<field>: {quote, panel_index, language, confidence}}, empty: {<field>: reason}}`. The quote is the printed string a value rests on, never a legal reference; `empty` reasons: abstained · low_confidence · no_evidence · quote_not_on_label · value_not_allowed · no_label_text (T-402) |
 | rules.shape | threshold · mandatory_particular · prescribed_wording · character_height · additive_condition · claim_judgement |
 | coverage domain | mandatory_particulars · composition · claims_wording · type_geometry · language · registration |
 | coverage state | complete · partial · not_encoded (anything but complete needs a gap_id) |
