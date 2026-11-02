@@ -12,6 +12,13 @@ migrations' only: no table writes for anon or authenticated, no automatic exposu
 exposed through PostgREST (D-26). The doctor's read-only `supabase-grants` check proves this on staging and production
 (docs/16).
 
+**Public verification (I04, T-406).** The `verify` Edge Function holds the anon key only, never the service role, so
+it can execute `verify_reference` and nothing else. It answers status, issue date, ruleset version and whether Not
+assessed items existed; a missing and a malformed reference get the identical `unknown` answer, so a caller learns
+nothing about near misses. The page `/verify/[ref]` is `noindex` and `Referrer-Policy: no-referrer`, and no log line
+carries a reference. Rate limits are best-effort and per instance: 30 a minute per visitor in the web app, 60 per client
+and 1,200 per instance in the function. A shared limiter would need storage and is left to T-1103 (question on #48).
+
 ## The record
 Insert-only tables (docs/03-data-model.md) have privileges revoked and a rejecting trigger, so even the service key
 and the table owner cannot rewrite history. Certificates form a hash chain per workspace. Every event stamps the

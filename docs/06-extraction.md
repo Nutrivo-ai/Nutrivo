@@ -29,7 +29,8 @@ A measurement is only real when the page has true physical scale; otherwise the 
 ## Panels and languages
 Cluster text blocks into panels using whitespace gutters, and dielines or crop marks where present. One panel per
 printed language block. Language per panel with lingua on the panel's text (fallback `und` when too short).
-A person can correct a language or mark a panel not assessable in the triage view (D02).
+A person can correct a language or mark a panel not assessable in the triage view (D02). T-304 shows each panel's
+language and state on S-NV2-025. The correction itself waits for a write path (asked on #42).
 
 ## Failure taxonomy (BE-18: per panel, successful panels persist)
 | Code | Detected when |
@@ -195,6 +196,11 @@ and is about 30 times slower. The founder decision on #39 made it development-on
 - **Progress.** `app.jobs.progress` goes `{stage: reading}`, `extracting`, `saving` with `pages` and `panels`, then
   `done` with `extraction_run_id`, `status`, `panels`, `panels_extracted`, `text_objects` and `failure_codes`. These are
   ids and counts, never label text.
+- **Classification (D03, T-402).** After the extraction is committed, the same job asks the model for a classification
+  suggestion from the extracted panels' text (`nutrivo_worker.classification`, docs/07) and adds
+  `progress.classification`: `{outcome: suggested, classification_id, filled}` · `already_suggested` ·
+  `skipped_confirmed` (the latest classification is a person's) · `{outcome: withheld, reason}` (a model error, which
+  never fails the extraction). A run with no extracted panel is not classified.
 - **Run status.** `succeeded` when every panel was read, `partial` when some were, and `failed` when none were. All
   three are a succeeded job: a failure is a panel's status, never the file's (BE-18).
 - **Known limit.** The run key includes the engine and library versions. A job retried after a library upgrade, between

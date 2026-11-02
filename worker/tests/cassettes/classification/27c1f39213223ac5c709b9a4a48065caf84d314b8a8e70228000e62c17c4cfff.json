@@ -1,0 +1,12 @@
+{
+  "purpose": "classification",
+  "prompt_version": "v1",
+  "input_hash": "27c1f39213223ac5c709b9a4a48065caf84d314b8a8e70228000e62c17c4cfff",
+  "provider": "bedrock",
+  "model_id": "eu.anthropic.claude-sonnet-4-6",
+  "text": "{\"species\":{\"abstain\":false,\"confidence\":0.99,\"quote\":\"Complete feed for adult cats\",\"panel_index\":0,\"value\":\"cat\"},\"life_stage\":{\"abstain\":false,\"confidence\":0.99,\"quote\":\"Complete feed for adult cats\",\"panel_index\":0,\"value\":\"adult\"},\"product_class\":{\"abstain\":false,\"confidence\":0.99,\"quote\":\"Complete feed for adult cats\",\"panel_index\":0,\"value\":\"complete\"},\"intended_use\":{\"abstain\":true,\"confidence\":0,\"quote\":null,\"panel_index\":null,\"value\":null},\"parnut_status\":{\"abstain\":true,\"confidence\":0,\"quote\":null,\"panel_index\":null,\"value\":null}}",
+  "stop_reason": "end_turn",
+  "input_tokens": 3364,
+  "output_tokens": 165,
+  "recorded_at": "2026-11-02T10:16:32+00:00"
+}

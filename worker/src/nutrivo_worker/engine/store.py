@@ -51,6 +51,10 @@ class CheckInputs:
 CLASSIFICATION_FIELDS = ("species", "life_stage", "product_class", "intended_use", "parnut_status")
 
 
+def _num(v: Any) -> float | None:
+    return None if v is None else float(v)
+
+
 class PgCheckStore:
     def __init__(self, conn: Any):
         self.conn = conn
@@ -86,6 +90,11 @@ class PgCheckStore:
             if c:                     # an unconfirmed classification is missing data, never a guess (#45)
                 facts.update(c)
         facts["format"] = product["format"]
+        facts["additives"] = self._additives(product_id)
+        # No stored source gives the product's quantity (character_height bands) or declared quantities
+        # (threshold) yet (#52): both stay missing, so those rules are withheld data_missing, never guessed.
+        facts["quantity"] = None
+        facts["quantities"] = {}
 
         nodes = [self._node(product_id, ruleset_version, n) for n in node_ids]
         terms = {k: tuple(v) for k, v in accepted_terms(self.conn, ruleset_version).items()}
@@ -105,15 +114,28 @@ class PgCheckStore:
                 where extraction_run_id = %s order by page, panel_index, id""", (run_id,)).fetchall()
         lines: dict[str, list[TextLine]] = {}
         for t in self.conn.execute(
-                """select t.id, t.panel_id, t.text, t.bbox_mm from app.text_objects t
+                """select t.id, t.panel_id, t.text, t.bbox_mm, t.x_height_mm, t.cap_height_mm, t.is_ocr
+                     from app.text_objects t
                      join app.artwork_panels p on p.id = t.panel_id
                     where p.extraction_run_id = %s order by t.reading_order nulls last, t.id""",
                 (run_id,)).fetchall():
             lines.setdefault(str(t["panel_id"]), []).append(
-                TextLine(t["text"], str(t["id"]), [float(x) for x in t["bbox_mm"]]))
+                TextLine(t["text"], str(t["id"]), [float(x) for x in t["bbox_mm"]], _num(t["x_height_mm"]),
+                         _num(t["cap_height_mm"]), bool(t["is_ocr"])))
         return tuple(Panel(r["panel_index"], r["language"] if r["language"] not in (None, "", "und") else None,
                            r["status"], r["failure_code"], tuple(lines.get(str(r["id"]), ())), str(r["id"]))
                      for r in rows)
+
+    def _additives(self, product_id: str) -> list[dict[str, Any]]:
+        """The formula's additive lines with their register row (additive_condition)."""
+        return [{"additive_ref": r["additive_ref"], "amount": _num(r["amount"]), "unit": r["unit"],
+                 "register": {"species": list(r["species"]) if r["species"] is not None else None,
+                              "max_content": r["max_content"], "expiry": r["expiry"]} if r["id"] else None}
+                for r in self.conn.execute(
+                    """select f.additive_ref, f.amount, f.unit, a.id, a.species, a.max_content, a.expiry
+                         from app.formula_lines f left join ref.feed_additives a on a.id = f.additive_ref
+                        where f.product_id = %s and f.additive_ref is not null
+                        order by f.position, f.id""", (product_id,)).fetchall()]
 
     def _node(self, product_id: str, ruleset_version: str, node_id: str) -> NodeInputs:
         j = self._one("""select j.id, j.node_type, j.parent_id, j.languages from ref.jurisdictions j
@@ -166,12 +188,15 @@ class PgCheckStore:
                     self.conn.execute(
                         """insert into app.check_findings (workspace_id, check_id, product_id, node_id, rule_key,
                                rule_version, gap_id, state, provenance, citation, message, panel_id, language,
-                               text_object_id, bbox_mm, reason_code, confidence, model_call_id)
-                           values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                               text_object_id, bbox_mm, reason_code, confidence, model_call_id, measured_mm,
+                               required_mm, height_definition)
+                           values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                                   %s)""",
                         (inputs.workspace_id, check_id, inputs.product_id, r.node_id, f.get("rule_key"),
                          f.get("rule_version"), f.get("gap_id"), f["state"], f["provenance"], f.get("citation"),
                          f["message"], f.get("panel_id"), f.get("language"), f.get("text_object_id"),
-                         f.get("bbox_mm"), f.get("reason_code"), f.get("confidence"), f.get("model_call_id")))
+                         f.get("bbox_mm"), f.get("reason_code"), f.get("confidence"), f.get("model_call_id"),
+                         f.get("measured_mm"), f.get("required_mm"), f.get("height_definition")))
             states: dict[str, dict[str, Any]] = {}
             for r in results:
                 s = states.setdefault(r.node_id, {"states": [], "open": 0})
