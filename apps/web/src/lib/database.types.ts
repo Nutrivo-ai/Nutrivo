@@ -1205,6 +1205,9 @@ isOneToOne: false
 "accept_invitation":
 { Args: { "p_token": string }; Returns: string
                            },
+"add_product_markets":
+{ Args: { "p_nodes": (string)[],"p_product": string }; Returns: number
+                           },
 "affected_objects":
 { Args: { "p_rule_diff": string }; Returns: {
               "node_id": string,"product_id": string,"workspace_id": string
@@ -1218,6 +1221,12 @@ isOneToOne: false
                            },
 "confirm_classification":
 { Args: { "p_basis": string,"p_intended_use": string,"p_life_stage": string,"p_parnut_status": string,"p_product": string,"p_product_class": string,"p_species": string }; Returns: string
+                           },
+"create_product":
+{ Args: { "p_family"?: string,"p_family_name"?: string,"p_format"?: string,"p_life_stage"?: string,"p_name": string,"p_nodes"?: (string)[],"p_operator"?: Json,"p_species"?: string,"p_stage"?: string,"p_ws": string }; Returns: string
+                           },
+"create_product_from_artwork":
+{ Args: { "p_family"?: string,"p_file_name": string,"p_ws": string }; Returns: string
                            },
 "create_ruleset_draft":
 { Args: { "p_id": string,"p_notes"?: string }; Returns: string
@@ -1278,6 +1287,9 @@ isOneToOne: false
                            },
 "set_draft_member":
 { Args: { "p_draft": string,"p_rule_key": string,"p_version": number }; Returns: undefined
+                           },
+"set_product_stage":
+{ Args: { "p_product": string,"p_reason"?: string,"p_stage": string }; Returns: string
                            }
           }
           Enums: {
