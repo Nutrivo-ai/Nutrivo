@@ -33,10 +33,13 @@ $$;
 
 -- BE-34 (Q1 above): refuse one more recipe once the paid plan's included recipes are all live. The subscription
 -- mirror clears recipes_included when no subscription is live, and Free and Advanced carry none, so they never stop.
+-- A per-workspace transaction lock serialises the count and the insert that follows, so two concurrent requests
+-- cannot both see room for the last recipe.
 create function private.require_recipe_room(ws uuid) returns void
-language plpgsql stable security definer set search_path = '' as $$
+language plpgsql security definer set search_path = '' as $$
 declare v_included int; v_plan text;
 begin
+  perform pg_advisory_xact_lock(hashtextextended('nutrivo.recipes:' || ws::text, 0));
   select s.recipes_included, s.plan into v_included, v_plan from app.subscriptions s where s.workspace_id = ws;
   if v_included is not null and private.live_recipes(ws) >= v_included then
     raise exception 'BE-34: all % recipes of the % plan are in use; the next plan adds more', v_included, v_plan
@@ -164,8 +167,8 @@ end $$;
 -- for an artwork that would be refused. The browser then uploads and calls app.register_artwork as D01 does.
 create function app.create_product_from_artwork(p_ws uuid, p_file_name text, p_family uuid default null) returns uuid
 language plpgsql security definer set search_path = '' as $$
-declare v_status text; v_plan text; v_used int; v_allowed int; v_name text; v_family uuid; v_new_family boolean;
-        v_product uuid;
+declare v_status text; v_plan text; v_used int; v_allowed int; v_pending int; v_name text; v_family uuid;
+        v_new_family boolean; v_product uuid;
 begin
   if not private.can_create_product(p_ws) then raise exception 'not permitted' using errcode = '42501'; end if;
   select w.status, w.plan into v_status, v_plan from app.workspaces w where w.id = p_ws;
@@ -174,9 +177,17 @@ begin
       using errcode = 'P0036';
   end if;
   if v_plan = 'free' then
+    -- Serialised per workspace, and products already made from an artwork that is not registered yet count against
+    -- what is left, so concurrent drops cannot make more products than free labels remain.
+    perform pg_advisory_xact_lock(hashtextextended('nutrivo.allowance:' || p_ws::text, 0));
     select a.labels_used, a.labels_allowed into v_used, v_allowed from app.allowances a where a.workspace_id = p_ws;
-    if coalesce(v_used, 0) >= coalesce(v_allowed, 0) then
-      raise exception 'BE-32: all % free label artworks are used', coalesce(v_allowed, 0) using errcode = 'P0032';
+    select count(*)::int into v_pending from app.products pr
+    where pr.workspace_id = p_ws
+      and not exists (select 1 from app.artwork_versions av where av.product_id = pr.id)
+      and exists (select 1 from app.audit_events e where e.workspace_id = p_ws and e.kind = 'product.created'
+                  and e.object_id = pr.id::text and e.after ->> 'source' = 'artwork');
+    if v_used + v_pending >= v_allowed then
+      raise exception 'BE-32: all % free label artworks are used or waiting for their file', v_allowed using errcode = 'P0032';
     end if;
   end if;
   -- The provisional name: the file's name without its extension, separators as spaces.
@@ -273,9 +284,14 @@ end $$;
 revoke all on function private.can_create_product(uuid), private.live_recipes(uuid), private.require_recipe_room(uuid),
   private.normalise_operator(jsonb), private.check_markets(uuid, text[]),
   private.family_for_product(uuid, uuid, text, text) from public, anon;
-grant execute on function private.can_create_product(uuid), private.live_recipes(uuid), private.require_recipe_room(uuid),
-  private.normalise_operator(jsonb), private.check_markets(uuid, text[]),
-  private.family_for_product(uuid, uuid, text, text) to authenticated, service_role;
+grant execute on function private.can_create_product(uuid), private.live_recipes(uuid),
+  private.normalise_operator(jsonb), private.check_markets(uuid, text[]) to authenticated, service_role;
+-- The two helpers that write or lock run only inside the RPCs above (security definer, as their owner): no client
+-- role executes them directly, whatever the schema's default privileges grant.
+revoke execute on function private.require_recipe_room(uuid), private.family_for_product(uuid, uuid, text, text)
+  from authenticated;
+grant execute on function private.require_recipe_room(uuid), private.family_for_product(uuid, uuid, text, text)
+  to service_role;
 
 revoke all on function app.create_product(uuid, text, uuid, text, text, text, text, text, jsonb, text[]),
   app.create_product_from_artwork(uuid, text, uuid), app.add_product_markets(uuid, text[]),

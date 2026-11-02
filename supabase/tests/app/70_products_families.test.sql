@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(81);
+select plan(83);
 set local client_min_messages = warning;
 
 -- ─── A: free, Alice (admin), Carl (editor), Vera (viewer), Sid (editor scoped to EU-DE), Ezra (external editor).
@@ -48,6 +48,9 @@ select ok(not has_function_privilege('anon', 'app.create_product(uuid,text,uuid,
           and has_function_privilege('authenticated', 'app.create_product(uuid,text,uuid,text,text,text,text,text,jsonb,text[])', 'execute')
           and has_function_privilege('authenticated', 'app.set_product_stage(uuid,text,text)', 'execute'),
           '[T-401] the product RPCs are executable by authenticated users and never by anon');
+select ok(not has_function_privilege('authenticated', 'private.family_for_product(uuid,uuid,text,text)', 'execute')
+          and not has_function_privilege('authenticated', 'private.require_recipe_room(uuid)', 'execute'),
+          '[T-401] the helpers that write or lock run only inside the RPCs');
 select ok(not has_table_privilege('authenticated', 'app.products', 'insert')
           and not has_table_privilege('authenticated', 'app.products', 'update')
           and not has_table_privilege('authenticated', 'app.families', 'insert')
@@ -323,6 +326,8 @@ set local role authenticated;
 insert into t_ids values ('p2', app.create_product_from_artwork('20000000-0000-4000-8401-00000000000a', 'second.pdf'));
 select app.register_artwork(pg_temp.id('p2'), 'x/' || repeat('3', 64) || '.pdf', repeat('3', 64));
 insert into t_ids values ('p3', app.create_product_from_artwork('20000000-0000-4000-8401-00000000000a', 'third.pdf'));
+select throws_ok($$select app.create_product_from_artwork('20000000-0000-4000-8401-00000000000a', 'another.pdf')$$,
+                 'P0032', null, '[C02.must.1] a product made from an artwork still waiting for its file holds the last free label');
 reset role;
 select is((select count(*)::int from app.jobs where kind = 'notify' and workspace_id = '20000000-0000-4000-8401-00000000000a'), 0,
           '[B02.main] no email before the third free label is used');
