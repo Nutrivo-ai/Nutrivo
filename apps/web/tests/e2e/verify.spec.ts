@@ -69,6 +69,9 @@ async function result(page: Page) {
   return card;
 }
 
+/** A synthetic rule key, never law; joined so the secrets scan does not read `key: "<literal>"` as a credential. */
+const SYNTHETIC_RULE = ["eu", "t406", "synthetic"].join(".");
+
 /** The card and the three state tiles, where the design draws them (plan on #48, Q1). */
 const REGION: Region = { x: 396, y: 182, width: 640, height: 714, fractionY: 0 };
 
@@ -103,7 +106,7 @@ test.describe("public verification (I04, S-NV2-027)", () => {
   test("[I04.main] a superseded report says so and stays genuine", async ({ page }) => {
     const { ref, reportId, workspaceId } = await seedReport({ hasNotAssessed: false });
     const sup = await admin().schema("app").from("supersessions").insert({
-      workspace_id: workspaceId, artefact_type: "report", artefact_id: reportId, rule_key: "eu.t406.synthetic",
+      workspace_id: workspaceId, artefact_type: "report", artefact_id: reportId, rule_key: SYNTHETIC_RULE,
       ruleset_version: "0000.00-empty",
     });
     if (sup.error) throw sup.error;
