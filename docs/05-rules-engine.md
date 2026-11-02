@@ -60,15 +60,47 @@ while the questions on #45 are open; each is the conservative option.
 - **Missing params.** The K02 extraction stores only `particular` and `conditions`, or `wordings` and
   `alternatives`. A rule without the params above, or with no term in the panel's language, is withheld with
   `data_missing`. It is never matched on other wording.
+- **character_height, threshold, additive_condition (T-502, D05).** Asked on #52; each choice below is the
+  conservative option.
+  - **character_height** reads `height_definition`, `bands` and `detect.term_keys`. `detect.term_keys` are the
+    register terms whose printed text is the target, in the panel's language.
+    - The rule is judged on panels in one of the node's languages, and every target text object is measured.
+    - The band is the one whose range `[quantity_from, quantity_to)` holds the product's quantity, in the same unit.
+      A single band open at both ends needs no quantity.
+    - It fails when a target is below the band minimum. The finding carries `text_object_id`, `bbox_mm`,
+      `measured_mm` (the lowest), `required_mm` and `height_definition`.
+    - A `no_true_scale` or `outlined_text` panel is withheld with that code, by step 4.
+    - A target read by OCR has no physical scale and is withheld `no_true_scale`.
+    - `figure_height` has no stored measurement (`app.text_objects` holds x-height and cap height only), so it is
+      withheld `data_missing`; it is never taken from cap height.
+    - Each of these is withheld `data_missing`, never guessed: a K02 rule without `height_definition` or
+      `detect`, a target not printed, a missing measurement, a missing quantity, a unit that differs, or no single
+      band.
+  - **threshold** reads `quantity`, `operator`, `value`, `unit` and `detect.term_keys` (what the consequence prints
+    as).
+    - The quantity is the product's `{value, unit}` under that name. A unit is never converted.
+    - A condition that does not hold makes the rule not applicable.
+    - When it holds, the rule passes if the consequence is printed on the panel and fails if not.
+  - **additive_condition** reads `check`, `additives` (identification numbers; absent means every additive of the
+    formula) and `species_wordings`. It judges the formula lines whose `additive_ref` it names; with none, it is not
+    applicable. Each check:
+    - `authorised_for_species` fails on an expired register row. It passes only when a register species string equals
+      one of `species_wordings[species]`; the register's strings are unsplit, so a miss proves nothing.
+    - `within_max_content` compares the line's amount with `max_content` in the same unit.
+    - `declaration_required` has no per-language declaration source yet.
+    - Anything else, including a `max_content` never imported (docs/12), is withheld `data_missing`.
+  - **Not stored yet.** No source gives the product's quantity or declared quantities, so in a real check
+    character_height rules with several bands, and every threshold rule, are withheld `data_missing` until one does.
 - **Withholds.**
   - A shape with no evaluator yet gives `evaluator_missing`. `claim_judgement` has none until T-503.
   - An evaluator fault gives `evaluator_error` and is reported to Sentry.
   - A model error from `nutrivo_worker.models` keeps its own reason: `model_unavailable`, `model_refused` or
     `model_output_invalid`.
 - **Fixtures.**
-  - Importing the engine registers both evaluators in `fixtures_runner.EVALUATORS`.
+  - Importing the engine registers every evaluator in `fixtures_runner.EVALUATORS`.
   - A rule fixture's `input` is `{panel, panels?, node: {id, languages, region}, classification, product: {format}}`.
-    A panel is `{index, language, status, failure_code, text_objects: [{text}]}`.
+    A panel is `{index, language, status, failure_code, text_objects: [{text, x_height_mm?, cap_height_mm?, is_ocr?}]}`.
+    `product` may also carry `quantity`, `quantities` and `additives` (T-502).
   - Params, applicability and terms come from the pinned rule version and the register, never from the input.
   - A rule that does not apply to the input is reported withheld with `not_applicable`.
   - `LABEL_EVALUATOR` stays unset, because synthetic wording is never in the register (#36, #45).
@@ -119,7 +151,8 @@ alone (logs go to stderr). The report holds `ruleset_version`, `passed`, a summa
 expected and actual.
 
 Evaluators register in `nutrivo_worker.fixtures_runner.EVALUATORS` by shape, and the label path in `LABEL_EVALUATOR`.
-T-403 registers mandatory_particular and prescribed_wording (§The engine). Every other shape and every label is
+T-403 registers mandatory_particular and prescribed_wording, and T-502 registers character_height, threshold and
+additive_condition (§The engine). claim_judgement and every label are
 still withheld, so no ruleset passes while synthetic or golden labels are present. Open on #36: how an unreleased
 (proposed) ruleset is named before K05 writes its members, and the golden expected-results file format. Until those
 are decided, only released ruleset ids resolve, and a golden JSON file with a `panels` list is reported per panel.

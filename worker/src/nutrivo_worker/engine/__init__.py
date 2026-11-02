@@ -3,7 +3,7 @@ judgement marked as such, and the applied, passed and withheld rule keys on ever
 
 Importing this package registers the evaluators (engine.core.EVALUATORS, and fixtures_runner.EVALUATORS for the
 fixture runner)."""
-from . import evaluators  # noqa: F401  registers mandatory_particular and prescribed_wording
+from . import evaluators, quantitative  # noqa: F401  registers the evaluators (every shape but claim_judgement)
 from .core import EVALUATORS, CheckResult, evaluate_check
 
 __all__ = ["EVALUATORS", "CheckResult", "evaluate_check"]
