@@ -324,8 +324,13 @@ test.describe("Workspace Settings", () => {
     await expect(row(page, erik.email)).toHaveCount(0);
     expect((await membership(ws, erik))?.ended_at).toBeTruthy();
 
+    // The next request reads nothing of the workspace: Access removed (S-REC-004) while his session lasts, or sign-in
+    // once the worker's session_revoke has ended it. Which one depends only on how fast the worker ran.
     await erikPage.reload();
-    await expect(erikPage.getByText("You no longer have access to this workspace")).toBeVisible();
+    await expect(
+      erikPage.getByText("You no longer have access to this workspace").or(erikPage.getByRole("heading", { level: 1, name: "Sign in" })),
+    ).toBeVisible();
+    expect(await erikPage.locator("body").textContent()).not.toContain("People and roles");
     await erikContext.close();
     expect(errors).toEqual([]);
   });
