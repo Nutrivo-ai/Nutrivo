@@ -35,7 +35,7 @@ export default async function Page({ params }: PageProps<"/w/[workspace]/product
           </section>
           {classification ? (
             <div className="md:col-start-3">
-              <ClassificationPanel state={classification} />
+              <ClassificationPanel state={classification} productId={product.id} />
             </div>
           ) : null}
         </div>

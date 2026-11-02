@@ -95,7 +95,9 @@ export function describe(row: ClassificationRow): ClassificationView {
     if (value !== null && cite?.quote) line = `Label text ${quoteLine(cite)}`;
     else if (value !== null) line = confirmed ? "Confirmed by a person" : "No citation recorded";
     else line = EMPTY_REASON[citation?.empty?.[field] ?? ""] ?? (confirmed ? "Not recorded" : "Left for you to fill");
-    const source = value === null ? "—" : confirmed ? (cite?.quote && row.provenance !== "person" ? "Confirmed judgement" : "Person") : "Judgement";
+    // A confirmed value that kept its label evidence was the model's and a person confirmed it; one without was set by
+    // the person.
+    const source = value === null ? "—" : confirmed ? (cite?.quote ? "Confirmed" : "Person") : "Judgement";
     return { field, label: FIELD_LABEL[field], value, cite: line, source };
   });
   const filled = fields.filter((f) => f.value !== null).length;

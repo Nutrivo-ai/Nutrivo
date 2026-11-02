@@ -12,7 +12,9 @@
   `model_call_id` set. The engine counts an unconfirmed classification as missing (docs/05), so no rule uses a
   suggestion before a person confirms it (BE-19, D03.must.1).
 - **Never over a person's answer.** No suggestion is written while the product's latest classification is confirmed:
-  a new revision keeps the person's classification until a person changes it.
+  a new revision keeps the person's classification until a person changes it. The final check and the insert run
+  under the product's row lock, the lock app.confirm_classification takes, so a confirmation made during the model
+  call wins.
 - **Idempotent** per extraction run: the run id is in the citation, and a second attempt finds the row.
 
 The allowed values are provisional: no vocabulary for species, life stage, intended use or PARNUT status is written
@@ -47,7 +49,7 @@ ALLOWED: dict[str, tuple[str, ...]] = {
     "life_stage": ("growth", "adult", "senior"),
     "product_class": ("complete", "complementary", "treat", "mineral", "dietetic", "other"),
     "intended_use": (),                     # no vocabulary yet: always left for the person
-    "parnut_status": ("parnut",),           # only ever positive, from a printed declaration
+    "parnut_status": ("parnut",),           # only ever positive, from a printed declaration (as the RPC)
 }
 
 
@@ -230,6 +232,17 @@ def suggest_for_run(conn: psycopg.Connection, workspace_id: str, product_id: str
         log.info("classification withheld", extra=kv(product_id=product_id, extraction_run_id=run_id,
                                                      reason=withheld))
         return {"outcome": "withheld", "reason": withheld}
-    cid = store.insert(workspace_id, product_id, artwork_version_id, run_id, s, capture.id)
+    # The model call is outside any lock. The write is not: under the product's row lock (the one
+    # app.confirm_classification takes), re-check that no person confirmed and no other attempt wrote this run's
+    # suggestion meanwhile, then insert, so a suggestion never lands on top of a confirmation made during the call.
+    with conn.transaction():
+        conn.execute("select 1 from app.products where id = %s for update", (product_id,))
+        done = store.for_run(product_id, run_id)
+        if done is not None:
+            return {"outcome": "already_suggested", "classification_id": str(done["id"])}
+        latest = store.latest(product_id)
+        if latest is not None and latest["confirmed_at"] is not None:
+            return {"outcome": "skipped_confirmed", "classification_id": str(latest["id"])}
+        cid = store.insert(workspace_id, product_id, artwork_version_id, run_id, s, capture.id)
     log.info("classification suggested", extra=kv(product_id=product_id, classification_id=cid, filled=s.filled))
     return {"outcome": "suggested", "classification_id": cid, "filled": s.filled}

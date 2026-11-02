@@ -1,9 +1,15 @@
-// S-NV2-002 "3 · Which rulebook applies" (D03): every state renders, an empty field is never filled in, and the panel
-// draws no control while the confirmation write path is open (Q1 on #44), so nothing in it is dead.
+// S-NV2-002 "3 · Which rulebook applies" (D03): every state renders, an empty field is never filled in, and a person
+// can confirm or correct the values wherever there is something to confirm (app.confirm_classification).
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { ClassificationRow } from "@/lib/classification/describe";
-import { ClassificationPanel } from "./ClassificationPanel";
+import { ClassificationPanel as Panel } from "./ClassificationPanel";
+
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: () => {} }) }));
+vi.mock("@/lib/classification/actions", () => ({ confirmClassification: async () => ({ ok: true, id: "x" }) }));
+
+const PRODUCT = "40000000-0000-4000-8402-0000000000a1";
+const ClassificationPanel = (props: { state: Parameters<typeof Panel>[0]["state"] }) => <Panel {...props} productId={PRODUCT} />;
 
 const row: ClassificationRow = {
   id: "c-1",
@@ -52,10 +58,21 @@ describe("ClassificationPanel", () => {
     expect(html).toContain("3 · Which rulebook applies");
   });
 
-  it("draws no control until the confirmation write path exists", () => {
-    for (const state of [{ kind: "loaded", row } as const, { kind: "empty" } as const, { kind: "error" } as const]) {
-      const html = renderToStaticMarkup(<ClassificationPanel state={state} />);
-      expect(html).not.toMatch(/<button|<a |<input|<select/);
+  it("[D03.main] an unconfirmed suggestion offers confirmation; a confirmed one offers the design's challenge", () => {
+    const html = renderToStaticMarkup(<ClassificationPanel state={{ kind: "loaded", row }} />);
+    expect(html.match(/<button/g)).toHaveLength(1);
+    expect(html).toContain("Confirm or correct these values");
+    const confirmed = renderToStaticMarkup(
+      <ClassificationPanel state={{ kind: "loaded", row: { ...row, provenance: "person", confirmed_at: "2026-11-03T08:00:00Z" } }} />,
+    );
+    expect(confirmed).toContain("Challenge this determination");
+    expect(confirmed).toContain('data-confirmed="true"');
+  });
+
+  it("with nothing to classify from, a person can still classify; loading and error offer nothing to press", () => {
+    expect(renderToStaticMarkup(<ClassificationPanel state={{ kind: "empty" }} />)).toContain("Confirm or correct these values");
+    for (const state of [{ kind: "loading" } as const, { kind: "error" } as const]) {
+      expect(renderToStaticMarkup(<ClassificationPanel state={state} />)).not.toMatch(/<button|<select/);
     }
   });
 });

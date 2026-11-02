@@ -1,5 +1,6 @@
 import { EmptyState, ErrorState, LoadingState } from "@/components/kit";
-import { describe, type ClassificationRow } from "@/lib/classification/describe";
+import { describe, FIELDS, type ClassificationRow, type Field } from "@/lib/classification/describe";
+import { ClassificationEditor } from "./ClassificationEditor";
 
 export type ClassificationState =
   | { kind: "loaded"; row: ClassificationRow }
@@ -12,12 +13,11 @@ export type ClassificationState =
  * runs. A suggestion is the model's, from the printed label text, with the words it rests on; an unsure field stays
  * empty for a person (D03.fail.1). No rule uses it until a person confirms it (BE-19).
  *
- * The design's "Challenge this determination" button is not drawn: the confirmation write path is not built yet
- * (question Q1 on #44), and a control that does nothing is never drawn. The note under the list says what is true
- * instead. The design's accent-800 note colour is the nearest Cobalt token, accent-700 (docs/10 has no 800), and its
+ * The design's "Challenge this determination" opens the editor (ClassificationEditor), which confirms or edits through
+ * app.confirm_classification (D03 step 2; Q1 on #44). The design's accent-800 note colour is the nearest Cobalt token, accent-700 (docs/10 has no 800), and its
  * neutral-600 labels are n700: n600 on accent-100 is below 4.5:1 (axe colour-contrast).
  */
-export function ClassificationPanel({ state }: { state: ClassificationState }) {
+export function ClassificationPanel({ state, productId }: { state: ClassificationState; productId: string }) {
   return (
     <section
       aria-labelledby="which-rulebook"
@@ -34,12 +34,14 @@ export function ClassificationPanel({ state }: { state: ClassificationState }) {
       <p className="mt-[7px] mb-0 font-head text-[19px] font-semibold leading-[1.15] tracking-normal">
         Classification, determined before any check runs
       </p>
-      <Body state={state} />
+      <Body state={state} productId={productId} />
     </section>
   );
 }
 
-function Body({ state }: { state: ClassificationState }) {
+const NOTHING = Object.fromEntries(FIELDS.map((f) => [f, null])) as Record<Field, string | null>;
+
+function Body({ state, productId }: { state: ClassificationState; productId: string }) {
   if (state.kind === "loading") {
     return (
       <div className="mt-[14px]">
@@ -68,8 +70,9 @@ function Body({ state }: { state: ClassificationState }) {
           where="CLASSIFICATION"
           title="No classification yet."
           body="It is suggested from the label text after the artwork is read, and a person confirms it before any rule uses it."
-          aside="Add the artwork under 1 · What you have."
+          aside="Add the artwork under 1 · What you have, or classify it yourself."
         />
+        <ClassificationEditor productId={productId} basisId={null} current={NOTHING} confirmed={false} />
       </div>
     );
   }
@@ -102,6 +105,12 @@ function Body({ state }: { state: ClassificationState }) {
           ? "Everything downstream is scoped by these five values."
           : "A person confirms these values before any rule uses them. Until then, every rule that depends on them is Not assessed."}
       </p>
+      <ClassificationEditor
+        productId={productId}
+        basisId={state.row.id}
+        current={Object.fromEntries(FIELDS.map((f) => [f, state.row[f]])) as Record<Field, string | null>}
+        confirmed={view.confirmed}
+      />
     </>
   );
 }

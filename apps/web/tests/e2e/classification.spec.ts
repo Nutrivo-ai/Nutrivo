@@ -1,6 +1,7 @@
 // T-402: classify the product (D03) on Upload & scope (S-NV2-002, "3 · Which rulebook applies"). Runs on the full
 // local stack (scripts/ci/e2e.sh): the worker extracts the uploaded synthetic label and suggests a classification from
-// its text through nutrivo_worker.models, replaying the recorded response (MODELS_MODE=replay), never a live call.
+// its text through nutrivo_worker.models, replaying the recorded response (MODELS_MODE=replay), never a live call; a
+// person then confirms it through app.confirm_classification.
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -16,8 +17,7 @@ const EXTRACTION_MS = 90_000;
 const maxDiff = (parse(fs.readFileSync(path.join(REPO_ROOT, "spec/nfr.yaml"), "utf8")) as { quality: { visual_max_diff_pixel_ratio: number } })
   .quality.visual_max_diff_pixel_ratio;
 // S-NV2-002 at 1600 px: the "3 · Which rulebook applies" frame is the box at x 870, y 90.6875, 320 wide; its top 100 px
-// (frame, label and heading) are compared. The five rows below carry the design's sample product, and its "Challenge
-// this determination" button waits on the confirmation write path (Q1 on #44).
+// (frame, label and heading) are compared. The five rows below carry the design's sample product.
 const RULEBOOK_HEAD = { x: 870, y: 90, width: 320, height: 100, fractionY: 0.6875 };
 
 function fixture(name: string) {
@@ -114,6 +114,24 @@ test.describe("classify the product", () => {
     expect(JSON.parse(c.citation)).toMatchObject({ basis: "label_text", fields: { species: { quote: "Complete feed for adult cats" } } });
     const call = await service.from("model_calls").select("purpose, prompt_version").eq("id", c.model_call_id!).single();
     expect(call.data).toEqual({ purpose: "classification", prompt_version: "classification.v1" });
+
+    // A person confirms, correcting nothing but the life stage: a new row through app.confirm_classification.
+    await panel(page).getByRole("button", { name: "Confirm or correct these values" }).click();
+    const form = page.getByRole("form", { name: "Confirm the classification" });
+    await expect(form.getByLabel("Species")).toHaveValue("cat");
+    await form.getByLabel("Life stage").selectOption("senior");
+    await axe(page);
+    await form.getByRole("button", { name: "Confirm" }).click();
+    await expect(panel(page).getByTestId("classification-status")).toContainText("Confirmed");
+    await expect(row(page, "life_stage")).toContainText("Senior");
+    await expect(row(page, "species")).toContainText("Label text “Complete feed for adult cats”");
+    await expect(panel(page).getByRole("button", { name: "Challenge this determination" })).toBeVisible();
+    const after = await service.from("classifications").select("*").eq("product_id", productId).order("created_at", { ascending: false });
+    expect(after.data).toHaveLength(2);
+    expect(after.data![0]).toMatchObject({ provenance: "person", species: "cat", life_stage: "senior", product_class: "complete" });
+    expect(after.data![0].confirmed_at).not.toBeNull();
+    expect(JSON.parse(after.data![0].citation)).toMatchObject({ basis_classification_id: c.id, edited: ["life_stage"] });
+    expect(after.data![1]).toMatchObject({ id: c.id, confirmed_at: null });   // the suggestion itself is never changed
     expect(errors).toEqual([]);
   });
 

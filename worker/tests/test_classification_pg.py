@@ -2,8 +2,7 @@
 check treats it. Everything is rolled back (the fixture of test_check_pg). The model is a scripted fake; rules,
 terms and the ruleset are synthetic (TEST.T403.*), never law.
 
-Until the confirmation RPC exists (Q1 on #44), a person's confirmation is stood in for by inserting the confirmed row
-as the owner, exactly the row the RPC is proposed to write."""
+A person's confirmation goes through app.confirm_classification as the editor, exactly as the web sends it."""
 import json
 
 import pytest
@@ -44,11 +43,18 @@ def fake_model(monkeypatch, tmp_path):
 
 
 def confirm(conn, s, species="cat"):
-    """Stand-in for the person's confirmation (Q1 on #44): a new insert-only row, never an update. Its created_at is
-    the clock, since every row of this rolled-back test shares one transaction's now()."""
-    return str(one(conn, "insert into app.classifications (workspace_id, product_id, species, citation, provenance,"
-                         " confirmed_by, confirmed_at, created_at) values (%s, %s, %s, 'confirmed by a person', 'person',"
-                         " %s, now(), clock_timestamp()) returning id", s["ws"], s["product"], species, s["person"])["id"])
+    """The person's confirmation, through app.confirm_classification as the editor (RLS and the RPC's own checks), on
+    the product's latest classification. Returns the new row's id."""
+    basis = one(conn, "select id from app.classifications where product_id = %s order by created_at desc, id desc"
+                      " limit 1", s["product"])
+    with conn.transaction():          # a savepoint: on an error it also undoes the role and the claims
+        conn.execute("select set_config('request.jwt.claims', %s, true)",
+                     (f'{{"sub":"{s["user"]}","role":"authenticated"}}',))
+        conn.execute("set local role authenticated")
+        cid = str(one(conn, "select app.confirm_classification(%s, %s, %s, null, 'complete', null, null) as id",
+                      s["product"], basis["id"] if basis else None, species)["id"])
+        conn.execute("reset role")
+    return cid
 
 
 def suggest(conn, s):
@@ -80,7 +86,15 @@ def test_D03_main_classify_the_product_suggestion_stored_with_citation_then_conf
     assert suggest(conn, s) == {"outcome": "already_suggested", "classification_id": out["classification_id"]}
     assert len(fake_model.calls) == 1                        # a retry calls no model and writes nothing
 
-    cid = confirm(conn, s)
+    cid = confirm(conn, s)                                   # species as suggested; product class set by the person
+    person = one(conn, "select * from app.classifications where id = %s", cid)
+    assert person["provenance"] == "person" and str(person["confirmed_by"]) == s["person"]
+    assert person["confirmed_at"] is not None and person["species"] == "cat" and person["product_class"] == "complete"
+    pcite = json.loads(person["citation"])
+    assert pcite["basis_classification_id"] == out["classification_id"] and pcite["edited"] == ["product_class"]
+    assert pcite["fields"]["species"]["quote"] == "Test food for cats"   # the label evidence of the confirmed value
+    assert one(conn, "select count(*)::int as n from app.audit_events where kind = 'classification.confirmed'"
+                     " and object_id = %s", cid)["n"] == 1
     job = request_check(conn, s)
     assert run_job(conn, job) == "succeeded"
     checks = checks_of(conn, job)
@@ -137,3 +151,22 @@ def test_D03_fail_1_a_model_error_writes_no_row_and_never_fails(conn, monkeypatc
     assert suggest(conn, s) == {"outcome": "withheld", "reason": "model_unavailable"}
     assert one(conn, "select count(*)::int as n from app.classifications where product_id = %s",
                s["product"])["n"] == 0
+
+
+def test_D03_main_a_confirmation_made_during_the_model_call_wins(conn, monkeypatch, tmp_path):
+    """The suggestion's final check runs under the product lock: a person who confirmed while the model was answering
+    is never overwritten by an unconfirmed suggestion."""
+    s = seed_product(conn, classified=False)
+
+    class ConfirmingProvider(FakeProvider):
+        def complete(self, *a, **k):
+            confirm(conn, s)                                 # a person confirms while the model answers
+            return super().complete(*a, **k)
+
+    monkeypatch.setattr(models, "_default", Models(Settings(models_mode="live", cassette_dir=tmp_path),
+                                                   [ConfirmingProvider(text=sure_answer())]))
+    out = suggest(conn, s)
+    assert out["outcome"] == "skipped_confirmed"
+    latest = one(conn, "select provenance, confirmed_at from app.classifications where product_id = %s"
+                       " order by created_at desc, id desc limit 1", s["product"])
+    assert latest["provenance"] == "person" and latest["confirmed_at"] is not None
