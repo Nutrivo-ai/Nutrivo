@@ -1,6 +1,16 @@
-import { ScreenPlaceholder } from "@/components/shell";
+import { Discontinued } from "@/components/products/Discontinued";
+import { Screen } from "@/components/shell";
+import { readDiscontinued } from "@/lib/products/queries";
+import { createClient } from "@/lib/supabase/server";
 
-// S-NV2-023 (spec/screens.yaml): built by a later task; until then the shell and a neutral placeholder.
-export default function Page() {
-  return <ScreenPlaceholder route="/w/[workspace]/products/discontinued" />;
+// S-NV2-023 Discontinued (spec/screens.yaml), T-401, C04: discontinued products, read under RLS, never deleted.
+export default async function Page({ params }: PageProps<"/w/[workspace]/products/discontinued">) {
+  const { workspace } = await params;
+  const db = await createClient();
+  const { rows, total } = await readDiscontinued(db, workspace);
+  return (
+    <Screen route="/w/[workspace]/products/discontinued" crumb="Portfolio · Discontinued" title="Discontinued products">
+      <Discontinued workspaceId={workspace} rows={rows} total={total} />
+    </Screen>
+  );
 }
