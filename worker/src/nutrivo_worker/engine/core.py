@@ -60,6 +60,9 @@ class TextLine:
     text: str
     id: str | None = None
     bbox_mm: list[float] | None = None
+    x_height_mm: float | None = None      # BE-17: both heights, measured from the font, never estimated
+    cap_height_mm: float | None = None
+    is_ocr: bool = False                   # OCR geometry has no true physical scale (docs/06)
 
 
 @dataclass(frozen=True)
@@ -116,6 +119,9 @@ class RuleResult:
     bbox_mm: list[float] | None = None
     confidence: float | None = None
     model_call_id: str | None = None
+    measured_mm: float | None = None       # character_height (D05, contract 2)
+    required_mm: float | None = None
+    height_definition: str | None = None
 
 
 Evaluator = Callable[[RuleContext], RuleResult]
@@ -240,7 +246,9 @@ def evaluate_check(node: Node, panel: Panel, panels: tuple[Panel, ...], rules: l
         result.findings.append({**base, "state": "action", "provenance": r.provenance, "reason_code": None,
                                 "message": r.message or f"{rule.title}: not as required.",
                                 "text_object_id": r.text_object_id, "bbox_mm": r.bbox_mm,
-                                "confidence": r.confidence, "model_call_id": r.model_call_id})
+                                "confidence": r.confidence, "model_call_id": r.model_call_id,
+                                "measured_mm": r.measured_mm, "required_mm": r.required_mm,
+                                "height_definition": r.height_definition})
     if failed:
         result.label_state = "action"
     elif result.withheld or incomplete or not coverage or not result.applied:
