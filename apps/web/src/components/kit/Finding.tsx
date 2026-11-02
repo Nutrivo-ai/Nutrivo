@@ -24,16 +24,15 @@ export type AssessedFinding = Common &
 
 /**
  * A withheld finding: no rule, no verdict. It always names its reason and the coverage gap behind it, and links to
- * the gap. A rule that applies but could not be evaluated (data missing, model abstained) may be cited as well.
+ * the gap. A rule that applies but could not be evaluated (data missing, model abstained) may be cited as well; such
+ * a finding can carry no gap (#46 question 4), and then it says so instead of linking, and stays Not assessed.
  */
 export type WithheldFinding = Common &
-  Partial<RuleCitation> & {
-    state: "not_assessed";
-    provenance: Provenance;
-    reasonCode: WithheldReason;
-    gapId: string;
-    gapHref: string;
-  };
+  Partial<RuleCitation> &
+  (
+    | { state: "not_assessed"; provenance: Provenance; reasonCode: WithheldReason; gapId: string; gapHref: string }
+    | { state: "not_assessed"; provenance: Provenance; reasonCode: string; gapId: null }
+  );
 
 export type FindingProps = AssessedFinding | WithheldFinding;
 
@@ -66,7 +65,15 @@ export function Finding(props: FindingProps) {
         {props.ruleKey && props.citation ? (
           <CitationLink ruleKey={props.ruleKey} citation={props.citation} href={props.citationHref} />
         ) : null}
-        {state === "not_assessed" ? <GapLink gapId={props.gapId} href={props.gapHref} /> : null}
+        {state === "not_assessed" ? (
+          props.gapId !== null ? (
+            <GapLink gapId={props.gapId} href={props.gapHref} />
+          ) : (
+            <span data-gap-id="" className="text-n600">
+              {props.reasonCode.toUpperCase()} · NO COVERAGE GAP RECORDED
+            </span>
+          )
+        ) : null}
         <ProvenanceTag provenance={provenance} />
         {measure ? <span>{measure}</span> : null}
       </div>

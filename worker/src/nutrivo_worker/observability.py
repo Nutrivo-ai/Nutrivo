@@ -29,6 +29,10 @@ REAPER_CONFIG = {"schedule": {"type": "crontab", "value": "*/5 * * * *"}, "check
 # J01's watch has no scheduler yet (a db or infra task): its check-ins carry no monitor_config, so Sentry never
 # expects a weekly run that nothing makes. The task that adds the schedule adds the config with it (docs/17).
 SOURCE_WATCH_MONITOR = "source-watch"
+# T-702: pg_cron queues one billing_reconcile job a day at 03:17 UTC; a missed or failed day alerts (docs/17).
+BILLING_RECONCILE_MONITOR = "stripe-reconcile"
+BILLING_RECONCILE_CONFIG = {"schedule": {"type": "crontab", "value": "17 3 * * *"}, "checkin_margin": 60,
+                            "max_runtime": 60, "failure_issue_threshold": 1, "timezone": "UTC"}
 
 REDACTED = "[redacted]"
 _PATTERNS = [

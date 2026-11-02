@@ -49,3 +49,7 @@ url = "https://login.microsoftonline.com/organizations"
 
 [storage]
 file_size_limit = "50MiB"
+
+# T-702: Stripe calls the webhook without a Supabase JWT; the function verifies Stripe's signature instead.
+[functions.stripe-webhook]
+verify_jwt = false

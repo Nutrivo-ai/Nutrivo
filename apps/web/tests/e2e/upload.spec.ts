@@ -332,10 +332,36 @@ test.describe("upload and extract", () => {
     const errors = watch(page);
     await page.goto(`/w/${ws}/products/${productId}/check`);
     const controls = page.locator('main[data-screen="S-NV2-002"]').locator("a, button").filter({ visible: true });
-    await expect(controls).toHaveCount(1);
+    // T-401 added the markets and stage controls beside the artwork card, and, on the free plan with one label left
+    // (earlier tests here used two), the last-label panel's two controls; T-402 the classification editor's button.
+    await expect(page.getByRole("button", { name: "Choose a file" })).toBeVisible();
+    // textContent, not innerText: the classification button is set in uppercase by CSS.
+    const names = (await controls.evaluateAll((els) => els.map((e) => e.textContent ?? ""))).map((t) => t.trim()).sort();
+    expect(names.filter((n) => !["See what a plan costs for this workspace", "Not now"].includes(n))).toEqual([
+      "Add markets",
+      "Change stage",
+      "Choose a file",
+      "Confirm or correct these values",
+    ]);
+    if (names.includes("Not now")) {
+      await expect(page.getByRole("link", { name: "See what a plan costs for this workspace" })).toHaveAttribute("href", `/w/${ws}/billing/plans`);
+      await page.getByRole("button", { name: "Not now" }).click();
+      await expect(page.locator("[data-last-label]")).toHaveCount(0);
+    }
     const chooser = page.waitForEvent("filechooser");
-    await controls.first().click();
+    await page.getByRole("button", { name: "Choose a file" }).click();
     await chooser;
+    await page.getByRole("button", { name: "Add markets" }).click();
+    await expect(page.getByRole("checkbox", { name: "DE", exact: true })).toBeVisible();
+    // Change stage is disabled until another stage is picked, then submits.
+    await expect(page.getByRole("button", { name: "Change stage" })).toBeDisabled();
+    await page.getByLabel("Change to").selectOption("active");
+    await expect(page.getByRole("button", { name: "Change stage" })).toBeEnabled();
+    // T-402: "3 · Which rulebook applies" opens the classification editor (its own spec covers the save).
+    await page.getByRole("button", { name: "Confirm or correct these values" }).click();
+    await expect(page.getByRole("form", { name: "Confirm the classification" })).toBeVisible();
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await expect(page.getByRole("form", { name: "Confirm the classification" })).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 });
