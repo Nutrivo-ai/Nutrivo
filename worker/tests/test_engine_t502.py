@@ -188,6 +188,17 @@ def test_additive_declaration_and_absent_additives():
     assert bad.findings[0]["reason_code"] == "evaluator_error"
 
 
+def test_additive_rule_is_withheld_when_no_formula_was_entered_never_not_applicable():
+    """#172: a product with no formula lines carries no "additives" fact (None). Its additive rules are missing data,
+    withheld data_missing, never dropped as not_applicable, so they can never let a label read Clear."""
+    p = panel("sv", line("x"))
+    none = check(p, [additive_rule("within_max_content")], facts={**FACTS, "additives": None})
+    assert none.applied == [] and none.findings[0]["reason_code"] == "data_missing"
+    # a formula that was entered and has no additive lines: the rule truly does not apply
+    empty = check(p, [additive_rule("within_max_content")], facts={**FACTS, "additives": []})
+    assert empty.applied == [] and empty.withheld == []
+
+
 # ─── The fixtures runner ─────────────────────────────────────────────────────────────────────────────────────────
 
 def test_the_runner_judges_character_height_fixtures():
