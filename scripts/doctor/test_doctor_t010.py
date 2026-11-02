@@ -55,6 +55,15 @@ class Strict(unittest.TestCase):
     def test_app_is_required_on_staging(self):
         self.assertIn("app", doctor.REQUIRED["staging"])
 
+    def test_no_app_base_url_yet_is_a_skip_that_strict_fails(self):
+        with mock.patch.dict(os.environ, {"APP_BASE_URL": ""}):
+            with self.assertRaises(doctor.Skip):
+                doctor.c_app("staging")
+            code, _ = run_main("--env", "staging", "--only", "app", checks={"app": doctor.c_app})
+            self.assertEqual(code, 0)
+            code, _ = run_main("--env", "staging", "--only", "app", "--strict", checks={"app": doctor.c_app})
+            self.assertEqual(code, 1)
+
 
 class EuOnly(unittest.TestCase):
     def test_a_sentry_dsn_outside_the_eu_fails_on_staging_and_prod_before_anything_is_sent(self):

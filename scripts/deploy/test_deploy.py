@@ -21,7 +21,8 @@ echo "$method $url $data" >> "$FAKE_DIR/calls.log"
 case "$method $url" in
   "GET "*"/deploys?limit="*) cat "$FAKE_DIR/list.json";;
   "POST "*"/deploys") echo '{"id":"dep-new"}';;
-  "GET "*"/deploys/dep-new") cat "$FAKE_DIR/status.json";;
+  "GET "*"/deploys/dep-new") [ -f "$FAKE_DIR/poll-fails" ] && exit 22; cat "$FAKE_DIR/status.json";;
+  "POST "*"/deploys/dep-new/cancel") echo '{}';;
   "POST "*"/rollback") [ -f "$FAKE_DIR/rollback-fails" ] && exit 22; echo '{}';;
   *) echo "unexpected $method $url" >&2; exit 22;;
 esac
@@ -100,6 +101,33 @@ class RenderDeploy(unittest.TestCase):
         self.assertIn("timed out", r.stderr)
 
 
+    def test_a_failed_poll_cancels_the_started_deploy(self):
+        """A deploy reported as failed must never go live afterwards with nothing rolling it back (docs/18)."""
+        f = Fake()
+        f.write("poll-fails", "")
+        r = f.run("render.sh", "srv-1", "abc123")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("POST https://api.render.test/v1/services/srv-1/deploys/dep-new/cancel", f.read("calls.log"))
+
+    def test_a_timeout_cancels_the_started_deploy(self):
+        f = Fake()
+        f.write("status.json", '{"status":"build_in_progress"}')
+        self.assertNotEqual(f.run("render.sh", "srv-1", "abc123").returncode, 0)
+        self.assertIn("/deploys/dep-new/cancel", f.read("calls.log"))
+
+    def test_a_live_deploy_is_never_cancelled(self):
+        f = Fake()
+        self.assertEqual(f.run("render.sh", "srv-1", "abc123").returncode, 0)
+        self.assertNotIn("/cancel", f.read("calls.log"))
+
+    def test_a_failed_pre_deploy_command_fails_at_once(self):
+        f = Fake()
+        f.write("status.json", '{"status":"pre_deploy_failed"}')
+        r = f.run("render.sh", "srv-1", "abc123")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("pre_deploy_failed", r.stderr)
+
+
 class Rollback(unittest.TestCase):
     def test_nothing_named_rolls_back_nothing(self):
         f = Fake()
@@ -169,6 +197,22 @@ class VercelDeploy(unittest.TestCase):
             self.assertNotIn("@latest", log)
             self.assertNotIn("alias", log)  # no STAGING_DOMAIN set
             self.assertEqual(open(url_file).read().strip(), "https://nutrivo-abc123.vercel.app")
+        finally:
+            if before is None:
+                os.path.exists(url_file) and os.remove(url_file)
+            else:
+                open(url_file, "w").write(before)
+
+
+    def test_prod_promotes_the_new_deployment(self):
+        """After an instant rollback Vercel stops moving the production domains to new deploys until one is promoted."""
+        f = Fake()
+        url_file = os.path.join(ROOT, ".vercel-url")
+        before = open(url_file).read() if os.path.exists(url_file) else None
+        try:
+            r = f.run("vercel.sh", "prod")
+            self.assertEqual(r.returncode, 0, r.stderr)
+            self.assertIn("vercel@64.1.0 promote https://nutrivo-abc123.vercel.app --yes", f.read("npx.log"))
         finally:
             if before is None:
                 os.path.exists(url_file) and os.remove(url_file)

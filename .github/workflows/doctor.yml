@@ -15,6 +15,10 @@ on:
         description: Also require the names a later task creates (from T-010, as make env-check ALL=1)
         type: boolean
         default: false
+      strict:
+        description: Fail a required check that skips (only after staging's first deploy, docs/22 §4)
+        type: boolean
+        default: false
 permissions: { contents: read }
 
 jobs:
@@ -37,4 +41,4 @@ jobs:
       - name: Services answer with the stored keys
         run: >
           uv run --no-project --with boto3 python scripts/doctor/doctor.py --env "${{ inputs.env }}"
-          ${{ inputs.env == 'prod' && '--readonly' || '' }} ${{ inputs.all && '--strict' || '' }}
+          ${{ inputs.env == 'prod' && '--readonly' || '' }} ${{ inputs.strict && '--strict' || '' }}

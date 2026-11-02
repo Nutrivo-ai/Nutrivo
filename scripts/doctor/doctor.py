@@ -360,7 +360,8 @@ def c_render(env):
 
 
 def c_app(env):
-    need("APP_BASE_URL")
+    if not E("APP_BASE_URL"):
+        raise Skip("no APP_BASE_URL yet (T-010)")
     s, _ = http("GET", f"{E('APP_BASE_URL').rstrip('/')}/api/health")
     if s == 404:
         raise Skip("no /api/health yet (added in T-007, deployed in T-010)")

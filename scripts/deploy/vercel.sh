@@ -12,6 +12,11 @@ vercel_cli pull --yes --environment="$env" --token="$VERCEL_TOKEN" >/dev/null
 vercel_cli build $flag --token="$VERCEL_TOKEN" >/dev/null
 url="$(vercel_cli deploy --prebuilt $flag --token="$VERCEL_TOKEN")"
 [ -n "$url" ] || { echo "vercel $TARGET: deploy returned no URL" >&2; exit 1; }
+if [ "$TARGET" = prod ]; then
+  # After `vercel rollback`, Vercel stops assigning the production domains to new production deployments until one is
+  # promoted; promoting this one makes it live either way.
+  vercel_cli promote "$url" --yes --token="$VERCEL_TOKEN" >/dev/null
+fi
 if [ "$TARGET" = staging ] && [ -n "${STAGING_DOMAIN:-}" ]; then
   vercel_cli alias set "$url" "$STAGING_DOMAIN" --token="$VERCEL_TOKEN" >/dev/null
 fi

@@ -82,18 +82,25 @@ jobs:
           npx --yes @sentry/cli@3.8.0 releases deploys "$DEPLOY_SHA" new -e staging
       - name: Observability round-trip and doctor (strict)
         run: uv run --no-project --with boto3 python scripts/doctor/doctor.py --env staging --strict
-      # Only what went live is rolled back; the database never is (docs/18). A failed rollback fails this step.
+      # Only what went live is rolled back; the database never is (docs/18). A failed rollback fails this step. A
+      # job that times out or is cancelled after a part went live is handled the same way.
       - name: Roll back
-        if: failure() && (steps.worker.outcome == 'success' || steps.web.outcome == 'success')
+        id: rollback
+        if: (failure() || cancelled()) && (steps.worker.outcome == 'success' || steps.web.outcome == 'success')
         run: >
           bash scripts/deploy/rollback.sh staging
           ${{ steps.web.outcome == 'success' && 'web' || '' }}
           ${{ steps.worker.outcome == 'success' && 'worker' || '' }}
       - name: Incident issue for the autopilot
-        # a deploy held back by an open incident is not a new incident
-        if: failure() && steps.guard.outcome != 'failure'
+        # a deploy held back by an open incident is not a new incident; a failed dispatch while one is open adds to it
+        if: (failure() || cancelled()) && steps.guard.outcome != 'failure'
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
-          url=$(gh issue create --title "Staging deploy failed at ${DEPLOY_SHA::7}" --label incident,autopilot \
-            --body "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. Database: ${{ steps.database.outcome }}, functions: ${{ steps.functions.outcome }}, worker: ${{ steps.worker.outcome }}, web: ${{ steps.web.outcome }}. Rolled back what went live; the database is fixed forward (docs/18-reliability.md). Later staging deploys wait until this issue is closed.")
-          gh workflow run claude-autopilot.yml -f issue="${url##*/}"
+          run="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          body="Run: $run. Database: ${{ steps.database.outcome }}, functions: ${{ steps.functions.outcome }}, worker: ${{ steps.worker.outcome }}, web: ${{ steps.web.outcome }}. Rollback: ${{ steps.rollback.outcome || 'nothing went live' }} (the database is never rolled back: fix forward, docs/18-reliability.md; on staging the web is rolled back by hand until #19 decides how). Later staging deploys wait until this issue is closed."
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --label incident \
+            --search 'in:title "Staging deploy failed"' --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then gh issue comment "$open" --repo "$GITHUB_REPOSITORY" --body "Failed again at ${DEPLOY_SHA::7}. $body"; exit 0; fi
+          url=$(gh issue create --repo "$GITHUB_REPOSITORY" --title "Staging deploy failed at ${DEPLOY_SHA::7}" \
+            --label incident,autopilot --body "$body")
+          gh workflow run claude-autopilot.yml --repo "$GITHUB_REPOSITORY" -f issue="${url##*/}"
