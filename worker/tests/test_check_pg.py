@@ -286,3 +286,20 @@ def test_D04_fail_1_no_released_ruleset_is_P0003(conn):
     row = one(conn, "select status, last_error from app.jobs where id = %s", job_id)
     assert row["status"] == "failed" and "P0003" in row["last_error"]
     assert NoReleasedRuleset.__name__ in row["last_error"] and checks_of(conn, job_id) == []
+
+
+def test_a_product_with_no_formula_has_no_additives_fact_so_additive_rules_are_withheld(conn):
+    """#172: no formula lines at all is missing data (None, withheld data_missing), never an empty formula ([]), which
+    would make every additive_condition rule not_applicable and let a label read Clear without the check."""
+    s = seed_product(conn)
+    seed_ruleset(conn, "T172-NOFORMULA", s["person"])
+    job = str(one(conn, "select private.enqueue('check', %s, %s, %s) as id", s["ws"], f"t172:{uuid.uuid4()}",
+                  Jsonb({"product_id": s["product"], "artwork_version_id": s["av"],
+                         "ruleset_version": "T172-NOFORMULA", "classification_id": None,
+                         "node_ids": ["EU-SE"]}))["id"])
+    store = PgCheckStore(conn)
+    load = lambda: store.load(job, s["ws"], s["product"], s["av"], "T172-NOFORMULA", None, ["EU-SE"])
+    assert load().facts["additives"] is None
+    conn.execute("insert into app.formula_lines (workspace_id, product_id, position, ingredient, percent)"
+                 " values (%s, %s, 1, 'Test chicken', 40)", (s["ws"], s["product"]))
+    assert load().facts["additives"] == []

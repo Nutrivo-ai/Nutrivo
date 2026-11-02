@@ -147,7 +147,9 @@ def evaluate_fixture(f: fr.RuleFixture) -> fr.Evaluation:
     product = data.get("product") or {}
     base = {**{k: v for k, v in (data.get("classification") or {}).items()},
             "format": product.get("format"), "quantity": product.get("quantity"),
-            "quantities": product.get("quantities") or {}, "additives": product.get("additives") or []}
+            "quantities": product.get("quantities") or {},
+            # no "additives" key means no formula entered: missing data, withheld (#172), never [] (no additives)
+            "additives": product.get("additives")}
     rule = Rule(f.rule_key, f.version, f.shape, "", node.id, f.name, f.params or {}, f.applicability or {"all": []},
                 "")
     terms = {(k, lang): tuple(v) for (k, lang), v in (f.terms or {}).items()}
