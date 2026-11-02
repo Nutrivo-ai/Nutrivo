@@ -246,8 +246,15 @@ test.describe("triage panels", () => {
     await signIn(context, editor, baseURL!);
     const errors = watch(page);
     await page.goto(url());
-    await expect(page.locator("tr[data-panel]")).toHaveCount(3);
-    const hrefs = await page.locator("main a").filter({ visible: true }).evaluateAll((links) => links.map((a) => a.getAttribute("href")));
+    // The route streams behind w/[workspace]/loading.tsx: until React swaps it in, the screen sits in a hidden container
+    // while the visible <main> is the loading fallback. Wait for the screen's own rows to be visible, then crawl it.
+    const screen = page.locator('main[data-screen="S-NV2-025"]');
+    await expect(screen.locator("tr[data-panel]").filter({ visible: true })).toHaveCount(3);
+    const links = screen.locator("a").filter({ visible: true });
+    // After the check in [D02.main], each panel's state links to the label report, beside the screen's own links.
+    await expect(links.filter({ hasText: "on the label report" })).toHaveCount(3);
+    await expect(links.filter({ hasText: "Back to upload & scope" })).toHaveCount(1);
+    const hrefs = await links.evaluateAll((els) => els.map((a) => a.getAttribute("href")));
     expect(hrefs.length).toBeGreaterThan(0);
     for (const href of new Set(hrefs)) {
       expect(href, "every link stays on the site").toMatch(/^\//);
@@ -255,7 +262,7 @@ test.describe("triage panels", () => {
       expect(response.status(), href!).toBeLessThan(400);
     }
     // The screen's only actions are links; it has no button of its own.
-    await expect(page.locator("main [data-panel-table] button")).toHaveCount(0);
+    await expect(screen.locator("[data-panel-table] button")).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 });
