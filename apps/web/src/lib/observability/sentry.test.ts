@@ -1,6 +1,6 @@
 import type { ErrorEvent } from "@sentry/nextjs";
 import { describe, expect, it } from "vitest";
-import { scrubEvent, scrubString, sentryOptions } from "./sentry";
+import { scrubBreadcrumb, scrubEvent, scrubString, scrubTransaction, sentryOptions, type TransactionEvent } from "./sentry";
 
 describe("Sentry scrubber", () => {
   it("removes emails, bearer tokens, JWTs and token query parameters", () => {
@@ -22,6 +22,32 @@ describe("Sentry scrubber", () => {
     expect(out.message).toBe("failed for [email]");
     expect(out.request?.headers).toEqual({ authorization: "[redacted]", cookie: "[redacted]", accept: "json" });
     expect(out.user).toEqual({ id: "u-1" });
+  });
+
+  // A low-entropy stand-in shaped like a token (32+ base64url characters), so the secrets scan does not flag it.
+  const TOKEN = "invite_sample_".repeat(4);
+
+  it("removes an invitation token from the path and from an encoded next= parameter", () => {
+    const text = scrubString(
+      `GET https://app.nutrivo.ai/invite/${TOKEN}?x=1 then /sign-in?next=%2Finvite%2F${TOKEN} and /invite/${TOKEN}`,
+    );
+    expect(text).not.toContain(TOKEN);
+    expect(text).toContain("/invite/[token]?x=1");
+    expect(text).toContain("next=%2Finvite%2F[token]");
+  });
+
+  it("scrubs transactions and breadcrumbs, which carry URLs too", () => {
+    const tx = scrubTransaction({
+      type: "transaction",
+      transaction: `/invite/${TOKEN}`,
+      request: { url: `https://app.nutrivo.ai/invite/${TOKEN}` },
+    } as TransactionEvent);
+    expect(JSON.stringify(tx)).not.toContain(TOKEN);
+    const crumb = scrubBreadcrumb({ category: "navigation", data: { from: "/", to: `/invite/${TOKEN}` } });
+    expect(JSON.stringify(crumb)).not.toContain(TOKEN);
+    const opts = sentryOptions("x", "prod", "sha");
+    expect(opts.beforeSendTransaction).toBe(scrubTransaction);
+    expect(opts.beforeBreadcrumb).toBe(scrubBreadcrumb);
   });
 
   it("is disabled without a DSN and samples 0.2 of traces in production", () => {
