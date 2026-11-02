@@ -46,7 +46,7 @@ recorded" and reports them to Sentry (open on #46).
 | `app.my_ended_access(p_ws)` | A02 | read for S-REC-004: `{workspace_name, ended_on, admin_name, admin_email}` only to a person whose own membership there ended or expired and who has no active one; null for anybody else, so it discloses nothing NoAccess does not; the admin named is one who was already in the workspace before access ended (null when none is still active); never says why access ended |
 
 ## Edge Functions
-`verify` (GET `/verify/{ref}`, anon) · `supplier-upload` (POST with a request token; validates token, MIME, magic
+`verify` (GET `/verify/{ref}`, called with the anon key; T-406: calls `public.verify_reference` only, with the anon key, and answers 200 `{status, issued_at, ruleset_version, has_not_assessed}` for current or superseded, or exactly `{"status":"unknown"}` for a missing or malformed reference (20–64 of `[A-Za-z0-9-]`, checked before the database), never anything else; `Cache-Control: no-store`; 429 with `Retry-After` past 60 a minute per client or 1,200 per instance; 503 when the database cannot answer; logs the outcome and request id, never the reference. The page `/verify/[ref]` calls it server-side) · `supplier-upload` (POST with a request token; validates token, MIME, magic
 bytes, size ≤ 25 MB; writes to the quarantine bucket) · `stripe-webhook` (POST; verifies the signature; writes
 `app.payment_events` idempotently by event id).
 
