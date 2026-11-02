@@ -332,10 +332,15 @@ test.describe("upload and extract", () => {
     const errors = watch(page);
     await page.goto(`/w/${ws}/products/${productId}/check`);
     const controls = page.locator('main[data-screen="S-NV2-002"]').locator("a, button").filter({ visible: true });
-    await expect(controls).toHaveCount(1);
+    await expect(controls).toHaveCount(2);
     const chooser = page.waitForEvent("filechooser");
-    await controls.first().click();
+    await page.getByRole("button", { name: "Choose a file" }).click();
     await chooser;
+    // T-402: "3 · Which rulebook applies" opens the classification editor (its own spec covers the save).
+    await page.getByRole("button", { name: "Confirm or correct these values" }).click();
+    await expect(page.getByRole("form", { name: "Confirm the classification" })).toBeVisible();
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await expect(page.getByRole("form", { name: "Confirm the classification" })).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 });
