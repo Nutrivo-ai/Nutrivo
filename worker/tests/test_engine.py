@@ -114,7 +114,7 @@ def test_invalid_params_are_an_evaluator_error_withheld_never_passed():
 
 
 def test_a_shape_without_an_evaluator_is_withheld_evaluator_missing():
-    r = rule("TEST.T403.H", "character_height", {}, domain="type_geometry")
+    r = rule("TEST.T403.H", "claim_judgement", {}, domain="claims_wording")   # no evaluator until T-503
     res = check(panel("sv", "x"), [r])
     assert res.withheld == ["TEST.T403.H"] and res.findings[0]["reason_code"] == "evaluator_missing"
 
