@@ -23,6 +23,8 @@ const ARTWORK_CARD = { x: 242, y: 116, width: 294, height: 131, fractionY: 0 };
 // (https://github.com/Nutrivo-ai/Nutrivo/issues/41#issuecomment-6489086392) until its task lands: the verdict column
 // (T-401–T-403), the copy-deck headline copy and "From copy deck" read status, file Size and Fonts embedded, and the
 // text-layer count over the markets' languages (T-401).
+// The state column is drawn since T-304 (D02), but the seeded run has no check, so it reads "Not checked" where the
+// design shows verdicts; tests/e2e/triage.spec.ts covers it.
 const VERDICT = { x: 528, y: 0, width: 98 };
 const S_NV2_025 = {
   // The headline frame: its edge and rules. The copy inside is the copy-deck scenario's, and its length sets where the
