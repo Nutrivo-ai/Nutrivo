@@ -109,6 +109,26 @@ variable is `true`:
 | `PRODUCTION_DEPLOY_ENABLED` | T-1101, gate G7 | `release-production` on a `v*` tag |
 | `SYNTHETIC_ENABLED` | T-1102 | the 15-minute production smoke test |
 
+**What `deploy-staging` does (T-010).** It runs after `ci` is green on a merge to `main`, or by hand (Run workflow):
+1. Refuses to start while an issue labelled `incident` titled "Staging deploy failed …" is open (docs/19).
+2. Runs migrations (`supabase db push`), then Edge Functions, then the Render worker, then the Vercel web build, in
+   docs/18's order. Before deploying the worker it records the deploy that was live, as its rollback target.
+3. Runs the `@smoke` suite against the build it just deployed (`STAGING_DOMAIN`, or the deployment's own URL).
+4. Creates the Sentry release (the git SHA) and marks the staging deploy.
+5. Runs the doctor with `--strict`, which includes the Sentry, Langfuse and PostHog round-trip. After T-010 a check
+   that skips fails, and a Sentry DSN or PostHog host outside the EU fails.
+6. On failure, it rolls back only what went live (worker, web), never the database (fix forward). It opens an incident
+   issue for the autopilot, and later deploys wait until that issue is closed. A rollback that fails fails the job.
+
+**Before setting `STAGING_DEPLOY_ENABLED`**, the staging prerequisites (the checklist on T-010's issue) must all be in
+place. Then:
+1. Run Actions → doctor with `staging` and `all` ticked. It runs strictly, so every required check must be green.
+2. Link the run on the issue.
+3. Set the variable and run `deploy-staging` once by hand.
+
+Until a founder decides how a staging web rollback works (T-010's issue), a failed staging deploy leaves the web build
+in place and says so: roll it back by hand in Vercel.
+
 ## 5 · Claude Code on the web, per person
 Each founder runs Claude Code at claude.ai/code in the Claude Team workspace "Nutrivo.ai", with GitHub connected
 (a Claude organisation owner enables the GitHub connector), on the repository `nutrivo-ai/Nutrivo`.

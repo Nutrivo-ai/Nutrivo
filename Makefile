@@ -3,6 +3,9 @@ SHELL := /bin/bash
 ENV ?= dev
 LANE ?= any
 PY := uv run --no-project --with pyyaml python
+# The synthetic labels are built, not committed: rebuild them when any generator or input file is newer than the last
+# build, so a long-lived checkout does not test against labels an older generator made.
+FIXTURES_CURRENT = [ -f fixtures/synth/out/.built ] && [ -z "$$(find fixtures/synth -path fixtures/synth/out -prune -o -type f -newer fixtures/synth/out/.built -print -quit)" ]
 RUN = scripts/env/run.sh $(ENV) --
 TYPES := apps/web/src/lib/database.types.ts
 # Vitest with a JUnit report in reports/web.xml, as CI's web job writes it for conformance.
@@ -30,6 +33,7 @@ db-migrate: ## apply migrations the running local database lacks (a reused conta
 	@supabase migration up --local --include-all || { echo "db-migrate failed: fix the migration named above, or, if the local database has one supabase/migrations lacks (another branch's), run make db-reset (never migration repair)." >&2; exit 1; }
 fixtures: ## synthetic labels with exact ground truth (needs ghostscript + poppler)
 	cd worker && uv run python ../fixtures/synth/generate.py --out ../fixtures/synth/out
+	@touch fixtures/synth/out/.built
 typegen: ## regenerate database types for the web app
 	@mkdir -p $(dir $(TYPES))
 	supabase gen types typescript --local --schema app,ref,public > $(TYPES).tmp && mv $(TYPES).tmp $(TYPES) || { rm -f $(TYPES).tmp; exit 1; }
@@ -78,7 +82,7 @@ gates: ## all database tests: supabase/tests/gates and supabase/tests/app (and r
 db-tap: ## per-file TAP of the database tests into reports/database.tap, as CI writes it for conformance
 	@mkdir -p reports && for f in $$(find supabase/tests -name '*.sql' | sort); do $(PSQL) < "$$f"; done > reports/database.tap
 test: ## worker tests (JUnit in reports/worker.xml) and web unit tests (reports/web.xml)
-	@[ -d fixtures/synth/out ] || $(MAKE) fixtures
+	@$(FIXTURES_CURRENT) || $(MAKE) fixtures
 	@mkdir -p reports
 	cd worker && uv run pytest -q --junitxml=../reports/worker.xml
 	@if [ -f apps/web/package.json ]; then $(WEB_TEST); fi
@@ -86,7 +90,7 @@ verify-fast: ## what the Claude Code Stop hook runs
 	@supabase status >/dev/null 2>&1 || supabase start
 	@$(MAKE) --no-print-directory db-migrate
 	supabase test db
-	@[ -d fixtures/synth/out ] || $(MAKE) fixtures
+	@$(FIXTURES_CURRENT) || $(MAKE) fixtures
 	@mkdir -p reports
 	cd worker && uv run ruff check . && uv run pytest -q --junitxml=../reports/worker.xml
 	@if [ -f apps/web/package.json ]; then pnpm --dir apps/web lint && pnpm --dir apps/web typecheck && $(WEB_TEST); fi
@@ -96,13 +100,14 @@ verify-fast: ## what the Claude Code Stop hook runs
 	$(PY) scripts/workflows/render.py --check
 	python3 -m unittest discover -s scripts/env -p 'test_*.py'
 	python3 -m unittest discover -s scripts/doctor -p 'test_*.py'
+	python3 -m unittest discover -s scripts/deploy -p 'test_*.py'
 	node --no-warnings --test scripts/stripe/*.test.ts
 verify: verify-fast e2e ## everything CI runs
 e2e: ## full-stack end-to-end on the local stack
 	@if [ -f apps/web/package.json ]; then bash scripts/ci/e2e.sh; else echo "apps/web is scaffolded in T-007"; fi
 e2e-ci: e2e ## CI entry point for the end-to-end job
-smoke: ## @smoke suite against a deployed environment (ENV=staging|prod; secrets already in the environment)
-	@if [ -f apps/web/package.json ]; then mkdir -p reports && BASE_URL="$$APP_BASE_URL" PLAYWRIGHT_JUNIT_OUTPUT_NAME="$(CURDIR)/reports/smoke-$(ENV).xml" pnpm --dir apps/web e2e --grep @smoke --reporter=junit,list; else echo "apps/web is scaffolded in T-007"; fi
+smoke: ## @smoke suite against a deployed environment (ENV=staging|prod; BASE_URL, else APP_BASE_URL)
+	@if [ -f apps/web/package.json ]; then mkdir -p reports && BASE_URL="$${BASE_URL:-$$APP_BASE_URL}" PLAYWRIGHT_JUNIT_OUTPUT_NAME="$(CURDIR)/reports/smoke-$(ENV).xml" pnpm --dir apps/web e2e --grep @smoke --reporter=junit,list; else echo "apps/web is scaffolded in T-007"; fi
 acceptance-staging: ## the full acceptance suite against staging (nightly)
 	@if [ -f apps/web/package.json ]; then mkdir -p reports && BASE_URL="$$APP_BASE_URL" PLAYWRIGHT_JUNIT_OUTPUT_NAME="$(CURDIR)/reports/acceptance-staging.xml" pnpm --dir apps/web e2e --grep-invert @local-only --reporter=junit,list; fi
 conformance: ## CONFORMANCE.md from local reports

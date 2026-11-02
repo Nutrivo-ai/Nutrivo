@@ -35,4 +35,6 @@ jobs:
       - name: Names present in Infisical
         run: uv run --no-project --with pyyaml python scripts/env/check-secrets.py --env "${{ inputs.env }}" ${{ inputs.all && '--all' || '' }}
       - name: Services answer with the stored keys
-        run: uv run --no-project --with boto3 python scripts/doctor/doctor.py --env "${{ inputs.env }}" ${{ inputs.env == 'prod' && '--readonly' || '' }}
+        run: >
+          uv run --no-project --with boto3 python scripts/doctor/doctor.py --env "${{ inputs.env }}"
+          ${{ inputs.env == 'prod' && '--readonly' || '' }} ${{ inputs.all && '--strict' || '' }}

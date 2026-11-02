@@ -7,7 +7,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 REQUIRED = {
     "dev": ["bedrock", "bedrock-profiles", "stripe", "sentry", "langfuse", "infisical-scope"],
     "staging": ["supabase", "supabase-management", "postgres", "supabase-grants", "bedrock", "bedrock-profiles",
-                "bedrock-retention", "anthropic", "ses", "stripe", "sentry", "langfuse", "posthog", "vercel", "render"],
+                "bedrock-retention", "anthropic", "ses", "stripe", "sentry", "langfuse", "posthog", "vercel", "render",
+                "app"],
     "prod": ["supabase", "supabase-management", "postgres", "supabase-grants", "bedrock", "bedrock-profiles",
              "bedrock-retention", "anthropic", "ses", "stripe", "sentry", "langfuse", "posthog", "vercel", "render"],
 }
@@ -17,6 +18,10 @@ BEDROCK_MODEL_VARS = ("BEDROCK_MODEL_TRIAGE", "BEDROCK_MODEL_JUDGEMENT", "BEDROC
 # D-02: the Regions the eu. geo profile may process a request in. Every other Region fails, even one named eu-*
 # (eu-central-2 is Zurich, eu-west-2 London): a new one needs a decision first.
 EU_REGIONS = ("eu-central-1", "eu-north-1", "eu-south-1", "eu-south-2", "eu-west-1", "eu-west-3")
+# D-17: Sentry's EU region and PostHog's EU cloud. Staging and production keep customer data in the EU (non-negotiable
+# 10), so a DSN or host anywhere else fails there instead of being used.
+SENTRY_EU_SUFFIX = ".de.sentry.io"
+POSTHOG_EU_HOSTS = ("eu.i.posthog.com", "eu.posthog.com")
 
 
 def _read(rel):
@@ -279,6 +284,10 @@ def _sentry_roundtrip(env, dsn_var, project_var):
 
 def c_sentry(env):
     need("SENTRY_DSN_WEB", "SENTRY_DSN_WORKER", "SENTRY_AUTH_TOKEN", "SENTRY_ORG", "SENTRY_PROJECT_WEB", "SENTRY_PROJECT_WORKER")
+    if env in ("staging", "prod"):
+        for var in ("SENTRY_DSN_WEB", "SENTRY_DSN_WORKER"):
+            host = urllib.parse.urlparse(E(var)).hostname or ""
+            assert host.endswith(SENTRY_EU_SUFFIX), f"{var} is not in Sentry's EU region (*{SENTRY_EU_SUFFIX}, D-17)"
     a = _sentry_roundtrip(env, "SENTRY_DSN_WEB", "SENTRY_PROJECT_WEB")
     b = _sentry_roundtrip(env, "SENTRY_DSN_WORKER", "SENTRY_PROJECT_WORKER")
     return f"round-trip ok: {a}, {b}"
@@ -320,6 +329,9 @@ def c_langfuse(env):
 
 def c_posthog(env):
     need("POSTHOG_KEY", "POSTHOG_HOST")
+    if env in ("staging", "prod"):
+        host = urllib.parse.urlparse(E("POSTHOG_HOST")).hostname or ""
+        assert host in POSTHOG_EU_HOSTS, f"POSTHOG_HOST is not PostHog's EU cloud ({', '.join(POSTHOG_EU_HOSTS)}, D-17)"
     s, _ = http("POST", f"{E('POSTHOG_HOST').rstrip('/')}/capture/",
                 data={"api_key": E("POSTHOG_KEY"), "event": "nutrivo_doctor_ping", "distinct_id": "nutrivo-doctor",
                       "properties": {"env": env}})
@@ -425,6 +437,9 @@ def main():
     ap.add_argument("--readonly", action="store_true")
     ap.add_argument("--only", nargs="*")
     ap.add_argument("--json")
+    # T-010: once staging is deployed, a required check that skips (no schema, no Vercel project, no worker service,
+    # no /api/health) proves nothing, so it fails. deploy-staging and the doctor workflow's "all" run pass this.
+    ap.add_argument("--strict", action="store_true")
     a = ap.parse_args()
     results, failed = [], False
     for name, fn in CHECKS.items():
@@ -438,7 +453,7 @@ def main():
             try:
                 status, detail = "ok", fn(a.env)
             except Skip as e:
-                status, detail = "skip", redact(str(e))
+                status, detail = ("fail" if a.strict and required else "skip"), redact(str(e))
             except AssertionError as e:
                 status, detail = ("fail" if required else "warn"), redact(str(e))
             except Exception as e:  # noqa: BLE001 - report, never crash the doctor
