@@ -112,11 +112,14 @@ export function ScreenHeader({
   title,
   current,
   memberships,
+  aside,
 }: {
   crumb: string;
   title: string;
   current?: WorkspaceMembership;
   memberships?: WorkspaceMembership[];
+  /** What the screen pins at the right of its header, such as a report's ruleset. */
+  aside?: ReactNode;
 }) {
   const shell = useOptionalShell();
   current ??= shell?.current;
@@ -136,6 +139,7 @@ export function ScreenHeader({
           </p>
           <h1 className="mt-[2px] mb-0 font-head text-[19px] md:text-[22px] font-semibold leading-[1.1] tracking-[-0.01em]">{title}</h1>
         </div>
+        {aside ? <div className="hidden md:flex items-center gap-[10px] flex-none">{aside}</div> : null}
         {current && memberships ? (
           <div className="hidden md:flex items-center gap-[10px] flex-none">
             <WorkspaceSwitcher current={current} memberships={memberships} />
