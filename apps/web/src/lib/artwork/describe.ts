@@ -1,5 +1,5 @@
 // What an extraction says, in the words the S-NV2-002 and S-NV2-025 designs use. Pure, so it is unit-tested.
-import type { ArtworkSummary, PanelRow, RunSummary } from "./queries";
+import type { ArtworkSummary, PanelCheck, PanelRow, RunSummary } from "./queries";
 
 /** docs/06 failure taxonomy, as the per-panel source column of S-NV2-025 reads it. */
 export const FAILURE_LABEL: Record<string, string> = {
@@ -113,4 +113,53 @@ export function runHeadline(run: RunSummary, panels: PanelRow[]): RunHeadline {
 export function formatPageSize(size: number[] | null): string {
   if (!size || size.length !== 2) return "—";
   return `${Number(size[0]).toFixed(0)} × ${Number(size[1]).toFixed(0)} mm`;
+}
+
+export type PanelVerdict = {
+  /** The design's fifth column: a verdict state, or "not_checked" (grey, no verdict colour) before any check. */
+  state: "clear" | "action" | "not_assessed" | "not_checked";
+  label: string;
+  /** Why it is Not assessed: the panel's failure code first, then the checks' reason codes. A not_assessable
+   * panel always has one: the database requires its failure_code. */
+  reasonCodes: string[];
+};
+
+const VERDICT_LABEL: Record<PanelVerdict["state"], string> = {
+  clear: "Clear",
+  action: "Action needed",
+  not_assessed: "Not assessed",
+  not_checked: "Not checked",
+};
+
+/**
+ * D02: a panel's state over its markets' latest checks, worst first as the engine rolls up (action, then
+ * not_assessed, then clear). A panel that cannot be assessed is Not assessed with its reason code whether or not a check
+ * has run (D02.must.1): never blank, and never Clear on the strength of other panels.
+ */
+export function panelVerdict(panel: PanelRow, checks: PanelCheck[]): PanelVerdict {
+  const mine = checks.filter((c) => c.panelId === panel.id);
+  const reasons: string[] = [];
+  const add = (code: string | null | undefined) => {
+    if (code && !reasons.includes(code)) reasons.push(code);
+  };
+  add(panel.failureCode);
+  let state: PanelVerdict["state"];
+  if (panel.status === "not_assessable") {
+    state = mine.some((c) => c.labelState === "action") ? "action" : "not_assessed";
+  } else if (!mine.length) {
+    state = "not_checked";
+  } else if (mine.some((c) => c.labelState === "action")) {
+    state = "action";
+  } else if (mine.some((c) => c.labelState === "not_assessed")) {
+    state = "not_assessed";
+  } else {
+    state = "clear";
+  }
+  for (const c of mine) if (c.labelState !== "clear") c.reasonCodes.forEach(add);
+  return { state, label: VERDICT_LABEL[state], reasonCodes: state === "clear" || state === "not_checked" ? [] : reasons };
+}
+
+/** A reason code as a person reads it: the failure taxonomy's words, else the code itself. */
+export function reasonLabel(code: string): string {
+  return FAILURE_LABEL[code] ?? code.replace(/_/g, " ");
 }

@@ -41,6 +41,15 @@ export type PanelRow = {
   textObjects: number;
 };
 
+/** One market's latest check of a panel (app.checks), with the reason codes of its Not assessed findings. */
+export type PanelCheck = {
+  panelId: string;
+  nodeId: string;
+  labelState: "clear" | "action" | "not_assessed";
+  at: string;
+  reasonCodes: string[];
+};
+
 export async function readProduct(db: Db, workspaceId: string, productId: string): Promise<ProductSummary | null> {
   if (!isUuid(productId)) return null;
   const { data, error } = await db
@@ -144,5 +153,49 @@ export async function readPanels(db: Db, runId: string): Promise<PanelRow[]> {
     status: p.status as PanelRow["status"],
     failureCode: p.failure_code,
     textObjects: (p.text_objects as unknown as { count: number }[])[0]?.count ?? 0,
+  }));
+}
+
+/**
+ * D02: the latest check of each market × panel for these panels, newest first per market, with the reason codes of
+ * that check's Not assessed findings. Reads app.checks and app.check_findings under RLS; none before a check runs.
+ */
+export async function readPanelChecks(db: Db, panelIds: string[]): Promise<PanelCheck[]> {
+  if (!panelIds.length) return [];
+  const { data: checks, error } = await db
+    .schema("app")
+    .from("checks")
+    .select("id, panel_id, node_id, label_state, at")
+    .in("panel_id", panelIds)
+    .order("at", { ascending: false });
+  if (error) throw new ShellReadError("panel checks", error);
+  const latest = new Map<string, NonNullable<typeof checks>[number]>();
+  for (const c of checks ?? []) {
+    const key = `${c.panel_id}|${c.node_id}`;
+    if (!latest.has(key)) latest.set(key, c);
+  }
+  const ids = [...latest.values()].map((c) => c.id);
+  const reasons = new Map<string, string[]>();
+  if (ids.length) {
+    const { data: findings, error: fe } = await db
+      .schema("app")
+      .from("check_findings")
+      .select("check_id, reason_code")
+      .in("check_id", ids)
+      .eq("state", "not_assessed");
+    if (fe) throw new ShellReadError("panel findings", fe);
+    for (const f of findings ?? []) {
+      if (!f.reason_code) continue;
+      const list = reasons.get(f.check_id) ?? [];
+      if (!list.includes(f.reason_code)) list.push(f.reason_code);
+      reasons.set(f.check_id, list);
+    }
+  }
+  return [...latest.values()].map((c) => ({
+    panelId: c.panel_id as string,
+    nodeId: c.node_id,
+    labelState: c.label_state as PanelCheck["labelState"],
+    at: c.at,
+    reasonCodes: reasons.get(c.id) ?? [],
   }));
 }

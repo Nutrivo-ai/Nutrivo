@@ -29,7 +29,8 @@ A measurement is only real when the page has true physical scale; otherwise the 
 ## Panels and languages
 Cluster text blocks into panels using whitespace gutters, and dielines or crop marks where present. One panel per
 printed language block. Language per panel with lingua on the panel's text (fallback `und` when too short).
-A person can correct a language or mark a panel not assessable in the triage view (D02).
+A person can correct a language or mark a panel not assessable in the triage view (D02). T-304 shows each panel's
+language and state on S-NV2-025. The correction itself waits for a write path (asked on #42).
 
 ## Failure taxonomy (BE-18: per panel, successful panels persist)
 | Code | Detected when |
