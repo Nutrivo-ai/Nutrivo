@@ -22,8 +22,8 @@ S = Settings(max_attempts=5, stale_after_s=900)
 DOMAINS = ("mandatory_particulars", "composition", "claims_wording", "type_geometry", "language", "registration")
 
 
-@pytest.fixture
-def conn():
+def pg_conn():
+    """A connection whose work is rolled back at the end (shared with test_classification_pg)."""
     try:
         c = psycopg.connect(DSN, row_factory=dict_row, connect_timeout=10)   # not autocommit: rolled back below
     except psycopg.OperationalError:
@@ -34,6 +34,11 @@ def conn():
     yield c
     c.rollback()
     c.close()
+
+
+@pytest.fixture
+def conn():
+    yield from pg_conn()
 
 
 def one(conn, q, *a):
@@ -68,7 +73,7 @@ def seed_ruleset(conn, rv, person, *, complete=True):
                      (rv, d, "partial" if partial else "complete", f"GAP-EU-SE-{d.upper()}" if partial else None))
 
 
-def seed_product(conn, *, sv_texts=("Testfoder för katter", "Testparti: L1"), confirmed=True):
+def seed_product(conn, *, sv_texts=("Testfoder för katter", "Testparti: L1"), confirmed=True, classified=True):
     tag = uuid.uuid4().hex[:8]
     user = one(conn, "insert into auth.users (id, email) values (gen_random_uuid(), %s) returning id",
                f"t403-{tag}@example.test")["id"]
@@ -96,11 +101,12 @@ def seed_product(conn, *, sv_texts=("Testfoder för katter", "Testparti: L1"), c
         for n, t in enumerate(texts):
             conn.execute("insert into app.text_objects (workspace_id, product_id, panel_id, text, bbox_mm,"
                          " reading_order) values (%s, %s, %s, %s, '{1,1,2,2}', %s)", (ws, product, pid, t, n))
-    conn.execute("insert into app.classifications (workspace_id, product_id, species, life_stage, product_class,"
-                 " citation, provenance, confirmed_by, confirmed_at) values (%s, %s, 'cat', 'adult', 'complete',"
-                 " 'test', 'person', %s, case when %s then now() end)", (ws, product, person, confirmed))
+    if classified:
+        conn.execute("insert into app.classifications (workspace_id, product_id, species, life_stage, product_class,"
+                     " citation, provenance, confirmed_by, confirmed_at) values (%s, %s, 'cat', 'adult', 'complete',"
+                     " 'test', 'person', %s, case when %s then now() end)", (ws, product, person, confirmed))
     return {"user": str(user), "person": str(person), "ws": str(ws), "product": str(product), "av": str(av),
-            "panels": panels}
+            "panels": panels, "run": str(run)}
 
 
 def request_check(conn, s):
