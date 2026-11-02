@@ -41,7 +41,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: 22 }
       - run: supabase start
-      - uses: anthropics/claude-code-action@16f9f71ab9c490faf367f94dd294897edc25be33 # v1.0.261
+      - uses: anthropics/claude-code-action@d70510b174a1244958df0b03166a54912811f3e6 # v1.0.264
         with:
           anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
           # track_progress throws on workflow_dispatch, which deploy-staging and nightly send with GITHUB_TOKEN
@@ -78,7 +78,7 @@ jobs:
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
           domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
           env-slug: dev
-      - uses: anthropics/claude-code-action@16f9f71ab9c490faf367f94dd294897edc25be33 # v1.0.261
+      - uses: anthropics/claude-code-action@d70510b174a1244958df0b03166a54912811f3e6 # v1.0.264
         with:
           anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
           claude_args: "--model claude-opus-5-5 --max-turns 120"
