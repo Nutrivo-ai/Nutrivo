@@ -38,6 +38,10 @@ delete (BE-13).
 | product_nodes.display_state (generated) | blocked if not_registered or expired; not_assessed if clear but registration unknown; else label_state |
 | check_findings.provenance | deterministic_rule · model_judgement · authored_definition · not_assessed |
 | check_findings.state | action · not_assessed · info |
+| classifications.species · life_stage · intended_use · parnut_status | **Provisional** (T-402; decided on #44 to keep until the founders accept the first ruleset, T-208): species `dog` · `cat`; life_stage `growth` · `adult` · `senior`; intended_use none yet (always empty); parnut_status `parnut` only (no value says "not PARNUT"). The model may suggest only these and `app.confirm_classification` accepts only these (22023); a person's confirmation is the classification |
+| classifications.product_class | complete · complementary · treat · mineral · dietetic · other (check constraint) |
+| classifications.citation (model suggestion) | JSON text: `{basis: "label_text", artwork_version_id, extraction_run_id, prompt_version, fields: {<field>: {quote, panel_index, language, confidence}}, empty: {<field>: reason}}`. The quote is the printed string a value rests on, never a legal reference; `empty` reasons: abstained · low_confidence · no_evidence · quote_not_on_label · value_not_allowed · no_label_text (T-402) |
+| classifications.citation (person's confirmation) | JSON text: `{basis: "person", basis_classification_id, fields: {<field>: <the basis's label evidence>}, edited: [<field>]}`: the label evidence is kept for each value confirmed as it was; an edited value rests on the person (`app.confirm_classification`) |
 | rules.shape | threshold · mandatory_particular · prescribed_wording · character_height · additive_condition · claim_judgement |
 | coverage domain | mandatory_particulars · composition · claims_wording · type_geometry · language · registration |
 | coverage state | complete · partial · not_encoded (anything but complete needs a gap_id) |
@@ -59,11 +63,13 @@ delete (BE-13).
 | P0010 | BE-10: coverage set complete where no accepted, tested member rule covers the node and domain |
 | P0021 | BE-21: Clear where coverage is incomplete |
 | P0032 / P0033 / P0036 | Free allowance used / no editor seat / new artworks paused by dunning |
+| P0034 | BE-34: a new recipe (family) on a paid plan whose included recipes are all live; the hint names the next plan (T-401, provisional until T-704 sets the € overage cap, #43 Q1) |
 | P0038 | Ruleset member is not an accepted version |
 | P0039 | K05: release refused: a member without fixtures, or no passing fixture run that matches the draft's members and fixtures |
 | P0040 / P0041 / P0042 | Invitation invalid (or already accepted, so it cannot be revoked) / email mismatch / already a member |
 | P0043 | The last admin cannot be removed, demoted or given an end date: one active admin with no end date must remain |
 | P0044 | The membership has ended and cannot be changed |
+| P0045 | D03: the classification changed since it was read (the basis is not the product's latest); reload and confirm again |
 | P0291 / P0292 / P0293 | Certificate: no signing grant / two-factor required / open findings |
 
 ## Naming reconciliation
