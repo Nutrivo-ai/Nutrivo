@@ -122,12 +122,15 @@ def prescribed_wording(ctx: RuleContext) -> RuleResult:
 # ─── The fixtures runner (docs/05 §The runner) ─────────────────────────────────────────────────────────────────────
 # A rule fixture's input: {"panel": {...}, "panels": [{...}] (optional, the whole artwork), "node": {"id",
 # "languages", "region"}, "classification": {...}, "product": {"format"}}; a panel is {"index", "language", "status",
-# "failure_code", "text_objects": [{"text"}]}. Params, applicability and terms come from the store, never the input.
+# "failure_code", "text_objects": [{"text", "x_height_mm"?, "cap_height_mm"?, "is_ocr"?}]}; "product" may also carry
+# "quantity" ({value, unit}), "quantities" ({name: {value, unit}}) and "additives" (formula lines with their register
+# row) for character_height, threshold and additive_condition (T-502). Params, applicability and terms come from the store, never the input.
 
 def _panel(data: Any, index: int = 0) -> Panel:
     if not isinstance(data, dict):
         raise InvalidParams("a fixture panel is an object")
-    lines = tuple(TextLine(str(t.get("text", "")), str(t["id"]) if t.get("id") else None, t.get("bbox_mm"))
+    lines = tuple(TextLine(str(t.get("text", "")), str(t["id"]) if t.get("id") else None, t.get("bbox_mm"),
+                           t.get("x_height_mm"), t.get("cap_height_mm"), bool(t.get("is_ocr")))
                   for t in data.get("text_objects") or [] if isinstance(t, dict))
     language = data.get("language")
     status = data.get("status") or ("not_assessable" if data.get("failure_code") else "extracted")
@@ -141,8 +144,10 @@ def evaluate_fixture(f: fr.RuleFixture) -> fr.Evaluation:
     panels = tuple(_panel(p, i) for i, p in enumerate(data.get("panels") or [])) or (panel,)
     n = data.get("node") or {}
     node = Node(str(n.get("id", "")), tuple(n.get("languages") or ()), n.get("region"))
+    product = data.get("product") or {}
     base = {**{k: v for k, v in (data.get("classification") or {}).items()},
-            "format": (data.get("product") or {}).get("format")}
+            "format": product.get("format"), "quantity": product.get("quantity"),
+            "quantities": product.get("quantities") or {}, "additives": product.get("additives") or []}
     rule = Rule(f.rule_key, f.version, f.shape, "", node.id, f.name, f.params or {}, f.applicability or {"all": []},
                 "")
     terms = {(k, lang): tuple(v) for (k, lang), v in (f.terms or {}).items()}
@@ -156,7 +161,7 @@ def evaluate_fixture(f: fr.RuleFixture) -> fr.Evaluation:
     return fr.Evaluation(r.outcome, reason=r.reason if r.outcome == "withheld" else None)
 
 
-for _shape in ("mandatory_particular", "prescribed_wording"):
+for _shape in ("mandatory_particular", "prescribed_wording", "character_height", "threshold", "additive_condition"):
     fr.EVALUATORS[_shape] = evaluate_fixture
 
 __all__ = ["Coverage", "evaluate_fixture", "mandatory_particular", "prescribed_wording"]
