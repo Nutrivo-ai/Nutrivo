@@ -1,4 +1,4 @@
-import { Blueprint, ButtonLink, SectionHeading, cx } from "@/components/kit";
+import { Blueprint, ButtonLink, SectionHeading, StateGlyph, cx } from "@/components/kit";
 import { STATE_TEXT } from "@/components/kit/states";
 import {
   FAILURE_LABEL,
@@ -33,6 +33,7 @@ export function ArtworkReport({
   panels,
   checks = [],
   checkHref,
+  reportHref,
 }: {
   art: ArtworkSummary;
   run: RunSummary;
@@ -40,6 +41,8 @@ export function ArtworkReport({
   /** D02: each market's latest check of these panels; empty before the first check. */
   checks?: PanelCheck[];
   checkHref: string;
+  /** The label report, where each checked panel's findings and their coverage gaps are listed (D07). */
+  reportHref?: string;
 }) {
   const headline = runHeadline(run, panels);
   const failures = [...new Set(panels.flatMap((p) => (p.failureCode ? [p.failureCode] : [])))];
@@ -133,7 +136,28 @@ export function ArtworkReport({
                           )}
                           title={verdict.reasonCodes.length ? `Reason: ${verdict.reasonCodes.join(", ")}` : undefined}
                         >
-                          {verdict.label}
+                          {(() => {
+                            const label = (
+                              <>
+                                {verdict.state !== "not_checked" ? (
+                                  // Inline, so the row keeps the design's baseline and height.
+                                  <span className="mr-[5px] inline-block align-[-1px] leading-none">
+                                    <StateGlyph state={verdict.state} size="sm" />
+                                  </span>
+                                ) : null}
+                                {verdict.label}
+                              </>
+                            );
+                            const checked = reportHref && checks.some((c) => c.panelId === p.id);
+                            return checked ? (
+                              <a href={reportHref} className={cx("kit-transition", VERDICT_TEXT[verdict.state])}>
+                                {label}
+                                <span className="sr-only"> on the label report</span>
+                              </a>
+                            ) : (
+                              label
+                            );
+                          })()}
                           {verdict.reasonCodes.length ? (
                             <span className="sr-only">
                               {" "}

@@ -25,7 +25,14 @@ export default async function Page({ params }: PageProps<"/w/[workspace]/product
       {!product || !art ? (
         <ProductNotFound workspaceId={workspace} what={product ? "artwork" : "product"} />
       ) : art.run ? (
-        <ArtworkReport art={art} run={art.run} panels={panels} checks={checks} checkHref={checkHref} />
+        <ArtworkReport
+          art={art}
+          run={art.run}
+          panels={panels}
+          checks={checks}
+          checkHref={checkHref}
+          reportHref={`/w/${workspace}/products/${productId}/report`}
+        />
       ) : (
         <div className="max-w-[640px]">
           <LoadingState label={`Extraction in progress · ${art.fileName ?? `version ${art.version}`}`}>
