@@ -196,3 +196,29 @@ def test_a_storage_outage_retries_with_a_safe_error_through_the_job_loop(monkeyp
     assert process_message(store, reg, msg, Settings()) == "retry"
     assert store.jobs["job-1"].status == "queued"
     assert store.jobs["job-1"].last_error == "StorageError: storage read from artwork failed (HTTP 503)"
+
+
+@pytest.mark.skipif(not (SYNTH / "clean_3lang.pdf").exists(), reason="no local fixtures: run make fixtures")
+def test_D03_main_the_suggestion_follows_a_committed_extraction_and_its_outcome_is_in_progress():
+    data = (SYNTH / "clean_3lang.pdf").read_bytes()
+    store = MemArtworks(art_for(data))
+    job, ctx, fake = ctx_for({"artwork_version_id": "av-1"})
+    seen = []
+
+    def classify(art, run_id):
+        assert store.persisted, "classified before the extraction was saved"
+        seen.append((art.id, run_id))
+        return {"outcome": "suggested", "classification_id": "c-1", "filled": 3}
+
+    h.run_extract(job, ctx, store, lambda b, p: data, classify)
+    h.run_extract(job, ctx, store, lambda b, p: pytest.fail("read again"), classify)   # a retry: idempotent inside
+    assert seen == [("av-1", "run-1"), ("av-1", "run-1")]
+    assert fake.jobs["job-1"].progress["classification"]["outcome"] == "suggested"
+    assert fake.jobs["job-1"].progress["stage"] == "done"
+
+
+def test_D03_fail_1_no_text_means_no_suggestion():
+    store = MemArtworks(art_for(PNG))
+    job, ctx, fake = ctx_for({"artwork_version_id": "av-1"})
+    h.run_extract(job, ctx, store, lambda b, p: PNG, lambda art, run_id: pytest.fail("classified a photo"))
+    assert "classification" not in fake.jobs["job-1"].progress

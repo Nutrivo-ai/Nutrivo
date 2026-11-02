@@ -333,10 +333,16 @@ test.describe("upload and extract", () => {
     await page.goto(`/w/${ws}/products/${productId}/check`);
     const controls = page.locator('main[data-screen="S-NV2-002"]').locator("a, button").filter({ visible: true });
     // T-401 added the markets and stage controls beside the artwork card, and, on the free plan with one label left
-    // (earlier tests here used two), the last-label panel's two controls.
+    // (earlier tests here used two), the last-label panel's two controls; T-402 the classification editor's button.
     await expect(page.getByRole("button", { name: "Choose a file" })).toBeVisible();
-    const names = (await controls.allInnerTexts()).map((t) => t.trim()).sort();
-    expect(names.filter((n) => !["See what a plan costs for this workspace", "Not now"].includes(n))).toEqual(["Add markets", "Change stage", "Choose a file"]);
+    // textContent, not innerText: the classification button is set in uppercase by CSS.
+    const names = (await controls.evaluateAll((els) => els.map((e) => e.textContent ?? ""))).map((t) => t.trim()).sort();
+    expect(names.filter((n) => !["See what a plan costs for this workspace", "Not now"].includes(n))).toEqual([
+      "Add markets",
+      "Change stage",
+      "Choose a file",
+      "Confirm or correct these values",
+    ]);
     if (names.includes("Not now")) {
       await expect(page.getByRole("link", { name: "See what a plan costs for this workspace" })).toHaveAttribute("href", `/w/${ws}/billing/plans`);
       await page.getByRole("button", { name: "Not now" }).click();
@@ -351,6 +357,11 @@ test.describe("upload and extract", () => {
     await expect(page.getByRole("button", { name: "Change stage" })).toBeDisabled();
     await page.getByLabel("Change to").selectOption("active");
     await expect(page.getByRole("button", { name: "Change stage" })).toBeEnabled();
+    // T-402: "3 · Which rulebook applies" opens the classification editor (its own spec covers the save).
+    await page.getByRole("button", { name: "Confirm or correct these values" }).click();
+    await expect(page.getByRole("form", { name: "Confirm the classification" })).toBeVisible();
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await expect(page.getByRole("form", { name: "Confirm the classification" })).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 });
