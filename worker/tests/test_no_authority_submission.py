@@ -6,7 +6,7 @@ import re
 from nutrivo_worker.jobs import KINDS
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SUBMITS = re.compile(r"submit|file_with|filing|authority|pay_fee|lodge|apply_registration", re.I)
+SUBMITS = re.compile(r"submit|file_with|filing|authority|pay_fee|lodge|apply_registration", re.IGNORECASE)
 
 
 def test_G02_must_1_no_job_kind_submits_to_an_authority():
