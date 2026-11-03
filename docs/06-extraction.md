@@ -178,9 +178,9 @@ and is about 30 times slower. The founder decision on #39 made it development-on
 `worker/src/nutrivo_worker/handlers/extract.py`, registered for the `extract` kind that app.register_artwork enqueues.
 - **Input.** The payload is `{artwork_version_id}`. The bytes come from the private `artwork` bucket with the service
   role. They are read only from the artwork's own content-addressed path, `<workspace>/<product>/<sha256>.<pdf|png|jpg>`.
-  register_artwork stores whatever path it is sent, and the service role reads past Storage RLS, so any other path
-  fails the job before a fetch (the matching check inside register_artwork is a db follow-up on #41). The bytes must
-  hash to `file_sha256`.
+  Since #179 (DB-7) register_artwork refuses a malformed path (22023) and any path naming another workspace or product
+  (42501); the service role still reads past Storage RLS, so the worker keeps its own check and any other path fails
+  the job before a fetch. The bytes must hash to `file_sha256`.
 - **Failing.** A foreign path, a missing object (404, or Supabase's 400 with a 404 body) or a hash mismatch is a
   `PermanentJobError` with ids only, and fails the job at once. Any other storage answer (401, 429, 5xx, the network)
   retries through the runtime (5 attempts, backoff).
