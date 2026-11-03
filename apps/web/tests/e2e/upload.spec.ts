@@ -335,7 +335,8 @@ test.describe("upload and extract", () => {
     await page.goto(`/w/${ws}/products/${productId}/check`);
     const controls = page.locator('main[data-screen="S-NV2-002"]').locator("a, button").filter({ visible: true });
     // T-401 added the markets and stage controls beside the artwork card, and, on the free plan with one label left
-    // (earlier tests here used two), the last-label panel's two controls; T-402 the classification editor's button.
+    // (earlier tests here used two), the last-label panel's two controls; T-402 the classification editor's button;
+    // T-505 the closing bar's Run the check.
     await expect(page.getByRole("button", { name: "Choose a file" })).toBeVisible();
     // textContent, not innerText: the classification button is set in uppercase by CSS.
     const names = (await controls.evaluateAll((els) => els.map((e) => e.textContent ?? ""))).map((t) => t.trim()).sort();
@@ -344,7 +345,11 @@ test.describe("upload and extract", () => {
       "Change stage",
       "Choose a file",
       "Confirm or correct these values",
+      "Run the check",
     ]);
+    // T-505: Run the check is disabled, with its reason, until the product has an extracted artwork and a market.
+    await expect(page.getByRole("button", { name: "Run the check" })).toBeDisabled();
+    await expect(page.locator("[data-run-blocked]")).toHaveText(/Upload the artwork first/);
     if (names.includes("Not now")) {
       await expect(page.getByRole("link", { name: "See what a plan costs for this workspace" })).toHaveAttribute("href", `/w/${ws}/billing/plans`);
       await page.getByRole("button", { name: "Not now" }).click();
