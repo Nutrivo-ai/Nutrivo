@@ -220,7 +220,7 @@ def additive_condition(ctx: RuleContext) -> RuleResult:
         raise InvalidParams(f"{ctx.rule.rule_key}: additives are not a list of identification numbers")
     formula = ctx.facts.get("additives")
     if not isinstance(formula, list):
-        return _withheld()
+        return _withheld()                  # no formula entered: missing data, never "no additives" (#172)
     lines = [x for x in formula if isinstance(x, dict) and (named is None or x.get("additive_ref") in named)]
     if not lines:
         return RuleResult("not_applicable")

@@ -126,16 +126,21 @@ class PgCheckStore:
                            r["status"], r["failure_code"], tuple(lines.get(str(r["id"]), ())), str(r["id"]))
                      for r in rows)
 
-    def _additives(self, product_id: str) -> list[dict[str, Any]]:
-        """The formula's additive lines with their register row (additive_condition)."""
+    def _additives(self, product_id: str) -> list[dict[str, Any]] | None:
+        """The formula's additive lines with their register row (additive_condition). None when the product has no
+        formula lines at all: a formula never entered is missing data (withheld data_missing), not a formula without
+        additives, which is the only case an additive rule is not_applicable (#172)."""
+        rows = self.conn.execute(
+            """select f.additive_ref, f.amount, f.unit, a.id, a.species, a.max_content, a.expiry
+                 from app.formula_lines f left join ref.feed_additives a on a.id = f.additive_ref
+                where f.product_id = %s
+                order by f.position, f.id""", (product_id,)).fetchall()
+        if not rows:
+            return None
         return [{"additive_ref": r["additive_ref"], "amount": _num(r["amount"]), "unit": r["unit"],
                  "register": {"species": list(r["species"]) if r["species"] is not None else None,
                               "max_content": r["max_content"], "expiry": r["expiry"]} if r["id"] else None}
-                for r in self.conn.execute(
-                    """select f.additive_ref, f.amount, f.unit, a.id, a.species, a.max_content, a.expiry
-                         from app.formula_lines f left join ref.feed_additives a on a.id = f.additive_ref
-                        where f.product_id = %s and f.additive_ref is not null
-                        order by f.position, f.id""", (product_id,)).fetchall()]
+                for r in rows if r["additive_ref"] is not None]
 
     def _node(self, product_id: str, ruleset_version: str, node_id: str) -> NodeInputs:
         j = self._one("""select j.id, j.node_type, j.parent_id, j.languages from ref.jurisdictions j

@@ -244,8 +244,10 @@ test.describe("workspace shell", () => {
       await expect(page).toHaveURL(new RegExp(`${href}$`));
       await expect(page.locator(`nav[aria-label="Workspace"]:visible a[href="${href}"]`)).toHaveAttribute("aria-current", "page");
       // A placeholder, a pattern state, or a built screen's own content (T-401: Add a product's form; Discontinued
-      // shows its empty pattern state in a fresh workspace).
-      await expect(page.locator("main [data-placeholder], main [data-pattern], main [data-add-product]").filter({ visible: true }).first()).toBeVisible();
+      // shows its empty pattern state in a fresh workspace; T-505: Coverage & confidence's table).
+      await expect(
+        page.locator("main [data-placeholder], main [data-pattern], main [data-add-product], main [data-region=\"coverage\"]").filter({ visible: true }).first(),
+      ).toBeVisible();
     }
     // The switcher opens and closes, and each entry navigates.
     await switcher(page).click();

@@ -49,7 +49,7 @@ export function LabelReport({
           ? `${loaded.product.name} · ${count(loaded.markets, "jurisdiction node")}, ${count(loaded.report.languages, "language")}`
           : undefined
       }
-      aside={set ? <RulesetChip set={set} /> : null}
+      aside={set ? <RulesetChip set={set} href={`/w/${workspaceId}/library/coverage?product=${productId}`} /> : null}
     >
       {!loaded ? (
         <ProductNotFound workspaceId={workspaceId} />
@@ -324,11 +324,16 @@ function FindingRow({ f }: { f: ReportFinding }) {
   return null;
 }
 
-function RulesetChip({ set }: { set: ResultSet }) {
+// T-505 (D09, #55 q2): the chip opens this product's coverage, at the ruleset each market was checked against.
+function RulesetChip({ set, href }: { set: ResultSet; href: string }) {
   return (
-    <span className="border border-rule py-[5px] px-[9px] font-mono text-[10.5px] tracking-[0.06em] text-n600 whitespace-nowrap">
+    <a
+      href={href}
+      title="Coverage for this product's markets"
+      className="border border-rule py-[5px] px-[9px] font-mono text-[10.5px] tracking-[0.06em] text-n600 whitespace-nowrap no-underline hover:border-accent hover:text-accent-700 kit-transition"
+    >
       RULESET {set.rulesetVersion} · {set.rulesetCurrent ? "current" : "superseded"}
-    </span>
+    </a>
   );
 }
 
