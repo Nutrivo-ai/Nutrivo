@@ -6,6 +6,7 @@ import { useState, useTransition, type ReactNode } from "react";
 import { ProductNotFound } from "@/components/artwork/ProductNotFound";
 import { Blueprint, Button, Dialog, EmptyState, SectionHeading, cx } from "@/components/kit";
 import { Screen } from "@/components/shell";
+import { track } from "@/lib/analytics";
 import { createEmailShare, createLinkShare, reportPdfLink, revokeShare, type ShareRefusal } from "@/lib/share/actions";
 import {
   DEFAULT_EXPIRY_DAYS,
@@ -294,6 +295,8 @@ function EmailCard({ report, expiry }: { report: PinnedReport; expiry: number | 
     start(async () => {
       const result = await createEmailShare(report.id, address, expiry);
       if (!result.ok) return setProblem(REFUSAL[result.reason]);
+      // docs/17: ids and enums only, never the recipient's address.
+      track("report_shared", { report_id: report.id, share_id: result.value.shareId, channel: "email" });
       setSent(address.trim().toLowerCase());
       setAddress("");
       router.refresh();
@@ -343,6 +346,8 @@ function LinkCard({ report, expiry }: { report: PinnedReport; expiry: number | n
     start(async () => {
       const result = await createLinkShare(report.id, expiry);
       if (!result.ok) return setProblem(REFUSAL[result.reason]);
+      // docs/17: ids and enums only, never the token.
+      track("report_shared", { report_id: report.id, share_id: result.value.shareId, channel: "link" });
       // Shown once: the database keeps only its hash, so it cannot be shown again.
       setUrl(`${window.location.origin}/share/${result.value.token}`);
       router.refresh();
