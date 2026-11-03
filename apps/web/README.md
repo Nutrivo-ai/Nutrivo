@@ -41,6 +41,11 @@ Audit log (T-108; O02): `src/components/settings/AuditLog.tsx` at `/w/<id>/setti
 under the admin's session through `src/lib/settings/audit.ts`, which also words each stored kind (KIND, What happened,
 Who). External is the flag stamped on the event, never today's membership. Filters (`?show=`) and paging (`?before=`)
 are links; nothing on the screen writes. `tests/e2e/audit.spec.ts`.
+Documents (T-801; H01): `src/components/documents/DocumentLibrary.tsx` at `/w/<id>/documents` reads
+`app.supplier_documents` under the member's session through `src/lib/documents/library.ts` and sets them against
+`ref.document_requirements` for each market the viewer's products are on. A market with no encoded requirement reads Not
+assessed with no count; only clean, unexpired documents count; a document is named by its stored file (issue #68).
+Read only. `tests/e2e/documents.spec.ts`.
 
 Public site (T-603): `src/app/(public)` holds `/`, `/pricing`, `/coverage`, `/faq`, `/about`, `/for/<segment>` and
 `/legal/<doc>`, each ported from its file in design/public/ with `sx()` (`src/lib/public/sx.ts`), which takes the design's
