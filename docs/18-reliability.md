@@ -5,7 +5,7 @@
 | Worker crashes | Render restart; Sentry heartbeat cron | Render restarts it; pgmq redelivers unacknowledged jobs after the visibility timeout | Heartbeat missing for 5 minutes |
 | Job throws | Sentry error | Retry with backoff, up to 5 attempts; handlers are idempotent | After the 5th attempt: job `failed`, user sees "retry", Sentry issue |
 | Worker dies mid-job | Reaper (pg_cron, every 5 min): `running` for over 15 min | Requeued | Requeued twice |
-| Model provider outage | Error rate; circuit breaker | Fall back to the second provider (D-11); otherwise claim rules are withheld as `model_unavailable`, never passed | Breaker open for 10 minutes |
+| Model provider outage | Error rate; circuit breaker | No second provider for customer data (D-11): the job retries, then claim rules are withheld as `model_unavailable`, never passed | Breaker open for 10 minutes |
 | Email provider failure | Send errors | Retry from the queue | Persisting for an hour |
 | Missed Stripe webhook | Daily reconciliation against the Stripe API | Mirror corrected | Any correction made |
 | Bad web deploy | Post-deploy smoke tests | Vercel instant rollback to the previous deployment | Always (incident issue) |

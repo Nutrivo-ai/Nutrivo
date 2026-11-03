@@ -37,15 +37,21 @@ jobs:
         with: { node-version: 22 }
       - run: supabase link --project-ref "$SUPABASE_PROJECT_REF" -p "$SUPABASE_DB_PASSWORD" && supabase db push -p "$SUPABASE_DB_PASSWORD"
       - run: if [ -d supabase/functions ]; then supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"; fi
-      - run: bash scripts/deploy/render.sh "$RENDER_WORKER_SERVICE_ID" "$GITHUB_SHA"
-      - run: bash scripts/deploy/vercel.sh prod
+      - id: worker
+        run: bash scripts/deploy/render.sh "$RENDER_WORKER_SERVICE_ID" "$GITHUB_SHA"
+      - id: web
+        run: bash scripts/deploy/vercel.sh prod
       - name: Production smoke on the synthetic workspace
         run: make smoke ENV=prod
       - run: uv run --no-project --with boto3 python scripts/doctor/doctor.py --env prod
       # A refused tag deployed nothing: nothing to roll back or report.
       - name: Roll back
-        if: failure() && steps.on-main.outcome == 'success'
-        run: bash scripts/deploy/rollback.sh prod
+        # only what went live, never the database (docs/18); a failed rollback fails this step
+        if: failure() && steps.on-main.outcome == 'success' && (steps.worker.outcome == 'success' || steps.web.outcome == 'success')
+        run: >
+          bash scripts/deploy/rollback.sh prod
+          ${{ steps.web.outcome == 'success' && 'web' || '' }}
+          ${{ steps.worker.outcome == 'success' && 'worker' || '' }}
       - name: Incident issue
         if: failure() && steps.on-main.outcome == 'success'
         env: { GH_TOKEN: "${{ github.token }}" }
