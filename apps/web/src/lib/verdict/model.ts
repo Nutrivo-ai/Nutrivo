@@ -237,12 +237,12 @@ export function buildVerdict(rows: VerdictRows): Verdict | null {
     return {
       ...common,
       title: `Not assessed in ${subjectName}`,
-      body: `${plural(withheld.length, "result")} ${withheld.length === 1 ? "is" : "are"} withheld because what applies here is not fully encoded. Nothing is Clear until it is.${because}`,
+      body: `${plural(withheld.length, "result")} ${withheld.length === 1 ? "is" : "are"} withheld because what applies here is not fully encoded, so no verdict is given.${because}`,
       todo: gapped
         ? { body: "Nothing to change on the label for these yet. The coverage page says what is not encoded.", link: { label: "See what is not covered", href: gapHref(workspaceId, gapNode.get(gapped.gap_id!) ?? gapped.node_id, gapped.gap_id!) } }
         : { body: "The label report lists every withheld result.", link: reportLink },
       source: gapped
-        ? { kind: "gap", gapId: gapped.gap_id!, href: gapHref(workspaceId, gapNode.get(gapped.gap_id!) ?? gapped.node_id, gapped.gap_id!), note: "Not assessed. No rule, no verdict." }
+        ? { kind: "gap", gapId: gapped.gap_id!, href: gapHref(workspaceId, gapNode.get(gapped.gap_id!) ?? gapped.node_id, gapped.gap_id!), note: "No rule, no verdict." }
         : { kind: "ungapped", note: "Not assessed, and no coverage gap was recorded for it. Never shown as Clear." },
     };
   }

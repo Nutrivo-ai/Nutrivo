@@ -148,7 +148,7 @@ describe("buildVerdict (S-MOB-003)", () => {
       }),
     )!;
     expect(v.state).toBe("not_assessed");
-    expect(v.source).toEqual({ kind: "gap", gapId: "GAP-EU-DE-LBL", href: `/w/${WS}/library/coverage/EU-DE#GAP-EU-DE-LBL`, note: "Not assessed. No rule, no verdict." });
+    expect(v.source).toEqual({ kind: "gap", gapId: "GAP-EU-DE-LBL", href: `/w/${WS}/library/coverage/EU-DE#GAP-EU-DE-LBL`, note: "No rule, no verdict." });
     expect(v.todo.link?.href).toBe(`/w/${WS}/library/coverage/EU-DE#GAP-EU-DE-LBL`);
   });
 

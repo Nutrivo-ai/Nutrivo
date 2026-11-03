@@ -12,5 +12,13 @@ export default async function Page({ params }: PageProps<"/w/[workspace]/product
   const page = await Sentry.startSpan({ name: "verdict.read", op: "db.read" }, () =>
     readVerdict(supabase, workspace, product, decodeURIComponent(node)),
   );
+  if (page.kind === "loaded" && page.verdict.source.kind === "ungapped") {
+    // #46 question 4: a withheld result without a coverage gap cannot link to one. Seen, never silent.
+    Sentry.captureMessage("verdict: withheld findings without a coverage gap", {
+      level: "warning",
+      tags: { screen: "S-MOB-003" },
+      extra: { product, node },
+    });
+  }
   return <Verdict route="/w/[workspace]/products/[product]/nodes/[node]" workspaceId={workspace} page={page} />;
 }

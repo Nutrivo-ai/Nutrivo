@@ -13,7 +13,7 @@ export function Capture({ route }: { route: string }) {
       <section aria-label="Photograph a pack" data-region="capture" className="-mx-[16px] -mt-[24px] md:mx-0 md:mt-0 md:max-w-[560px] md:border md:border-rule">
         <Block region="guidance">
           <Kicker>Pack photo</Kicker>
-          <h2 className="m-0 font-head text-[14.5px] font-semibold leading-[1.2] tracking-[-0.03em]">Photograph the panel</h2>
+          <h2 className="m-0 font-head text-[14.5px] font-semibold leading-[1.2] tracking-normal">Photograph the panel</h2>
           <Body>Fill the frame with the printed panel and keep it flat. Good light, no flash on gloss.</Body>
         </Block>
         <Block region="purpose">
@@ -44,7 +44,7 @@ function Block({ children, region, last }: { children: ReactNode; region: string
 }
 
 function Kicker({ children }: { children: ReactNode }) {
-  return <p className="mt-0 mb-[5px] font-mono text-[9px] tracking-[0.09em] uppercase text-n600">{children}</p>;
+  return <p className="mt-0 mb-[5px] font-mono text-[9px] leading-[normal] tracking-[0.09em] uppercase text-n600">{children}</p>;
 }
 
 function Body({ children, first }: { children: ReactNode; first?: boolean }) {

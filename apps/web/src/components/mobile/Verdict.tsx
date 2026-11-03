@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ProductNotFound } from "@/components/artwork/ProductNotFound";
-import { CitationLink, EmptyState, GapLink, ProvenanceTag, StateGlyph, STATE_BORDER, STATE_LABEL, STATE_TEXT, STATE_TINT, cx } from "@/components/kit";
+import { ButtonLink, CitationLink, EmptyState, GapLink, ProvenanceTag, StateGlyph, STATE_BORDER, STATE_LABEL, STATE_TEXT, STATE_TINT, cx } from "@/components/kit";
 import { Screen } from "@/components/shell";
 import type { Verdict as VerdictModel, VerdictSource } from "@/lib/verdict/model";
 import type { VerdictPage } from "@/lib/verdict/queries";
@@ -48,7 +48,7 @@ function Blocks({ verdict: v }: { verdict: VerdictModel }) {
           <StateGlyph state={v.state} />
           <span className={cx("font-mono text-[9.5px] tracking-[0.07em] uppercase", STATE_TEXT[v.state])}>{STATE_LABEL[v.state]}</span>
         </div>
-        <h2 className="m-0 font-head text-[19px] font-semibold leading-[1.2] tracking-[-0.03em]">{v.title}</h2>
+        <h2 className="m-0 font-head text-[19px] font-semibold leading-[1.2] tracking-normal">{v.title}</h2>
         <p className="mt-[6px] mb-0 text-[12.5px] leading-[1.5] text-n700">{v.body}</p>
         {!v.subject.isSelf ? (
           <p className="mt-[6px] mb-0 text-[12.5px] leading-[1.5]">
@@ -62,12 +62,14 @@ function Blocks({ verdict: v }: { verdict: VerdictModel }) {
         <Kicker>What to do</Kicker>
         <p className="m-0 text-[12.5px] leading-[1.5] text-n700">{v.todo.body}</p>
         {v.todo.link ? (
-          <Link
+          <ButtonLink
+            variant="primary"
+            size="md"
             href={v.todo.link.href}
-            className="mt-[11px] flex items-center justify-center min-h-[44px] rounded-[3px] bg-accent text-white no-underline text-[13.5px] font-medium hover:bg-accent-600 hover:text-white"
+            className="mt-[11px] flex items-center justify-center min-h-[44px] w-full rounded-[3px] text-[13.5px]"
           >
             {v.todo.link.label}
-          </Link>
+          </ButtonLink>
         ) : null}
       </Block>
       <Block region="source" last>
@@ -99,7 +101,7 @@ function Block({ children, className, region, last }: { children: ReactNode; cla
 }
 
 function Kicker({ children }: { children: ReactNode }) {
-  return <p className="mt-0 mb-[5px] font-mono text-[9px] tracking-[0.09em] uppercase text-n600">{children}</p>;
+  return <p className="mt-0 mb-[5px] font-mono text-[9px] leading-[normal] tracking-[0.09em] uppercase text-n600">{children}</p>;
 }
 
 function Source({ source }: { source: VerdictSource }) {
