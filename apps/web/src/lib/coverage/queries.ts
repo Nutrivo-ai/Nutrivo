@@ -45,14 +45,23 @@ async function rowsAt(db: Db, version: string, nodeIds: string[]): Promise<Snaps
   return (rows ?? []) as SnapshotRow[];
 }
 
+const GAP_BATCH = 60;
+
+/** The gaps the rows cite, read by node: a whole release cites hundreds of gap ids, too many for one URL. */
 async function gapsFor(db: Db, rows: SnapshotRow[]): Promise<Map<string, GapRow>> {
-  const ids = [...new Set(rows.map((r) => r.gap_id).filter((g): g is string => !!g))];
-  if (!ids.length) return new Map();
-  const gaps = ok(
-    "gaps",
-    await db.schema("ref").from("coverage_gaps").select("gap_id, node_id, domain, reason_code, description, opened_in, closed_in").in("gap_id", ids),
+  const cited = new Set(rows.map((r) => r.gap_id).filter((g): g is string => !!g));
+  const nodes = [...new Set(rows.filter((r) => r.gap_id).map((r) => r.node_id))];
+  // A node has at most six gaps (one per domain), so a batch stays well under PostgREST's max_rows (1000).
+  const batches = Array.from({ length: Math.ceil(nodes.length / GAP_BATCH) }, (_, i) => nodes.slice(i * GAP_BATCH, (i + 1) * GAP_BATCH));
+  const read = await Promise.all(
+    batches.map(async (batch) =>
+      ok(
+        "gaps",
+        await db.schema("ref").from("coverage_gaps").select("gap_id, node_id, domain, reason_code, description, opened_in, closed_in").in("node_id", batch),
+      ) ?? [],
+    ),
   );
-  return new Map((gaps ?? []).map((g) => [g.gap_id, g as GapRow]));
+  return new Map(read.flat().filter((g) => cited.has(g.gap_id)).map((g) => [g.gap_id, g as GapRow]));
 }
 
 async function namesOf(db: Db, nodeIds: string[]): Promise<Map<string, string>> {
@@ -92,7 +101,7 @@ export async function readLibraryCoverage(db: Db, workspaceId: string, productId
   await Promise.all(
     others.map(async (v) => byVersion.set(v, await rowsAt(db, v, markets.filter((m) => m.ruleset_version === v).map((m) => m.node_id)))),
   );
-  const all = [...byVersion.values()].flat();
+  const all = [...byVersion.values()].flat().filter((r) => ids.includes(r.node_id));
   const [names, gaps] = await Promise.all([namesOf(db, ids), gapsFor(db, all)]);
   const rows = ids.map((id) => {
     const version = versionOf.get(id) ?? null;

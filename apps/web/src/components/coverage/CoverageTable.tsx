@@ -18,7 +18,7 @@ export function CoverageTable({ workspaceId, page }: { workspaceId: string; page
       <p data-region="intro" className="mt-0 mb-[18px] text-[14px] leading-[1.55] max-w-[94ch] text-n700">
         {forProduct
           ? "What we have encoded for each of this product's markets, at the ruleset its last check was pinned to, and what we have not covered. The public coverage page renders these same rows."
-          : "What we have encoded, how it was verified, and what we have not covered. This page is public: the coverage page renders these same rows, so the two cannot drift."}
+          : "What we have encoded, how it was verified, and what we have not covered. The public coverage page renders these same rows, so the two cannot drift."}
       </p>
       {page.rows.length === 0 ? (
         <div className="max-w-[640px]">

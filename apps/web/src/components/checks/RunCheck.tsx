@@ -33,6 +33,15 @@ export function RunCheck({
   const [state, setState] = useState<State>({ step: "idle" });
   const job = useCheckJob(db, state.step === "running" ? state.jobId : null);
   const report = `/w/${workspaceId}/products/${productId}/report`;
+  // The design's own button (Nutrivo 2.0, scope): an accent-600 hairline, square, tracked 0.02em, beyond the kit's primary.
+  const designed = {
+    border: "1px solid var(--accent-600)",
+    borderRadius: 0,
+    letterSpacing: "0.02em",
+    padding: "13px 26px",
+    fontSize: 15,
+    fontWeight: 600,
+  };
 
   async function run() {
     setState({ step: "requesting" });
@@ -70,7 +79,7 @@ export function RunCheck({
           <Button
             variant="primary"
             size="md"
-            className="py-[13px] px-[26px] text-[15px] font-semibold"
+            style={designed}
             disabled={!readiness.ready || busy}
             aria-describedby={!readiness.ready ? "run-the-check-why" : undefined}
             onClick={() => void run()}

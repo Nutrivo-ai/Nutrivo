@@ -99,7 +99,8 @@ export function CoverageNode({ row }: { row: CoverageRow }) {
             <div className="mt-[10px] flex flex-col gap-[10px]">
               {row.gaps.map((g) => (
                 <div key={g.id} id={g.id} data-gap-id={g.id} className="border-l-2 border-l-na pl-[12px] scroll-mt-[24px] target:bg-paper">
-                  <p className="m-0 font-mono text-[10px] text-n600">
+                  {/* --n700, not the design's --n600: on the Not assessed tint --n600 falls below 4.5:1 (axe). */}
+                  <p className="m-0 font-mono text-[10px] text-n700">
                     {g.id}
                     {g.openedIn ? ` · OPENED IN ${g.openedIn}` : ""} · {domainLabel(g.domain).toUpperCase()}
                   </p>
