@@ -109,7 +109,7 @@ function Loaded({
     >
       <div>
         <Blueprint className="py-[20px] px-[22px]" as="section">
-          <p className={cx(mono, "m-0 text-[10px] tracking-[0.13em] text-n500")}>Report of Check · pinned</p>
+          <p className={cx(mono, "m-0 text-[10px] tracking-[0.13em] text-n600")}>Report of Check · pinned</p>
           <h2 className="mt-[8px] mb-0 font-head text-[26px] font-semibold leading-[1.15]">
             {page.product.name}
             {r.market ? ` · ${r.market}` : ""}
@@ -120,7 +120,7 @@ function Loaded({
           <dl className="mt-[16px] mb-0 grid grid-cols-1 sm:grid-cols-2 gap-x-[20px]">
             {pinFacts(r).map((f) => (
               <div key={f.k} className="border-t border-rule py-[10px]">
-                <dt className={cx(mono, "m-0 text-[9.5px] tracking-[0.12em] text-n500")}>{f.k}</dt>
+                <dt className={cx(mono, "m-0 text-[9.5px] tracking-[0.12em] text-n600")}>{f.k}</dt>
                 <dd className="mt-[4px] mb-0 font-mono text-[12px] leading-[1.4] [overflow-wrap:anywhere]">{f.v}</dd>
               </div>
             ))}
@@ -155,7 +155,7 @@ function Loaded({
         </div>
 
         <div className="mt-[22px] border border-rule py-[16px] px-[18px] bg-panel">
-          <p className={cx(mono, "m-0 text-[10px] tracking-[0.13em] text-n500")}>Two artefacts, not one</p>
+          <p className={cx(mono, "m-0 text-[10px] tracking-[0.13em] text-n600")}>Two artefacts, not one</p>
           <div className="mt-[12px] grid grid-cols-1 md:grid-cols-2 gap-[20px]">
             {ARTEFACTS.map((a) => (
               <div key={a.name}>
@@ -170,12 +170,19 @@ function Loaded({
 
       <div className="flex flex-col gap-[18px]">
         {page.plan === "free" ? (
-          <Blueprint edge="border-t-[3px] border-t-accent" className="py-[16px] px-[18px] bg-accent-100">
+          <section
+            aria-label="On your three free labels"
+            className="blueprint border border-ink border-t-[3px] border-t-accent py-[16px] px-[18px] bg-accent-100"
+          >
+            <i className="corner tl" />
+            <i className="corner tr" />
+            <i className="corner bl" />
+            <i className="corner br" />
             <p className={cx(mono, "m-0 text-[10px] tracking-[0.13em] text-accent")}>On your three free labels</p>
             <p className="mt-[8px] mb-0 font-head text-[19px] font-semibold leading-[1.25]">
               Send this one. A fourth label is where a plan starts.
             </p>
-            <p className="mt-[8px] mb-0 text-[12.5px] leading-[1.55] text-accent-900">
+            <p className="mt-[8px] mb-0 text-[12.5px] leading-[1.55] text-ink">
               Nothing is held back on the free labels: four states, every finding, export, email, share, provenance and
               coverage links, unlimited re-checks. The wall is the export, the email, the share link and the second
               product.
@@ -188,7 +195,7 @@ function Loaded({
                 SEE THE PLANS
               </Link>
             </div>
-          </Blueprint>
+          </section>
         ) : null}
         <LinkSettings shares={page.shares} expiry={expiry} onExpiry={setExpiry} />
       </div>
@@ -210,7 +217,7 @@ function ReportPicker({
   const router = useRouter();
   return (
     <div className="mt-[12px] flex flex-wrap items-baseline gap-[10px]">
-      <label htmlFor="send-report" className={cx(mono, "text-[9.5px] tracking-[0.12em] text-n500")}>
+      <label htmlFor="send-report" className={cx(mono, "text-[9.5px] tracking-[0.12em] text-n600")}>
         Report
       </label>
       <select
@@ -412,7 +419,7 @@ function LinkSettings({
   }
   return (
     <section aria-label="Link settings" className="border border-rule py-[16px] px-[18px] bg-paper">
-      <h2 className={cx(mono, "m-0 text-[10px] tracking-[0.13em] text-n500 font-normal")}>Link settings</h2>
+      <h2 className={cx(mono, "m-0 text-[10px] tracking-[0.13em] text-n600 font-normal")}>Link settings</h2>
       <div className="mt-[10px]">
         <div className={row}>
           <label htmlFor="share-expiry" className="flex-1 text-[12.5px]">
@@ -446,7 +453,7 @@ function LinkSettings({
         A recipient sees the report and can verify the reference. They never see the rest of your portfolio.
       </p>
 
-      <h3 className={cx(mono, "mt-[18px] mb-0 text-[10px] tracking-[0.13em] text-n500 font-normal")}>
+      <h3 className={cx(mono, "mt-[18px] mb-0 text-[10px] tracking-[0.13em] text-n600 font-normal")}>
         Shares of this report
       </h3>
       {shares.length === 0 ? (
