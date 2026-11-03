@@ -12,7 +12,10 @@ withheld with `evaluator_missing`, never passed, and a runner-level withhold nev
 fixture expects `withheld`. Labels need extraction and the engine, so until LABEL_EVALUATOR is set they are withheld
 with `engine_unavailable`. The run passes only when every item matched and at least one rule fixture ran.
 
-The runner only reads: the database over a read-only transaction, fixtures/synth/out and fixtures/golden from disk."""
+The runner only reads: the database over a read-only transaction, fixtures/synth/out and fixtures/golden from disk.
+The one exception is `--draft <id>`: a proposed ruleset (ref.ruleset_drafts) is read in one repeatable-read snapshot
+together with its digest, and the result is recorded in ref.fixture_runs in the same transaction, bound to that
+digest. That row is what app.release_ruleset reads (K05, docs/05 §The release gate)."""
 from __future__ import annotations
 
 import json
@@ -23,6 +26,7 @@ from typing import Any, Literal, Protocol
 from xml.etree import ElementTree as ET
 
 import sentry_sdk
+from psycopg.types.json import Jsonb
 
 from .errors import SafeError
 
@@ -43,7 +47,7 @@ EVALUATOR_ERROR = "evaluator_error"         # an evaluator raised: withheld, nev
 
 
 class UnknownRuleset(SafeError):
-    """The ruleset id names no released ruleset."""
+    """The ruleset id names no released ruleset, or the draft id no open draft."""
 
 
 @dataclass(frozen=True)
@@ -135,6 +139,9 @@ class FixtureStore(Protocol):
 class PgFixtureStore:
     """Reads ref.ruleset_members, ref.rules and ref.rule_fixtures in one read-only transaction."""
 
+    MEMBERS = "ref.ruleset_members"   # constants, never input: the member table and the column naming the set
+    SET_COLUMN = "ruleset_version"
+
     def __init__(self, conn: Any):
         self.conn = conn
 
@@ -146,24 +153,56 @@ class PgFixtureStore:
     def members(self, ruleset_version: str) -> list[Member]:
         self._known(ruleset_version)
         rows = self.conn.execute(
-            """select m.rule_key, m.version, r.shape
-                 from ref.ruleset_members m join ref.rules r using (rule_key)
-                where m.ruleset_version = %s order by m.rule_key""", (ruleset_version,)).fetchall()
+            f"""select m.rule_key, m.version, r.shape
+                  from {self.MEMBERS} m join ref.rules r using (rule_key)
+                 where m.{self.SET_COLUMN} = %s order by m.rule_key""", (ruleset_version,)).fetchall()
         return [Member(r["rule_key"], r["version"], r["shape"]) for r in rows]
 
     def fixtures(self, ruleset_version: str) -> list[RuleFixture]:
         rows = self.conn.execute(
-            """select f.id, f.rule_key, f.version, r.shape, f.name, f.input, f.expected_outcome, f.expected,
-                      rv.params, rv.applicability
-                 from ref.ruleset_members m
-                 join ref.rule_fixtures f on f.rule_key = m.rule_key and f.version = m.version
-                 join ref.rule_versions rv on rv.rule_key = m.rule_key and rv.version = m.version
-                 join ref.rules r on r.rule_key = m.rule_key
-                where m.ruleset_version = %s order by f.rule_key, f.name, f.id""", (ruleset_version,)).fetchall()
+            f"""select f.id, f.rule_key, f.version, r.shape, f.name, f.input, f.expected_outcome, f.expected,
+                       rv.params, rv.applicability
+                  from {self.MEMBERS} m
+                  join ref.rule_fixtures f on f.rule_key = m.rule_key and f.version = m.version
+                  join ref.rule_versions rv on rv.rule_key = m.rule_key and rv.version = m.version
+                  join ref.rules r on r.rule_key = m.rule_key
+                 where m.{self.SET_COLUMN} = %s order by f.rule_key, f.name, f.id""", (ruleset_version,)).fetchall()
         terms = accepted_terms(self.conn, ruleset_version) if rows else {}
         return [RuleFixture(str(r["id"]), r["rule_key"], r["version"], r["shape"], r["name"], r["input"] or {},
                             r["expected_outcome"], r["expected"], r["params"] or {},
                             r["applicability"] or {"all": []}, terms) for r in rows]
+
+
+class PgDraftFixtureStore(PgFixtureStore):
+    """The same reads for an open draft (ref.ruleset_draft_members). The term register is the accepted entries pinned
+    to no ruleset: a draft id is never a ruleset_version until it is released."""
+
+    MEMBERS = "ref.ruleset_draft_members"
+    SET_COLUMN = "draft_id"
+
+    def _known(self, ruleset_version: str) -> None:
+        row = self.conn.execute(
+            """select 1 from ref.ruleset_drafts d where d.id = %s
+                 and not exists (select 1 from ref.ruleset_versions rv where rv.id = d.id)""",
+            (ruleset_version,)).fetchone()
+        if row is None:
+            raise UnknownRuleset(f"no open ruleset draft {ruleset_version}")
+
+
+def draft_digest(conn: Any, draft_id: str) -> tuple[str, int]:
+    """The digest a draft run is bound to and the number of rule fixtures under it, read in the caller's snapshot."""
+    row = conn.execute("select private.ruleset_draft_digest(%s) as digest,"
+                       " private.ruleset_draft_fixture_count(%s) as n", (draft_id, draft_id)).fetchone()
+    return row["digest"], row["n"]
+
+
+def record_draft_run(conn: Any, draft_id: str, digest: str, report: Report, runner: str) -> str:
+    """One ref.fixture_runs row (insert-only). passed is the whole report's: a withheld label is not a pass either."""
+    row = conn.execute(
+        """insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, summary, runner)
+           values (%s, %s, %s, %s, %s, %s) returning id""",
+        (draft_id, digest, report.passed, report.rule_fixtures_ran, Jsonb(report.summary), runner)).fetchone()
+    return str(row["id"])
 
 
 def accepted_terms(conn: Any, ruleset_version: str) -> dict[tuple[str, str], list[str]]:

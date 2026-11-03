@@ -127,12 +127,18 @@ run against a draft in `ref.fixture_runs` (insert-only, service role only; the l
 that judged no fixture cannot be recorded as passed. `app.release_ruleset` refuses (P0039) unless every member has
 passed, failed and withheld fixtures and the draft's latest run passed, judged every one of them and still matches the
 digest, so a fixture or member changed after the run
-needs a new run. Until the runner resolves draft ids (worker follow-up, #34) and labels can be judged (#36), nothing can be
-released: that is intended.
+needs a new run. `nutrivo fixtures run --draft <id>` records that row (§The runner). Every label is still withheld
+until a label evaluator exists (#36), so a recorded run cannot pass yet and nothing can be released: that is
+intended. The released diffs and coverage are insert-only.
 
 ### The runner (T-206)
 `nutrivo fixtures run --ruleset <id> [--format text|json] [--out report.json] [--junit report.xml]` reads, and never
-writes:
+writes, the items below. `--draft <id>` reads the same for an open ruleset draft (`ref.ruleset_draft_members`; the
+term register is the accepted entries pinned to no ruleset) in one repeatable-read transaction. In that transaction it
+also reads `private.ruleset_draft_digest` and records the result in `ref.fixture_runs`, so the row is bound to exactly
+what was evaluated: `passed` is the whole report's, with `rule_fixtures_ran` and the summary. A recorded run always
+reads the repository's synthetic and golden labels: `--synth` and `--golden` are refused with `--draft` (exit 2). An
+unknown or released draft id also exits 2. The runner reads:
 - the rule fixtures of every member of a released ruleset (`ref.ruleset_members` × `ref.rule_fixtures`, in a
   read-only transaction);
 - the synthetic labels (`fixtures/synth/out/*.truth.json`);
@@ -158,6 +164,6 @@ expected and actual.
 Evaluators register in `nutrivo_worker.fixtures_runner.EVALUATORS` by shape, and the label path in `LABEL_EVALUATOR`.
 T-403 registers mandatory_particular and prescribed_wording, and T-502 registers character_height, threshold and
 additive_condition (§The engine). claim_judgement and every label are
-still withheld, so no ruleset passes while synthetic or golden labels are present. Open on #36: how an unreleased
-(proposed) ruleset is named before K05 writes its members, and the golden expected-results file format. Until those
-are decided, only released ruleset ids resolve, and a golden JSON file with a `panels` list is reported per panel.
+still withheld, so no ruleset passes while synthetic or golden labels are present. A proposed ruleset is
+named by its draft id (`--draft`, T-204). Open on #36: the golden expected-results file format; until it is decided,
+a golden JSON file with a `panels` list is reported per panel.

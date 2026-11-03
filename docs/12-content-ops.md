@@ -173,7 +173,8 @@ Staff (`app_metadata.nutrivo_staff`) act through RPCs; each needs the caller's p
   language.
 - **Coverage** is edited on a draft (`app.create_ruleset_draft`, `app.set_draft_member`, `app.set_draft_coverage`,
   gaps with `app.open_coverage_gap`). Complete needs every member rule of that node and domain tested.
-- **Release** with `app.release_ruleset` once the fixture run for the draft passed (docs/05 §The release gate). It
+- **Release** with `app.release_ruleset` once `scripts/env/run.sh dev -- uv run nutrivo fixtures run --draft <id>`
+  has recorded a passing run for the draft (docs/05 §The release gate). It
   writes the diffs, and alerts follow only for non-editorial ones.
 
 ## The /admin console (K03, K04, T-205)

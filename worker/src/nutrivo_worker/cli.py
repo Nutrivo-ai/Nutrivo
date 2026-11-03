@@ -14,7 +14,9 @@
                    exit 0 identical, 1 not, 2 unknown reference)
   nutrivo config   the resolved settings, secrets masked
   nutrivo fixtures run --ruleset <id>
-                   rule fixtures, synthetic and golden labels against a ruleset (exit 0 passed, 1 not, 2 error)"""
+                   rule fixtures, synthetic and golden labels against a ruleset (exit 0 passed, 1 not, 2 error)
+  nutrivo fixtures run --draft <id>
+                   the same against an open ruleset draft, recorded in ref.fixture_runs for the release gate (K05)"""
 from __future__ import annotations
 
 import argparse
@@ -369,22 +371,42 @@ def cmd_config(settings: Settings) -> int:
 
 
 def cmd_fixtures_run(settings: Settings, args: argparse.Namespace) -> int:
-    """Read only. stdout carries the report alone, so --format json stays machine-readable."""
+    """Read only for --ruleset. For --draft, one repeatable-read transaction reads the draft and its digest and
+    records the run in ref.fixture_runs, so the row is bound to exactly what was evaluated. stdout carries the report
+    alone, so --format json stays machine-readable."""
     import sentry_sdk
 
-    from . import engine  # noqa: F401  registers the evaluators in fixtures_runner.EVALUATORS
+    from . import (
+        __version__,
+        engine,  # noqa: F401  registers the evaluators in fixtures_runner.EVALUATORS
+    )
     from . import fixtures_runner as fr
     from .db import connect
 
+    if args.draft and (Path(args.synth) != fr.SYNTH_DIR or Path(args.golden) != fr.GOLDEN_DIR):
+        # A recorded run gates a release: it always reads the repository's labels, never a narrower set.
+        print("nutrivo: --draft runs use the repository's synthetic and golden labels; drop --synth and --golden",
+              file=sys.stderr)
+        return 2
     dsn = settings.require_database()
+    run_id = None
     try:
         with sentry_sdk.start_transaction(op="cli", name="fixtures.run") as txn:
-            txn.set_tag("ruleset_version", args.ruleset)
+            txn.set_tag("ruleset_version", args.ruleset or args.draft)
             conn = connect(dsn)
             try:
-                conn.execute("set session characteristics as transaction read only")
-                with conn.transaction():
-                    report = fr.run(fr.PgFixtureStore(conn), args.ruleset, Path(args.synth), Path(args.golden))
+                if args.draft:
+                    conn.execute("set session characteristics as transaction isolation level repeatable read")
+                    with conn.transaction():
+                        digest, _ = fr.draft_digest(conn, args.draft)
+                        report = fr.run(fr.PgDraftFixtureStore(conn), args.draft, Path(args.synth),
+                                        Path(args.golden))
+                        run_id = fr.record_draft_run(conn, args.draft, digest, report,
+                                                     f"nutrivo fixtures run {__version__}")
+                else:
+                    conn.execute("set session characteristics as transaction read only")
+                    with conn.transaction():
+                        report = fr.run(fr.PgFixtureStore(conn), args.ruleset, Path(args.synth), Path(args.golden))
             finally:
                 conn.close()
             txn.set_tag("passed", report.passed)
@@ -399,6 +421,8 @@ def cmd_fixtures_run(settings: Settings, args: argparse.Namespace) -> int:
     if args.junit:
         Path(args.junit).write_text(fr.to_junit(report) + "\n", encoding="utf-8")
     print(body if args.format == "json" else fr.format_text(report))
+    if run_id:
+        print(f"nutrivo: recorded fixture run {run_id} for draft {args.draft}", file=sys.stderr)
     return 0 if report.passed else 1
 
 
@@ -472,7 +496,9 @@ def main(argv: list[str] | None = None) -> int:
     fixtures = sub.add_parser("fixtures", help="fixture commands").add_subparsers(dest="fixtures_command",
                                                                                    metavar="subcommand")
     fx_run = fixtures.add_parser("run", help="run the fixtures against a ruleset and compare with the ground truth")
-    fx_run.add_argument("--ruleset", required=True, help="the ruleset version id, e.g. 2026.11-a")
+    which_set = fx_run.add_mutually_exclusive_group(required=True)
+    which_set.add_argument("--ruleset", help="a released ruleset version id, e.g. 2026.11-a (read only)")
+    which_set.add_argument("--draft", help="an open ruleset draft id; the run is recorded for the release gate")
     fx_run.add_argument("--format", choices=("text", "json"), default="text", help="stdout format")
     fx_run.add_argument("--out", help="also write the JSON report to this file")
     fx_run.add_argument("--junit", help="also write a JUnit XML report to this file")

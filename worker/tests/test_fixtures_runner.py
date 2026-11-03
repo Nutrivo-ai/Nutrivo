@@ -8,6 +8,7 @@ import psycopg
 import pytest
 from pgtest import connect_or_skip
 
+from nutrivo_worker import __version__ as nutrivo_version
 from nutrivo_worker import cli, db
 from nutrivo_worker import fixtures_runner as fr
 
@@ -294,3 +295,91 @@ def test_pg_store_reads_members_fixtures_and_shapes_of_a_released_ruleset(pg):
             ("absent on sv", "sv", "withheld", fr.EVALUATOR_MISSING)]
         raise psycopg.Rollback()
     assert pg.execute("select count(*) as n from ref.rules where rule_key like 'TEST.T206.%'").fetchone()["n"] == 0
+
+
+# ── Drafts: the run that gates a release (K05, docs/05 §The release gate) ─────────────────────────────
+
+def test_cli_records_a_draft_run_bound_to_the_digest_it_read(cli_env, monkeypatch, capsys):
+    monkeypatch.setattr(fr, "draft_digest", lambda conn, draft: ("digest-1", 1))
+    monkeypatch.setattr(fr, "PgDraftFixtureStore",
+                        lambda conn: FakeStore([NO_EVALUATOR], [fixture("a", shape="claim_judgement")]))
+    recorded = []
+    monkeypatch.setattr(fr, "record_draft_run",
+                        lambda conn, draft, digest, report, runner: recorded.append((draft, digest, report.passed,
+                                                                                     runner)) or "run-1")
+    monkeypatch.setattr(fr, "SYNTH_DIR", cli_env[0])
+    monkeypatch.setattr(fr, "GOLDEN_DIR", cli_env[1])
+    assert cli.main(["fixtures", "run", "--draft", "2026.90-a", "--synth", str(cli_env[0]),
+                     "--golden", str(cli_env[1])]) == 1
+    assert recorded == [("2026.90-a", "digest-1", False, f"nutrivo fixtures run {nutrivo_version}")]
+    assert "recorded fixture run run-1 for draft 2026.90-a" in capsys.readouterr().err
+
+
+def test_cli_refuses_narrower_labels_for_a_recorded_draft_run(cli_env, monkeypatch, capsys):
+    synth, golden = cli_env
+    assert cli.main(["fixtures", "run", "--draft", "2026.90-a", "--synth", str(synth), "--golden", str(golden)]) == 2
+    assert "--draft runs use the repository's synthetic and golden labels" in capsys.readouterr().err
+
+
+def test_cli_takes_a_ruleset_or_a_draft_never_both(cli_env):
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["fixtures", "run", "--ruleset", RULESET, "--draft", "2026.90-a"])
+    assert exc.value.code == 2
+
+
+def test_pg_draft_store_refuses_an_unknown_or_released_draft(pg):
+    with pytest.raises(fr.UnknownRuleset, match="no open ruleset draft"):
+        fr.PgDraftFixtureStore(pg).members("2026.99-nope")
+    with pytest.raises(fr.UnknownRuleset):
+        fr.PgDraftFixtureStore(pg).members("0000.00-empty")     # released, so never a draft
+
+
+STAFF = '{"sub":"00000000-0000-4000-8209-0000000000a1","role":"authenticated","app_metadata":{"nutrivo_staff":true}}'
+
+
+def test_a_recorded_passing_draft_run_lets_staff_release_and_a_stale_one_does_not(pg):
+    """End to end on synthetic rows, rolled back: a draft run recorded by the runner is what app.release_ruleset reads."""
+    with pg.transaction():
+        pg.execute("insert into auth.users (id, email) values ('00000000-0000-4000-8209-0000000000a1','s@staff.test')")
+        person = pg.execute("insert into app.people (user_id, display_name) values"
+                            " ('00000000-0000-4000-8209-0000000000a1', 'T-209 staff') returning id").fetchone()["id"]
+        pg.execute("insert into ref.rules (rule_key, shape, domain, node_id, title)"
+                   " values ('TEST.T209.A', 'mandatory_particular', 'mandatory_particulars', 'EU', 'synthetic')")
+        pg.execute("insert into ref.rule_versions (rule_key, version, status, article_ref, source_excerpt, effect_type,"
+                   " accepted_by, accepted_at) values ('TEST.T209.A', 1, 'accepted', 'synthetic', 'synthetic',"
+                   " 'new_obligation', %s, now())", (person,))
+        for outcome in ("passed", "failed", "withheld"):
+            pg.execute("insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)"
+                       " values ('TEST.T209.A', 1, %s, '{\"panel\": {\"language\": \"sv\"}}', %s)",
+                       (f"synthetic {outcome}", outcome))
+        pg.execute("select set_config('request.jwt.claims', %s, true)", (STAFF,))
+        pg.execute("set local role authenticated")
+        pg.execute("select app.create_ruleset_draft('2026.99-t')")
+        pg.execute("select app.set_draft_member('2026.99-t', 'TEST.T209.A', 1)")
+        pg.execute("reset role")
+
+        def as_expected(f):
+            return fr.Evaluation(f.expected_outcome)
+        empty = Path("/nonexistent")
+        digest, count = fr.draft_digest(pg, "2026.99-t")
+        report = fr.run(fr.PgDraftFixtureStore(pg), "2026.99-t", empty, empty,
+                        evaluators={"mandatory_particular": as_expected})
+        assert (report.passed, report.rule_fixtures_ran, count) == (True, 3, 3)
+
+        # Recorded against an older digest: a fixture changed after the run, so the release refuses it.
+        fr.record_draft_run(pg, "2026.99-t", "stale-digest", report, "test")
+        pg.execute("set local role authenticated")
+        with pytest.raises(psycopg.Error, match="changed after the latest fixture run") as refused, pg.transaction():
+            pg.execute("select app.release_ruleset('2026.99-t')")
+        assert refused.value.sqlstate == "P0039"
+        pg.execute("reset role")
+
+        fr.record_draft_run(pg, "2026.99-t", digest, report, "test")
+        row = pg.execute("select passed, rule_fixtures_ran, summary ->> 'matched' as matched from ref.fixture_runs"
+                         " where draft_id = '2026.99-t' order by seq desc limit 1").fetchone()
+        assert (row["passed"], row["rule_fixtures_ran"], row["matched"]) == (True, 3, "3")
+        pg.execute("set local role authenticated")
+        released = pg.execute("select app.release_ruleset('2026.99-t') as r").fetchone()["r"]
+        assert released["ruleset_version"] == "2026.99-t"
+        raise psycopg.Rollback()
+    assert pg.execute("select count(*) as n from ref.rules where rule_key like 'TEST.T209.%'").fetchone()["n"] == 0

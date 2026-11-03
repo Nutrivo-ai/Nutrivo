@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(69);
+select plan(73);
 set local client_min_messages = warning;
 
 -- ─── Staff (Sam) and a non-staff member (Nina) ──────────────────────────────────────────────────────
@@ -319,6 +319,17 @@ select is((select count(*)::int from app.jobs j join ref.rule_diffs d on d.id = 
           + (select count(*)::int from app.alerts a join ref.rule_diffs d on d.id = a.rule_diff_id
              where d.effect_type = 'editorial'), 0,
           '[J02.must.2] an editorial diff queues no fan-out and creates no alert');
+
+-- ─── A release's diffs and coverage are the record: insert-only (BE-05) ─────────────────────────
+select throws_ok($$update ref.rule_diffs set effect_type = 'editorial' where ruleset_version = '2026.90-b'$$,
+                 'P0005', null, '[J02.must.2] a released diff cannot be retyped as editorial afterwards');
+select throws_ok($$delete from ref.rule_diffs where ruleset_version = '2026.90-b'$$, 'P0005', null,
+                 '[T-204] a released diff cannot be deleted');
+select throws_ok($$update ref.coverage_nodes set state = 'complete', gap_id = null where ruleset_version = '2026.90-a'$$,
+                 'P0005', null, '[T-204] BE-10: a release''s coverage cannot be edited afterwards');
+select ok(not has_table_privilege('service_role', 'ref.coverage_nodes', 'update')
+          and not has_table_privilege('service_role', 'ref.rule_diffs', 'delete'),
+          '[T-204] not even the service role may change or delete them');
 
 -- ─── Dropping a member is not decided yet (#34): refused rather than typed by guess ───────────────
 set local role authenticated;

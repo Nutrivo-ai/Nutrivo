@@ -22,7 +22,7 @@ audit_events.
 
 **Insert-only:** checks, check_findings, reports, certificates, supersessions, supplier_documents, audit_events,
 payment_events, allowance_consumptions, classifications, model_calls, share_access_log, ref.ruleset_versions,
-ref.ruleset_members, ref.term_decisions, ref.fixture_runs. Privileges are revoked and a trigger rejects UPDATE, DELETE and TRUNCATE,
+ref.ruleset_members, ref.term_decisions, ref.fixture_runs, ref.rule_diffs, ref.coverage_nodes. Privileges are revoked and a trigger rejects UPDATE, DELETE and TRUNCATE,
 including for the table owner (BE-05). Accepted `ref.rule_versions` rows are permanent (BE-08). Products have no
 delete (BE-13).
 
