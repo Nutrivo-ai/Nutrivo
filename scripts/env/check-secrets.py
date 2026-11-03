@@ -20,6 +20,8 @@ for s in secrets:
         continue
     if os.environ.get(s["name"]):
         present.append(s)
+    elif s.get("optional"):
+        continue                      # optional names (config/secrets.yaml) are never required, even with --all
     else:
         (later if s.get("from") and not a.all else missing).append(s)
 print(f"Infisical environment '{a.env}': {len(present)} required names present, {len(missing)} missing")

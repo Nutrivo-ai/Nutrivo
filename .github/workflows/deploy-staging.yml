@@ -1,6 +1,12 @@
 name: deploy-staging
+# T-010. Every merge to main whose ci run is green deploys to nutrivo-staging in the order docs/18 fixes: database,
+# Edge Functions, worker, web. Then the @smoke suite runs against the build just deployed, Sentry is told about the
+# release, and the doctor's observability round-trip runs. A failure rolls back only the parts that went live, never
+# the database (fix forward, docs/18), and opens an incident issue; later deploys wait until it is closed (docs/19).
 on:
-  push:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
 concurrency: { group: deploy-staging, cancel-in-progress: false }
@@ -8,14 +14,31 @@ permissions: { contents: read, issues: write, actions: write }
 
 jobs:
   deploy:
-    # Off until T-010: a founder sets the repository variable STAGING_DEPLOY_ENABLED=true when approving the first
-    # staging deployment (gate G7). Until then a merge to main must not run migrations against nutrivo-staging.
-    if: vars.STAGING_DEPLOY_ENABLED == 'true'
+    # Off until a founder sets the repository variable STAGING_DEPLOY_ENABLED=true when approving the first staging
+    # deployment (gate G7). Until then a merge to main must not run migrations against nutrivo-staging. A ci run that
+    # was not green on a push to main deploys nothing.
+    if: >
+      vars.STAGING_DEPLOY_ENABLED == 'true' && (github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'))
     environment: staging
     runs-on: ubuntu-24.04
     timeout-minutes: 60
+    env:
+      # The commit ci tested (workflow_run), or the dispatched one. GITHUB_SHA on workflow_run is main's newest head.
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with: { ref: "${{ github.event.workflow_run.head_sha || github.sha }}" }
+      # docs/19: a failed staging deploy holds later deploys until it is fixed. A dispatch (a founder, by hand) may
+      # deploy anyway, for example to try the fix before closing the issue.
+      - name: No open staging incident
+        id: guard
+        if: github.event_name == 'workflow_run'
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --label incident \
+            --search 'in:title "Staging deploy failed"' --json number --jq '[.[].number] | join(" #")')
+          if [ -n "$open" ]; then echo "::error::staging deploys wait until incident #$open is closed (docs/19)"; exit 1; fi
       - uses: ./.github/actions/infisical
         with:
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
@@ -31,24 +54,53 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: 22 }
       - name: Database migrations (expand/contract only)
+        id: database
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF" -p "$SUPABASE_DB_PASSWORD" && supabase db push -p "$SUPABASE_DB_PASSWORD"
       - name: Edge Functions
+        id: functions
         run: if [ -d supabase/functions ]; then supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"; fi
       - name: Worker on Render
-        run: bash scripts/deploy/render.sh "$RENDER_WORKER_SERVICE_ID" "$GITHUB_SHA"
+        id: worker
+        run: bash scripts/deploy/render.sh "$RENDER_WORKER_SERVICE_ID" "$DEPLOY_SHA"
       - name: Web on Vercel
+        id: web
         run: if [ -f apps/web/package.json ]; then bash scripts/deploy/vercel.sh staging; fi
-      - name: Smoke tests on staging
-        run: make smoke ENV=staging
-      - name: Observability round-trip and doctor
-        run: uv run --no-project --with boto3 python scripts/doctor/doctor.py --env staging
+      - name: Smoke tests on the build just deployed
+        run: |
+          pnpm --dir apps/web install --frozen-lockfile
+          pnpm --dir apps/web exec playwright install --with-deps chromium
+          # STAGING_DOMAIN when the deploy aliased it, else the deployment's own URL (.vercel-url), never a stale one
+          base="${STAGING_DOMAIN:+https://$STAGING_DOMAIN}"
+          BASE_URL="${base:-$(cat .vercel-url)}" make smoke ENV=staging
+      - name: Sentry release and deploy
+        run: |
+          export SENTRY_URL="${SENTRY_URL:-https://de.sentry.io}"   # D-17: Sentry's EU region
+          for p in "$SENTRY_PROJECT_WEB" "$SENTRY_PROJECT_WORKER"; do
+            npx --yes @sentry/cli@3.8.0 releases new -p "$p" "$DEPLOY_SHA"
+          done
+          npx --yes @sentry/cli@3.8.0 releases finalize "$DEPLOY_SHA"
+          npx --yes @sentry/cli@3.8.0 releases deploys "$DEPLOY_SHA" new -e staging
+      - name: Observability round-trip and doctor (strict)
+        run: uv run --no-project --with boto3 python scripts/doctor/doctor.py --env staging --strict
+      # Only what went live is rolled back; the database never is (docs/18). A failed rollback fails this step. A
+      # job that times out or is cancelled after a part went live is handled the same way.
       - name: Roll back
-        if: failure()
-        run: bash scripts/deploy/rollback.sh staging
+        id: rollback
+        if: (failure() || cancelled()) && (steps.worker.outcome == 'success' || steps.web.outcome == 'success')
+        run: >
+          bash scripts/deploy/rollback.sh staging
+          ${{ steps.web.outcome == 'success' && 'web' || '' }}
+          ${{ steps.worker.outcome == 'success' && 'worker' || '' }}
       - name: Incident issue for the autopilot
-        if: failure()
+        # a deploy held back by an open incident is not a new incident; a failed dispatch while one is open adds to it
+        if: (failure() || cancelled()) && steps.guard.outcome != 'failure'
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
-          url=$(gh issue create --title "Staging deploy failed at ${GITHUB_SHA::7}" --label incident,autopilot \
-            --body "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. Rolled back. Find the root cause and fix forward (docs/18-reliability.md).")
-          gh workflow run claude-autopilot.yml -f issue="${url##*/}"
+          run="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          body="Run: $run. Database: ${{ steps.database.outcome }}, functions: ${{ steps.functions.outcome }}, worker: ${{ steps.worker.outcome }}, web: ${{ steps.web.outcome }}. Rollback: ${{ steps.rollback.outcome || 'nothing went live' }} (the database is never rolled back: fix forward, docs/18-reliability.md; on staging the web is rolled back by hand until #19 decides how). Later staging deploys wait until this issue is closed."
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --label incident \
+            --search 'in:title "Staging deploy failed"' --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then gh issue comment "$open" --repo "$GITHUB_REPOSITORY" --body "Failed again at ${DEPLOY_SHA::7}. $body"; exit 0; fi
+          url=$(gh issue create --repo "$GITHUB_REPOSITORY" --title "Staging deploy failed at ${DEPLOY_SHA::7}" \
+            --label incident,autopilot --body "$body")
+          gh workflow run claude-autopilot.yml --repo "$GITHUB_REPOSITORY" -f issue="${url##*/}"
