@@ -22,6 +22,13 @@ assessed finding links to `ref.coverage_gaps` by its `gap_id`. The engine's rule
 `evaluator_*`, `model_*`) carry no `gap_id` today; the report shows them as Not assessed with "no coverage gap
 recorded" and reports them to Sentry (open on #46).
 
+**How the mobile verdict reads contracts 1, 2 and 4 (T-507).** S-MOB-003 (`/products/[product]/nodes/[node]`) takes its
+state from `app.product_nodes.display_state`, rolled up by `app.rollup_state` for a node with children (BE-15), so an
+unknown registration never reads Clear (BE-14). Clear is shown only when every market it covers has latest-job checks
+that are all clear; otherwise it is Not assessed. The answer cites the deciding finding's provenance and rule_key, or its
+`gap_id`, and pins the latest check's `ruleset_version` and `artwork_sha`. S-MOB-004 Capture reads and writes nothing:
+no RPC, job or storage path takes a pack photo or compares one with approved artwork (open on #57).
+
 ## RPCs (writes go through these; more are added per milestone in the same pattern)
 | Function | Workflow | Notes |
 |---|---|---|
