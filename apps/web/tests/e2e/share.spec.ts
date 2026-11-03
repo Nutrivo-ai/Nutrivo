@@ -6,6 +6,8 @@
 import { createHash, randomBytes } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "../../src/lib/database.types";
 import { expectLikeBaseline, type Region } from "./support/baseline";
 import { haveMail, shareLinkFromEmail } from "./support/mail";
 import { admin, haveStack, person, signIn, workspace, type Person } from "./support/people";
@@ -195,9 +197,15 @@ test.describe("share a report (I02, S-NV2-026)", () => {
     // The share answers exactly as an unknown token does: the page stops.
     expect(await openShare(token)).toEqual({ status: "unknown" });
     expect(await openShare("A".repeat(43))).toEqual({ status: "unknown" });
-    // The document still verifies, through the public route and the verify Edge Function.
-    await page.goto(`/verify/${ref}`);
-    await expect(page.getByTestId("verify-result")).toHaveAttribute("data-status", "current");
+    // The document still verifies: public.verify_reference as anon, the one function the verify Edge Function calls
+    // (contract 8). Not through /verify itself: that page allows 30 checks a minute per visitor, and every e2e test is
+    // the same visitor, so this spec leaves that budget to verify.spec.ts, which tests the page.
+    const anon = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+      auth: { persistSession: false },
+    });
+    const verified = await anon.rpc("verify_reference", { p_ref: ref });
+    expect(verified.error).toBeNull();
+    expect((verified.data as { status: string }).status).toBe("current");
     expect(errors).toEqual([]);
   });
 
@@ -218,6 +226,8 @@ test.describe("share a report (I02, S-NV2-026)", () => {
     expect(hrefs).toEqual(expect.arrayContaining([`/verify/${ref}`, `/w/${ws}/billing/plans`]));
     for (const href of new Set(hrefs)) {
       expect(href).toMatch(/^\//);
+      // The verification link is checked by its address only, to spare /verify's per-visitor budget (see above).
+      if (href === `/verify/${ref}`) continue;
       const response = await page.request.get(href!, { maxRedirects: 0 });
       expect(response.status(), href!).toBeLessThan(400);
     }
