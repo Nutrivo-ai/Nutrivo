@@ -5,10 +5,9 @@
 // The demo stays honest: the local stack releases only the empty baseline ruleset 0000.00-empty, so every market and
 // every finding reads Not assessed with its coverage gap, and nothing anywhere reads Clear (CLAUDE.md 3).
 //
-// Three steps have no control in the web on main yet; the journey drives them the way their own tests do and names the
+// Two steps have no control in the web on main yet; the journey drives them the way their own tests do and names the
 // gap (plan on #49):
 //   - the product and its markets: written as the service role, as upload.spec does (T-401, #164);
-//   - starting the check: app.request_check, signed in as the editor, as report.spec does (no web control yet);
 //   - the report PDF: the `report` job enqueued directly, acting as the editor, as T-405 decided on #47 (the producer
 //     app.request_report and the download button are not written yet).
 //
@@ -170,10 +169,13 @@ test.describe("@demo @local-only the demo path", () => {
     await expect(page.locator('tr[data-panel][data-panel-status="extracted"]')).toHaveCount(3);
     await axe(page);
 
-    // 3 · Run the check. Gap: no web control starts a check yet, so the editor calls the RPC the control will call.
-    const started = await editor.db.schema("app").rpc("request_check", { p_product: productId });
-    if (started.error) throw started.error;
-    const checkJob = started.data as string;
+    // 3 · Run the check, from Upload & scope's closing bar (T-505), which calls app.request_check.
+    await page.getByRole("link", { name: "← Back to upload & scope" }).click();
+    await page.locator("[data-run-check]").getByRole("button", { name: "Run the check" }).click();
+    await expect(page.locator("[data-run-check] [data-check-done]")).toBeVisible({ timeout: STEP_MS });
+    const job = await admin().schema("app").from("product_nodes").select("last_check_job_id").eq("product_id", productId).limit(1).single();
+    if (job.error) throw job.error;
+    const checkJob = job.data.last_check_job_id as string;
     await finished(checkJob);
     const checks = await expectNothingClear(productId, checkJob);
 

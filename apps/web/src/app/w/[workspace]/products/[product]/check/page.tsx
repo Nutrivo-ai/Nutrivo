@@ -5,7 +5,9 @@ import * as Sentry from "@sentry/nextjs";
 import { AllowanceCounter, FourthLabel, LastLabelPanel } from "@/components/products/Allowance";
 import { ProductSetup } from "@/components/products/ProductSetup";
 import { Screen } from "@/components/shell";
-import { readLatestArtwork, type ArtworkSummary } from "@/lib/artwork/queries";
+import { RunCheck } from "@/components/checks/RunCheck";
+import { readLatestArtwork, readPanels, type ArtworkSummary } from "@/lib/artwork/queries";
+import { readiness } from "@/lib/checks/run";
 import { readClassification } from "@/lib/classification/queries";
 import { readAddProductData, readAllowance, readProductDetail } from "@/lib/products/queries";
 import { allowanceMoment } from "@/lib/products/rules";
@@ -16,7 +18,8 @@ import { createClient } from "@/lib/supabase/server";
 // C04), and the free allowance's moments (B02): the header counter from the second label, one panel when one is left
 // (S-PLN-004), and the fourth-label card when all are used and this product has no artwork yet (S-PLN-005); a product
 // already checked keeps its free re-checks and revisions. T-402: "3 · Which rulebook applies", the classification (D03).
-// Running the check is T-403's.
+// T-505 (D08): the closing bar runs the check through app.request_check; a revision is uploaded in "1 · What you
+// have" and re-checked here, free, while the earlier checks stay as they were.
 export default async function Page({ params }: PageProps<"/w/[workspace]/products/[product]/check">) {
   const { workspace, product: productId } = await params;
   const db = await createClient();
@@ -25,6 +28,7 @@ export default async function Page({ params }: PageProps<"/w/[workspace]/product
     ? await Promise.all([readLatestArtwork(db, product.id), readAllowance(db, workspace), readAddProductData(db, workspace)])
     : [null, null, null];
   const classification = product ? await classificationState(db, product.id, latest) : null;
+  const languages = await printedLanguages(db, latest);
   const moment = allowanceMoment(allowance, Boolean(latest));
   const spent = moment.kind === "spent" && !moment.hasArtwork;
   return (
@@ -71,6 +75,15 @@ export default async function Page({ params }: PageProps<"/w/[workspace]/product
               </div>
             ) : null}
           </div>
+          {spent ? null : (
+            <RunCheck
+              workspaceId={workspace}
+              productId={product.id}
+              markets={product.nodes.length}
+              languages={languages}
+              readiness={readiness({ run: latest?.run, hasArtwork: latest !== null, markets: product.nodes.length })}
+            />
+          )}
         </div>
       ) : (
         <ProductNotFound workspaceId={workspace} />
@@ -94,4 +107,11 @@ async function classificationState(
   // The suggestion follows the extraction in the same job: while the latest artwork is still being read, it is coming.
   const reading = latest !== null && (latest.run === null || latest.run.status === "queued" || latest.run.status === "running");
   return reading ? { kind: "loading" } : { kind: "empty" };
+}
+
+/** How many printed languages the latest artwork's extracted panels carry: the bar's "× N languages". */
+async function printedLanguages(db: Awaited<ReturnType<typeof createClient>>, latest: ArtworkSummary | null): Promise<number> {
+  if (!latest?.run || (latest.run.status !== "succeeded" && latest.run.status !== "partial")) return 0;
+  const panels = await readPanels(db, latest.run.id);
+  return new Set(panels.filter((p) => p.status === "extracted" && p.language).map((p) => p.language)).size;
 }

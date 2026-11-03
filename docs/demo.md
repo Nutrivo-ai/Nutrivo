@@ -30,12 +30,12 @@ rows or screens to make the demo look greener. The point to make on stage is thi
 | Product and its markets | No screen yet | T-401 (#164) adds products. A product's markets are set by the demo seed or the test. |
 | Upload → extraction | Upload & scope, then "What ran, per panel" (T-303) | — |
 | Classification | — | T-402 (#162). Checks run without it today. |
-| Run the check | **No control** | `app.request_check` exists, but no button calls it. A web task is proposed on #49. |
+| Run the check | Upload & scope's closing bar, "Run the check" (T-505), then "Open the report" | — |
 | Label report | The label report screen (T-404) | — |
 | Report PDF | **No producer and no download button** | The worker job exists (T-405). `app.request_report` (db) and the download button (web) are proposed on #47 and #49. |
 | Public verification | `/verify/<ref>` through the `verify` function (T-406) | — |
 
-Until the two bold gaps close, use **Option A** on stage. Option B needs an operator at a second terminal.
+Until the bold gap closes, use **Option A** on stage. Option B needs an operator at a second terminal.
 
 ## Running it
 
@@ -82,14 +82,11 @@ make db-reset && supabase/seed/demo/load.sh
 Start the worker and the web app as in Option A. Then sign in at http://localhost:3000 as Johanna Holm
 (`j.holm@haldenpet.example`), with the magic link from Mailpit.
 
-The operator's two commands stand in for the missing controls. They act as Johanna Holm, so the permission checks
+The operator's command stands in for the missing control (the check itself now runs from "Run the check"). They act as Johanna Holm, so the permission checks
 and the audit log see her.
 ```sh
 DB=postgresql://postgres:postgres@127.0.0.1:54322/postgres
 HOLM='{"sub":"da7a0002-0000-4000-8000-000000000001","role":"authenticated"}'
-# Run the check on Salmon & Rice Adult Dry 12 kg (the stand-in for the missing "Run check" control):
-psql "$DB" -Atq -c "begin; select set_config('request.jwt.claims', '$HOLM', true);
-  select app.request_check('da7a0004-0000-4000-8000-000000004471'); commit;"
 # Issue the report PDF for Germany's German panel of the latest check (the stand-in for request_report):
 CHECK=$(psql "$DB" -Atc "select id from app.checks where product_id = 'da7a0004-0000-4000-8000-000000004471'
   and node_id = 'EU-DE' and language = 'de' order by at desc limit 1")
@@ -108,10 +105,10 @@ The PDF is in Storage's `reports` bucket at that path. Open it from Studio at ht
 | 0:00 | Upload & scope for Salmon & Rice, "Not uploaded" | "This is a dry dog food sold in Germany and Sweden. Its print artwork has three language panels." |
 | 0:30 | Choose the print PDF; the card runs to **Complete** | "Nutrivo reads the print-ready file itself, panel by panel, from the vector text. Nobody retypes the label." |
 | 1:00 | "What ran, per panel": three panels, English, Swedish and German, each extracted | "Every language panel is its own thing. A claim is judged on the words printed in that language, never on English translated afterwards." |
-| 1:30 | The check runs (Option B: the operator's first command) | "Now we check each panel against each market's rules." |
+| 1:30 | The check runs ("Run the check" on Upload & scope) | "Now we check each panel against each market's rules." |
 | 1:45 | The label report: one tab per market × panel, every tile **Not assessed** | "And here is the honest part. We have not released a ruleset yet, so Nutrivo says *not assessed* for every domain, not *clear*. No rule, no verdict." |
 | 2:30 | Open a Not assessed finding, then its gap link | "Every item it could not assess names the exact gap: this market, this domain, not encoded yet. That gap list is our content roadmap." |
-| 3:15 | The report PDF (Option B: the operator's second command) | "The report is a document a buyer or an authority can keep. It is pinned to a ruleset version and to the artwork's hash, with a reference." |
+| 3:15 | The report PDF (Option B: the operator's command) | "The report is a document a buyer or an authority can keep. It is pinned to a ruleset version and to the artwork's hash, with a reference." |
 | 3:45 | The PDF's section 05, "What was not assessed" | "This section is always there, even when it is empty. Silence is never a pass." |
 | 4:15 | A private window, `/verify/<reference>`: **current** | "Anyone with the reference can check that Nutrivo issued it, with no account. That keeps working even if the customer stops paying." |
 | 4:45 | — | "When the founders accept the first EU rules, the same path turns those gaps into findings, with the rule and its legal basis behind every one." |
