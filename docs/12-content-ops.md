@@ -38,6 +38,8 @@ Source watch (J01, T-207):
 - Both extractions agree, or the accepting person resolved the difference against the text.
 - Parameters and units are exactly what the text says; the article reference is exact to the paragraph.
 - Applicability (species, product class, life stage, market) matches the text, no wider and no narrower.
+- Term links (D-31): every term key the rule names is an accepted register entry for what the text requires, with an
+  accepted entry in each language of the nodes it holds on. The choice of `scope` and `match` follows the text.
 - Dates: effective_from and any sell-through period are set where the act gives them.
 - Fixtures exist for passed, failed and withheld, and pass.
 
@@ -167,7 +169,8 @@ target × source. It never writes a rule.
 Staff (`app_metadata.nutrivo_staff`) act through RPCs; each needs the caller's person record and is audited.
 - **Accept a candidate** with `app.accept_candidate`, choosing the key checked against the text. The version takes
   that extraction's params, article reference and excerpt unchanged; the person adds title, shape, domain and node
-  (new rule keys only), applicability, the effect of the change and its dates. A candidate is refused until its
+  (new rule keys only), applicability, the effect of the change and its dates, and the term links (D-31; from T-209).
+  A rule accepted without links is withheld until it is re-linked as a new editorial version. A candidate is refused until its
   second key has run, and a key that is not verbatim is refused.
 - **Terms** are accepted or rejected with `app.decide_term`, only from the stored official text in the term's own
   language.
