@@ -35,7 +35,7 @@ insert into app.products (id, workspace_id, family_id, name) values
 insert into app.reports (id, workspace_id, product_id, node_id, ref, check_ids, ruleset_version, artwork_sha, has_not_assessed, pdf_path) values
   ('50000000-0000-4000-8601-00000000000a','20000000-0000-4000-8601-00000000000a','40000000-0000-4000-8601-00000000000a','EU-SE',
    'nv-t601-reference-000000000a','{}','0000.00-empty','sha-t601-a',true,
-   'reports/20000000-0000-4000-8601-00000000000a/40000000-0000-4000-8601-00000000000a/nv-t601-reference-000000000a.pdf'),
+   '20000000-0000-4000-8601-00000000000a/40000000-0000-4000-8601-00000000000a/nv-t601-reference-000000000a.pdf'),
   ('50000000-0000-4000-8601-00000000000b','20000000-0000-4000-8601-00000000000b','40000000-0000-4000-8601-00000000000b','EU-SE',
    'nv-t601-reference-000000000b','{}','0000.00-empty','sha-t601-b',false,null);
 
@@ -106,7 +106,7 @@ select ok(pg_temp.v('open1') ->> 'status' = 'open'
           and pg_temp.v('open1') ->> 'ruleset_version' = '0000.00-empty'
           and pg_temp.v('open1') ->> 'artwork_sha' = 'sha-t601-a'
           and (pg_temp.v('open1') ->> 'has_not_assessed')::boolean
-          and pg_temp.v('open1') ->> 'pdf_path' like 'reports/20000000-0000-4000-8601-00000000000a/%',
+          and pg_temp.v('open1') ->> 'pdf_path' like '20000000-0000-4000-8601-00000000000a/%',
           '[I02.main] the share page opens the report''s face facts and its stored PDF');
 select is((select array_agg(k order by k) from jsonb_object_keys(pg_temp.v('open1')) k),
           array['artwork_sha','expires_at','has_not_assessed','issued_at','node_id','pdf_path','product_name','ref',
