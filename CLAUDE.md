@@ -7,7 +7,8 @@ every result. The product is honest by construction: no rule, no verdict.
 ## Stack
 - Supabase in eu-central-1 (Frankfurt): Postgres schemas `app` (tenant data, RLS), `ref` (shared reference data),
   `private` (helpers, never exposed), `public` (only `verify_reference` and `coverage_snapshot`); Auth with TOTP MFA;
-  Storage; Realtime; Queues (pgmq); pg_cron. Edge Functions only for `verify`, `supplier-upload`, `stripe-webhook`.
+  Storage; Realtime; Queues (pgmq); pg_cron. Edge Functions only for `verify`, `share` (D-30), `supplier-upload`,
+  `stripe-webhook`.
 - `apps/web`: Next.js App Router, TypeScript, Tailwind, @supabase/ssr. Reads under RLS; writes only through RPCs.
 - `worker/`: Python 3.12 with uv, one container. Consumes pgmq: extraction, rule evaluation, model calls, report
   PDFs, email, exports, content scripts.
