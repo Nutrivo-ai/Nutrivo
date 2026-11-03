@@ -11,8 +11,19 @@ Stripe Billing and Stripe Tax are the source of truth (D-18). Postgres mirrors w
 | Advanced | from €999 | All three | No seat check |
 | Partner (after launch) | €1,499 per 10 client workspaces | — | N01 |
 
-Recipes included and seats per plan: take the figures from `design/build/Nutrivo Pricing - Priced Ladder.dc.html`
-(authoritative for figures; its Free row is stale). Dials: recipes (families, not pack codes), regions sold whole,
+Recipes, seats and add-ons per plan (D-03, copied from the Priced Ladder on 3 Nov 2026; `config/pricing.ts` holds the
+same figures):
+
+| Plan | Recipes | Editor seats | Yearly | Add-ons (month / year) |
+|---|---|---|---|---|
+| Free | no limit within the three-artwork allowance | no seat check (D-21) | — | — |
+| Basic | 10 | 3 | €2,490 | recipe €15 / €150 · editor €50 / €500 |
+| Standard | 30 | 5 | €4,990 | region €199 / €1,990 · recipe €12 / €120 · editor €50 / €500 |
+| Advanced | no limit | no seat check | from €9,990 | — |
+
+**Regions at launch (D-03, 3 Nov 2026).** Only the EU region exists. Every plan shows the EU; Standard and Advanced
+say that more regions are added as they launch (UK first, planned Q1 2027). The region add-on cannot be bought until a
+second region is released. Prices do not change. Dials: recipes (families, not pack codes), regions sold whole,
 editor seats only (viewers free, external editors count). Never metered: checks and re-checks, language-correct
 checking, the four states, provenance, coverage links, named registration obligations, reading your own answer,
 viewer seats, supplier upload links, data export.
