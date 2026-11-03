@@ -74,6 +74,19 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
 | Workspace Settings, Plans and Checkout, Billing Settings | Settings and billing routes | T-107, T-108, T-703 |
 | Partner Tier, Partner Upsell | After launch (N01, N03) | — |
 
+### Built in T-507: the mobile reading views (`apps/web/src/components/mobile`)
+- **S-MOB-003 The verdict** at `/w/[workspace]/products/[product]/nodes/[node]`, in the phone's three blocks: the state
+  with its glyph, *What to do* with one link (the registration pack, the label report, the coverage gap or Upload &
+  scope), and *Where this came from* (provenance with the rule or gap, and the pinned ruleset and artwork hash). A
+  parent node names the child that sets its roll-up. It renders at every width; the desktop Product × node layout
+  (S-NV2-007) is T-504's.
+- **S-MOB-004 Capture** at `/w/[workspace]/capture`: the framing guidance and what a photograph is for, and a statement
+  that capture is not available yet. No endpoint takes a pack photo, so it has no Capture control (#57 question 1).
+  S-MOB-005 Read back waits for the same answer.
+- **Tests** (`tests/e2e/mobile.spec.ts`, at 390 px): every state, axe, 44 px targets, no horizontal scroll, the
+  no-dead-controls crawl, and the width-independent regions of the S-MOB-003 and S-MOB-004 baselines (the state label,
+  kickers and the capture title) until spec/screens.yaml Q2 settles how a 390 px route compares with a 284 px phone.
+
 ## 6 · Performance
 Lighthouse budgets on the public pages (LCP under 2.5 s); a 1.5 s budget for the board with 300 recipes
 (spec/nfr.yaml).
