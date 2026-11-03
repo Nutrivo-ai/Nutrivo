@@ -9,7 +9,6 @@ import { createClient } from "@/lib/supabase/server";
 // S-NV2-021 Coverage node (spec/screens.yaml; design: product/Nutrivo 2.0.dc.html, screen "cov"). D09 and D07.must.2:
 // every Not assessed finding links here, to the gap by its id. ?ruleset= reads the node at a pinned ruleset (from a
 // product's coverage); otherwise the latest release, the same rows as the public page (BE-10).
-const ROUTE = "/w/[workspace]/library/coverage/[node]";
 
 export default async function Page({ params, searchParams }: PageProps<"/w/[workspace]/library/coverage/[node]">) {
   const { workspace, node } = await params;
@@ -20,7 +19,7 @@ export default async function Page({ params, searchParams }: PageProps<"/w/[work
   );
   if (page.kind === "not-found") {
     return (
-      <Screen route={ROUTE}>
+      <Screen route="/w/[workspace]/library/coverage/[node]">
         <div className="max-w-[640px]">
           <EmptyState
             where="COVERAGE · NODE"
@@ -33,7 +32,7 @@ export default async function Page({ params, searchParams }: PageProps<"/w/[work
     );
   }
   return (
-    <Screen route={ROUTE} crumb="Library · coverage" title={`${page.row.name}: what is encoded`} aside={<RulesetChip version={page.row.rulesetVersion} current={page.row.rulesetVersion === page.latest} />}>
+    <Screen route="/w/[workspace]/library/coverage/[node]" crumb="Library · coverage" title={`${page.row.name}: what is encoded`} aside={<RulesetChip version={page.row.rulesetVersion} current={page.row.rulesetVersion === page.latest} />}>
       <CoverageNode row={page.row} />
     </Screen>
   );

@@ -10,7 +10,6 @@ import { createClient } from "@/lib/supabase/server";
 // with ?product=, that product's markets at the ruleset each was last checked against; without, every node at the
 // latest release. Both read the rows public.coverage_snapshot() publishes (BE-10). A read failure goes to the
 // workspace error boundary, and loading.tsx covers the wait.
-const ROUTE = "/w/[workspace]/library/coverage";
 
 export default async function Page({ params, searchParams }: PageProps<"/w/[workspace]/library/coverage">) {
   const { workspace } = await params;
@@ -20,14 +19,14 @@ export default async function Page({ params, searchParams }: PageProps<"/w/[work
   const page = await Sentry.startSpan({ name: "coverage.read", op: "db.read" }, () => readLibraryCoverage(db, workspace, productId));
   if (page.kind === "not-found") {
     return (
-      <Screen route={ROUTE}>
+      <Screen route="/w/[workspace]/library/coverage">
         <ProductNotFound workspaceId={workspace} />
       </Screen>
     );
   }
   return (
     <Screen
-      route={ROUTE}
+      route="/w/[workspace]/library/coverage"
       crumb={page.product ? `Library · coverage & confidence · ${page.product.name}` : "Library · coverage & confidence"}
       title={page.product ? `What is encoded for ${page.product.name}` : "What is encoded, and what is not"}
       aside={<RulesetChip version={page.latest} current />}
