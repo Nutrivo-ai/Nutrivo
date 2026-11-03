@@ -2,7 +2,8 @@
 // email, sees and revokes the shares, and downloads the PDF; revoking stops the share and never the verification of the
 // document. A report is seeded as the worker writes it (T-405), its PDF in the reports bucket. The recipient's page
 // /share/<token> waits on question 1 of #58, so the share's own answer is read from app.open_share as the service
-// role here (test setup only), the way that page will read it.
+// role here (test setup only), the way that page will read it. Until that page exists the screen makes no share
+// (orchestrator decision on the T-601 pull request), so the tests make shares through app.create_share as the editor.
 import { createHash, randomBytes } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
@@ -62,6 +63,9 @@ async function openShare(token: string) {
   return data as Record<string, unknown>;
 }
 
+/** A link share made the way the screen will make it once the recipient page exists: app.create_share as the editor. */
+let createLink: () => Promise<string>;
+
 // The free-labels panel and the "Send it" heading row, where the design draws them at 1600 px. The rest of the left
 // column is wider than the design's, which draws the Compliance Worker panel beside it (out of scope, #24).
 const S_NV2_026: Record<string, Region> = {
@@ -110,6 +114,13 @@ test.describe("share a report (I02, S-NV2-026)", () => {
       .single();
     if (report.error) throw report.error;
     reportId = report.data.id;
+    createLink = async () => {
+      const made = await ed.db.schema("app").rpc("create_share", { p_report: reportId, p_channel: "link", p_expires_in_days: 30 });
+      if (made.error) throw made.error;
+      const token = (made.data as { token: string }).token;
+      expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      return token;
+    };
   });
 
   test("[I02.main] Share a report: the main path works end to end", async ({ page, context, baseURL }) => {
@@ -126,42 +137,45 @@ test.describe("share a report (I02, S-NV2-026)", () => {
     await expectLikeBaseline(page, s.getByRole("region", { name: "On your three free labels" }), "S-NV2-026", S_NV2_026.freePanel, maxDiffPixelRatio);
     await expectLikeBaseline(page, s.getByRole("heading", { name: "Send it" }).locator(".."), "S-NV2-026", S_NV2_026.sendHeading, maxDiffPixelRatio);
 
-    // Share by link: the URL is shown once; only its SHA-256 is stored; the share opens the report and is logged.
-    await s.getByRole("button", { name: "Create a link" }).click();
-    const field = s.getByLabel("Share link");
-    await expect(field).toBeVisible();
-    const link = await field.inputValue();
-    const token = /\/share\/([A-Za-z0-9_-]{43})$/.exec(link)?.[1];
-    expect(token, link).toBeTruthy();
+    // The screen makes no share until the recipient page exists (#58 Q1, follow-up issue): Email and Share by link
+    // say so instead of offering a control.
+    await expect(s.locator("[data-not-yet]")).toHaveCount(2);
+    await expect(s.getByRole("button", { name: /Create a link|^Send$/ })).toHaveCount(0);
+
+    // Share by link through app.create_share under the editor's own session: the token comes back once; only its
+    // SHA-256 is stored; the share opens the report and is logged; the screen lists it.
+    const token = await createLink();
     const { data: rows } = await admin().schema("app").from("shares").select("id, token_hash, channel, expires_at").eq("report_id", reportId);
     expect(rows).toHaveLength(1);
     expect(rows![0].channel).toBe("link");
-    expect(String(rows![0].token_hash).replace(/^\\x/, "")).toBe(sha256(token!));
+    expect(String(rows![0].token_hash).replace(/^\\x/, "")).toBe(sha256(token));
     expect(Date.parse(rows![0].expires_at!) - Date.now()).toBeGreaterThan(29 * 86_400_000);
-    const opened = await openShare(token!);
+    const opened = await openShare(token);
     expect(opened).toMatchObject({ status: "open", ref, product_name: "Salmon & Rice Adult 12 kg", has_not_assessed: true });
     const { data: log } = await admin().schema("app").from("share_access_log").select("share_id").eq("share_id", rows![0].id);
     expect(log).toHaveLength(1);
+    await openSend(page, url(), "loaded");
     await expect(s.locator(`[data-share="${rows![0].id}"]`)).toHaveAttribute("data-share-status", "live");
 
-    // Email: the notify job holds ids only, and the worker emails Template 01 with its own token.
+    // Email, with no expiry: the notify job holds ids only, and the worker emails Template 01 with its own token.
     const recipient = `buyer-${randomBytes(4).toString("hex")}@example.test`;
-    await s.getByLabel("Expires").selectOption("never");
-    await s.getByLabel("Recipient email").fill(recipient);
-    await s.getByRole("button", { name: "Send", exact: true }).click();
-    await expect(s.getByText(`Queued for ${recipient}.`)).toBeVisible();
-    await expect(s.locator("li[data-share]").filter({ hasText: recipient })).toContainText("NO EXPIRY");
-    const { data: mailed } = await admin().schema("app").from("shares").select("id, expires_at").eq("report_id", reportId).eq("channel", "email").single();
-    expect(mailed!.expires_at).toBeNull();
-    const { data: jobs } = await admin().schema("app").from("jobs").select("payload").eq("idempotency_key", `share:${mailed!.id}`);
+    const emailed = await ed.db.schema("app").rpc("create_share", {
+      p_report: reportId, p_channel: "email", p_recipient: recipient, p_expires_in_days: null as unknown as number,
+    });
+    expect(emailed.error).toBeNull();
+    const mailedId = (emailed.data as { share_id: string }).share_id;
+    expect((await share(mailedId)).expires_at).toBeNull();
+    const { data: jobs } = await admin().schema("app").from("jobs").select("payload").eq("idempotency_key", `share:${mailedId}`);
     expect(jobs).toHaveLength(1);
-    expect(Object.keys(jobs![0].payload as object).sort()).toEqual(["request_id", "share_id", "template"]);
+    expect(Object.keys(jobs![0].payload as object).sort()).toEqual(["share_id", "template"]);
     if (haveMail()) {
       const path = await shareLinkFromEmail(recipient);
-      const emailed = path.split("/").pop()!;
-      expect((await share(mailed!.id)).token_hash.replace(/^\\x/, "")).toBe(sha256(emailed));
-      expect(await openShare(emailed)).toMatchObject({ status: "open", ref });
+      const mailedToken = path.split("/").pop()!;
+      expect((await share(mailedId)).token_hash.replace(/^\\x/, "")).toBe(sha256(mailedToken));
+      expect(await openShare(mailedToken)).toMatchObject({ status: "open", ref });
     }
+    await openSend(page, url(), "loaded");
+    await expect(s.locator("li[data-share]").filter({ hasText: recipient })).toContainText("NO EXPIRY");
 
     // Export: the stored PDF downloads under the editor's own session.
     const download = page.waitForEvent("download");
@@ -178,9 +192,9 @@ test.describe("share a report (I02, S-NV2-026)", () => {
     const errors = watch(page);
     await openSend(page, url(), "loaded");
     const s = screen(page);
-    await s.getByRole("button", { name: "Create a link" }).click();
-    const token = /\/share\/([A-Za-z0-9_-]{43})$/.exec(await s.getByLabel("Share link").inputValue())![1];
+    const token = await createLink();
     expect(await openShare(token)).toMatchObject({ status: "open" });
+    await openSend(page, url(), "loaded");
     const { data } = await admin().schema("app").from("shares").select("id").eq("token_hash", `\\x${sha256(token)}`).single();
     const row = s.locator(`li[data-share="${data!.id}"]`);
     await expect(row).toHaveAttribute("data-share-status", "live");
@@ -231,9 +245,9 @@ test.describe("share a report (I02, S-NV2-026)", () => {
       const response = await page.request.get(href!, { maxRedirects: 0 });
       expect(response.status(), href!).toBeLessThan(400);
     }
-    await s.getByLabel("Recipient email").fill("not an address");
-    await s.getByRole("button", { name: "Send", exact: true }).click();
-    await expect(s.getByRole("alert")).toHaveText("Enter one email address.");
+    // Its buttons: Download the PDF (tested in I02.main) and Revoke, each behind its own flow; nothing else.
+    const buttons = await s.getByRole("button").filter({ visible: true }).allInnerTexts();
+    for (const b of buttons) expect(b).toMatch(/^(Download the PDF|Revoke[\s\S]*)$/);
     expect(errors).toEqual([]);
 
     await context.clearCookies();

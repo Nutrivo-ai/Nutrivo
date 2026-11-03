@@ -1,14 +1,13 @@
 "use server";
 
-// I02 (T-601): share a report by link or email, revoke a share, and download the report's PDF. Everything runs under
-// the person's own session: writes through app.create_share and app.revoke_share, the PDF through Storage, whose reports
-// policy lets members read their workspace's folder. Nothing here uses the service role. A link's token comes back once
-// from create_share and goes straight to the person's browser; it is never logged, stored or sent to Sentry.
+// I02 (T-601): revoke a share and download the report's PDF, under the person's own session: the revoke through
+// app.revoke_share, the PDF through Storage, whose reports policy lets members read their workspace's folder. Nothing
+// here uses the service role. Creating a share (app.create_share) is not offered on the screen until the recipient page
+// exists (#58 Q1, follow-up issue).
 import * as Sentry from "@sentry/nextjs";
 import { headers } from "next/headers";
 import { REQUEST_ID_HEADER, resolveRequestId } from "@/lib/observability/request-id";
 import { createClient } from "@/lib/supabase/server";
-import { EXPIRY_CHOICES } from "./model";
 
 export type ShareRefusal = "no-permission" | "invalid" | "not-available" | "error";
 export type ShareResult<T> = { ok: true; value: T } | { ok: false; reason: ShareRefusal };
@@ -30,54 +29,6 @@ function refusal(what: string, error: { code?: string }): { ok: false; reason: S
   const reason = (error.code && CODES[error.code]) || "error";
   if (reason === "error") Sentry.captureException(new Error(`${what} failed: ${error.code ?? "error"}`));
   return { ok: false, reason };
-}
-
-/** A link share: returns the token once, for the browser to show and copy. */
-export async function createLinkShare(
-  reportId: string,
-  expiresInDays: number | null,
-): Promise<ShareResult<{ shareId: string; token: string }>> {
-  if (!UUID.test(reportId) || !EXPIRY_CHOICES.some((c) => c.days === expiresInDays)) return { ok: false, reason: "invalid" };
-  return withRequest("share.create_link", async (requestId) => {
-    const db = await createClient();
-    const { data, error } = await db.schema("app").rpc("create_share", {
-      p_report: reportId,
-      p_channel: "link",
-      // A null expiry means none; the generated types cannot say an argument is nullable.
-      p_expires_in_days: expiresInDays as number,
-      p_request_id: requestId,
-    });
-    if (error) return refusal("create_share", error);
-    const out = data as { share_id?: string; token?: string } | null;
-    if (!out?.share_id || !out.token) {
-      Sentry.captureException(new Error("create_share returned no token for a link"));
-      return { ok: false, reason: "error" } as const;
-    }
-    return { ok: true, value: { shareId: out.share_id, token: out.token } } as const;
-  });
-}
-
-/** An email share: the notify job (Template 01) mints and emails the token; nothing comes back here. */
-export async function createEmailShare(
-  reportId: string,
-  recipient: string,
-  expiresInDays: number | null,
-): Promise<ShareResult<{ shareId: string }>> {
-  if (!UUID.test(reportId) || typeof recipient !== "string" || recipient.length > 254) return { ok: false, reason: "invalid" };
-  if (!EXPIRY_CHOICES.some((c) => c.days === expiresInDays)) return { ok: false, reason: "invalid" };
-  return withRequest("share.create_email", async (requestId) => {
-    const db = await createClient();
-    const { data, error } = await db.schema("app").rpc("create_share", {
-      p_report: reportId,
-      p_channel: "email",
-      p_recipient: recipient,
-      p_expires_in_days: expiresInDays as number,
-      p_request_id: requestId,
-    });
-    if (error) return refusal("create_share", error);
-    const out = data as { share_id?: string } | null;
-    return { ok: true, value: { shareId: String(out?.share_id ?? "") } } as const;
-  });
 }
 
 export async function revokeShare(shareId: string): Promise<ShareResult<string>> {
