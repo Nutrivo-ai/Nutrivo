@@ -117,6 +117,46 @@ The table has a few exceptions:
   3. Otherwise the mirrored customer.
 - An event whose workspace cannot be found stays stored, and its job fails visibly.
 
+### How the web runs it (T-703)
+Decided on #64 (abnutrivo, 3 Nov 2026). Stripe is where billing lives (D-18). The web server calls it from Server
+Actions and server components (`apps/web/src/lib/billing`) with `STRIPE_SECRET_KEY` (config/secrets.yaml, "web
+server"). Outside prod only a `sk_test_`/`rk_test_` key is accepted and a live-mode answer aborts; only there may
+`STRIPE_API_BASE` point the calls elsewhere (the e2e run's fake Stripe, `apps/web/tests/fake-stripe`). No Stripe
+object is written to Postgres by the web: everything comes back through `stripe-webhook` (T-702).
+
+1. **The context.** Every billing page and action first calls `app.billing_context(p_ws)` under the person's session.
+   Only an internal admin of the whole workspace passes; anyone else sees the no-permission state. The workspace id
+   and the mirrored customer come from it, never from the request.
+2. **The customer.** The mirrored `stripe_customer_id` wins. Before the first subscription it is the Stripe customer
+   whose `metadata.workspace_id` is the workspace (customer search), or one created with that metadata under the
+   idempotency key `nutrivo-customer-<workspace>`. A customer whose metadata names another workspace is never used.
+3. **Plan picker (S-PLN-001).** `app.live_billable_counts` on every request (nothing is `"use cache"`). The recommended
+   plan is the smallest that holds the recipes, editor seats and regions within what it includes; overage is for
+   growing mid-term, so a workspace that outgrows a plan is offered the next one (BE-34). Advanced is quoted ("Talk
+   to us"). With only the EU released, the region add-on is not offered (D-03).
+4. **Checkout (S-PLN-002, then Stripe).** The review step shows the order net, with the exact VAT from
+   `POST /v1/invoices/create_preview` when the customer already has an address, else "added at payment". It may set
+   a PO reference (invoice custom field `PO reference`, at most 30 characters). Then a Checkout Session as the
+   contract above says, with the plan price found by lookup key, `automatic_tax`, `tax_id_collection`,
+   `billing_address_collection: required` and `customer_update {address, name: auto}`. It returns to S-PLN-003 with
+   the session id. A workspace with a live subscription is refused a second Checkout and changes plan in the portal.
+5. **Customer portal (M05).** One configuration, found by `metadata.nutrivo = portal-v1` or created once: address,
+   name, VAT number and email updates; invoice history; payment methods; plan switches between Basic and Standard,
+   with a downgrade or a shorter term waiting for the period's end; cancellation at the period's end with no reason
+   asked. Plan and allowance opens it at `subscription_update` or `subscription_cancel`, Payment method at
+   `payment_method_update`; it returns to the screen it came from.
+6. **Invoices (S-BIL-002, S-PLN-003).** Read from the stored `invoice.paid` and `invoice.payment_failed` events
+   (admins only), one row per Stripe invoice: net subtotal, the VAT Stripe Tax charged (`total_taxes`, or
+   `total_tax_amounts` on older API versions) and the treatment. The reverse charge is shown where Stripe applied it
+   (`customer_tax_exempt: reverse` or a `reverse_charge` taxability reason). Checkout's return waits for the
+   invoice event rather than drawing an invoice it does not have.
+7. **Billing details and card (S-BIL-004, S-BIL-003).** Read from the Stripe customer at request time and saved to it:
+   legal name, address, VAT number (`eu_vat` for the EU, `gb_vat`, `no_vat`, `ch_vat`; Stripe checks it against
+   VIES and the screen shows Stripe's verification status), company ID (customer metadata), PO reference and the
+   finance address (the customer email, which Stripe sends invoices to). Cards are never stored in Nutrivo.
+   `app.billing_details` stays the mirror's table and is not written by T-703; filling it from Stripe is the
+   worker's, later.
+
 ## Dunning (BE-36)
 Days 0, 3 and 7: notify and retry, no restriction. Day 14: `status = new_artwork_stopped`, which stops new artworks
 only. Nothing is ever deleted, and verification of shared documents never breaks.

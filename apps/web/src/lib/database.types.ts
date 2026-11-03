@@ -1216,6 +1216,9 @@ isOneToOne: false
 "apply_subscription":
 { Args: { "p_ref": string,"p_snapshot": Json,"p_source": string,"p_ws": string }; Returns: string
                            },
+"billing_context":
+{ Args: { "p_ws": string }; Returns: Json
+                           },
 "change_member":
 { Args: { "p_access_ends_at": string,"p_is_external": boolean,"p_membership": string,"p_role": string,"p_scope_family_ids": (string)[],"p_scope_node_ids": (string)[] }; Returns: string
                            },
