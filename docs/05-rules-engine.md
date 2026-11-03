@@ -27,14 +27,18 @@ rule is withheld with `data_missing`.**
 
 ## Evaluating one check (node × panel)
 1. Load the ruleset pinned on the job and the node's coverage rows at that ruleset.
-2. For each domain whose coverage is not complete, emit a not_assessed finding with the domain's gap_id.
+2. For each domain whose coverage is not complete, emit a not_assessed finding with the domain's gap_id. A node has six
+   domains (mandatory_particulars, composition, claims_wording, type_geometry, language, registration); a domain with no
+   coverage row is not encoded: it makes the check not_assessed but gets no finding, since there is no gap_id to name
+   and none is invented (#179 DB-1).
 3. Select member rules held on the node or its region whose applicability is true for the confirmed classification,
    the product and this panel.
 4. If the panel is not assessable, withhold every rule that reads panel text, using the panel's failure code.
 5. Run each remaining rule's evaluator: passed (no finding), failed (finding `action`, provenance deterministic_rule
    or model_judgement), or withheld (finding `not_assessed` with a reason code).
-6. label_state = action if anything failed; otherwise not_assessed if anything was withheld or any domain is
-   incomplete; otherwise clear. The database refuses clear where coverage is incomplete (P0021).
+6. label_state = action if anything failed; otherwise not_assessed if anything was withheld or any of the six domains
+   is incomplete or missing; otherwise clear. The database refuses clear unless all six are complete
+   (`private.node_fully_encoded` in `private.verdict_guard`, P0021).
 7. Insert the `app.checks` row (applied, passed and withheld rule keys) and all findings in one transaction; then
    update `app.product_nodes` (label state, ruleset version, open actions).
 

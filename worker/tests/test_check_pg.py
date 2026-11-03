@@ -45,7 +45,7 @@ def one(conn, q, *a):
     return conn.execute(q, a).fetchone()
 
 
-def seed_ruleset(conn, rv, person, *, complete=True):
+def seed_ruleset(conn, rv, person, *, complete=True, domains=DOMAINS):
     """A synthetic released ruleset: a batch particular held on EU, a designation wording held on EU-SE, Swedish
     and English synthetic terms, and EU-SE coverage complete (or the claims domain partial with its gap)."""
     conn.execute("insert into ref.ruleset_versions (id, notes) values (%s, 'T-403 synthetic test ruleset')", (rv,))
@@ -66,7 +66,7 @@ def seed_ruleset(conn, rv, person, *, complete=True):
                             ("test_designation", "en", "Test food for cats")):
         conn.execute("insert into ref.term_entries (term_key, language, term, kind, article_ref, status,"
                      " ruleset_version) values (%s, %s, %s, 'heading', 'TEST', 'accepted', %s)", (key, lang, term, rv))
-    for d in DOMAINS:
+    for d in domains:
         partial = not complete and d == "claims_wording"
         conn.execute("insert into ref.coverage_nodes (ruleset_version, node_id, domain, state, rules_encoded, gap_id)"
                      " values (%s, 'EU-SE', %s, %s, 1, %s)",
@@ -303,3 +303,29 @@ def test_a_product_with_no_formula_has_no_additives_fact_so_additive_rules_are_w
     conn.execute("insert into app.formula_lines (workspace_id, product_id, position, ingredient, percent)"
                  " values (%s, %s, 1, 'Test chicken', 40)", (s["ws"], s["product"]))
     assert load().facts["additives"] == []
+
+
+def test_179_DB_1_a_node_missing_domain_rows_is_checked_not_assessed_not_refused(conn):
+    """[#179 DB-1] A node whose ruleset has coverage rows for only two of its six domains (both complete) and every
+    rule passed: the job succeeds and writes not_assessed (before the engine change it computed clear and the
+    database refused it with P0021, failing the job). No finding names a gap the ruleset does not hold, and a check
+    forced to clear is still refused."""
+    s = seed_product(conn)
+    seed_ruleset(conn, "T179-TWO-DOMAINS", s["person"], domains=("mandatory_particulars", "claims_wording"))
+    job_id = request_check(conn, s)
+    assert run_job(conn, job_id) == "succeeded"
+    sv = next(c for c in checks_of(conn, job_id) if c["language"] == "sv")
+    assert sv["label_state"] == "not_assessed" and sv["passed_rule_keys"] == sv["applied_rule_keys"] != []
+    assert [f for f in findings_of(conn, job_id) if f["gap_id"]] == []
+
+    s2 = seed_product(conn)
+    job2 = str(one(conn, "select private.enqueue('check', %s, %s, %s) as id", s2["ws"], f"t179:{uuid.uuid4()}",
+                   Jsonb({"product_id": s2["product"], "artwork_version_id": s2["av"],
+                          "ruleset_version": "T179-TWO-DOMAINS", "classification_id": None,
+                          "node_ids": ["EU-SE"]}))["id"])
+    store = PgCheckStore(conn)
+    inputs = store.load(job2, s2["ws"], s2["product"], s2["av"], "T179-TWO-DOMAINS", None, ["EU-SE"])
+    forged = [CheckResult("EU-SE", inputs.panels[0], "clear", ["TEST.T403.BATCH"], ["TEST.T403.BATCH"])]
+    with pytest.raises(psycopg.Error) as exc:
+        store.write(job2, inputs, forged)
+    assert exc.value.sqlstate == "P0021"

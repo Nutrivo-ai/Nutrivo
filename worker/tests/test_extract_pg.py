@@ -10,6 +10,7 @@ import subprocess
 import uuid
 from pathlib import Path
 
+import psycopg
 import pytest
 from pgtest import connect_or_skip, skip_no_database, skip_no_service
 from pydantic import SecretStr
@@ -216,11 +217,18 @@ def test_an_editor_cannot_extract_another_workspaces_file_by_registering_its_pat
     data = (SYNTH / "clean_3lang.pdf").read_bytes()
     sha = hashlib.sha256(data).hexdigest()
     _, ws_b, prod_b = product(conn)                                   # the victim's file sits at its own path
-    uid, _, prod_a = product(conn)
+    uid, ws_a, prod_a = product(conn)
+    # Since #179 (DB-7) register_artwork itself refuses a path outside the caller's workspace and product folder.
     as_user(conn, uid)
-    av = str(conn.execute("select app.register_artwork(%s, %s, %s) as id",
-                          (prod_a, f"{ws_b}/{prod_b}/{sha}.pdf", sha)).fetchone()["id"])
+    with pytest.raises(psycopg.errors.InsufficientPrivilege), conn.transaction():
+        conn.execute("select app.register_artwork(%s, %s, %s)", (prod_a, f"{ws_b}/{prod_b}/{sha}.pdf", sha))
     as_owner(conn)
+    # The worker keeps its own check for a row written before that guard: the same row, written by the owner.
+    av = str(conn.execute("insert into app.artwork_versions (workspace_id, product_id, version, file_sha256,"
+                          " storage_path, is_new_artwork) values (%s, %s, 1, %s, %s, true) returning id",
+                          (ws_a, prod_a, sha, f"{ws_b}/{prod_b}/{sha}.pdf")).fetchone()["id"])
+    conn.execute("select private.enqueue('extract', %s, %s, %s::jsonb)",
+                 (ws_a, f"extract:{av}", json.dumps({"artwork_version_id": av})))
     job = job_of(conn, av)
     with pytest.raises(PermanentJobError) as err:
         h.run_extract(job, JobContext(job, PgStore(conn), S), h.PgArtworkStore(conn),

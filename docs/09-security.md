@@ -9,7 +9,11 @@ the staff tooling tables server-side after checking that flag on the person's ow
 the staff RPCs under that session, never the service role. The anon role reaches nothing in `app`
 or `ref` and can execute only `verify_reference` and `coverage_snapshot`. On the hosted projects the grants are the
 migrations' only: no table writes for anon or authenticated, no automatic exposure of new tables, and Queues never
-exposed through PostgREST (D-26). The doctor's read-only `supabase-grants` check proves this on staging and production
+exposed through PostgREST (D-26). New tables, views and sequences in `public` get no anon or authenticated grant by
+default (#179 DB-9); a function there still revokes from public itself, because PUBLIC's EXECUTE is a global default.
+`private.enqueue`, `private.write_audit` and `private.consume_allowance` are executable by the service role (and the
+owner) only: clients reach them through the security definer RPCs (#179 X2). Every trigger function runs with
+`search_path = ''` (#179 DB-17). The doctor's read-only `supabase-grants` check proves this on staging and production
 (docs/16).
 
 **Public verification (I04, T-406).** The `verify` Edge Function holds the anon key only, never the service role, so
@@ -30,7 +34,10 @@ stored; they expire and are single-use where it makes sense. Job payloads never 
 invitation token is minted inside the `notify` job and exists only in that process and in the email; a retry mints
 a new one, which replaces the undelivered one.
 Buckets are private and path-prefixed by workspace id. Supplier uploads land in quarantine, are scanned (ClamAV),
-then promoted. Signed URLs are short-lived (minutes for viewing, 7 days for exports).
+then promoted. Reads of artwork, documents and reports follow the record, not the folder: `private.can_read_object` finds the row
+that names the object, requires the object's folder to be that row's workspace, and applies the row's product and
+market scope, so a family- or market-scoped member never lists the rest of the workspace's files (#179 DB-5).
+`app.register_artwork` refuses a path outside the caller's workspace and product folder (#179 DB-7). Signed URLs are short-lived (minutes for viewing, 7 days for exports).
 
 ## Authentication
 Email and password or magic link with email confirmation; TOTP MFA. Signing requires `aal2`, checked in the

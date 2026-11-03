@@ -126,6 +126,19 @@ insert into storage.objects (bucket_id, name) values
   ('reports', '20000000-0000-4000-8804-00000000000a/report.pdf'),
   ('artwork', '20000000-0000-4000-8804-00000000000a/art.pdf'),
   ('documents', '20000000-0000-4000-8804-00000000000a/spec.pdf');
+-- Since #179 (DB-5) a member reads an artwork, report or document object through the row that names it.
+insert into app.families (id, workspace_id, name) values
+  ('30000000-0000-4000-8804-00000000000a','20000000-0000-4000-8804-00000000000a','Family A');
+insert into app.products (id, workspace_id, family_id, name) values
+  ('40000000-0000-4000-8804-00000000000a','20000000-0000-4000-8804-00000000000a','30000000-0000-4000-8804-00000000000a','Product A');
+insert into app.artwork_versions (workspace_id, product_id, version, file_sha256, storage_path, is_new_artwork) values
+  ('20000000-0000-4000-8804-00000000000a','40000000-0000-4000-8804-00000000000a',1,repeat('a', 64),
+   '20000000-0000-4000-8804-00000000000a/art.pdf',true);
+insert into app.reports (workspace_id, product_id, ref, check_ids, ruleset_version, artwork_sha, has_not_assessed, pdf_path)
+values ('20000000-0000-4000-8804-00000000000a','40000000-0000-4000-8804-00000000000a','T804REFAAAAAAAAAAAAAAAAAAA',
+        '{}','0000.00-empty','sha',true,'20000000-0000-4000-8804-00000000000a/report.pdf');
+insert into app.supplier_documents (workspace_id, doc_type, storage_path, file_sha256, uploaded_via) values
+  ('20000000-0000-4000-8804-00000000000a','specification','20000000-0000-4000-8804-00000000000a/spec.pdf',repeat('b', 64),'member');
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8804-0000000000a1","role":"authenticated"}', true);
 set local role authenticated;
 select is((select count(*)::int from storage.objects where bucket_id = 'exports'), 1,
