@@ -31,6 +31,13 @@ writer leaves it out, refused when it disagrees) so the read policy stays single
 they can see the product. `revoked_at` and the worker's `token_hash` replacement are the only updates; the access log
 is insert-only.
 
+**No rule, no verdict in the schema (#179).** `private.node_fully_encoded(ruleset, node)` is true only when all six
+domains (mandatory_particulars, composition, claims_wording, type_geometry, language, registration) have a complete
+`ref.coverage_nodes` row; a missing row counts as not encoded. `app.checks` refuses clear otherwise (P0021). A
+`check_findings` row must carry its check's workspace, product and node (P0046); an action with provenance
+deterministic_rule or model_judgement needs a rule_key (23514); a clear check takes no action or not_assessed finding
+(P0021), only info.
+
 ## Vocabularies
 | Field | Values |
 |---|---|
@@ -41,6 +48,7 @@ is insert-only.
 | product_nodes.label_state | clear · action · not_assessed |
 | product_nodes.registration_state | not_required · registered · not_registered · expired · unknown |
 | product_nodes.display_state (generated) | blocked if not_registered or expired; not_assessed if clear but registration unknown; else label_state |
+| product_nodes.label_state = clear | stored only when `ruleset_version` is set and `private.node_fully_encoded` holds for it; otherwise a write of clear is stored as not_assessed (trigger `product_node_verdict_guard`, #179 DB-2) |
 | check_findings.provenance | deterministic_rule · model_judgement · authored_definition · not_assessed |
 | check_findings.state | action · not_assessed · info |
 | classifications.species · life_stage · intended_use · parnut_status | **Provisional** (T-402; decided on #44 to keep until the founders accept the first ruleset, T-208): species `dog` · `cat`; life_stage `growth` · `adult` · `senior`; intended_use none yet (always empty); parnut_status `parnut` only (no value says "not PARNUT"). The model may suggest only these and `app.confirm_classification` accepts only these (22023); a person's confirmation is the classification |
@@ -66,7 +74,7 @@ is insert-only.
 | P0007 | BE-07: jurisdiction shape violated |
 | P0008 | BE-08: accepted rule version edited or deleted |
 | P0010 | BE-10: coverage set complete where no accepted, tested member rule covers the node and domain |
-| P0021 | BE-21: Clear where coverage is incomplete |
+| P0021 | BE-21: Clear where coverage is incomplete (any of the six domains not complete), or an action or not_assessed finding under a clear check |
 | P0032 / P0033 / P0036 | Free allowance used / no editor seat / new artworks paused by dunning |
 | P0034 | BE-34: a new recipe (family) on a paid plan whose included recipes are all live; the hint names the next plan (T-401, provisional until T-704 sets the € overage cap, #43 Q1) |
 | P0038 | Ruleset member is not an accepted version |
@@ -75,6 +83,7 @@ is insert-only.
 | P0043 | The last admin cannot be removed, demoted or given an end date: one active admin with no end date must remain |
 | P0044 | The membership has ended and cannot be changed |
 | P0045 | D03: the classification changed since it was read (the basis is not the product's latest); reload and confirm again |
+| P0046 | A finding whose workspace, product or node differ from its check's (#179 DB-6) |
 | P0291 / P0292 / P0293 | Certificate: no signing grant / two-factor required / open findings |
 
 ## Naming reconciliation

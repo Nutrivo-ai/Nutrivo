@@ -12,7 +12,7 @@ from nutrivo_worker.engine.core import Coverage, Node, Panel, Rule, TextLine, ev
 from nutrivo_worker.models import Models
 
 SE = Node("EU-SE", ("sv",), "EU")
-COMPLETE = [Coverage(d, "complete", None, None) for d in ("mandatory_particulars", "claims_wording")]
+COMPLETE = [Coverage(d, "complete", None, None) for d in core.COVERAGE_DOMAINS]  # #179 DB-1: all six
 TERMS = {("test_batch", "sv"): ("Testparti",), ("test_batch", "en"): ("Test lot",),
          ("test_designation", "sv"): ("Testfoder för katter",), ("test_designation", "en"): ("Test food for cats",)}
 FACTS = {"species": "cat", "life_stage": "adult", "product_class": "complete", "intended_use": None,
@@ -239,3 +239,31 @@ def test_the_runner_judges_fixtures_with_the_registered_evaluators():
     results = fr.run_rule_fixtures(Store(), "t403")
     assert [(r.item, r.result) for r in results] == [("present", "matched"), ("absent", "matched"),
                                                      ("outlined", "matched")]
+
+
+# ─── #179 DB-1: a node is clear only when all six coverage domains are complete ─────────────────────────────────
+
+def test_179_DB_1_the_engine_uses_the_six_domains_of_private_node_fully_encoded():
+    """[#179 DB-1] The engine's domains are exactly the six that private.node_fully_encoded requires."""
+    assert set(core.COVERAGE_DOMAINS) == {"mandatory_particulars", "composition", "claims_wording", "type_geometry",
+                                          "language", "registration"}
+    assert check(panel("sv", "Testparti"), [rule()]).label_state == "clear"
+
+
+@pytest.mark.parametrize("missing", core.COVERAGE_DOMAINS)
+def test_179_DB_1_a_missing_domain_row_is_not_encoded_and_never_clear(missing):
+    """[#179 DB-1] A domain with no coverage row makes the check not_assessed even when every rule passes, and no
+    finding with an invented gap_id is written for it."""
+    cov = [c for c in COMPLETE if c.domain != missing]
+    res = check(panel("sv", "Testparti"), [rule()], coverage=cov)
+    assert res.passed == ["TEST.T403.BATCH"] and res.label_state == "not_assessed"
+    assert res.findings == []
+
+
+def test_179_DB_1_fewer_than_six_complete_domains_is_not_assessed():
+    """[#179 DB-1] The case the database used to accept: one or two complete domains and no other rows."""
+    for cov in ([Coverage("mandatory_particulars", "complete", None, None)],
+                [Coverage(d, "complete", None, None) for d in ("mandatory_particulars", "claims_wording")]):
+        assert check(panel("sv", "Testparti"), [rule()], coverage=cov).label_state == "not_assessed"
+    # a failed rule still reports action: missing coverage never hides a found problem
+    assert check(panel("sv", "Test lot"), [rule()], coverage=cov).label_state == "action"
