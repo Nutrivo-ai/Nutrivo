@@ -60,6 +60,7 @@ tasks:
   - {id: T-405, ms: M4, lanes: [worker], deps: [T-403], wf: [I01], title: "Report PDF, pinned and reproducible, matching the Export - Label Report design"}
   - {id: T-406, ms: M4, lanes: [web, worker], deps: [T-405], wf: [I04], title: "Public verification Edge Function and page"}
   - {id: T-407, ms: M4, lanes: [web], deps: [T-404, T-406], title: "Demo path end to end (@demo) and docs/demo.md"}
+  - {id: T-408, ms: M4, lanes: [db], deps: [T-405], wf: [I01], title: "app.request_report(p_check): a member requests a check's label report PDF; enqueues the report job (I01 producer, #47)"}
   # ── M5 · Engine complete ────────────────────────────────────────────────────────────────────────────
   - {id: T-501, ms: M5, lanes: [worker, content], deps: [T-203], title: "Claims evaluation harness with Langfuse dataset runs"}
   - {id: T-502, ms: M5, lanes: [worker], deps: [T-403, T-202], wf: [D05], title: "Evaluators threshold, additive_condition, character_height"}
