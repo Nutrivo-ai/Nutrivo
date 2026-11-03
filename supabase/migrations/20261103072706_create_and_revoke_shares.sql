@@ -9,7 +9,7 @@
 --   {template:'report', share_id, request_id?}, key share:<id>, whose worker mints the emailed token (docs/04).
 --   Expiry: null for none, else 1 to 365 days (22023). Audited share.created. Never gated by plan or dunning (#58 Q4).
 -- app.revoke_share(p_share)
---   Editor-class on the product, or an admin or portfolio manager of the workspace. Idempotent: an already revoked
+--   Editor-class on the product, or an admin or portfolio manager of the workspace who can see the product. Idempotent: an already revoked
 --   share keeps its first revoked_at. Holds the row, so a concurrent notify job cannot store a token after the revoke
 --   (the worker's update requires revoked_at is null). Audited share.revoked.
 -- app.open_share(p_token, p_user_agent)
@@ -112,7 +112,8 @@ begin
   select s.* into v_s from app.shares s where s.id = p_share for update;
   if not found or private.person_id() is null
      or not (private.can_edit_product(v_s.product_id)
-             or private.has_role(v_s.workspace_id, '{admin,portfolio_manager}')) then
+             or (private.can_see_product(v_s.product_id)
+                 and private.has_role(v_s.workspace_id, '{admin,portfolio_manager}'))) then
     raise exception 'only an editor of this product or a workspace manager can revoke its share' using errcode = '42501';
   end if;
   if v_s.revoked_at is not null then
@@ -166,8 +167,8 @@ begin
     'pdf_path', v_r.pdf_path);
 end $$;
 
-revoke all on function private.share_token_hash(text) from public, anon;
-grant execute on function private.share_token_hash(text) to authenticated, service_role;
+revoke all on function private.share_token_hash(text) from public, anon, authenticated;
+grant execute on function private.share_token_hash(text) to service_role;
 revoke all on function app.create_share(uuid, text, text, int, text), app.revoke_share(uuid) from public, anon;
 grant execute on function app.create_share(uuid, text, text, int, text), app.revoke_share(uuid) to authenticated;
 revoke all on function app.open_share(text, text) from public, anon, authenticated;

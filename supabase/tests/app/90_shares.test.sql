@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(47);
+select plan(50);
 set local client_min_messages = warning;
 
 -- ─── A: Alice (admin), Carl (editor), Vera (viewer), Sid (editor scoped to family A2), Pia (portfolio manager).
@@ -191,7 +191,19 @@ select is((select count(*)::int from app.shares), 0, '[T-601] a member scoped to
 reset role;
 select pg_temp.as_user('00000000-0000-4000-8601-0000000000b1');
 set local role authenticated;
-select is((select count(*)::int from app.shares), 0, '[T-601] another workspace reads none of them');
+insert into t values ('b_link', app.create_share('50000000-0000-4000-8601-00000000000b', 'link'));
+select is((select count(*)::int from app.shares), 1, '[T-601] another workspace reads only its own share');
+reset role;
+select pg_temp.as_user('00000000-0000-4000-8601-0000000000a1');
+set local role authenticated;
+select is((select count(*)::int from app.shares where workspace_id = '20000000-0000-4000-8601-00000000000b'), 0,
+          '[T-601] and workspace A reads none of B''s');
+select throws_ok(format($$select app.revoke_share(%L)$$, pg_temp.v('b_link') ->> 'share_id'), '42501', null,
+                 '[T-601] nor revokes it');
+reset role;
+select pg_temp.as_user('00000000-0000-4000-8601-0000000000b1');
+set local role authenticated;
+select is((select count(*)::int from app.shares where workspace_id = '20000000-0000-4000-8601-00000000000a'), 0, '[T-601] another workspace reads none of them');
 select is((select count(*)::int from app.share_access_log), 0, '[T-601] nor their access log');
 select throws_ok(format($$select app.revoke_share(%L)$$, pg_temp.v('link') ->> 'share_id'), '42501', null,
                  '[T-601] another workspace cannot revoke a share');
