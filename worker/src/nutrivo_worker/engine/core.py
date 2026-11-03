@@ -113,6 +113,7 @@ class RuleContext:
     models: Any = None
     workspace_id: str | None = None
     model_store: Any = None
+    claim_thresholds: Any = None          # engine.claims.ThresholdRecords; None means no harness record (T-503)
 
 
 @dataclass
@@ -217,7 +218,7 @@ def _withheld_message(reason: str) -> str:
 def evaluate_check(node: Node, panel: Panel, panels: tuple[Panel, ...], rules: list[Rule],
                    coverage: list[Coverage], terms: dict[tuple[str, str], tuple[str, ...]],
                    base_facts: dict[str, Any], *, models: Any = None, workspace_id: str | None = None,
-                   model_store: Any = None) -> CheckResult:
+                   model_store: Any = None, claim_thresholds: Any = None) -> CheckResult:
     """One node × panel. `rules` are the ruleset's members held on the node or its region."""
     result = CheckResult(node.id, panel, "not_assessed")
     common = {"panel_id": panel.id, "language": panel.language}
@@ -238,7 +239,8 @@ def evaluate_check(node: Node, panel: Panel, panels: tuple[Panel, ...], rules: l
     facts = facts_for(base_facts, node, panel)
     failed = False
     for rule in sorted(rules, key=lambda r: r.rule_key):
-        ctx = RuleContext(rule, panel, panels, node, terms, facts, models, workspace_id, model_store)
+        ctx = RuleContext(rule, panel, panels, node, terms, facts, models, workspace_id, model_store,
+                          claim_thresholds)
         r = evaluate_rule(ctx)
         if r.outcome == "not_applicable":
             continue
