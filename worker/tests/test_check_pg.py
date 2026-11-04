@@ -329,3 +329,29 @@ def test_179_DB_1_a_node_missing_domain_rows_is_checked_not_assessed_not_refused
     with pytest.raises(psycopg.Error) as exc:
         store.write(job2, inputs, forged)
     assert exc.value.sqlstate == "P0021"
+
+
+def test_D06_main_a_check_writes_registration_gaps_as_kind_registration_and_refreshes_registration_state(conn):
+    """[D06.main] registration coverage that is not encoded is a not_assessed finding of kind registration, and the
+    check refreshes the market's registration state in the database: registered from a recorded registration,
+    separately from the label state (non-negotiable 8)."""
+    s = seed_product(conn)
+    seed_ruleset(conn, "T504-D06", s["person"])
+    conn.execute("update ref.coverage_nodes set state = 'partial', gap_id = 'GAP-EU-SE-REGISTRATION'"
+                 " where ruleset_version = 'T504-D06' and node_id = 'EU-SE' and domain = 'registration'")
+    conn.execute("insert into app.registrations (workspace_id, product_id, node_id, number, registered_on, recorded_by)"
+                 " values (%s, %s, 'EU-SE', 'SYNTHETIC-1', current_date, %s)", (s["ws"], s["product"], s["person"]))
+    assert one(conn, "select registration_state from app.product_nodes where product_id = %s",
+               s["product"])["registration_state"] == "unknown"     # written directly, not yet recomputed
+
+    job_id = request_check(conn, s)
+    assert run_job(conn, job_id) == "succeeded"
+
+    gaps = [f for f in findings_of(conn, job_id) if f["gap_id"] == "GAP-EU-SE-REGISTRATION"]
+    assert gaps and {(f["kind"], f["state"], f["provenance"]) for f in gaps} == {
+        ("registration", "not_assessed", "not_assessed")}
+    assert all(f["kind"] == "label" for f in findings_of(conn, job_id) if f["gap_id"] != "GAP-EU-SE-REGISTRATION")
+    pn = one(conn, "select label_state, registration_state, display_state from app.product_nodes"
+                   " where product_id = %s", s["product"])
+    assert pn["registration_state"] == "registered"
+    assert pn["label_state"] != "clear" and pn["display_state"] != "clear"   # registration coverage still withholds
