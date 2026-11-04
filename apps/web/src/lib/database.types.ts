@@ -1255,6 +1255,9 @@ isOneToOne: false
 "open_coverage_gap":
 { Args: { "p_description": string,"p_domain": string,"p_gap_id": string,"p_node": string,"p_reason_code": string }; Returns: string
                            },
+"record_registration":
+{ Args: { "p_evidence_doc"?: string,"p_expires_at"?: string,"p_node": string,"p_number": string,"p_obligation"?: string,"p_product": string,"p_registered_on": string }; Returns: string
+                           },
 "record_stripe_event":
 { Args: { "p_event": Json }; Returns: Json
                            },
