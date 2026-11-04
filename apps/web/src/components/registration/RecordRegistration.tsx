@@ -33,6 +33,7 @@ export function RecordRegistration({
 }) {
   const [state, action, pending] = useActionState<RecordFormState, FormData>(recordRegistration, { status: "idle" });
   const id = useId();
+  const kept = state.status === "refused" ? state.values : null;
   useEffect(() => {
     if (state.status === "recorded") posthog.capture("registration_recorded", { node: nodeId });
   }, [state, nodeId]);
@@ -44,21 +45,21 @@ export function RecordRegistration({
       <p className="m-0 text-[13px] font-semibold">{hasLatest ? "Record a correction or a renewal" : "Record a registration"}</p>
       <div>
         <label htmlFor={`${id}-number`} className={LABEL}>Registration number</label>
-        <input id={`${id}-number`} name="number" required maxLength={200} autoComplete="off" className={INPUT} />
+        <input id={`${id}-number`} name="number" defaultValue={kept?.number} required maxLength={200} autoComplete="off" className={INPUT} />
       </div>
       <div className="grid grid-cols-2 gap-[10px]">
         <div>
           <label htmlFor={`${id}-on`} className={LABEL}>Registered on</label>
-          <input id={`${id}-on`} name="registeredOn" type="date" required className={INPUT} />
+          <input id={`${id}-on`} name="registeredOn" type="date" defaultValue={kept?.registeredOn} required className={INPUT} />
         </div>
         <div>
           <label htmlFor={`${id}-expires`} className={LABEL}>Expires (optional)</label>
-          <input id={`${id}-expires`} name="expiresAt" type="date" className={INPUT} />
+          <input id={`${id}-expires`} name="expiresAt" type="date" defaultValue={kept?.expiresAt} className={INPUT} />
         </div>
       </div>
       <div>
         <label htmlFor={`${id}-doc`} className={LABEL}>Evidence document (optional)</label>
-        <select id={`${id}-doc`} name="evidenceDoc" defaultValue="" className={INPUT}>
+        <select id={`${id}-doc`} name="evidenceDoc" defaultValue={kept?.evidenceDoc ?? ""} className={INPUT}>
           <option value="">None cited</option>
           {documents.map((d) => (
             <option key={d.id} value={d.id}>

@@ -11,7 +11,13 @@ import { REQUEST_ID_HEADER, resolveRequestId } from "@/lib/observability/request
 import { createClient } from "@/lib/supabase/server";
 import { readRecordInput, recordRefusal, type RecordRefusal } from "./model";
 
-export type RecordFormState = { status: "idle" } | { status: "recorded"; id: string } | { status: "refused"; refusal: RecordRefusal };
+/** What the person typed, handed back with a refusal: React resets a form after its action, and nothing is lost. */
+export type RecordValues = { number: string; registeredOn: string; expiresAt: string; evidenceDoc: string };
+
+export type RecordFormState =
+  | { status: "idle" }
+  | { status: "recorded"; id: string }
+  | { status: "refused"; refusal: RecordRefusal; values: RecordValues };
 
 const text = (form: FormData, name: string) => {
   const v = form.get(name);
@@ -22,13 +28,14 @@ export async function recordRegistration(_: RecordFormState, form: FormData): Pr
   const workspaceId = text(form, "workspaceId");
   const productId = text(form, "productId");
   const nodeId = text(form, "nodeId");
-  const input = readRecordInput({
+  const values: RecordValues = {
     number: text(form, "number"),
     registeredOn: text(form, "registeredOn"),
     expiresAt: text(form, "expiresAt"),
     evidenceDoc: text(form, "evidenceDoc"),
-  });
-  if (!input) return { status: "refused", refusal: "invalid" };
+  };
+  const input = readRecordInput(values);
+  if (!input) return { status: "refused", refusal: "invalid", values };
   const requestId = resolveRequestId((await headers()).get(REQUEST_ID_HEADER));
   return Sentry.withScope(async (scope) => {
     scope.setTag("request_id", requestId);
@@ -48,7 +55,7 @@ export async function recordRegistration(_: RecordFormState, form: FormData): Pr
     if (error || !data) {
       const refusal = recordRefusal(error?.code);
       if (refusal === "error") Sentry.captureException(new Error(`record_registration failed: ${error?.code ?? "no id"}`));
-      return { status: "refused", refusal } as const;
+      return { status: "refused", refusal, values } as const;
     }
     revalidatePath(`/w/${workspaceId}`, "layout");
     return { status: "recorded", id: String(data) } as const;

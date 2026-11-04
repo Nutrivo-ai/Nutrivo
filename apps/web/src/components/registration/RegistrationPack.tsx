@@ -19,7 +19,7 @@ const EDGE: Record<string, string> = {
   blocked: "border-t-[3px] border-t-blocked",
 };
 
-const KICKER = "m-0 font-mono text-[10px] tracking-[0.13em] uppercase text-n500";
+const KICKER = "m-0 font-mono text-[10px] tracking-[0.13em] uppercase text-n600";
 
 export function RegistrationPack({
   page,

@@ -91,7 +91,7 @@ export function ObligationFacts({ obligation }: { obligation: ObligationRow }) {
     <dl data-obligation={obligation.id} className="m-0 grid grid-cols-1 md:grid-cols-2 gap-x-[22px]">
       {obligationFields(obligation).map((f) => (
         <div key={f.key} data-field={f.key} data-held={f.held} className="border-t border-rule py-[11px]">
-          <dt className="m-0 font-mono text-[9.5px] tracking-[0.12em] uppercase text-n500">{f.label}</dt>
+          <dt className="m-0 font-mono text-[9.5px] tracking-[0.12em] uppercase text-n600">{f.label}</dt>
           <dd className="mt-[4px] mb-0 text-[13.5px] leading-[1.45] break-words">
             {!f.held ? (
               <span className="text-n600">{f.value}</span>

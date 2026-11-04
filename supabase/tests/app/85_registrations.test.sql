@@ -54,7 +54,14 @@ select is((select count(*)::int from ref.obligations), 0,
 -- ─── D06.must.1: unknown never displays as Clear; not registered renders Blocked (BE-14) ──────────────────────
 select is(private.compute_registration_state('40000000-0000-4000-8504-0000000000a1', 'EU-SE'), 'unknown',
           '[D06.must.1] no registration and no obligation held leaves the state unknown, never not_required');
-update app.product_nodes set label_state = 'clear'
+-- A label may be Clear only when its node is fully encoded under its pinned ruleset (non-negotiable 3; incident #179
+-- makes the database downgrade anything else). A synthetic ruleset, rolled back with this test, has all six domains
+-- complete for EU-SE, so the label states below are what is under test and not the coverage.
+insert into ref.ruleset_versions (id, notes) values ('TEST-T504-ENCODED', 'synthetic pgTAP fixture (T-504), rolled back');
+insert into ref.coverage_nodes (ruleset_version, node_id, domain, state)
+select 'TEST-T504-ENCODED', 'EU-SE', d, 'complete'
+from unnest(array['mandatory_particulars','composition','claims_wording','type_geometry','language','registration']) d;
+update app.product_nodes set ruleset_version = 'TEST-T504-ENCODED', label_state = 'clear'
 where product_id = '40000000-0000-4000-8504-0000000000a1' and node_id = 'EU-SE';
 select is(pg_temp.disp('40000000-0000-4000-8504-0000000000a1', 'EU-SE'), 'not_assessed',
           '[D06.must.1] label clear with registration unknown displays not_assessed, never clear');
