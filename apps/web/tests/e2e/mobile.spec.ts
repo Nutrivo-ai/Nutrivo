@@ -151,6 +151,15 @@ test.describe("mobile reading views at 390 px", () => {
     ])) as { productId: string; sha: string });
     unchecked = (await seedProduct(ws, "Senior Joint Support Wet", [{ node_id: "EU-FR" }], false)) as string;
     await runCheck(editor, productId);
+    // T-504: a check re-derives registration_state in the database (D06), and not_registered needs an accepted, sourced
+    // obligation, which none is until #54 Q4. The state this screen reads is set after the check, as the fixture it is.
+    const texas = await service
+      .schema("app")
+      .from("product_nodes")
+      .update({ registration_state: "not_registered" })
+      .eq("product_id", productId)
+      .eq("node_id", "US-TX");
+    if (texas.error) throw texas.error;
   });
 
   test("[T-507] S-MOB-003 the verdict: not registered reads Blocked, with the next step and where it came from", async ({ page, context, baseURL }) => {
