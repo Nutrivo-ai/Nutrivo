@@ -32,7 +32,7 @@ rows or screens to make the demo look greener. The point to make on stage is thi
 | Classification | — | T-402 (#162). Checks run without it today. |
 | Run the check | Upload & scope's closing bar, "Run the check" (T-505), then "Open the report" | — |
 | Label report | The label report screen (T-404) | — |
-| Report PDF | **No producer and no download button** | The worker job exists (T-405). `app.request_report` (db) and the download button (web) are proposed on #47 and #49. |
+| Report PDF | **No producer and no download button** | The worker job exists (T-405). `app.request_report` (db) is task T-408; the download button (web) is proposed on #49. |
 | Public verification | `/verify/<ref>` through the `verify` function (T-406) | — |
 
 Until the bold gap closes, use **Option A** on stage. Option B needs an operator at a second terminal.

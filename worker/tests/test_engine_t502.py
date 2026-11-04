@@ -6,10 +6,10 @@ import datetime as dt
 
 import nutrivo_worker.engine  # noqa: F401  registers the evaluators
 from nutrivo_worker import fixtures_runner as fr
-from nutrivo_worker.engine.core import Coverage, Node, Panel, Rule, TextLine, evaluate_check
+from nutrivo_worker.engine.core import COVERAGE_DOMAINS, Coverage, Node, Panel, Rule, TextLine, evaluate_check
 
 SE = Node("EU-SE", ("sv",), "EU")
-COMPLETE = [Coverage(d, "complete", None, None) for d in ("type_geometry", "composition")]
+COMPLETE = [Coverage(d, "complete", None, None) for d in COVERAGE_DOMAINS]  # #179 DB-1: all six
 TERMS = {("test_weight", "sv"): ("Testvikt",), ("test_weight", "en"): ("Test weight",),
          ("test_moisture", "sv"): ("Testfukt",)}
 FACTS = {"species": "cat", "life_stage": "adult", "product_class": "complete", "intended_use": None,

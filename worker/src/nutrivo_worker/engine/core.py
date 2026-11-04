@@ -8,8 +8,9 @@
    (a `not_assessed` finding with a reason code). A shape without an evaluator is withheld `evaluator_missing`; an
    evaluator fault is withheld `evaluator_error` and reported; a model error is withheld with its own reason
    (`model_unavailable`, `model_refused`, ...). Nothing passes by default (BE-21).
-5. label_state: action if anything failed; else not_assessed if anything was withheld, any domain is incomplete or
-   nothing applied; else clear. The database refuses clear where coverage is incomplete (private.verdict_guard).
+5. label_state: action if anything failed; else not_assessed if anything was withheld, any of the six coverage
+   domains (COVERAGE_DOMAINS) is incomplete or has no coverage row, or nothing applied; else clear. The database
+   refuses clear unless all six are complete (private.node_fully_encoded in private.verdict_guard, #179 DB-1).
 
 Evaluators judge the printed text of the panel in its own language only (BE-22): they never translate, and the terms
 they look for are the accepted term register entries for that language."""
@@ -77,6 +78,11 @@ class Panel:
     @property
     def assessable(self) -> bool:
         return self.status == "extracted" and self.failure_code is None
+
+
+# The six coverage domains of a node, as ref.coverage_nodes.domain and private.node_fully_encoded (#179 DB-1).
+COVERAGE_DOMAINS = ("mandatory_particulars", "composition", "claims_wording", "type_geometry", "language",
+                    "registration")
 
 
 @dataclass(frozen=True)
@@ -227,6 +233,11 @@ def evaluate_check(node: Node, panel: Panel, panels: tuple[Panel, ...], rules: l
                                     "reason_code": c.reason_code or ("partially_encoded" if c.state == "partial"
                                                                      else "not_encoded"),
                                     "message": _withheld_message(c.domain), "citation": None})
+    # A domain with no coverage row is not encoded (no rule, no verdict). It gets no finding of its own: a withheld
+    # finding needs a gap_id from ref.coverage_gaps, which a missing row does not give, and none is invented here.
+    # The check is not_assessed, as private.verdict_guard requires.
+    if not {c.domain for c in coverage}.issuperset(COVERAGE_DOMAINS):
+        incomplete = True
     facts = facts_for(base_facts, node, panel)
     failed = False
     for rule in sorted(rules, key=lambda r: r.rule_key):
@@ -254,7 +265,7 @@ def evaluate_check(node: Node, panel: Panel, panels: tuple[Panel, ...], rules: l
                                 "height_definition": r.height_definition})
     if failed:
         result.label_state = "action"
-    elif result.withheld or incomplete or not coverage or not result.applied:
+    elif result.withheld or incomplete or not result.applied:
         result.label_state = "not_assessed"
     else:
         result.label_state = "clear"
