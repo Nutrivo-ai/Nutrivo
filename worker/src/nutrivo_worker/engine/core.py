@@ -225,7 +225,10 @@ def evaluate_check(node: Node, panel: Panel, panels: tuple[Panel, ...], rules: l
     for c in coverage:
         if c.state != "complete":
             incomplete = True
+            # D06: a registration-domain gap is a finding of kind registration, as the demo seed and the report read it;
+            # it still withholds the label verdict, as verdict_guard requires (#54)
             result.findings.append({**common, "rule_key": None, "rule_version": None, "gap_id": c.gap_id,
+                                    "kind": "registration" if c.domain == "registration" else "label",
                                     "state": "not_assessed", "provenance": "not_assessed",
                                     "reason_code": c.reason_code or ("partially_encoded" if c.state == "partial"
                                                                      else "not_encoded"),
