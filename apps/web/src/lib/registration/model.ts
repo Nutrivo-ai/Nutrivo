@@ -66,7 +66,7 @@ function isAccepted(row: ObligationRow): boolean {
 
 /**
  * The one eligibility filter of the web, the same as private.compute_registration_state's (migration
- * 20261103110902_registration_state.sql): kind registration, sourced (source_url) and dated (last_verified_at), and
+ * 20261104012022_registration_state.sql): kind registration, sourced (source_url) and dated (last_verified_at), and
  * accepted, which no column expresses yet (#54 Q4), so today nothing is eligible (G01.must.1).
  */
 export function eligibleObligations<T extends ObligationRow>(rows: T[]): T[] {
