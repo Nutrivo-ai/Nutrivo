@@ -25,7 +25,8 @@ begin
   end if;
   v_key := 'report:' || v_c.id::text;
   perform pg_advisory_xact_lock(hashtextextended(v_key, 0));
-  select j.id into v_job from app.jobs j where j.idempotency_key = v_key;
+  select j.id into v_job from app.jobs j
+  where j.idempotency_key = v_key and j.kind = 'report' and j.workspace_id = v_c.workspace_id;
   if v_job is not null then
     return v_job;
   end if;

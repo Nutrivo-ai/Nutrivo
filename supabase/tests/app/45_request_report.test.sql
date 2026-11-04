@@ -3,20 +3,23 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(22);
+select plan(27);
 set local client_min_messages = warning;
 
 -- ─── A: Alice (admin), Carl (editor), Vera (viewer), Sid (editor scoped to EU-FR), Dee (editor scoped to EU-DE),
--- Olga (editor, access ended), Ezra (external editor), Fay (editor scoped to another family). B: Bob (admin). ──────
+-- Olga (editor, access ended), Ezra (external editor), Fay (editor scoped to another family), Pia (portfolio
+-- manager), Ned (editor, membership ended), Tom (editor, person tombstoned). B: Bob (admin). ───────────────────────
 insert into auth.users (id, email) values
   ('00000000-0000-4000-8408-0000000000a1','alice@a.test'), ('00000000-0000-4000-8408-0000000000c1','carl@a.test'),
   ('00000000-0000-4000-8408-0000000000f1','vera@a.test'),  ('00000000-0000-4000-8408-0000000000e4','sid@a.test'),
   ('00000000-0000-4000-8408-0000000000e5','dee@a.test'),   ('00000000-0000-4000-8408-0000000000e3','olga@a.test'),
   ('00000000-0000-4000-8408-0000000000e1','ezra@agency.test'), ('00000000-0000-4000-8408-0000000000e6','fay@a.test'),
-  ('00000000-0000-4000-8408-0000000000b1','bob@b.test');
+  ('00000000-0000-4000-8408-0000000000b1','bob@b.test'),   ('00000000-0000-4000-8408-0000000000d1','pia@a.test'),
+  ('00000000-0000-4000-8408-0000000000d2','ned@a.test'),   ('00000000-0000-4000-8408-0000000000d3','tom@a.test');
 insert into app.people (id, user_id, display_name, email)
 select ('10000000' || substr(u.id::text, 9))::uuid, u.id, split_part(u.email, '@', 1), u.email
 from auth.users u where u.id::text like '00000000-0000-4000-8408-%';
+update app.people set tombstoned_at = now() where id = '10000000-0000-4000-8408-0000000000d3';
 insert into app.workspaces (id, name, plan, status) values
   ('20000000-0000-4000-8408-00000000000a','Workspace A','basic','active'),
   ('20000000-0000-4000-8408-00000000000b','Workspace B','basic','active');
@@ -33,7 +36,11 @@ insert into app.memberships (workspace_id, person_id, role, is_external, scope_f
   ('20000000-0000-4000-8408-00000000000a','10000000-0000-4000-8408-0000000000e1','editor',true,null,null,null),
   ('20000000-0000-4000-8408-00000000000a','10000000-0000-4000-8408-0000000000e6','editor',false,
    '{30000000-0000-4000-8408-00000000000f}',null,null),
+  ('20000000-0000-4000-8408-00000000000a','10000000-0000-4000-8408-0000000000d1','portfolio_manager',false,null,null,null),
+  ('20000000-0000-4000-8408-00000000000a','10000000-0000-4000-8408-0000000000d3','editor',false,null,null,null),
   ('20000000-0000-4000-8408-00000000000b','10000000-0000-4000-8408-0000000000b1','admin',false,null,null,null);
+insert into app.memberships (workspace_id, person_id, role, ended_at) values
+  ('20000000-0000-4000-8408-00000000000a','10000000-0000-4000-8408-0000000000d2','editor',now() - interval '1 day');
 insert into app.products (id, workspace_id, family_id, name) values
   ('40000000-0000-4000-8408-00000000000a','20000000-0000-4000-8408-00000000000a','30000000-0000-4000-8408-00000000000a','Product A');
 -- Two checks of the product: Germany's German panel and France's French panel.
@@ -137,13 +144,28 @@ select throws_ok($$select app.request_report('50000000-0000-4000-8408-0000000000
 select pg_temp.as_user('00000000-0000-4000-8408-0000000000a1');
 select throws_ok($$select app.request_report('50000000-0000-4000-8408-000000000000')$$, '42501', null,
                  '[I01.main] an unknown check is refused like a hidden one');
+select pg_temp.as_user('00000000-0000-4000-8408-0000000000d2');
+select throws_ok($$select app.request_report('50000000-0000-4000-8408-0000000000de')$$, '42501', null,
+                 '[I01.main] an editor whose membership has ended cannot request a report');
+select pg_temp.as_user('00000000-0000-4000-8408-0000000000d3');
+select throws_ok($$select app.request_report('50000000-0000-4000-8408-0000000000de')$$, '42501', null,
+                 '[I01.main] a tombstoned person cannot request a report');
+select pg_temp.as_user('00000000-0000-4000-8408-0000000000e5');
+select throws_ok($$select app.request_report('50000000-0000-4000-8408-0000000000f2')$$, '42501', null,
+                 '[I01.main] once France''s job exists, an editor scoped to Germany is still refused it, never handed its id');
 select pg_temp.as_user('00000000-0000-4000-8408-0000000000e1');
 select lives_ok($$select app.request_report('50000000-0000-4000-8408-0000000000de')$$,
                 '[I01.main] an external editor within scope can request a report');
+select pg_temp.as_user('00000000-0000-4000-8408-0000000000d1');
+select lives_ok($$select app.request_report('50000000-0000-4000-8408-0000000000de')$$,
+                '[I01.main] a portfolio manager can request a report');
 reset role;
 select is((select count(*)::int from app.jobs where kind = 'report'
            and workspace_id = '20000000-0000-4000-8408-00000000000a'), 2,
           '[I01.must.1] two checks, two report jobs, whoever asked');
+select is((select count(*)::int from app.audit_events where kind = 'report.requested'
+           and workspace_id = '20000000-0000-4000-8408-00000000000a'), 2,
+          '[T-408] refused and repeat requests write no audit event');
 
 select * from finish();
 rollback;
