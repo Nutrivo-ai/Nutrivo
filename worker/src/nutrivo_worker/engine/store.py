@@ -194,14 +194,15 @@ class PgCheckStore:
                         """insert into app.check_findings (workspace_id, check_id, product_id, node_id, rule_key,
                                rule_version, gap_id, state, provenance, citation, message, panel_id, language,
                                text_object_id, bbox_mm, reason_code, confidence, model_call_id, measured_mm,
-                               required_mm, height_definition)
+                               required_mm, height_definition, kind)
                            values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                                   %s)""",
+                                   %s, %s)""",
                         (inputs.workspace_id, check_id, inputs.product_id, r.node_id, f.get("rule_key"),
                          f.get("rule_version"), f.get("gap_id"), f["state"], f["provenance"], f.get("citation"),
                          f["message"], f.get("panel_id"), f.get("language"), f.get("text_object_id"),
                          f.get("bbox_mm"), f.get("reason_code"), f.get("confidence"), f.get("model_call_id"),
-                         f.get("measured_mm"), f.get("required_mm"), f.get("height_definition")))
+                         f.get("measured_mm"), f.get("required_mm"), f.get("height_definition"),
+                         f.get("kind", "label")))
             states: dict[str, dict[str, Any]] = {}
             for r in results:
                 s = states.setdefault(r.node_id, {"states": [], "open": 0})
@@ -213,6 +214,8 @@ class PgCheckStore:
                               last_check_job_id = %s, updated_at = now()
                         where product_id = %s and node_id = %s""",
                     (worst(s["states"]), inputs.ruleset_version, s["open"], job_id, inputs.product_id, node_id))
+                # D06: registration state is derived in the database, separately from the label (non-negotiable 8)
+                self.conn.execute("select private.refresh_registration_state(%s, %s)", (inputs.product_id, node_id))
             self.conn.execute(
                 "select private.write_audit(%s, 'check.completed', 'job', %s, null, %s, %s)",
                 (inputs.workspace_id, job_id,

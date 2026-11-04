@@ -1264,6 +1264,9 @@ isOneToOne: false
 "open_share":
 { Args: { "p_token": string,"p_user_agent"?: string }; Returns: Json
                            },
+"record_registration":
+{ Args: { "p_evidence_doc"?: string,"p_expires_at"?: string,"p_node": string,"p_number": string,"p_obligation"?: string,"p_product": string,"p_registered_on": string }; Returns: string
+                           },
 "record_stripe_event":
 { Args: { "p_event": Json }; Returns: Json
                            },
