@@ -15,6 +15,7 @@ import {
   type RegisterFailure,
   type UploadStage,
 } from "@/lib/artwork/upload";
+import { retryExtraction, type RetryRefusal } from "@/lib/artwork/retry";
 import { resolveRequestId } from "@/lib/observability/request-id";
 import { createClient } from "@/lib/supabase/client";
 
@@ -59,7 +60,10 @@ export function ArtworkUpload({
     latest && !latest.run ? { step: "extracting", artworkVersionId: latest.id, fileName: latest.fileName ?? "" } : { step: "idle" },
   );
   const [dragging, setDragging] = useState(false);
-  const job = useExtractJob(db, state.step === "extracting" ? state.artworkVersionId : null);
+  // Bumped by a retry or "Check again": the same job id is watched afresh (lib/jobs/watch.ts).
+  const [generation, setGeneration] = useState(0);
+  const [retry, setRetry] = useState<{ pending: boolean; refusal: RetryRefusal | null }>({ pending: false, refusal: null });
+  const job = useExtractJob(db, state.step === "extracting" ? state.artworkVersionId : null, { generation });
   const [refreshed, setRefreshed] = useState<string | null>(null);
 
   if (state.step === "extracting" && job.view.phase === "done" && refreshed !== state.artworkVersionId) {
@@ -69,6 +73,7 @@ export function ArtworkUpload({
 
   async function start(file: File) {
     setState({ step: "uploading", stage: "checking", fileName: file.name });
+    setRetry({ pending: false, refusal: null });
     const requestId = resolveRequestId(null);
     const result = await Sentry.startSpan({ name: "artwork.upload", op: "upload", attributes: { request_id: requestId } }, () =>
       uploadArtwork(db, { workspaceId, productId, file, requestId }, (stage) =>
@@ -86,6 +91,24 @@ export function ArtworkUpload({
     }
     if (posthog.__loaded) posthog.capture("artwork_uploaded", { artwork_version_id: result.artworkVersionId, kind: result.kind });
     setState({ step: "extracting", artworkVersionId: result.artworkVersionId, fileName: file.name });
+  }
+
+  async function retryFailed(artworkVersionId: string) {
+    if (retry.pending) return;
+    setRetry({ pending: true, refusal: null });
+    const requestId = resolveRequestId(null);
+    const result = await Sentry.startSpan(
+      { name: "artwork.retry_extraction", op: "rpc", attributes: { request_id: requestId } },
+      () => retryExtraction(db, artworkVersionId, requestId),
+    );
+    if (!result.ok) {
+      if (result.refusal.code === "unknown") Sentry.captureMessage("extraction retry failed", { tags: { request_id: requestId } });
+      setRetry({ pending: false, refusal: result.refusal });
+      return;
+    }
+    if (posthog.__loaded) posthog.capture("extraction_retried", { artwork_version_id: artworkVersionId });
+    setRetry({ pending: false, refusal: null });
+    setGeneration((g) => g + 1);
   }
 
   function onDrop(event: DragEvent<HTMLDivElement>) {
@@ -106,7 +129,15 @@ export function ArtworkUpload({
       {showLatest ? <ArtworkCard art={latest} workspaceId={workspaceId} productId={productId} /> : null}
 
       {state.step === "extracting" && !done ? (
-        <ExtractionProgress view={job.view} error={job.error} fileName={state.fileName} />
+        <ExtractionProgress
+          view={job.view}
+          error={job.error}
+          stalled={job.stalled}
+          fileName={state.fileName}
+          retry={retry}
+          onRetry={() => void retryFailed(state.artworkVersionId)}
+          onCheckAgain={() => setGeneration((g) => g + 1)}
+        />
       ) : null}
 
       {state.step === "uploading" ? (
@@ -216,9 +247,56 @@ export function ArtworkCard({ art, workspaceId, productId }: { art: ArtworkSumma
   );
 }
 
-function ExtractionProgress({ view, error, fileName }: { view: JobView; error: boolean; fileName: string }) {
+function ExtractionProgress({
+  view,
+  error,
+  stalled,
+  fileName,
+  retry,
+  onRetry,
+  onCheckAgain,
+}: {
+  view: JobView;
+  error: boolean;
+  stalled: boolean;
+  fileName: string;
+  retry: { pending: boolean; refusal: RetryRefusal | null };
+  onRetry: () => void;
+  onCheckAgain: () => void;
+}) {
+  if (retry.pending) return <LoadingState label={`Queuing the extraction again · ${fileName}`} />;
+  if (retry.refusal) {
+    return retry.refusal.code === "42501" ? (
+      <NoPermissionState where="ARTWORK · EXTRACTION" title={retry.refusal.title} body={retry.refusal.body} aside="An admin can change your role." />
+    ) : (
+      <ErrorState
+        where={`ARTWORK · EXTRACTION · ${retry.refusal.code}`}
+        title={retry.refusal.title}
+        body={retry.refusal.body}
+        action={{ label: "Retry extraction", onClick: onRetry, variant: "primary" }}
+      />
+    );
+  }
   if (view.phase === "failed") {
-    return <ErrorState where="ARTWORK · EXTRACTION" title="This artwork could not be read" body={view.reason} />;
+    return (
+      <ErrorState
+        where="ARTWORK · EXTRACTION"
+        title="This artwork could not be read"
+        body={view.reason}
+        action={{ label: "Retry extraction", onClick: onRetry, variant: "primary" }}
+      />
+    );
+  }
+  // docs/18: a job that is still not finished after the worker's lease is a visible state, never an endless spinner.
+  if (stalled) {
+    return (
+      <ErrorState
+        where="ARTWORK · EXTRACTION"
+        title="This is taking longer than usual"
+        body={`${fileName} is still waiting to be read. Nothing is lost and nothing was counted twice; the worker picks it up again on its own, and leaving this screen does not stop it.`}
+        action={{ label: "Check again", onClick: onCheckAgain, variant: "secondary" }}
+      />
+    );
   }
   const label =
     view.phase === "running"

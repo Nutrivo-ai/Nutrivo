@@ -63,7 +63,7 @@ deterministic_rule or model_judgement needs a rule_key (23514); a clear check ta
 |---|---|
 | 42501 | Not permitted (role, scope or authentication) |
 | 22023 | Invalid argument: an unknown role or missing external flag, a scope naming another workspace's family or an unknown market, an end date in the past, a default operator without name, address or two-letter country |
-| P0002 / P0003 | No artwork to check / no released ruleset |
+| P0002 / P0003 | No artwork to check, or no extraction to retry (`app.retry_extraction`) / no released ruleset |
 | P0004 | BE-04: signing grant to an external or inactive membership |
 | P0005 | BE-05: insert-only table mutated |
 | P0007 | BE-07: jurisdiction shape violated |
