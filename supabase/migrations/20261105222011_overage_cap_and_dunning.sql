@@ -113,6 +113,9 @@ declare
   v_cap bigint;
 begin
   perform private.require_service();
+  -- The same per-workspace lock as private.require_recipe_room, taken first: a cap check never reads a mirror that is
+  -- changing under it (T-704 review).
+  perform pg_advisory_xact_lock(hashtextextended('nutrivo.recipes:' || p_ws::text, 0));
   if p_source not in ('webhook', 'reconcile', 'overage') then
     raise exception 'unknown source %', p_source using errcode = '22023';
   end if;
@@ -246,6 +249,9 @@ create trigger insert_only_row before update or delete on app.dunning_steps
 create trigger insert_only_truncate before truncate on app.dunning_steps
   for each statement execute function private.reject_mutation();
 
+-- The dunning reads look invoices up by type and Stripe object id (insert-only table: an index only adds).
+create index payment_events_type_object on app.payment_events (type, ((payload->'data'->'object'->>'id')));
+
 -- Open payment failures: the first invoice.payment_failed per Stripe invoice that has no invoice.paid event.
 create function private.dunning_failures() returns table (workspace_id uuid, stripe_invoice_id text, failed_at timestamptz)
 language sql stable security definer set search_path = '' as $$
@@ -305,10 +311,15 @@ begin
     end if;
     if exists (select 1 from app.payment_events e
                where e.workspace_id = p_ws and e.type = 'invoice.payment_failed'
-                 and e.payload->'data'->'object'->>'id' = p_invoice) then
+                 and e.payload->'data'->'object'->>'id' = p_invoice)
+       and exists (select 1 from app.payment_events e
+                   where e.type = 'invoice.paid' and e.payload->'data'->'object'->>'id' = p_invoice) then
       return 'paid';                            -- invoice.paid arrived meanwhile: the schedule has ended
     end if;
     raise exception 'no open payment failure for this invoice in this workspace' using errcode = '22023';
+  end if;
+  if exists (select 1 from app.workspaces w where w.id = p_ws and w.status in ('closed', 'dormant')) then
+    raise exception 'a closed or dormant workspace gets no dunning' using errcode = '22023';
   end if;
   if v_failed + make_interval(days => p_day) > now() then
     raise exception 'dunning day % is not due yet', p_day using errcode = '22023';

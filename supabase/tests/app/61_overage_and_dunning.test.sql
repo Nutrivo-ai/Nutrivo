@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(49);
+select plan(50);
 set local client_min_messages = warning;
 
 -- ─── O: basic monthly, 2 recipes paid, €344 billed, cap €374 (room for two €15 recipes). Owen (admin).
@@ -249,6 +249,8 @@ select pg_temp.as_service();
 set local role service_role;
 select is((select count(*)::int from app.dunning_due() where workspace_id = '20000000-0000-4000-8704-00000000000d'), 0,
           '[T-704] a closed workspace gets no dunning');
+select throws_ok($$select app.record_dunning_step('20000000-0000-4000-8704-00000000000d', 'in_D2', 0, 'notified', 'x')$$,
+                 '22023', null, '[T-704] nor can a step be recorded for it');
 reset role;
 
 -- ─── RLS: only admins of the workspace read its dunning steps ────────────────────────────────────────────────────
