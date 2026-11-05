@@ -5,7 +5,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(38);
+select plan(40);
 set local client_min_messages = warning;
 
 create function pg_temp.seal_now() returns void language sql as $$
@@ -118,6 +118,14 @@ select throws_ok($$update ref.coverage_gaps set closed_in = '2026.97-a' where ga
                  'P0047', null, '[#197 DB-3] a released gap cannot be closed in a release that is already sealed');
 select throws_ok($$update ref.coverage_gaps set opened_in = '0000.00-empty' where gap_id = 'GAP-TEST-T197-A'$$,
                  'P0047', null, '[#197 DB-3] a released gap''s opened_in cannot be rewritten');
+
+set local role service_role;
+insert into ref.ruleset_versions (id, notes) values ('T197-FORGED', 'synthetic: not a K05 release');
+select throws_ok($$update ref.coverage_gaps set closed_in = 'T197-FORGED' where gap_id = 'GAP-TEST-T197-A'$$,
+                 '42501', null, '[#197 DB-3] the service role cannot pass its own ruleset off as the release in progress');
+select lives_ok($$update ref.coverage_gaps set description = 'Synthetic: reworded.' where gap_id = 'GAP-TEST-T197-A'$$,
+                '[#197 DB-3] the service role can still reword a gap''s description');
+reset role;
 
 -- ─── A second release after the seal: draft edits, and it closes the sealed release's gap ────────────
 set local role authenticated;

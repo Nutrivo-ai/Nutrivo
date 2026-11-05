@@ -161,7 +161,13 @@ create trigger ruleset_seal_row before update or delete on ref.coverage_gaps
 create trigger ruleset_seal_truncate before truncate on ref.coverage_gaps
   for each statement execute function private.gap_seal_guard();
 
+-- Only the release (app.release_ruleset, running as owner) sets opened_in and closed_in. Without this, a service-role
+-- caller could insert a ruleset_versions row of its own (unsealed until its commit) and pass it off as the release in
+-- progress to rewrite a sealed gap's history. Description stays editable wording.
+revoke update on ref.coverage_gaps from service_role;
+grant update (description) on ref.coverage_gaps to service_role;
+
 revoke all on function private.seal_ruleset(), private.ruleset_sealed(text), private.rule_sealed(text),
                        private.gap_sealed(text), private.coverage_seal_guard(), private.member_seal_guard(),
                        private.rule_seal_guard(), private.gap_seal_guard()
-  from public, anon, authenticated;
+  from public, anon, authenticated, service_role;

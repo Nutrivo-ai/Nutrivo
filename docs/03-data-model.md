@@ -32,7 +32,7 @@ earlier release were backfilled. For a sealed ruleset, P0047 refuses INSERT, UPD
 `ref.coverage_nodes` rows, INSERT into its `ref.ruleset_members`, UPDATE, DELETE and TRUNCATE of `ref.rules` (and
 TRUNCATE of `ref.rule_versions`) it pins, and for `ref.coverage_gaps` its coverage names: DELETE, TRUNCATE and any
 change to gap_id, node_id, domain or reason_code. `opened_in` and `closed_in` may each be set once, from null, to a
-ruleset not yet sealed (the K05 bookkeeping of the release in progress). Changes go into the next draft. A release run
+ruleset not yet sealed (the K05 bookkeeping of the release in progress); the service role may update only a gap's description, so only `app.release_ruleset` sets them. Changes go into the next draft. A release run
 under `set constraints all immediate` seals its own version at its first statement and refuses itself, so never set it.
 
 **No rule, no verdict in the schema (#179).** `private.node_fully_encoded(ruleset, node)` is true only when all six
