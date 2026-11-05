@@ -22,9 +22,18 @@ audit_events.
 
 **Insert-only:** checks, check_findings, reports, certificates, supersessions, supplier_documents, audit_events,
 payment_events, allowance_consumptions, classifications, model_calls, share_access_log, ref.ruleset_versions,
-ref.ruleset_members, ref.term_decisions, ref.fixture_runs. Privileges are revoked and a trigger rejects UPDATE, DELETE and TRUNCATE,
+ref.ruleset_members, ref.term_decisions, ref.fixture_runs, ref.ruleset_seals. Privileges are revoked and a trigger rejects UPDATE, DELETE and TRUNCATE,
 including for the table owner (BE-05). Accepted `ref.rule_versions` rows are permanent (BE-08). Products have no
 delete (BE-13).
+
+**Released coverage is sealed (#197, #8 DB-3).** A deferred constraint trigger on `ref.ruleset_versions` writes a
+`ref.ruleset_seals` row when the releasing transaction commits, after everything the release wrote; seals for every
+earlier release were backfilled. For a sealed ruleset, P0047 refuses INSERT, UPDATE, DELETE and TRUNCATE on its
+`ref.coverage_nodes` rows, INSERT into its `ref.ruleset_members`, UPDATE, DELETE and TRUNCATE of `ref.rules` (and
+TRUNCATE of `ref.rule_versions`) it pins, and for `ref.coverage_gaps` its coverage names: DELETE, TRUNCATE and any
+change to gap_id, node_id, domain or reason_code. `opened_in` and `closed_in` may each be set once, from null, to a
+ruleset not yet sealed (the K05 bookkeeping of the release in progress). Changes go into the next draft. A release run
+under `set constraints all immediate` seals its own version at its first statement and refuses itself, so never set it.
 
 **No rule, no verdict in the schema (#179).** `private.node_fully_encoded(ruleset, node)` is true only when all six
 domains (mandatory_particulars, composition, claims_wording, type_geometry, language, registration) have a complete
@@ -79,6 +88,7 @@ deterministic_rule or model_judgement needs a rule_key (23514); a clear check ta
 | P0044 | The membership has ended and cannot be changed |
 | P0045 | D03: the classification changed since it was read (the basis is not the product's latest); reload and confirm again |
 | P0046 | A finding whose workspace, product or node differ from its check's (#179 DB-6) |
+| P0047 | #197: a sealed (released) ruleset's coverage, members, pinned rule metadata or named gap changed after its release; change it in the next draft |
 | P0291 / P0292 / P0293 | Certificate: no signing grant / two-factor required / open findings |
 
 ## Naming reconciliation
