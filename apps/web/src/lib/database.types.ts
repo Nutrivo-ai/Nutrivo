@@ -1276,6 +1276,9 @@ isOneToOne: false
 "request_export":
 { Args: { "p_request_id"?: string,"p_ws": string }; Returns: string
                            },
+"request_report":
+{ Args: { "p_check": string,"p_request_id"?: string }; Returns: string
+                           },
 "revoke_invitation":
 { Args: { "p_invitation": string }; Returns: string
                            },
