@@ -1770,6 +1770,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"ruleset_seals": {
+                  Row: {
+                    "ruleset_version": string,"sealed_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "ruleset_version": string,"sealed_at"?: string
+                  }
+                  Update: {
+                    "ruleset_version"?: string,"sealed_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ruleset_seals_ruleset_version_fkey"
+      columns: ["ruleset_version"]
+isOneToOne: true
+      referencedRelation: "ruleset_versions"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"ruleset_versions": {
                   Row: {
                     "id": string,"notes": string,"released_at": string,"released_by": string | null
