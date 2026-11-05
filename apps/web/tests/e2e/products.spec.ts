@@ -276,7 +276,10 @@ test.describe("products, families, stages and the free allowance", () => {
     await (await chooser).setFiles(fixture("clean_3lang"));
     await expect.poll(() => labelsUsed(free), { timeout: 30_000 }).toBe(3);
     const { data: notify } = await db().from("jobs").select("idempotency_key, payload").eq("workspace_id", free).eq("kind", "notify");
-    expect(notify).toEqual([{ idempotency_key: `allowance:${free}`, payload: { template: "allowance_used" } }]);
+    // Ids only; the upload's request_id rides along (private.enqueue, T-305, docs/17).
+    expect(notify).toEqual([
+      { idempotency_key: `allowance:${free}`, payload: { template: "allowance_used", request_id: expect.stringMatching(/^[A-Za-z0-9-]{8,64}$/) } },
+    ]);
     const revised = await owner.db.schema("app").rpc("register_artwork", { p_product: first, p_storage_path: `${free}/${first}/${"b".repeat(64)}.pdf`, p_sha256: "b".repeat(64) });
     expect(revised.error).toBeNull();
     expect(await labelsUsed(free)).toBe(3);

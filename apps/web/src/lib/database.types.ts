@@ -1310,6 +1310,9 @@ isOneToOne: false
 "request_report":
 { Args: { "p_check": string,"p_request_id"?: string }; Returns: string
                            },
+"retry_extraction":
+{ Args: { "p_artwork": string }; Returns: string
+                           },
 "revoke_invitation":
 { Args: { "p_invitation": string }; Returns: string
                            },

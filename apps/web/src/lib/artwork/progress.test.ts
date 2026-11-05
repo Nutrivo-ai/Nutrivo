@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { currentJob, describeJob, safeReason, type JobRow } from "./progress";
+import { describeJob, safeReason, type JobRow } from "./progress";
+import { visibleFor } from "@/lib/jobs/watch";
 
 const row = (over: Partial<JobRow>): JobRow => ({ id: "j", status: "queued", progress: {}, last_error: null, attempts: 0, ...over });
 
@@ -30,10 +31,16 @@ describe("extraction progress from app.jobs", () => {
 describe("the job shown belongs to the artwork being extracted", () => {
   it("a second upload in the same visit never shows the first upload's finished job", () => {
     const first = row({ id: "job-1", status: "succeeded", progress: { status: "succeeded", panels: 3, panels_extracted: 3 } });
-    const state = { artworkVersionId: "av-1", row: first, error: false };
-    expect(currentJob(state, "av-1").row).toBe(first);
-    expect(currentJob(state, "av-2")).toEqual({ row: null, error: false });
-    expect(describeJob(currentJob(state, "av-2").row)).toEqual({ phase: "waiting" });
-    expect(currentJob({ artworkVersionId: "av-1", row: null, error: true }, "av-2").error).toBe(false);
+    const state = { ref: "key:extract:av-1", generation: 0, row: first, error: false, live: true, stalled: false };
+    expect(visibleFor(state, "key:extract:av-1", 0).row).toBe(first);
+    expect(visibleFor(state, "key:extract:av-2", 0)).toEqual({ row: null, error: false, live: false, stalled: false });
+    expect(describeJob(visibleFor(state, "key:extract:av-2", 0).row)).toEqual({ phase: "waiting" });
+    expect(visibleFor({ ...state, row: null, error: true }, "key:extract:av-2", 0).error).toBe(false);
+  });
+
+  it("[T-305] after a retry the failed state read before it never shows again", () => {
+    const failed = row({ id: "job-1", status: "failed", last_error: "x" });
+    const state = { ref: "key:extract:av-1", generation: 0, row: failed, error: false, live: true, stalled: false };
+    expect(describeJob(visibleFor(state, "key:extract:av-1", 1).row)).toEqual({ phase: "waiting" });
   });
 });
