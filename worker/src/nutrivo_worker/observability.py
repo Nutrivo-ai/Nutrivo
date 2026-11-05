@@ -34,6 +34,11 @@ BILLING_RECONCILE_MONITOR = "stripe-reconcile"
 BILLING_RECONCILE_CONFIG = {"schedule": {"type": "crontab", "value": "17 3 * * *"}, "checkin_margin": 60,
                             "max_runtime": 60, "failure_issue_threshold": 1, "timezone": "UTC"}
 
+# T-704: pg_cron queues one dunning job a day at 07:41 UTC (BE-36); a missed or failed day alerts (docs/17).
+DUNNING_MONITOR = "dunning"
+DUNNING_CONFIG = {"schedule": {"type": "crontab", "value": "41 7 * * *"}, "checkin_margin": 60,
+                  "max_runtime": 60, "failure_issue_threshold": 1, "timezone": "UTC"}
+
 REDACTED = "[redacted]"
 _PATTERNS = [
     re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),                # emails

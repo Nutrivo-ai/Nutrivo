@@ -12,7 +12,20 @@ billing_reconcile · payload {}: once a day (pg_cron, 03:17 UTC), every subscrip
   webhook was missed (docs/18); a subscription that cannot be applied fails the run after the others are applied, so the job
   retries (bounded by max_attempts) and the check-in reports the error.
 
-Neither touches reports, supersessions or public.verify_reference: verification outlives the subscription (BE-36)."""
+recipe_overage · payload {} (T-704, BE-34): queued by private.require_recipe_room when a new recipe on a monthly
+  Basic or Standard plan fits within the 1.5x cap. It re-reads the subscription from Stripe, checks the cap again
+  against Stripe's own amounts, raises the recipe add-on to what the live recipes need (never lowers it, #65 Q4),
+  and applies the mirror. Over the cap it fails permanently and charges nothing. Idempotent: it sets a quantity,
+  with an Idempotency-Key per subscription and quantity, so a repeat changes nothing.
+dunning · payload {} (T-704, BE-36): once a day (pg_cron, 07:41 UTC), inside the Sentry cron check-in 'dunning'
+  (docs/17). For each step app.dunning_due returns it re-reads the invoice from Stripe: an invoice that no
+  longer needs paying is recorded 'resolved'; otherwise days 3 and 7 retry the payment (a decline is the expected
+  answer; a success is 'resolved'), and the step is recorded 'notified', which queues the payment_failed email and,
+  on day 14, stops new artworks. One invoice that fails never stops the others; the run then fails and retries
+  (bounded by max_attempts), and every step already recorded stays recorded.
+
+None of these touches reports, supersessions or public.verify_reference: verification outlives the subscription
+(BE-36, CLAUDE.md non-negotiable 9)."""
 from __future__ import annotations
 
 import re
@@ -21,7 +34,7 @@ from typing import Any, Protocol
 import sentry_sdk
 
 from .. import observability as obs
-from ..billing.mirror import NotNutrivo, snapshot, subscription_id_of
+from ..billing.mirror import NotNutrivo, recipe_item, recipe_lookup_key, snapshot, subscription_id_of
 from ..billing.stripe import StripeClient
 from ..config import ConfigError
 from ..errors import PermanentJobError, SafeError
@@ -39,14 +52,28 @@ class BillingStore(Protocol):
     def apply_subscription(self, workspace_id: str, snapshot: dict[str, Any], source: str, ref: str) -> str: ...
 
 
+    def recipe_overage_context(self, workspace_id: str) -> dict[str, Any] | None: ...
+    def dunning_due(self) -> list[dict[str, Any]]: ...
+    def record_dunning_step(self, workspace_id: str, invoice_id: str, day: int, outcome: str, ref: str) -> str: ...
+
+
 class Stripe(Protocol):
     def subscription(self, subscription_id: str) -> dict[str, Any]: ...
     def subscriptions(self) -> Any: ...
     def product(self, product_id: str) -> dict[str, Any]: ...
+    def price_by_lookup(self, lookup_key: str) -> dict[str, Any] | None: ...
+    def invoice(self, invoice_id: str) -> dict[str, Any]: ...
+    def pay_invoice(self, invoice_id: str, *, idempotency_key: str) -> dict[str, Any]: ...
+    def set_item_quantity(self, item_id: str, quantity: int, *, idempotency_key: str) -> dict[str, Any]: ...
+    def add_item(self, subscription_id: str, price_id: str, quantity: int, *, idempotency_key: str) -> dict[str, Any]: ...
 
 
 class ReconcileIncomplete(SafeError):
     """Some subscriptions could not be applied; the others were."""
+
+
+class DunningIncomplete(SafeError):
+    """Some dunning steps could not be taken; the others were recorded."""
 
 
 def stripe_client(ctx: JobContext) -> StripeClient:
@@ -121,6 +148,92 @@ def reconcile(job: Job, ctx: JobContext, store: BillingStore, stripe: Stripe) ->
         if counts["failed"]:
             raise ReconcileIncomplete(f"{counts['failed']} subscriptions could not be applied")
     return counts
+
+
+LIVE = ("active", "trialing")
+SETTLED = ("paid", "void", "uncollectible")
+
+
+def recipe_overage(job: Job, ctx: JobContext, store: BillingStore, stripe: Stripe) -> str:
+    ws = job.workspace_id
+    if not ws:
+        raise PermanentJobError("the job names no workspace")
+    context = store.recipe_overage_context(ws)
+    sub_id = (context or {}).get("stripe_subscription_id")
+    if not sub_id:
+        raise PermanentJobError("the workspace has no mirrored subscription")
+    sub = stripe.subscription(sub_id)
+    try:
+        snap = snapshot(sub, stripe.product, stripe.price_by_lookup)
+    except NotNutrivo as exc:
+        raise PermanentJobError(str(exc)) from None
+    item = recipe_item(sub)
+    current = int(item.get("quantity") or 0) if item else 0
+    need = max(0, int(context["live_recipes"]) - int(snap["plan_recipes"] or 0)) if snap["plan_recipes"] is not None else 0
+    if snap["status"] not in LIVE:
+        outcome = "not_live"           # never add a charge to a subscription that is not paying (#65)
+    elif need <= current:
+        outcome = "unchanged"          # never lowered automatically (#65 Q4)
+    else:
+        amount, unit, cap = snap["amount_per_period"], snap["recipe_unit_amount"], snap["overage_cap"]
+        if snap["term"] != "monthly" or None in (amount, unit, cap):
+            raise PermanentJobError(f"subscription {sub_id} takes no overage (term or amounts unknown): nothing charged")
+        projected = amount + (need - current) * unit
+        if projected > cap:
+            raise PermanentJobError(f"recipe overage on {sub_id} would reach {projected} over the cap {cap}: "
+                                    "nothing charged")
+        key = f"nutrivo-recipe-overage-{sub_id}-{need}"
+        if item:
+            stripe.set_item_quantity(item["id"], need, idempotency_key=key)
+        else:
+            price = stripe.price_by_lookup(recipe_lookup_key(snap["plan"], "month"))
+            if not price or not price.get("id"):
+                raise PermanentJobError(f"no recipe add-on price for {snap['plan']}: nothing charged")
+            stripe.add_item(sub_id, price["id"], need, idempotency_key=key)
+        sub = stripe.subscription(sub_id)
+        snap = snapshot(sub, stripe.product, stripe.price_by_lookup)
+        outcome = "raised"
+    applied = store.apply_subscription(ws, snap, "overage", job.id)
+    ctx.heartbeat(outcome=outcome, recipes=need, applied=applied)
+    log.info("recipe_overage finished", extra=kv(stripe_subscription_id=sub_id, outcome=outcome, quantity=need))
+    return outcome
+
+
+def dunning(job: Job, ctx: JobContext, store: BillingStore, stripe: Stripe) -> dict[str, int]:
+    counts = {"notified": 0, "resolved": 0, "duplicate": 0, "failed": 0}
+    with obs.cron_checkin(obs.DUNNING_MONITOR, obs.DUNNING_CONFIG):
+        for step in store.dunning_due():
+            invoice_id, day, ws = step["stripe_invoice_id"], int(step["day"]), step["workspace_id"]
+            try:
+                invoice = stripe.invoice(invoice_id)
+                outcome = "resolved" if invoice.get("status") in SETTLED else "notified"
+                if outcome == "notified" and day in (3, 7):
+                    attempt = stripe.pay_invoice(invoice_id, idempotency_key=f"nutrivo-dunning-{invoice_id}-{day}")
+                    if not attempt.get("declined") and attempt.get("status") == "paid":
+                        outcome = "resolved"
+                recorded = store.record_dunning_step(ws, invoice_id, day, outcome, job.id)
+                counts[outcome if recorded == "recorded" else "duplicate"] += 1
+            except Exception as exc:     # one invoice never stops the others; the run still ends in error
+                counts["failed"] += 1
+                sentry_sdk.capture_exception(exc)
+                log.error("dunning step failed", exc_info=exc,
+                          extra=kv(stripe_invoice_id=invoice_id, day=day))
+            ctx.heartbeat(**counts)
+        ctx.heartbeat(**counts)
+        log.info("dunning finished", extra=kv(**counts))
+        if counts["failed"]:
+            raise DunningIncomplete(f"{counts['failed']} dunning steps could not be taken")
+    return counts
+
+
+@handler("recipe_overage")
+def recipe_overage_job(job: Job, ctx: JobContext) -> None:
+    recipe_overage(job, ctx, ctx.store, stripe_client(ctx))  # type: ignore[arg-type]
+
+
+@handler("dunning")
+def dunning_job(job: Job, ctx: JobContext) -> None:
+    dunning(job, ctx, ctx.store, stripe_client(ctx))  # type: ignore[arg-type]
 
 
 @handler("billing_sync")

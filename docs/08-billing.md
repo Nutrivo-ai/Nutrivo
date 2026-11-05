@@ -104,7 +104,7 @@ The table has a few exceptions:
 - The end of an older subscription never downgrades a workspace whose mirrored subscription is a different, live one
   (`stale`).
 - A second live subscription for a workspace is refused (23505): the job fails visibly and a person looks.
-- Day 14 (`new_artwork_stopped`) is set by the dunning schedule (T-704), not here.
+- Day 14 (`new_artwork_stopped`) is set by the dunning schedule (§Dunning, T-704), not here.
 - Nothing is deleted, and none of this touches `public.verify_reference` (CLAUDE.md non-negotiable 9).
 
 **Checkout contract (T-703).**
@@ -117,6 +117,69 @@ The table has a few exceptions:
   3. Otherwise the mirrored customer.
 - An event whose workspace cannot be found stays stored, and its job fails visibly.
 
-## Dunning (BE-36)
+## Overage (BE-34, T-704)
+Overage is capped at 1.5x list (D-03): €374 on Basic, €749 on Standard. Past the cap the next plan is offered instead
+of a larger invoice.
+- **What the database checks.** `private.require_recipe_room` runs under a per-workspace lock whenever a new recipe
+  (family) is created or a discontinued one is made active again.
+  - A recipe already paid for (`recipes_included`, the plan's own plus recipe add-ons) is always allowed.
+  - One more is allowed only on a monthly term, while `amount_per_period + extra × recipe_unit_amount ≤ overage_cap`.
+    It then queues a `recipe_overage` job.
+  - Otherwise it is refused with P0034. The hint names the plan, the cap, the term and `next_plan` (Basic → Standard,
+    Standard → Advanced). The screen offers that plan.
+- **Where the amounts come from (D-18).** Every amount comes from Stripe, never from a copy of the price list. The
+  worker's snapshot mirrors four fields onto `app.subscriptions`:
+  - `plan_recipes`;
+  - `amount_per_period`: the net unit amount times the quantity, summed over every recurring item;
+  - `recipe_unit_amount`: this plan's recipe add-on, from the item's own price or the catalogue lookup key;
+  - `overage_cap`: the plan product's `overage_cap` metadata, written by the T-701 catalogue from `config/pricing.ts`.
+
+  An amount Stripe does not state is stored as null, and then no overage is allowed.
+- **Charging.** The `recipe_overage` job re-reads the subscription from Stripe and checks the cap again against
+  Stripe's own amounts.
+  - It raises the recipe add-on quantity to `live recipes − plan recipes`, using Stripe's default proration, so the
+    change shows on the next invoice.
+  - The write carries an Idempotency-Key per subscription and quantity.
+  - It then applies the mirror (`apply_subscription`, source `overage`).
+  - Over the cap, on an annual term, or when an amount is unknown, it fails permanently and nothing is charged.
+  - It never lowers the quantity and never charges a subscription that is not `active` or `trialing`.
+- **Conservative defaults (questions on #65).**
+  1. Every recurring item counts toward the cap, so Standard with the region add-on (€698) has room for 4 recipes.
+  2. An annual term has no overage.
+  3. Proration is Stripe's default.
+  4. The add-on is not lowered automatically when a recipe is discontinued.
+
+## Dunning (BE-36, T-704)
 Days 0, 3 and 7: notify and retry, no restriction. Day 14: `status = new_artwork_stopped`, which stops new artworks
 only. Nothing is ever deleted, and verification of shared documents never breaks.
+
+How it runs:
+1. **Day 0** is the first `invoice.payment_failed` event stored for a Stripe invoice (the event's `created`). A later
+   `invoice.paid` event for the same invoice ends its schedule.
+2. **The daily job.** pg_cron queues one `dunning` job a day at 07:41 UTC (`dunning:<UTC date>`, payload `{}`).
+   - The worker runs it inside the Sentry cron check-in `dunning` (docs/17).
+   - `app.dunning_due()` returns, per open invoice, only the latest day that has passed and has not been taken. A late
+     run therefore sends one email, never a backlog.
+   - Closed and dormant workspaces are skipped.
+3. **Each step.** The worker re-reads the invoice from Stripe.
+   - If it is `paid`, `void` or `uncollectible`, the step is recorded `resolved` and nothing is sent.
+   - On days 3 and 7 it retries the payment (`POST /v1/invoices/{id}/pay`, Idempotency-Key per invoice and day). A
+     decline is the expected answer; a payment that succeeds is recorded `resolved`.
+   - Otherwise `app.record_dunning_step` records the step `notified`, once per invoice and day, in
+     `app.dunning_steps` (insert-only; workspace admins read it).
+   - A `notified` step queues the `payment_failed` email (`notify`, key `payment_failed:<invoice>:<day>`) to the
+     invoice's `customer_email`, which T-703 makes the finance address.
+   - On day 14 a `notified` step moves the workspace from `dunning` to `new_artwork_stopped`, audited
+     `billing.new_artwork_stopped`.
+4. **Failures.** One invoice that fails never stops the others. The run then fails and retries, bounded by
+   `max_attempts`; every step already recorded stays recorded.
+5. **Recovery.** A paid invoice or an active subscription returns the workspace to `active` (`apply_subscription`,
+   T-702).
+
+Day 7's admin-only banner is a web change that is not built yet; admins can already read `app.dunning_steps`.
+
+**Open on #65:**
+- Who retries. Nutrivo retries on days 3 and 7, so Stripe's own automatic retries should be off in the Stripe
+  dashboard, or a card is tried twice.
+- The email copy, which follows the Billing Settings design, and its recipients.
+- The day-7 banner.
