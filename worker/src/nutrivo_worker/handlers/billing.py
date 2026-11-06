@@ -170,12 +170,12 @@ def recipe_overage(job: Job, ctx: JobContext, store: BillingStore, stripe: Strip
     item = recipe_item(sub)
     current = int(item.get("quantity") or 0) if item else 0
     need = max(0, int(context["live_recipes"]) - int(snap["plan_recipes"] or 0)) if snap["plan_recipes"] is not None else 0
-    if snap["status"] not in LIVE:
+    if need <= current:
+        outcome = "unchanged"          # nothing owed (or never lowered automatically, #65 Q4), whatever the status
+    elif snap["status"] not in LIVE:
         # The database only queues overage for a paying subscription; one that stopped paying since then is never
         # charged, and the unbilled recipe fails visibly (app.jobs, Sentry) for a person to look at (#65 Q8).
         raise PermanentJobError(f"subscription {sub_id} is {snap['status']}: recipe overage not charged")
-    if need <= current:
-        outcome = "unchanged"          # never lowered automatically (#65 Q4)
     else:
         amount, unit, cap = snap["amount_per_period"], snap["recipe_unit_amount"], snap["overage_cap"]
         if snap["term"] != "monthly" or None in (amount, unit, cap):

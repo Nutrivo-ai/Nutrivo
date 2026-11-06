@@ -261,7 +261,9 @@ create trigger insert_only_truncate before truncate on app.dunning_steps
 -- The dunning reads look invoices up by type and Stripe object id (insert-only table: an index only adds).
 create index payment_events_type_object on app.payment_events (type, ((payload->'data'->'object'->>'id')));
 
--- Open payment failures: the first invoice.payment_failed per Stripe invoice that has no invoice.paid event.
+-- Open payment failures: the first invoice.payment_failed per Stripe invoice that is not settled. Settled means an
+-- invoice.paid, invoice.voided or invoice.marked_uncollectible event, or a step the dunning job recorded 'resolved'
+-- after Stripe said the invoice no longer needs paying (T-704 review).
 create function private.dunning_failures() returns table (workspace_id uuid, stripe_invoice_id text, failed_at timestamptz)
 language sql stable security definer set search_path = '' as $$
   select f.workspace_id, f.invoice_id, min(f.at)
@@ -272,7 +274,10 @@ language sql stable security definer set search_path = '' as $$
         where e.type = 'invoice.payment_failed' and e.workspace_id is not null) f
   where f.invoice_id ~ '^in_[A-Za-z0-9_]{1,250}$'
     and not exists (select 1 from app.payment_events p
-                    where p.type = 'invoice.paid' and p.payload->'data'->'object'->>'id' = f.invoice_id)
+                    where p.type in ('invoice.paid', 'invoice.voided', 'invoice.marked_uncollectible')
+                      and p.payload->'data'->'object'->>'id' = f.invoice_id)
+    and not exists (select 1 from app.dunning_steps s
+                    where s.stripe_invoice_id = f.invoice_id and s.outcome = 'resolved')
   group by f.workspace_id, f.invoice_id
 $$;
 revoke execute on function private.dunning_failures() from public, anon, authenticated;
@@ -325,9 +330,12 @@ begin
     if exists (select 1 from app.payment_events e
                where e.workspace_id = p_ws and e.type = 'invoice.payment_failed'
                  and e.payload->'data'->'object'->>'id' = p_invoice)
-       and exists (select 1 from app.payment_events e
-                   where e.type = 'invoice.paid' and e.payload->'data'->'object'->>'id' = p_invoice) then
-      return 'paid';                            -- invoice.paid arrived meanwhile: the schedule has ended
+       and (exists (select 1 from app.payment_events e
+                    where e.type in ('invoice.paid', 'invoice.voided', 'invoice.marked_uncollectible')
+                      and e.payload->'data'->'object'->>'id' = p_invoice)
+            or exists (select 1 from app.dunning_steps s
+                       where s.stripe_invoice_id = p_invoice and s.outcome = 'resolved')) then
+      return 'paid';                            -- settled meanwhile: the schedule has ended
     end if;
     raise exception 'no open payment failure for this invoice in this workspace' using errcode = '22023';
   end if;
@@ -393,3 +401,35 @@ begin
     raise notice 'pg_cron is not available: the daily dunning job is not scheduled';
   end if;
 end $$;
+
+-- The webhook's billing_sync also runs for an invoice that is voided or marked uncollectible: it settles the invoice for
+-- dunning, so a cancelled workspace can leave dunning (app.apply_subscription). Same signature and grants as T-702;
+-- only the list of types that queue a job grows. The Stripe webhook endpoint must send these two types (docs/08).
+create or replace function app.record_stripe_event(p_event jsonb) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare v_id text := p_event->>'id'; v_type text := p_event->>'type'; v_ws uuid; v_rows int; v_job uuid;
+begin
+  perform private.require_service();
+  if v_id is null or v_id !~ '^evt_[A-Za-z0-9_]{1,250}$' or coalesce(v_type, '') !~ '^[a-z_]+(\.[a-z_]+)+$'
+     or jsonb_typeof(p_event->'data'->'object') is distinct from 'object' then
+    raise exception 'not a Stripe event' using errcode = '22023';
+  end if;
+  v_ws := private.stripe_workspace(p_event->'data'->'object');
+  insert into app.payment_events (stripe_event_id, workspace_id, type, payload)
+  values (v_id, v_ws, v_type, p_event)
+  on conflict (stripe_event_id) do nothing;
+  get diagnostics v_rows = row_count;
+  if v_rows = 0 then
+    return jsonb_build_object('stored', false, 'duplicate', true);
+  end if;
+  if v_type in ('checkout.session.completed', 'customer.subscription.created', 'customer.subscription.updated',
+                'customer.subscription.deleted', 'invoice.paid', 'invoice.payment_failed',
+                'invoice.voided', 'invoice.marked_uncollectible') then
+    v_job := private.enqueue('billing_sync', v_ws, 'billing_sync:' || v_id, jsonb_build_object('stripe_event_id', v_id));
+  end if;
+  perform private.write_audit(v_ws, 'billing.event_received', 'payment_event', v_id, null,
+                              jsonb_build_object('type', v_type, 'job_id', v_job));
+  return jsonb_build_object('stored', true, 'duplicate', false, 'job_id', v_job);
+end $$;
+revoke execute on function app.record_stripe_event(jsonb) from public, anon, authenticated;
+grant execute on function app.record_stripe_event(jsonb) to service_role;

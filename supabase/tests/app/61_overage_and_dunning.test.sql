@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(56);
+select plan(60);
 set local client_min_messages = warning;
 
 -- ─── O: basic monthly, 2 recipes paid, €344 billed, cap €374 (room for two €15 recipes). Owen (admin).
@@ -194,6 +194,26 @@ select is(app.apply_subscription('20000000-0000-4000-8704-00000000000b',
 reset role;
 select is((select (plan, status)::text from app.workspaces where id = '20000000-0000-4000-8704-00000000000b'),
           '(free,active)', '[T-704][M04.main] paying after cancellation restores new labels on the free plan');
+
+-- An invoice Stripe marks uncollectible (or voids) settles it too: the cancelled workspace is not stuck stopped.
+select pg_temp.failed('evt_b2a', 'invoice.payment_failed', 'in_B2', '20000000-0000-4000-8704-00000000000b', 20);
+update app.workspaces set status = 'new_artwork_stopped' where id = '20000000-0000-4000-8704-00000000000b';
+set local role service_role;
+select is(app.apply_subscription('20000000-0000-4000-8704-00000000000b',
+            '{"customer_id":"cus_B","subscription_id":"sub_B","plan":"basic","term":"monthly","status":"canceled"}',
+            'webhook', 'j6'), 'unchanged', '[T-704][M04.main] cancelled with in_B2 open: still stopped');
+select ok((app.record_stripe_event(jsonb_build_object('id', 'evt_b2u', 'object', 'event',
+            'type', 'invoice.marked_uncollectible', 'created', extract(epoch from now())::bigint,
+            'data', jsonb_build_object('object', jsonb_build_object('id', 'in_B2', 'object', 'invoice',
+                                                                    'customer', 'cus_B', 'subscription', 'sub_B'))))
+           ->> 'job_id') is not null,
+          '[T-704][M04.main] invoice.marked_uncollectible is stored and queues billing_sync');
+select is(app.apply_subscription('20000000-0000-4000-8704-00000000000b',
+            '{"customer_id":"cus_B","subscription_id":"sub_B","plan":"basic","term":"monthly","status":"canceled"}',
+            'webhook', 'j7'), 'applied', '[T-704][M04.main] the uncollectible invoice is settled');
+reset role;
+select is((select status from app.workspaces where id = '20000000-0000-4000-8704-00000000000b'), 'active',
+          '[T-704][M04.main] an uncollectible invoice after cancellation leaves the workspace active');
 
 -- ─── BE-36 · M04.main: the steps due, latest day only, never a paid invoice ─────────────────────────────────────────
 select pg_temp.as_service();

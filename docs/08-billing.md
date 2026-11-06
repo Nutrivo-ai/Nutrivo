@@ -62,7 +62,8 @@ customers without one; zero outside the EU. All prices are stored and shown net;
 
 ## Webhooks
 `checkout.session.completed`, `customer.subscription.created / updated / deleted`, `invoice.paid`,
-`invoice.payment_failed`. Each is written to `app.payment_events` once (primary key = Stripe event id), then applied
+`invoice.payment_failed`, and (T-704) `invoice.voided` and `invoice.marked_uncollectible`, which settle an invoice for
+dunning. The Stripe webhook endpoint must send all eight. Each is written to `app.payment_events` once (primary key = Stripe event id), then applied
 to `app.subscriptions` and `app.workspaces.plan / status`.
 
 ### How it runs (T-702)
@@ -76,7 +77,7 @@ to `app.subscriptions` and `app.workspaces.plan / status`.
    - Logs hold event ids, types and outcomes only.
 2. **Storing.** `app.record_stripe_event` is service role only.
    - It inserts the event with `on conflict do nothing` and resolves the workspace (see the checkout contract below).
-   - For the six types above it queues a `billing_sync` job whose payload is `{"stripe_event_id"}` only.
+   - For the eight types above it queues a `billing_sync` job whose payload is `{"stripe_event_id"}` only.
    - Any other type is stored and queues nothing.
 3. **Applying.** The worker's `billing_sync` re-reads the subscription from Stripe rather than trusting the event
    body, so duplicates and out-of-order deliveries converge on Stripe's current state. It applies the subscription
@@ -159,7 +160,8 @@ only. Nothing is ever deleted, and verification of shared documents never breaks
 
 How it runs:
 1. **Day 0** is the first `invoice.payment_failed` event stored for a Stripe invoice (the event's `created`). A later
-   `invoice.paid` event for the same invoice ends its schedule.
+   `invoice.paid`, `invoice.voided` or `invoice.marked_uncollectible` event for the same invoice, or a step recorded
+   `resolved`, settles it and ends its schedule.
 2. **The daily job.** pg_cron queues one `dunning` job a day at 07:41 UTC (`dunning:<UTC date>`, payload `{}`).
    - The worker runs it inside the Sentry cron check-in `dunning` (docs/17).
    - `app.dunning_due()` returns, per open invoice, only the latest day that has passed and has not been taken. A late

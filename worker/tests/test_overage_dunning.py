@@ -146,6 +146,14 @@ def test_T704_review_4_the_idempotency_key_differs_for_a_new_raise_to_the_same_q
     assert stripe.writes[-1][3] != "nutrivo-recipe-overage-job-1-1-2"
 
 
+def test_T704_review_2b_nothing_owed_is_unchanged_and_refreshes_the_mirror_whatever_the_status():
+    """An earlier job already raised the add-on; the subscription has since gone past_due: nothing to charge."""
+    stripe = FakeStripe(subscription(amounts=True, ws=WS, status="past_due", addons={"recipe": 2}))
+    store = _Store(live_recipes=12)
+    assert _run(billing.recipe_overage, store, stripe) == "unchanged"
+    assert stripe.writes == [] and [a[2] for a in store.applied] == ["overage"]
+
+
 def test_T704_C01_fail_1_past_the_cap_nothing_is_charged_and_the_job_fails_visibly():
     stripe = FakeStripe(subscription(amounts=True, ws=WS))
     with pytest.raises(PermanentJobError, match="over the cap 37400: nothing charged"):
