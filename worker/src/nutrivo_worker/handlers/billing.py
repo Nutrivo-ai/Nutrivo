@@ -107,7 +107,7 @@ def sync(job: Job, ctx: JobContext, store: BillingStore, stripe: Stripe) -> str:
         if ws is None:
             raise PermanentJobError(f"no workspace for subscription {sub_id} (event {event_id})")
         try:
-            snap = snapshot(sub, stripe.product)
+            snap = snapshot(sub, stripe.product, stripe.price_by_lookup)
         except NotNutrivo as exc:
             raise PermanentJobError(str(exc)) from None
         outcome = store.apply_subscription(ws, snap, "webhook", event_id)
@@ -121,7 +121,7 @@ def reconcile(job: Job, ctx: JobContext, store: BillingStore, stripe: Stripe) ->
     with obs.cron_checkin(obs.BILLING_RECONCILE_MONITOR, obs.BILLING_RECONCILE_CONFIG):
         for sub in stripe.subscriptions():
             try:
-                snap = snapshot(sub, stripe.product)
+                snap = snapshot(sub, stripe.product, stripe.price_by_lookup)
             except NotNutrivo:
                 counts["not_nutrivo"] += 1
                 continue
@@ -171,8 +171,10 @@ def recipe_overage(job: Job, ctx: JobContext, store: BillingStore, stripe: Strip
     current = int(item.get("quantity") or 0) if item else 0
     need = max(0, int(context["live_recipes"]) - int(snap["plan_recipes"] or 0)) if snap["plan_recipes"] is not None else 0
     if snap["status"] not in LIVE:
-        outcome = "not_live"           # never add a charge to a subscription that is not paying (#65)
-    elif need <= current:
+        # The database only queues overage for a paying subscription; one that stopped paying since then is never
+        # charged, and the unbilled recipe fails visibly (app.jobs, Sentry) for a person to look at (#65 Q8).
+        raise PermanentJobError(f"subscription {sub_id} is {snap['status']}: recipe overage not charged")
+    if need <= current:
         outcome = "unchanged"          # never lowered automatically (#65 Q4)
     else:
         amount, unit, cap = snap["amount_per_period"], snap["recipe_unit_amount"], snap["overage_cap"]
@@ -182,7 +184,9 @@ def recipe_overage(job: Job, ctx: JobContext, store: BillingStore, stripe: Strip
         if projected > cap:
             raise PermanentJobError(f"recipe overage on {sub_id} would reach {projected} over the cap {cap}: "
                                     "nothing charged")
-        key = f"nutrivo-recipe-overage-{sub_id}-{need}"
+        # Unique per job and starting quantity: a later raise to the same number after a portal change is a new
+        # request, while a retry of this job reuses the key.
+        key = f"nutrivo-recipe-overage-{job.id}-{current}-{need}"
         if item:
             stripe.set_item_quantity(item["id"], need, idempotency_key=key)
         else:
@@ -208,7 +212,14 @@ def dunning(job: Job, ctx: JobContext, store: BillingStore, stripe: Stripe) -> d
                 invoice = stripe.invoice(invoice_id)
                 outcome = "resolved" if invoice.get("status") in SETTLED else "notified"
                 if outcome == "notified" and day in (3, 7):
-                    attempt = stripe.pay_invoice(invoice_id, idempotency_key=f"nutrivo-dunning-{invoice_id}-{day}")
+                    try:
+                        attempt = stripe.pay_invoice(invoice_id,
+                                                     idempotency_key=f"nutrivo-dunning-{invoice_id}-{day}")
+                    except Exception as exc:   # a failed retry never holds back the day's notice
+                        sentry_sdk.capture_exception(exc)
+                        log.error("dunning retry failed", exc_info=exc,
+                                  extra=kv(stripe_invoice_id=invoice_id, day=day))
+                        attempt = {"declined": True, "code": "retry_error"}
                     if not attempt.get("declined") and attempt.get("status") == "paid":
                         outcome = "resolved"
                 recorded = store.record_dunning_step(ws, invoice_id, day, outcome, job.id)

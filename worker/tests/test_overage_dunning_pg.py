@@ -98,6 +98,13 @@ class World:
         finally:
             self.conn.execute("reset role")
 
+    def past_due(self):
+        """What billing_sync does with Stripe's past_due subscription: the mirror and the workspace enter dunning."""
+        self.stripe.put(subscription(self.sub, ws=self.ws, customer=self.cus, status="past_due", amounts=True))
+        snap = billing.snapshot(self.stripe.subscription(self.sub), self.stripe.product, self.stripe.price_by_lookup)
+        assert PgStore(self.conn).apply_subscription(self.ws, snap, "webhook", "past_due") == "applied"
+        assert self.status() == "dunning"
+
     def payment_failed(self, invoice, days_ago):
         event = {"id": f"evt_{self.tag}_{invoice}", "object": "event", "type": "invoice.payment_failed",
                  "livemode": False, "created": int(time.time()) - days_ago * 86400,
@@ -130,7 +137,7 @@ def test_T704_C01_must_2_overage_within_the_cap_is_charged_in_stripe_and_mirrore
     (job_id,) = w.jobs("recipe_overage")
     outcome, job = w.run("recipe_overage", job_id)
     assert (outcome, job["progress"]["outcome"]) == ("succeeded", "raised")
-    assert w.stripe.writes == [("add_item", w.sub, 1, f"nutrivo-recipe-overage-{w.sub}-1")]
+    assert w.stripe.writes == [("add_item", w.sub, 1, f"nutrivo-recipe-overage-{job_id}-0-1")]
     assert w.mirror() == {"recipes_included": 11, "amount_per_period": 24900 + 1500}
     again = w.conn.execute("select private.enqueue('recipe_overage', %s, %s, '{}') as id",
                            (w.ws, f"again-{w.tag}")).fetchone()["id"]
@@ -153,7 +160,7 @@ def test_T704_C01_fail_1_past_the_cap_the_next_plan_is_offered_and_nothing_is_ch
 
 def test_T704_M04_main_dunning_runs_daily_notifies_and_stops_new_artworks_on_day_14(world):
     w = world
-    w.conn.execute("update app.workspaces set status = 'dunning' where id = %s", (w.ws,))
+    w.past_due()
     w.payment_failed("in_late", 15)
     w.payment_failed("in_new", 0)
     job_id = w.conn.execute("select private.enqueue_dunning() as id").fetchone()["id"]
@@ -177,7 +184,7 @@ def test_T704_M04_main_dunning_runs_daily_notifies_and_stops_new_artworks_on_day
 def test_T704_M04_must_1_dunning_and_cancellation_delete_nothing_and_verification_never_breaks(world):
     w = world
     assert w.verify() == "current"
-    w.conn.execute("update app.workspaces set status = 'dunning' where id = %s", (w.ws,))
+    w.past_due()
     w.payment_failed("in_late", 15)
     w.run("dunning", w.conn.execute("select private.enqueue_dunning() as id").fetchone()["id"])
     assert w.status() == "new_artwork_stopped" and w.verify() == "current"

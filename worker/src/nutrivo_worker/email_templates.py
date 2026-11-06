@@ -417,22 +417,27 @@ DUNNING_NEXT = {
     14: ("The workspace has stopped accepting new labels. Nothing is deleted, everything already checked stays "
          "readable, and every report already sent stays verifiable. Paying the invoice turns new labels back on."),
 }
+# Day 14 when the workspace was not stopped (it was not in dunning, or its subscription is no longer owed).
+DUNNING_14_NOT_STOPPED = "The invoice is still unpaid. Nothing changes in the product."
 
 
-def payment_failed(*, to: str, day: int, amount_cents: int, invoice_number: str, url: str) -> Email:
+def payment_failed(*, to: str, day: int, amount_cents: int, invoice_number: str, url: str,
+                   stopped: bool = False) -> Email:
+    """`stopped` is what app.record_dunning_step did: the day-14 copy says labels are paused only when they are."""
     if day not in DUNNING_NEXT:
         raise ValueError(f"no payment_failed email for day {day}")
     attempt = {0: "A payment failed", 3: "A second payment attempt failed", 7: "A third payment attempt failed",
-               14: "New labels are paused"}[day]
+               14: "New labels are paused" if stopped else "An invoice is still unpaid"}[day]
+    next_step = DUNNING_14_NOT_STOPPED if day == 14 and not stopped else DUNNING_NEXT[day]
     return render(Layout(
         template="payment_failed", to=to,
         subject=f"{attempt}: Nutrivo invoice {invoice_number}, {euro(amount_cents)}",
-        preheader=DUNNING_NEXT[day],
+        preheader=next_step,
         heading=attempt,
         panel_title=f"Invoice {invoice_number}",
         panel_body="The card on file was declined.",
         panel_rows=[("Amount due", euro(amount_cents))],
-        body=[DUNNING_NEXT[day],
+        body=[next_step,
               ("A failed card never deletes anything and never makes a report unverifiable. Somebody outside your "
                "company may be holding one.")],
         cta="Update the payment method", cta_url=url,

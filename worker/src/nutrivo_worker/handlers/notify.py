@@ -405,7 +405,9 @@ def send_payment_failed(job: Job, ctx: JobContext, store: NotifyStore, mailer: m
     if not payer:
         raise PermanentJobError("the invoice names no payer")
     url = f"{ctx.settings.require_app_base_url()}/w/{ws}/settings/billing/payment"
-    email = email_templates.payment_failed(to=payer, day=int(day), amount_cents=amount, invoice_number=number, url=url)
+    stopped = job.payload.get("stopped") is True       # absent or anything else: the copy never claims a stop
+    email = email_templates.payment_failed(to=payer, day=int(day), amount_cents=amount, invoice_number=number, url=url,
+                                           stopped=stopped)
     log.info("payment_failed email", extra=kv(stripe_invoice_id=invoice_id, day=int(day)))
     deliver(job, ctx, store, Delivery("payment_failed", [Recipient("recipient", payer)], lambda r: email,
                                       severity="warning"), mailer)

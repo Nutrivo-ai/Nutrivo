@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(50);
+select plan(56);
 set local client_min_messages = warning;
 
 -- ─── O: basic monthly, 2 recipes paid, €344 billed, cap €374 (room for two €15 recipes). Owen (admin).
@@ -141,6 +141,17 @@ select throws_ok($$select app.create_product('20000000-0000-4000-8704-0000000000
                  'P0034', null, '[T-704] without a mirrored cap no overage is allowed');
 reset role;
 
+-- A subscription in dunning takes no overage, even with room under the cap (it would be billed to an unpaid invoice).
+update app.subscriptions set overage_cap = 37400, amount_per_period = 24900, status = 'past_due'
+where workspace_id = '20000000-0000-4000-8704-00000000000a';
+select pg_temp.as_user('00000000-0000-4000-8704-0000000000a1');
+set local role authenticated;
+select throws_ok($$select app.create_product('20000000-0000-4000-8704-00000000000a', 'O five', null, 'O five')$$,
+                 'P0034', null, '[T-704][C01.fail.1] a subscription in dunning takes no overage');
+reset role;
+select is((select count(*)::int from app.jobs where workspace_id = '20000000-0000-4000-8704-00000000000a'
+           and kind = 'recipe_overage'), 2, '[T-704][C01.fail.1] and queues no recipe_overage job');
+
 -- ─── BE-34: the mirror stores the amounts while live and clears them when not ───────────────────────────────────
 select pg_temp.as_service();
 set local role service_role;
@@ -167,6 +178,23 @@ select is((select (plan_recipes, amount_per_period, overage_cap)::text from app.
            where workspace_id = '20000000-0000-4000-8704-00000000000b'), '(,,)',
           '[T-704] a subscription that is no longer live keeps no BE-34 amounts');
 
+-- A cancelled subscription leaves the workspace stopped while an invoice is still open, and active once it is paid.
+update app.workspaces set status = 'new_artwork_stopped' where id = '20000000-0000-4000-8704-00000000000b';
+select pg_temp.as_service();
+set local role service_role;
+select is(app.apply_subscription('20000000-0000-4000-8704-00000000000b',
+            '{"customer_id":"cus_B","subscription_id":"sub_B","plan":"basic","term":"monthly","status":"canceled"}',
+            'webhook', 'j4'), 'unchanged', '[T-704][M04.main] cancelled with an open invoice: still stopped');
+reset role;
+select pg_temp.failed('evt_b1p', 'invoice.paid', 'in_B1', '20000000-0000-4000-8704-00000000000b', 0);
+set local role service_role;
+select is(app.apply_subscription('20000000-0000-4000-8704-00000000000b',
+            '{"customer_id":"cus_B","subscription_id":"sub_B","plan":"basic","term":"monthly","status":"canceled"}',
+            'webhook', 'j5'), 'applied', '[T-704][M04.main] the open invoice is paid after cancellation');
+reset role;
+select is((select (plan, status)::text from app.workspaces where id = '20000000-0000-4000-8704-00000000000b'),
+          '(free,active)', '[T-704][M04.main] paying after cancellation restores new labels on the free plan');
+
 -- ─── BE-36 · M04.main: the steps due, latest day only, never a paid invoice ─────────────────────────────────────────
 select pg_temp.as_service();
 set local role service_role;
@@ -179,7 +207,8 @@ select is((select count(*)::int from t_due where stripe_invoice_id = 'in_D1'), 1
 select is((select day from t_due where stripe_invoice_id = 'in_D2'), 3, '[T-704][M04.main] 4 days on, day 3 is due');
 select is((select count(*)::int from t_due where stripe_invoice_id = 'in_D3'), 0,
           '[T-704][M04.main] a paid invoice has no dunning');
-select is((select day from t_due where stripe_invoice_id = 'in_B1'), 0, '[T-704][M04.main] 1 day on, day 0 is due');
+select is((select count(*)::int from t_due where stripe_invoice_id = 'in_B1'), 0,
+          '[T-704][M04.main] a cancelled subscription gets no dunning: no retry, no email, no stop (#65 Q9)');
 
 set local role service_role;
 select is(app.record_dunning_step('20000000-0000-4000-8704-00000000000d', 'in_D2', 3, 'notified', 'job-1'), 'recorded',
@@ -194,7 +223,7 @@ select is(app.record_dunning_step('20000000-0000-4000-8704-00000000000d', 'in_D3
           '[T-704][M04.main] an invoice paid meanwhile ends the schedule without a step');
 reset role;
 select is((select payload from app.jobs where idempotency_key = 'payment_failed:in_D2:3'),
-          '{"day": 3, "template": "payment_failed", "payment_event_id": "evt_d2a"}'::jsonb,
+          '{"day": 3, "stopped": false, "template": "payment_failed", "payment_event_id": "evt_d2a"}'::jsonb,
           '[T-704][M04.main] a notified step queues one payment_failed email, ids only');
 select is((select status from app.workspaces where id = '20000000-0000-4000-8704-00000000000d'), 'dunning',
           '[T-704][M04.main] days 0 to 7 restrict nothing: the workspace stays in dunning');
@@ -209,6 +238,8 @@ select is((select status from app.workspaces where id = '20000000-0000-4000-8704
           '[T-704][M04.main] day 14 stops new artworks');
 select is((select count(*)::int from app.audit_events where workspace_id = '20000000-0000-4000-8704-00000000000d'
            and kind = 'billing.new_artwork_stopped'), 1, '[T-704][M04.main] day 14 is audited');
+select is((select payload->'stopped' from app.jobs where idempotency_key = 'payment_failed:in_D1:14'), 'true'::jsonb,
+          '[T-704][M04.main] the day-14 email is told the workspace was stopped');
 
 -- Day 14 stops new artworks only.
 select pg_temp.as_user('00000000-0000-4000-8704-0000000000e1');

@@ -122,7 +122,7 @@ def test_T704_C01_must_2_overage_within_the_cap_adds_the_recipe_add_on_and_appli
     stripe = FakeStripe(subscription(amounts=True, ws=WS))
     store = _Store(live_recipes=12)
     assert _run(billing.recipe_overage, store, stripe) == "raised"
-    assert stripe.writes == [("add_item", "sub_A1", 2, "nutrivo-recipe-overage-sub_A1-2")]
+    assert stripe.writes == [("add_item", "sub_A1", 2, "nutrivo-recipe-overage-job-1-0-2")]
     (_, snap, source, _), = store.applied
     assert source == "overage" and snap["recipes_included"] == 12 and snap["amount_per_period"] == 24900 + 3000
 
@@ -133,7 +133,17 @@ def test_T704_C01_must_2_a_repeat_changes_nothing_and_the_add_on_is_never_lowere
     assert _run(billing.recipe_overage, _Store(live_recipes=11), stripe) == "unchanged"
     assert stripe.writes == []
     assert _run(billing.recipe_overage, _Store(live_recipes=14), stripe) == "raised"
-    assert stripe.writes == [("set_item_quantity", "si_recipe", 4, "nutrivo-recipe-overage-sub_A1-4")]
+    assert stripe.writes == [("set_item_quantity", "si_recipe", 4, "nutrivo-recipe-overage-job-1-3-4")]
+
+
+def test_T704_review_4_the_idempotency_key_differs_for_a_new_raise_to_the_same_quantity():
+    """Raise to 2, lowered to 1 in the portal, raise to 2 again: a new request, never Stripe's cached answer."""
+    stripe = FakeStripe(subscription(amounts=True, ws=WS, addons={"recipe": 1}))
+    store = _Store(live_recipes=12)
+    job = Job("job-2", "recipe_overage", WS, {}, 1)
+    billing.recipe_overage(job, JobContext(job, store, Settings()), store, stripe)
+    assert stripe.writes[-1][3] == "nutrivo-recipe-overage-job-2-1-2"
+    assert stripe.writes[-1][3] != "nutrivo-recipe-overage-job-1-1-2"
 
 
 def test_T704_C01_fail_1_past_the_cap_nothing_is_charged_and_the_job_fails_visibly():
@@ -148,7 +158,8 @@ def test_T704_C01_fail_1_an_annual_or_unpaid_subscription_is_never_charged_overa
     with pytest.raises(PermanentJobError, match="takes no overage"):
         _run(billing.recipe_overage, _Store(live_recipes=11), annual)
     past_due = FakeStripe(subscription(amounts=True, ws=WS, status="past_due"))
-    assert _run(billing.recipe_overage, _Store(live_recipes=11), past_due) == "not_live"
+    with pytest.raises(PermanentJobError, match="past_due: recipe overage not charged"):
+        _run(billing.recipe_overage, _Store(live_recipes=11), past_due)   # visible, never a quiet success
     assert annual.writes == [] and past_due.writes == []
 
 
@@ -188,6 +199,20 @@ def test_T704_M04_main_a_paid_invoice_or_a_successful_retry_ends_the_schedule(ch
     assert [w[1] for w in stripe.writes] == ["in_retry"]    # a paid invoice is never charged again
 
 
+def test_T704_review_5_a_retry_that_errors_still_records_the_day_and_sends_its_notice(checkins, monkeypatch):
+    errors: list[BaseException] = []
+    monkeypatch.setattr(billing.sentry_sdk, "capture_exception", errors.append)
+    stripe = FakeStripe()
+    stripe.invoices = {"in_3": {"id": "in_3", "status": "open"}}
+
+    def broken(invoice_id, *, idempotency_key):
+        raise RuntimeError("Stripe 500")
+    stripe.pay_invoice = broken
+    store = _Store(due=[_due("in_3", 3)])
+    assert _run(billing.dunning, store, stripe, kind="dunning", ws=None)["notified"] == 1
+    assert store.steps == [(WS, "in_3", 3, "notified")] and len(errors) == 1
+
+
 def test_T704_M04_main_one_failing_invoice_never_stops_the_others_but_fails_the_run(checkins):
     stripe = FakeStripe()
     stripe.invoices = {"in_a": {"id": "in_a", "status": "open"}, "in_b": {"id": "in_b", "status": "open"}}
@@ -202,10 +227,42 @@ def test_T704_M04_main_one_failing_invoice_never_stops_the_others_but_fails_the_
 @pytest.mark.parametrize("day", [0, 3, 7, 14])
 def test_T704_M04_must_1_every_dunning_email_says_nothing_is_deleted_and_reports_stay_verifiable(day):
     email = email_templates.payment_failed(to="finance@halden.test", day=day, amount_cents=29880,
-                                           invoice_number="NV-0042", url="https://app.test/w/x/settings/billing/payment")
+                                           invoice_number="NV-0042", url="https://app.test/w/x/settings/billing/payment",
+                                           stopped=day == 14)
     assert "€298.80" in email.subject and "NV-0042" in email.subject
     assert "never deletes anything and never makes a report unverifiable" in email.text
     if day == 14:
         assert "stopped accepting new labels" in email.text and "every report already sent stays verifiable" in email.text
     else:
         assert "stopped accepting" not in email.text
+
+
+def test_T704_review_6_the_day_14_email_claims_a_stop_only_when_there_was_one():
+    email = email_templates.payment_failed(to="f@h.test", day=14, amount_cents=100, invoice_number="NV-1", url="u")
+    assert "paused" not in email.subject and "stopped accepting" not in email.text
+    assert "still unpaid" in email.subject.lower() and "Nothing changes in the product." in email.text
+
+
+# ── review 1: billing_sync and billing_reconcile mirror the recipe price before any recipe is bought ───────────────
+class _SyncStore(_Store):
+    def __init__(self):
+        super().__init__()
+        self.event = {"workspace_id": WS, "type": "customer.subscription.created",
+                      "payload": {"id": "evt_1", "data": {"object": {"object": "subscription", "id": "sub_A1"}}}}
+
+    def payment_event(self, stripe_event_id):
+        return self.event
+
+    def workspace_for_subscription(self, sub):
+        return WS
+
+
+def test_T704_review_1_sync_and_reconcile_mirror_the_recipe_unit_amount_without_a_recipe_item(checkins):
+    stripe = FakeStripe(subscription(amounts=True, ws=WS))      # no recipe add-on item yet, as after checkout
+    store = _SyncStore()
+    job = Job("job-s", "billing_sync", WS, {"stripe_event_id": "evt_1"}, 1)
+    billing.sync(job, JobContext(job, store, Settings()), store, stripe)
+    job = Job("job-r", "billing_reconcile", None, {}, 1)
+    billing.reconcile(job, JobContext(job, store, Settings()), store, stripe)
+    assert [a[1]["recipe_unit_amount"] for a in store.applied] == [1500, 1500]
+    assert [a[1]["overage_cap"] for a in store.applied] == [37400, 37400]

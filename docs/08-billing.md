@@ -123,12 +123,14 @@ of a larger invoice.
 - **What the database checks.** `private.require_recipe_room` runs under a per-workspace lock whenever a new recipe
   (family) is created or a discontinued one is made active again.
   - A recipe already paid for (`recipes_included`, the plan's own plus recipe add-ons) is always allowed.
-  - One more is allowed only on a monthly term, while `amount_per_period + extra × recipe_unit_amount ≤ overage_cap`.
+  - One more is allowed only for a paying subscription (`active`, `trialing`; never in dunning) on a monthly term,
+    while `amount_per_period + extra × recipe_unit_amount ≤ overage_cap`.
     It then queues a `recipe_overage` job.
   - Otherwise it is refused with P0034. The hint names the plan, the cap, the term and `next_plan` (Basic → Standard,
     Standard → Advanced). The screen offers that plan.
 - **Where the amounts come from (D-18).** Every amount comes from Stripe, never from a copy of the price list. The
-  worker's snapshot mirrors four fields onto `app.subscriptions`:
+  worker's snapshot (billing_sync, billing_reconcile and recipe_overage alike) mirrors four fields onto
+  `app.subscriptions`:
   - `plan_recipes`;
   - `amount_per_period`: the net unit amount times the quantity, summed over every recurring item;
   - `recipe_unit_amount`: this plan's recipe add-on, from the item's own price or the catalogue lookup key;
@@ -139,10 +141,12 @@ of a larger invoice.
   Stripe's own amounts.
   - It raises the recipe add-on quantity to `live recipes − plan recipes`, using Stripe's default proration, so the
     change shows on the next invoice.
-  - The write carries an Idempotency-Key per subscription and quantity.
+  - The write carries an Idempotency-Key per job and starting quantity, so a retry of the job is never charged twice
+    and a later raise to the same number after a portal change is a new request.
   - It then applies the mirror (`apply_subscription`, source `overage`).
   - Over the cap, on an annual term, or when an amount is unknown, it fails permanently and nothing is charged.
-  - It never lowers the quantity and never charges a subscription that is not `active` or `trialing`.
+  - It never lowers the quantity. A subscription that stopped paying after the recipe was allowed is never charged:
+    the job fails visibly (`app.jobs`, Sentry) for a person to look at (#65 Q8).
 - **Conservative defaults (questions on #65).**
   1. Every recurring item counts toward the cap, so Standard with the region add-on (€698) has room for 4 recipes.
   2. An annual term has no overage.
@@ -159,22 +163,26 @@ How it runs:
 2. **The daily job.** pg_cron queues one `dunning` job a day at 07:41 UTC (`dunning:<UTC date>`, payload `{}`).
    - The worker runs it inside the Sentry cron check-in `dunning` (docs/17).
    - `app.dunning_due()` returns, per open invoice, only the latest day that has passed and has not been taken. A late
-     run therefore sends one email, never a backlog.
-   - Closed and dormant workspaces are skipped.
+     run therefore sends one email, never a backlog; a day 3 or 7 it skipped is also a skipped retry (built behaviour).
+   - Closed and dormant workspaces are skipped, and so is any workspace whose mirrored subscription is not `past_due`
+     or `unpaid`: after a cancellation nothing is retried, emailed or stopped (#65 Q9).
 3. **Each step.** The worker re-reads the invoice from Stripe.
    - If it is `paid`, `void` or `uncollectible`, the step is recorded `resolved` and nothing is sent.
    - On days 3 and 7 it retries the payment (`POST /v1/invoices/{id}/pay`, Idempotency-Key per invoice and day). A
-     decline is the expected answer; a payment that succeeds is recorded `resolved`.
+     decline is the expected answer; a payment that succeeds is recorded `resolved`. A retry that errors otherwise
+     goes to Sentry and the day's notice still goes out.
    - Otherwise `app.record_dunning_step` records the step `notified`, once per invoice and day, in
      `app.dunning_steps` (insert-only; workspace admins read it).
    - A `notified` step queues the `payment_failed` email (`notify`, key `payment_failed:<invoice>:<day>`) to the
      invoice's `customer_email`, which T-703 makes the finance address.
-   - On day 14 a `notified` step moves the workspace from `dunning` to `new_artwork_stopped`, audited
-     `billing.new_artwork_stopped`.
+   - On day 14 a `notified` step moves the workspace from `dunning` to `new_artwork_stopped` while the subscription is
+     `past_due` or `unpaid`, audited `billing.new_artwork_stopped`. The email's payload says whether the workspace is
+     stopped, and the day-14 copy claims a stop only when there is one.
 4. **Failures.** One invoice that fails never stops the others. The run then fails and retries, bounded by
    `max_attempts`; every step already recorded stays recorded.
 5. **Recovery.** A paid invoice or an active subscription returns the workspace to `active` (`apply_subscription`,
-   T-702).
+   T-702). A cancelled subscription leaves `dunning` or `new_artwork_stopped` for `active` (on the free plan) once
+   no invoice of the workspace is still open.
 
 Day 7's admin-only banner is a web change that is not built yet; admins can already read `app.dunning_steps`.
 
@@ -183,3 +191,5 @@ Day 7's admin-only banner is a web change that is not built yet; admins can alre
   dashboard, or a card is tried twice.
 - The email copy, which follows the Billing Settings design, and its recipients.
 - The day-7 banner.
+- Q9: whether an open invoice is still collected (retried, emailed, day 14) after the subscription is cancelled.
+  The built default is no.

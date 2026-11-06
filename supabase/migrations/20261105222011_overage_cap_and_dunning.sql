@@ -61,7 +61,10 @@ begin
     return;                                   -- a recipe already paid for
   end if;
   v_extra := v_live + 1 - v_s.recipes_included;
-  if v_s.term = 'monthly' and v_s.overage_cap is not null and v_s.recipe_unit_amount is not null
+  -- Only a paying subscription takes overage: in dunning (past_due, unpaid) the recipe would be added to an invoice
+  -- nobody is paying, so it is refused like any recipe past the cap (T-704 review).
+  if v_s.status in ('active', 'trialing') and v_s.term = 'monthly' and v_s.overage_cap is not null
+     and v_s.recipe_unit_amount is not null
      and v_s.amount_per_period is not null
      and v_s.amount_per_period + v_extra::bigint * v_s.recipe_unit_amount <= v_s.overage_cap then
     -- Overage within the cap: the worker raises the recipe add-on in Stripe. One job per transaction; the handler is
@@ -185,6 +188,12 @@ begin
   v_ws_status := case when v_ws.status in ('closed', 'dormant') then v_ws.status
                       when v_status in ('active', 'trialing') then 'active'
                       when v_status in ('past_due', 'unpaid') and v_ws.status = 'active' then 'dunning'
+                      -- A cancelled subscription whose invoices are all settled leaves dunning, so a Free workspace is
+                      -- never left stopped by a debt that no longer exists (T-704 review).
+                      when v_status in ('canceled', 'incomplete_expired')
+                           and v_ws.status in ('dunning', 'new_artwork_stopped')
+                           and not exists (select 1 from private.dunning_failures() f where f.workspace_id = p_ws)
+                        then 'active'
                       else v_ws.status end;
   if (v_ws_plan, v_ws_status) is distinct from (v_ws.plan, v_ws.status) then
     update app.workspaces set plan = v_ws_plan, status = v_ws_status where id = p_ws;
@@ -270,7 +279,8 @@ revoke execute on function private.dunning_failures() from public, anon, authent
 grant execute on function private.dunning_failures() to service_role;
 
 -- The steps due now: per open invoice, the latest day that has passed, unless that day or a later one is recorded.
--- Only the latest is returned, so a worker that was down for a week sends one email, not three.
+-- Only the latest is returned, so a worker that was down for a week sends one email, not three (and a skipped day 3
+-- or 7 is also a skipped retry: built behaviour, docs/08).
 create function app.dunning_due() returns table (workspace_id uuid, stripe_invoice_id text, day int,
                                                  failed_at timestamptz)
 language plpgsql stable security definer set search_path = '' as $$
@@ -280,6 +290,9 @@ begin
   select f.workspace_id, f.stripe_invoice_id, d.day, f.failed_at
   from private.dunning_failures() f
   join app.workspaces w on w.id = f.workspace_id and w.status not in ('closed', 'dormant')
+  -- Only while the mirrored subscription is still owed and live: after a cancellation nothing is retried, emailed or
+  -- stopped (#65 Q9).
+  join app.subscriptions sub on sub.workspace_id = f.workspace_id and sub.status in ('past_due', 'unpaid')
   cross join lateral (select max(x) as day from unnest(array[0, 3, 7, 14]) x
                       where f.failed_at + make_interval(days => x) <= now()) d
   where d.day is not null
@@ -296,7 +309,7 @@ grant execute on function app.dunning_due() to service_role;
 create function app.record_dunning_step(p_ws uuid, p_invoice text, p_day int, p_outcome text, p_ref text)
 returns text
 language plpgsql security definer set search_path = '' as $$
-declare v_failed timestamptz; v_rows int; v_status text; v_event text; v_job uuid;
+declare v_failed timestamptz; v_rows int; v_status text; v_event text; v_job uuid; v_stopped boolean := false;
 begin
   perform private.require_service();
   if p_day is null or p_day not in (0, 3, 7, 14) or p_outcome is null or p_outcome not in ('notified', 'resolved') then
@@ -332,12 +345,16 @@ begin
     return 'duplicate';
   end if;
   select w.status into v_status from app.workspaces w where w.id = p_ws for update;
-  if p_day = 14 and p_outcome = 'notified' and v_status = 'dunning' then
+  if p_day = 14 and p_outcome = 'notified' and v_status = 'dunning'
+     and exists (select 1 from app.subscriptions sub where sub.workspace_id = p_ws
+                 and sub.status in ('past_due', 'unpaid')) then
+    v_stopped := true;
     update app.workspaces set status = 'new_artwork_stopped' where id = p_ws;
     perform private.write_audit(p_ws, 'billing.new_artwork_stopped', 'workspace', p_ws::text,
                                 jsonb_build_object('status', v_status),
                                 jsonb_build_object('status', 'new_artwork_stopped', 'stripe_invoice_id', p_invoice));
   end if;
+  v_stopped := v_stopped or v_status = 'new_artwork_stopped';   -- the email says what is true after this step
   if p_outcome = 'notified' then
     -- The email goes through the notify job (Template payment_failed), once per invoice and day; the payload names
     -- the latest stored failure event, whose invoice carries the amount and the payer, and the day: ids only.
@@ -346,7 +363,7 @@ begin
     order by e.received_at desc, e.stripe_event_id desc limit 1;
     v_job := private.enqueue('notify', p_ws, 'payment_failed:' || p_invoice || ':' || p_day::text,
                              jsonb_build_object('template', 'payment_failed', 'payment_event_id', v_event,
-                                                'day', p_day));
+                                                'day', p_day, 'stopped', v_stopped));
   end if;
   perform private.write_audit(p_ws, 'billing.dunning_step', 'payment_invoice', p_invoice, null,
                               jsonb_build_object('day', p_day, 'outcome', p_outcome, 'ref', left(p_ref, 255),
