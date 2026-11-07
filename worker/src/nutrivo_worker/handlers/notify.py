@@ -375,9 +375,47 @@ def send_receipt(job: Job, ctx: JobContext, store: NotifyStore, mailer: mail.Mai
     deliver(job, ctx, store, Delivery("receipt", [Recipient("recipient", payer)], lambda r: email), mailer)
 
 
+# ── payment_failed (M04, BE-36, T-704) ────────────────────────────────────────────────────────────────────
+def send_payment_failed(job: Job, ctx: JobContext, store: NotifyStore, mailer: mail.Mailer | None = None) -> None:
+    """The dunning email for one invoice and day (app.record_dunning_step queues it), to the payer named on the stored
+    failed invoice: Stripe's customer email, which T-703 makes the finance address. Built from the stored event,
+    without calling Stripe; the dunning job has just re-read the invoice from Stripe before recording the step."""
+    event_id = str(job.payload.get("payment_event_id") or "")
+    if not event_id.startswith("evt_") or len(event_id) > 255:
+        raise PermanentJobError("payload payment_event_id is not a Stripe event id")
+    day = job.payload.get("day")
+    if day not in email_templates.DUNNING_NEXT or isinstance(day, bool):
+        raise PermanentJobError("payload day is not a dunning day")
+    if store.job_progress(job.id).get("email") == "sent":
+        return _done(ctx, "already_sent")
+    pay = store.payment_for_receipt(event_id)
+    if pay is None:
+        raise PermanentJobError("the payment event does not exist")
+    ws = _same_workspace(job, pay["workspace_id"], "the payment event")
+    if pay["type"] != "invoice.payment_failed":
+        raise PermanentJobError(f"payment event type {str(pay['type'])[:40]!r} is not a failed invoice")
+    obj = (pay["payload"].get("data") or {}).get("object") or {}
+    try:
+        if obj.get("currency") != "eur":
+            raise PermanentJobError("the invoice is not in euro")
+        invoice_id, number, amount = str(obj["id"]), str(obj.get("number") or obj["id"]), int(obj["amount_due"])
+    except (KeyError, TypeError, ValueError):
+        raise PermanentJobError("the payment event is not a complete invoice") from None
+    payer = str(obj.get("customer_email") or "")
+    if not payer:
+        raise PermanentJobError("the invoice names no payer")
+    url = f"{ctx.settings.require_app_base_url()}/w/{ws}/settings/billing/payment"
+    stopped = job.payload.get("stopped") is True       # absent or anything else: the copy never claims a stop
+    email = email_templates.payment_failed(to=payer, day=int(day), amount_cents=amount, invoice_number=number, url=url,
+                                           stopped=stopped)
+    log.info("payment_failed email", extra=kv(stripe_invoice_id=invoice_id, day=int(day)))
+    deliver(job, ctx, store, Delivery("payment_failed", [Recipient("recipient", payer)], lambda r: email,
+                                      severity="warning"), mailer)
+
+
 TEMPLATES = {"invitation": send_invitation, "report": send_report, "rule_changed": send_rule_changed,
              "document_expiring": send_document_expiring, "allowance_used": send_allowance_used,
-             "receipt": send_receipt}
+             "receipt": send_receipt, "payment_failed": send_payment_failed}
 
 
 @handler("notify")
