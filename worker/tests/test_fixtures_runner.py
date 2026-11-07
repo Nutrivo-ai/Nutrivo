@@ -1,5 +1,6 @@
 """T-206: `nutrivo fixtures run --ruleset <id>`. No rule, no verdict: until the engine (T-403) registers evaluators,
-every item is withheld with a reason and the run does not pass."""
+every item is withheld with a reason and the run does not pass. T-210 (D-32): synthetic labels are not part of a run
+and golden labels join from GOLDEN_GATE of them; tests that exercise the label path lower the gate to 1."""
 import json
 from pathlib import Path
 from xml.etree import ElementTree as ET
@@ -48,15 +49,24 @@ def write_synth(d: Path) -> Path:
     return d
 
 
+def write_golden(d: Path) -> Path:
+    """One golden label with two panels: what a label evaluator reports on once golden labels count."""
+    d.mkdir(parents=True, exist_ok=True)
+    (d / "pilot-a.expected.json").write_text(json.dumps({"panels": [
+        {"index": 0, "language": "en", "particulars": []},
+        {"index": 1, "language": "sv", "particulars": ["batch"]}]}))
+    return d
+
+
 @pytest.fixture
 def dirs(tmp_path):
-    return write_synth(tmp_path / "synth"), tmp_path / "golden-empty"
+    return write_golden(tmp_path / "golden"), tmp_path / "golden-empty"
 
 
 def test_without_evaluators_every_rule_fixture_is_withheld_and_the_run_does_not_pass(dirs):
-    synth, golden = dirs
+    golden, _ = dirs
     store = FakeStore([MEMBER], [fixture("passes", "passed"), fixture("withholds", "withheld")])
-    report = fr.run(store, RULESET, synth, golden, evaluators={})
+    report = fr.run(store, RULESET, golden, evaluators={})
     rule = [r for r in report.results if r.kind == "rule_fixture"]
     assert [r.result for r in rule] == ["withheld", "withheld"]
     assert {r.reason for r in rule} == {fr.EVALUATOR_MISSING}
@@ -66,21 +76,21 @@ def test_without_evaluators_every_rule_fixture_is_withheld_and_the_run_does_not_
 
 
 def test_labels_are_withheld_per_language_panel_until_the_engine_exists(dirs):
-    synth, golden = dirs
-    report = fr.run(FakeStore([MEMBER], [fixture("a")]), RULESET, synth, golden, evaluators={})
-    labels = [r for r in report.results if r.kind == "synthetic"]
+    golden, _ = dirs
+    report = fr.run(FakeStore([MEMBER], [fixture("a")]), RULESET, golden, evaluators={}, golden_gate=1)
+    labels = [r for r in report.results if r.kind == "golden"]
     assert [(r.item, r.panel, r.language, r.result, r.reason) for r in labels] == [
-        ("missing_batch", 0, "en", "withheld", fr.ENGINE_UNAVAILABLE),
-        ("missing_batch", 1, "sv", "withheld", fr.ENGINE_UNAVAILABLE)]
-    assert labels[1].expected == {"expected_status": "extracted", "expected_failure": None, "missing": ["batch"]}
+        ("pilot-a.expected.json", 0, "en", "withheld", fr.ENGINE_UNAVAILABLE),
+        ("pilot-a.expected.json", 1, "sv", "withheld", fr.ENGINE_UNAVAILABLE)]
+    assert labels[1].expected == {"particulars": ["batch"]}
 
 
 def test_matched_and_differed_when_an_evaluator_runs(dirs):
-    synth, golden = dirs
+    golden, _ = dirs
     store = FakeStore([MEMBER], [fixture("fails", "failed", expected={"findings": [{"rule_key": "TEST.RULE.A"}]}),
                                  fixture("passes", "passed")])
     evaluators = {"mandatory_particular": lambda f: fr.Evaluation("failed", findings=[{"rule_key": f.rule_key}])}
-    report = fr.run(store, RULESET, synth, golden, evaluators=evaluators,
+    report = fr.run(store, RULESET, golden, evaluators=evaluators, golden_gate=1,
                     label_evaluator=lambda kind, name, data: fr.Evaluation(
                         "passed", findings=[{"panel": 0, "result": "matched"}, {"panel": 1, "result": "matched"}]))
     by_item = {r.item: r for r in report.results if r.kind == "rule_fixture"}
@@ -91,11 +101,11 @@ def test_matched_and_differed_when_an_evaluator_runs(dirs):
 
 
 def test_the_run_passes_only_when_everything_matched(dirs):
-    synth, golden = dirs
+    golden, _ = dirs
     store = FakeStore([MEMBER], [fixture("fails", "failed"), fixture("withholds", "withheld",
                                                                      expected={"reason": "data_missing"})])
     calls = iter([fr.Evaluation("failed"), fr.Evaluation("withheld", reason="data_missing")])
-    report = fr.run(store, RULESET, synth, golden, evaluators={"mandatory_particular": lambda f: next(calls)},
+    report = fr.run(store, RULESET, golden, evaluators={"mandatory_particular": lambda f: next(calls)}, golden_gate=1,
                     label_evaluator=lambda kind, name, data: fr.Evaluation(
                         "passed", findings=[{"panel": 0, "result": "matched"}, {"panel": 1, "result": "matched"}]))
     assert [r.result for r in report.results] == ["matched"] * 4
@@ -103,20 +113,19 @@ def test_the_run_passes_only_when_everything_matched(dirs):
 
 
 def test_a_withheld_reason_that_differs_is_differed(dirs):
-    synth, _ = dirs
     store = FakeStore([MEMBER], [fixture("w", "withheld", expected={"reason": "data_missing"})])
-    report = fr.run(store, RULESET, synth, Path("/nonexistent"),
+    report = fr.run(store, RULESET, Path("/nonexistent"),
                     evaluators={"mandatory_particular": lambda f: fr.Evaluation("withheld", reason="panel_outlined")})
     assert report.results[0].result == "differed"
 
 
 def test_an_evaluator_error_is_withheld_never_passed(dirs):
-    synth, golden = dirs
+    golden, _ = dirs
 
     def boom(f):
         raise RuntimeError("label text must not leak")
 
-    report = fr.run(FakeStore([MEMBER], [fixture("x", "passed")]), RULESET, synth, golden,
+    report = fr.run(FakeStore([MEMBER], [fixture("x", "passed")]), RULESET, golden,
                     evaluators={"mandatory_particular": boom})
     [r] = [r for r in report.results if r.kind == "rule_fixture"]
     assert (r.result, r.reason) == ("withheld", "evaluator_error:RuntimeError")
@@ -124,15 +133,15 @@ def test_an_evaluator_error_is_withheld_never_passed(dirs):
 
 
 def test_a_member_without_fixtures_is_withheld_with_no_fixtures(dirs):
-    synth, golden = dirs
+    golden, _ = dirs
     other = fr.Member("TEST.RULE.B", 2, "prescribed_wording")
-    report = fr.run(FakeStore([MEMBER, other], [fixture("a")]), RULESET, synth, golden, evaluators={})
+    report = fr.run(FakeStore([MEMBER, other], [fixture("a")]), RULESET, golden, evaluators={})
     [r] = [r for r in report.results if r.reason == fr.NO_FIXTURES]
     assert (r.rule_key, r.rule_version, r.result) == ("TEST.RULE.B", 2, "withheld")
 
 
 def test_an_empty_ruleset_does_not_pass(tmp_path):
-    report = fr.run(FakeStore(), RULESET, tmp_path / "none", tmp_path / "none")
+    report = fr.run(FakeStore(), RULESET, tmp_path / "none")
     assert report.results == [] and not report.passed
 
 
@@ -171,11 +180,12 @@ def test_the_generated_synthetic_labels_report_every_panel():
 
 
 def test_json_and_junit_reports_are_machine_readable(dirs):
-    synth, golden = dirs
-    report = fr.run(FakeStore([MEMBER], [fixture("a")]), RULESET, synth, golden, evaluators={})
+    golden, _ = dirs
+    report = fr.run(FakeStore([MEMBER], [fixture("a")]), RULESET, golden, evaluators={}, golden_gate=1)
     data = json.loads(json.dumps(report.to_dict()))
     assert data["ruleset_version"] == RULESET and data["passed"] is False
-    assert data["summary"]["withheld"] == 3 and data["summary"]["by_kind"]["synthetic"]["withheld"] == 2
+    assert data["summary"]["withheld"] == 3 and data["summary"]["by_kind"]["golden"]["withheld"] == 2
+    assert data["labels"]["golden"] == {"count": 1, "threshold": 1, "included": True}
     assert {"kind", "item", "panel", "language", "result", "expected", "actual", "reason"} <= set(data["results"][0])
     suite = ET.fromstring(fr.to_junit(report))
     assert suite.get("tests") == "3" and suite.get("skipped") == "3" and suite.get("failures") == "0"
@@ -202,27 +212,27 @@ def cli_env(monkeypatch, tmp_path):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("DATABASE_URL", "postgresql://fixtures-test.invalid/db")
     monkeypatch.setattr(db, "connect", lambda dsn: FakeConn())
-    return write_synth(tmp_path / "synth"), tmp_path / "golden"
+    return write_golden(tmp_path / "golden")
 
 
 def test_cli_prints_json_on_stdout_and_exits_1_when_not_passed(cli_env, monkeypatch, capsys, tmp_path):
-    synth, golden = cli_env
+    golden = cli_env
     monkeypatch.setattr(fr, "PgFixtureStore",
                         lambda conn: FakeStore([NO_EVALUATOR], [fixture("a", shape="claim_judgement")]))
     out, junit = tmp_path / "r.json", tmp_path / "r.xml"
     code = cli.main(["fixtures", "run", "--ruleset", RULESET, "--format", "json", "--out", str(out),
-                     "--junit", str(junit), "--synth", str(synth), "--golden", str(golden)])
+                     "--junit", str(junit), "--golden", str(golden)])
     assert code == 1
     printed = json.loads(capsys.readouterr().out)        # stdout is the report alone
     assert printed == json.loads(out.read_text())
     assert printed["results"][0]["reason"] == fr.EVALUATOR_MISSING
-    assert ET.parse(junit).getroot().get("skipped") == "3"
+    assert ET.parse(junit).getroot().get("skipped") == "1"      # one golden label of 30: not yet in the run
 
 
 def test_cli_exits_2_for_an_unknown_ruleset(cli_env, monkeypatch, capsys):
-    synth, golden = cli_env
+    golden = cli_env
     monkeypatch.setattr(fr, "PgFixtureStore", lambda conn: FakeStore(known=False))
-    assert cli.main(["fixtures", "run", "--ruleset", "nope", "--synth", str(synth), "--golden", str(golden)]) == 2
+    assert cli.main(["fixtures", "run", "--ruleset", "nope", "--golden", str(golden)]) == 2
     assert "no released ruleset nope" in capsys.readouterr().err
 
 
@@ -233,13 +243,14 @@ def test_cli_exits_2_without_a_database(monkeypatch, capsys):
 
 
 def test_cli_text_output_names_every_withhold(cli_env, monkeypatch, capsys):
-    synth, golden = cli_env
+    golden = cli_env
     monkeypatch.setattr(fr, "PgFixtureStore",
                         lambda conn: FakeStore([NO_EVALUATOR], [fixture("a", shape="claim_judgement")]))
-    assert cli.main(["fixtures", "run", "--ruleset", RULESET, "--synth", str(synth), "--golden", str(golden)]) == 1
+    assert cli.main(["fixtures", "run", "--ruleset", RULESET, "--golden", str(golden)]) == 1
     text = capsys.readouterr().out
-    assert text.startswith(f"ruleset {RULESET}: NOT PASSED (0 matched, 0 differed, 3 withheld of 3)")
-    assert "missing_batch panel 1 [sv]: engine_unavailable" in text
+    assert text.startswith(f"ruleset {RULESET}: NOT PASSED (0 matched, 0 differed, 1 withheld of 1)")
+    assert "golden labels: 1 of 30, not yet part of the run (D-32)" in text
+    assert "a [sv] TEST.RULE.A v1: evaluator_missing" in text
     assert "no rule fixture was evaluated" in text
 
 
@@ -288,7 +299,7 @@ def test_pg_store_reads_members_fixtures_and_shapes_of_a_released_ruleset(pg):
         store = fr.PgFixtureStore(pg)
         assert store.members("t206-test") == [fr.Member("TEST.T206.A", 1, "mandatory_particular"),
                                               fr.Member("TEST.T206.B", 1, "prescribed_wording")]
-        report = fr.run(store, "t206-test", Path("/nonexistent"), Path("/nonexistent"), evaluators={})
+        report = fr.run(store, "t206-test", Path("/nonexistent"), evaluators={})
         assert [(r.item, r.language, r.result, r.reason) for r in report.results] == [
             ("TEST.T206.B", None, "withheld", fr.NO_FIXTURES),
             ("absent on sv", "sv", "withheld", fr.EVALUATOR_MISSING)]
