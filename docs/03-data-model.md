@@ -26,6 +26,11 @@ ref.ruleset_members, ref.term_decisions, ref.fixture_runs, ref.ruleset_seals. Pr
 including for the table owner (BE-05). Accepted `ref.rule_versions` rows are permanent (BE-08). Products have no
 delete (BE-13).
 
+**Shares (T-601).** `app.shares.product_id` is the report's product, denormalised (filled by a trigger when a
+writer leaves it out, refused when it disagrees) so the read policy stays single-table: a member reads a share where
+they can see the product. `revoked_at` and the worker's `token_hash` replacement are the only updates; the access log
+is insert-only.
+
 **Released coverage is sealed (#197, #8 DB-3).** A deferred constraint trigger on `ref.ruleset_versions` writes a
 `ref.ruleset_seals` row when the releasing transaction commits, after everything the release wrote; seals for every
 earlier release were backfilled. For a sealed ruleset, P0047 refuses INSERT, UPDATE, DELETE and TRUNCATE on its
