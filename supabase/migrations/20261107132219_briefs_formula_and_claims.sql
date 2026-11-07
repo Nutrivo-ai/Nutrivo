@@ -33,7 +33,8 @@ begin
   if v_person is null or not private.can_edit_product(p_product) then
     raise exception 'not permitted' using errcode = '42501';
   end if;
-  -- One formula write per product at a time; request_check reads the digest after this commits.
+  -- One formula write per product at a time. request_check takes no lock: it reads the committed formula, and the
+  -- worker re-reads the digest with the lines, so a job is never judged on a formula other than its own.
   select pr.workspace_id into v_ws from app.products pr where pr.id = p_product for update;
 
   if p_lines is null or jsonb_typeof(p_lines) <> 'array' then

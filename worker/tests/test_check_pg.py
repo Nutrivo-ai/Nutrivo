@@ -322,12 +322,9 @@ def set_formula_lines(conn, s, lines):
     return n
 
 
-def test_E01_main_a_formula_entered_through_the_brief_gets_additive_rules_evaluated(conn):
-    """[E01.main] Without a formula the synthetic additive rule is withheld data_missing. Once the editor enters a
-    formula through app.set_formula_lines, request_check is a new job (the formula is in its key) and that job
-    evaluates the additive rule: passed, not withheld. A line not matched to the register withholds it again (#76 Q1)."""
-    s = seed_product(conn)
-    rv = "T1001-ADDITIVE"
+def seed_additive_rule(conn, s, rv):
+    """The synthetic ruleset plus one additive_condition rule, a matching synthetic register additive and a synthetic
+    feed material (T-1001). Synthetic test rows only, rolled back with the test."""
     seed_ruleset(conn, rv, s["person"])
     key = "TEST.T1001.ADDITIVE"
     conn.execute("insert into ref.rules (rule_key, shape, domain, node_id, title) values (%s, 'additive_condition',"
@@ -342,6 +339,37 @@ def test_E01_main_a_formula_entered_through_the_brief_gets_additive_rules_evalua
                  " '{\"test cats\"}') on conflict do nothing")
     conn.execute("insert into ref.feed_materials (number, names) values ('TEST.9.9.9', '{\"en\": \"Test chicken\"}')"
                  " on conflict do nothing")
+    return key
+
+
+MATCHED = [{"ingredient": "Test chicken", "percent": 60, "feed_material_ref": "TEST.9.9.9"},
+           {"ingredient": "Synthetic additive", "additive_ref": "TEST-3b999", "amount": 10, "unit": "mg/kg"}]
+
+
+def test_E01_a_check_is_judged_only_on_the_formula_it_was_requested_for(conn):
+    """[E01.main] The formula is pinned like the artwork and classification: a job requested with no formula, run after
+    a formula was entered, withholds its additive rules instead of passing them on a formula its key does not name;
+    and when the formula is removed again, request_check returns that job, which therefore never shows a pass."""
+    s = seed_product(conn)
+    key = seed_additive_rule(conn, s, "T1001-PINNED")
+    j0 = request_check(conn, s)                                   # requested with no formula: digest "-"
+    set_formula_lines(conn, s, MATCHED)                           # entered before the worker runs j0
+    assert run_job(conn, j0) == "succeeded"
+    assert all(key in c["withheld_rule_keys"] and key not in c["passed_rule_keys"] for c in checks_of(conn, j0))
+    j1 = request_check(conn, s)
+    assert j1 != j0 and run_job(conn, j1) == "succeeded"
+    assert all(key in c["passed_rule_keys"] for c in checks_of(conn, j1))
+    set_formula_lines(conn, s, [])
+    assert request_check(conn, s) == j0                           # back to "no formula": j0, which passed nothing
+    assert all(key not in c["passed_rule_keys"] for c in checks_of(conn, j0))
+
+
+def test_E01_main_a_formula_entered_through_the_brief_gets_additive_rules_evaluated(conn):
+    """[E01.main] Without a formula the synthetic additive rule is withheld data_missing. Once the editor enters a
+    formula through app.set_formula_lines, request_check is a new job (the formula is in its key) and that job
+    evaluates the additive rule: passed, not withheld. A line not matched to the register withholds it again (#76 Q1)."""
+    s = seed_product(conn)
+    key = seed_additive_rule(conn, s, "T1001-ADDITIVE")
 
     before = request_check(conn, s)
     assert run_job(conn, before) == "succeeded"
@@ -349,9 +377,7 @@ def test_E01_main_a_formula_entered_through_the_brief_gets_additive_rules_evalua
     assert {f["reason_code"] for f in findings_of(conn, before) if f["rule_key"] == key} == {"data_missing"}
     assert request_check(conn, s) == before                     # nothing changed: the same job
 
-    assert set_formula_lines(conn, s, [
-        {"ingredient": "Test chicken", "percent": 60, "feed_material_ref": "TEST.9.9.9"},
-        {"ingredient": "Synthetic additive", "additive_ref": "TEST-3b999", "amount": 10, "unit": "mg/kg"}]) == 2
+    assert set_formula_lines(conn, s, MATCHED) == 2
     lines = conn.execute("select applied_by from app.formula_lines where product_id = %s", (s["product"],)).fetchall()
     assert [str(r["applied_by"]) for r in lines] == [s["person"]] * 2          # a person applied it (E03)
     after = request_check(conn, s)
