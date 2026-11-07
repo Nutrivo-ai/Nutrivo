@@ -1,23 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { useJob } from "@/lib/jobs/useJob";
+import type { JobRow } from "@/lib/jobs/watch";
 
-// D01 step 4: extraction progress from app.jobs, read under RLS (read_member). docs/04 subscribes to Postgres changes
-// on app.jobs filtered by id. Until app.jobs is in the supabase_realtime publication (asked on #41), no change event
-// arrives, so the row is also re-read every POLL_MS until it is terminal; once the publication exists, Realtime
-// delivers the same rows sooner and nothing else changes.
+// D01 step 4: extraction progress from app.jobs, read under RLS (read_member) and kept current over Realtime
+// (lib/jobs/watch.ts, T-305). The job is found by its key, extract:<artwork_version_id>; a retry reuses it.
 
-export const POLL_MS = 2000;
-
-export type JobRow = {
-  id: string;
-  status: "queued" | "running" | "succeeded" | "failed" | "cancelled";
-  progress: Record<string, unknown>;
-  last_error: string | null;
-  attempts: number;
-};
+export { TERMINAL, type JobRow } from "@/lib/jobs/watch";
 
 export type JobView =
   | { phase: "waiting" }
@@ -60,85 +51,19 @@ export function describeJob(row: JobRow | null): JobView {
 
 /** last_error holds ids and reason codes only (worker errors.py); the person sees what it means, never the raw text. */
 // Re-registering the same bytes returns the same artwork version and its finished job, so no copy here offers to
-// upload the same file again. Retrying a failed extraction needs an RPC that does not exist yet (db follow-up, #41).
+// upload the same file again; app.retry_extraction (T-305) runs the same job again instead.
 export function safeReason(lastError: string | null): string {
-  const after = "Nothing on this file is assessed, and nothing was counted twice. A different file, such as a fresh export of the label, starts a new extraction.";
+  const after = "Nothing on this file is assessed, and nothing was counted twice. Retry the extraction, or upload a different file, such as a fresh export of the label.";
   if (lastError?.includes("missing from storage")) return `The file never reached storage, so it could not be read. ${after}`;
   if (lastError?.includes("registered hash")) return `The stored file is not the one that was registered, so it was not read. ${after}`;
   if (lastError?.includes("not this artwork's own")) return `The file is not stored where this product's artwork belongs, so it was not read. ${after}`;
   return `Extraction stopped after its retries. ${after}`;
 }
 
-/** The hook's state, keyed by the artwork version it describes: a row read for one version never shows for another. */
-export type JobState = { artworkVersionId: string | null; row: JobRow | null; error: boolean };
-
-export function currentJob(state: JobState, artworkVersionId: string | null): { row: JobRow | null; error: boolean } {
-  return state.artworkVersionId === artworkVersionId ? { row: state.row, error: state.error } : { row: null, error: false };
-}
-
-export const TERMINAL = new Set<JobRow["status"]>(["succeeded", "failed", "cancelled"]);
-
 type Db = SupabaseClient<Database>;
 
-async function readJob(db: Db, artworkVersionId: string): Promise<JobRow | null> {
-  const { data, error } = await db
-    .schema("app")
-    .from("jobs")
-    .select("id, status, progress, last_error, attempts")
-    .eq("idempotency_key", `extract:${artworkVersionId}`)
-    .maybeSingle();
-  if (error) throw error;
-  return (data as JobRow | null) ?? null;
-}
-
-/** The extract job of an artwork version, kept current over Realtime and polling until it is terminal. */
-export function useExtractJob(db: Db, artworkVersionId: string | null) {
-  const [state, setState] = useState<JobState>({ artworkVersionId: null, row: null, error: false });
-
-  useEffect(() => {
-    if (!artworkVersionId) return;
-    let stopped = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    let channel: ReturnType<Db["channel"]> | undefined;
-
-    const apply = (next: JobRow | null) => {
-      if (stopped) return;
-      setState({ artworkVersionId, row: next, error: false });
-      if (next && !channel) {
-        channel = db
-          .channel(`job:${next.id}`)
-          .on(
-            "postgres_changes",
-            { event: "UPDATE", schema: "app", table: "jobs", filter: `id=eq.${next.id}` },
-            (payload) =>
-              !stopped &&
-              setState((prev) =>
-                prev.artworkVersionId === artworkVersionId
-                  ? { ...prev, row: { ...(prev.row ?? next), ...(payload.new as JobRow) } }
-                  : prev,
-              ),
-          )
-          .subscribe();
-      }
-    };
-    const poll = async () => {
-      try {
-        const next = await readJob(db, artworkVersionId);
-        apply(next);
-        if (next && TERMINAL.has(next.status)) return;
-      } catch {
-        if (!stopped) setState((prev) => ({ artworkVersionId, row: prev.artworkVersionId === artworkVersionId ? prev.row : null, error: true }));
-      }
-      if (!stopped) timer = setTimeout(poll, POLL_MS);
-    };
-    void poll();
-    return () => {
-      stopped = true;
-      if (timer) clearTimeout(timer);
-      if (channel) void db.removeChannel(channel);
-    };
-  }, [db, artworkVersionId]);
-
-  const { row, error } = currentJob(state, artworkVersionId);
-  return { row, view: describeJob(row), error };
+/** The extract job of an artwork version. `generation` restarts the watch after a retry. */
+export function useExtractJob(db: Db, artworkVersionId: string | null, opts: { generation?: number; requestId?: string } = {}) {
+  const state = useJob(db, artworkVersionId ? { key: `extract:${artworkVersionId}` } : null, { area: "extraction", ...opts });
+  return { row: state.row, view: describeJob(state.row), error: state.error, stalled: state.stalled, live: state.live };
 }
