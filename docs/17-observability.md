@@ -59,7 +59,8 @@ Every failure is seen within minutes, every model call can be explained later, a
   text, names, emails) reaches PostHog by itself. Event properties carry ids and enums, never free text.
 
 ## Correlation
-A `request_id` is created at the web edge and passed to RPCs (as a setting), into job payloads, Sentry tags,
+A `request_id` is created at the web edge and passed to RPCs (the `x-request-id` header, which PostgREST exposes as
+the `request.headers` setting; `private.enqueue` copies it into job payloads, T-305), Sentry tags,
 Langfuse trace metadata and log lines. Any incident can be followed from click to model call.
 
 ## Logs

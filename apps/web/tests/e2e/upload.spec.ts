@@ -4,7 +4,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { parse } from "yaml";
@@ -369,6 +369,133 @@ test.describe("upload and extract", () => {
     await expect(page.getByRole("form", { name: "Confirm the classification" })).toBeVisible();
     await page.getByRole("button", { name: "Cancel" }).click();
     await expect(page.getByRole("form", { name: "Confirm the classification" })).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
+  // T-305: app.jobs is in the supabase_realtime publication, so progress arrives over Realtime under RLS and the web
+  // no longer re-reads the job every 2 s. The register_artwork request's x-request-id reaches the job's payload.
+  test("[T-305][D01.main] upload progress arrives over Realtime, with no steady re-read, and the job carries the request id", async ({
+    page,
+    context,
+    baseURL,
+  }) => {
+    test.setTimeout(EXTRACTION_MS + 60_000);
+    const productId = await product(ws, "Realtime progress 3 kg");
+    await signIn(context, editor, baseURL!);
+    const errors = watch(page);
+    const jobReads: string[] = [];
+    let requestId: string | undefined;
+    let socket = false;
+    page.on("websocket", (w) => {
+      if (w.url().includes("/realtime/v1/websocket")) socket = true;
+    });
+    page.on("request", (r) => {
+      if (/\/rest\/v1\/jobs\b/.test(r.url()) && r.method() === "GET") jobReads.push(r.url());
+      if (/\/rest\/v1\/rpc\/register_artwork/.test(r.url())) requestId = r.headers()["x-request-id"];
+    });
+    await page.goto(`/w/${ws}/products/${productId}/check`);
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "Choose a file" }).click();
+    await (await chooser).setFiles({ name: "realtime-3kg.pdf", mimeType: "application/pdf", buffer: fs.readFileSync(fixture("clean_3lang")) });
+    await expect(card(page)).toHaveAttribute("data-artwork-card", "succeeded", { timeout: EXTRACTION_MS });
+
+    expect(socket).toBe(true);
+    // A read to find the job, one when the subscription is live and at most two settle reads (lib/jobs/watch.ts).
+    expect(jobReads.length).toBeLessThanOrEqual(4);
+    expect(requestId).toMatch(/^[A-Za-z0-9-]{8,64}$/);
+    const service = admin().schema("app");
+    const av = await service.from("artwork_versions").select("id").eq("product_id", productId).single();
+    const job = await service.from("jobs").select("payload").eq("idempotency_key", `extract:${av.data!.id}`).single();
+    expect(job.data!.payload).toEqual({ artwork_version_id: av.data!.id, request_id: requestId });
+    expect(errors).toEqual([]);
+  });
+
+  test("[T-305][D01.main] a failed extraction offers a retry that runs the same job again to the end", async ({ page, context, baseURL }) => {
+    test.setTimeout(EXTRACTION_MS + 60_000);
+    const productId = await product(ws, "Retry extraction 5 kg");
+    // A file that is stored and registered, and a job the worker gave up on: as if Storage had been unreachable.
+    const buffer = fs.readFileSync(fixture("clean_3lang"));
+    const sha = createHash("sha256").update(buffer).digest("hex");
+    const storagePath = `${ws}/${productId}/${sha}.pdf`;
+    const service = admin();
+    const up = await service.storage.from("artwork").upload(storagePath, buffer, { contentType: "application/pdf", upsert: true });
+    if (up.error) throw up.error;
+    const av = await service
+      .schema("app")
+      .from("artwork_versions")
+      .insert({ workspace_id: ws, product_id: productId, version: 1, file_sha256: sha, storage_path: storagePath,
+                file_name: "retry-5kg.pdf", mime_type: "application/pdf", is_new_artwork: false })
+      .select("id")
+      .single();
+    if (av.error) throw av.error;
+    const failed = await service
+      .schema("app")
+      .from("jobs")
+      .insert({ kind: "extract", workspace_id: ws, idempotency_key: `extract:${av.data.id}`, status: "failed", attempts: 5,
+                payload: { artwork_version_id: av.data.id }, last_error: `artwork version ${av.data.id}: the file is missing from storage` })
+      .select("id")
+      .single();
+    if (failed.error) throw failed.error;
+
+    await signIn(context, editor, baseURL!);
+    const errors = watch(page);
+    await page.goto(`/w/${ws}/products/${productId}/check`);
+    await expect(page.getByText("This artwork could not be read")).toBeVisible();
+    await expect(page.getByText("The file never reached storage")).toBeVisible();
+    await axe(page);
+
+    let requestId: string | undefined;
+    page.on("request", (r) => {
+      if (/\/rest\/v1\/rpc\/retry_extraction/.test(r.url())) requestId = r.headers()["x-request-id"];
+    });
+    await page.getByRole("button", { name: "Retry extraction" }).click();
+    await expect(card(page)).toHaveAttribute("data-artwork-card", "succeeded", { timeout: EXTRACTION_MS });
+    await expect(page.getByText("This artwork could not be read")).toHaveCount(0);
+
+    const job = await service.schema("app").from("jobs").select("id, status, payload").eq("idempotency_key", `extract:${av.data.id}`).single();
+    expect(job.data).toMatchObject({ id: failed.data.id, status: "succeeded", payload: { artwork_version_id: av.data.id, request_id: requestId } });
+    const audit = await service.schema("app").from("audit_events").select("kind").eq("object_id", failed.data.id).eq("kind", "extraction.retried");
+    expect(audit.data).toHaveLength(1);
+    expect(errors).toEqual([]);
+  });
+
+  test("[T-305] a change to the job reaches the screen over Realtime, with no read of app.jobs", async ({ page, context, baseURL }) => {
+    test.setTimeout(60_000);
+    const productId = await product(ws, "Realtime only 1 kg");
+    // A registered artwork whose job stays queued: no pgmq message, so the worker never takes it.
+    const service = admin().schema("app");
+    const sha = randomUUID().replace(/-/g, "").padEnd(64, "0");
+    const av = await service
+      .from("artwork_versions")
+      .insert({ workspace_id: ws, product_id: productId, version: 1, file_sha256: sha, storage_path: `${ws}/${productId}/${sha}.pdf`,
+                file_name: "realtime-1kg.pdf", mime_type: "application/pdf", is_new_artwork: false })
+      .select("id")
+      .single();
+    if (av.error) throw av.error;
+    const job = await service
+      .from("jobs")
+      .insert({ kind: "extract", workspace_id: ws, idempotency_key: `extract:${av.data.id}`, payload: { artwork_version_id: av.data.id } })
+      .select("id")
+      .single();
+    if (job.error) throw job.error;
+
+    await signIn(context, editor, baseURL!);
+    const errors = watch(page);
+    const jobReads: number[] = [];
+    page.on("request", (r) => {
+      if (/\/rest\/v1\/jobs\b/.test(r.url()) && r.method() === "GET") jobReads.push(Date.now());
+    });
+    await page.goto(`/w/${ws}/products/${productId}/check`);
+    await expect(page.getByText("Queued for extraction · realtime-1kg.pdf")).toBeVisible();
+    // Past the settle reads: a 2 s poll would have read about six times by now.
+    await page.waitForTimeout(9_000);
+    expect(jobReads.length).toBeLessThanOrEqual(4);
+    const before = jobReads.length;
+
+    const up = await service.from("jobs").update({ status: "running", progress: { stage: "extracting" } }).eq("id", job.data.id);
+    if (up.error) throw up.error;
+    await expect(page.getByText("Finding panels, languages and text · realtime-1kg.pdf")).toBeVisible({ timeout: 10_000 });
+    expect(jobReads.length).toBe(before); // delivered by Realtime, not read
     expect(errors).toEqual([]);
   });
 });
