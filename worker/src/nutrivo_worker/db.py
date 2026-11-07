@@ -283,6 +283,19 @@ class PgStore:
         return self.conn.execute("select app.apply_subscription(%s, %s, %s, %s) as outcome",
                                  (workspace_id, Jsonb(snapshot), source, ref)).fetchone()["outcome"]
 
+    # ── recipe_overage, dunning (T-704) ─────────────────────────────────────────────────────────────────────
+    def recipe_overage_context(self, workspace_id: str) -> dict[str, Any] | None:
+        row = self.conn.execute("select app.recipe_overage_context(%s) as c", (workspace_id,)).fetchone()
+        return row["c"] if row else None
+
+    def dunning_due(self) -> list[dict[str, Any]]:
+        return list(self.conn.execute(
+            """select workspace_id::text, stripe_invoice_id, day, failed_at from app.dunning_due()""").fetchall())
+
+    def record_dunning_step(self, workspace_id: str, invoice_id: str, day: int, outcome: str, ref: str) -> str:
+        return self.conn.execute("select app.record_dunning_step(%s, %s, %s, %s, %s) as r",
+                                 (workspace_id, invoice_id, day, outcome, ref)).fetchone()["r"]
+
     # ── session_revoke (A06) ────────────────────────────────────────────────────────────────────────────
     def membership_for_revoke(self, membership_id: str) -> dict[str, Any] | None:
         return self.conn.execute(

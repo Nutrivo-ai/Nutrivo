@@ -12,12 +12,25 @@ one version of each member rule. **A rule of an existing shape needs no code. A 
 ## Shapes and their params (validated by JSON Schema at acceptance)
 | Shape | Params (values always come from an extraction of a stored source) | Fails when |
 |---|---|---|
-| mandatory_particular | `particular`, `detect.term_keys` (from the term register), `scope` (each panel in a node language, or any panel) | The particular is absent from the panel |
-| prescribed_wording | `term_key`, `alternatives`, `match` (exact, case-folded) | The printed wording differs from the term register entry for that language |
+| mandatory_particular | `particular`, `conditions` (extraction); `detect.term_keys`, `scope` (each panel in a node language, or any panel) (links) | The particular is absent from the panel |
+| prescribed_wording | `wordings`, `alternatives` (extraction, source text only); `term_key`, `alternative_term_keys`, `match` (exact, case-folded) (links) | The printed wording differs from the term register entry for that language |
 | threshold | `quantity`, `operator`, `value`, `unit`, `then` (what becomes required) | The condition holds and the consequence is missing |
 | character_height | `target`, `height_definition` (x_height, cap_height or figure_height), `bands` (quantity range to minimum mm) | Measured height below the band minimum |
 | additive_condition | `check` (authorised_for_species, within_max_content, declaration_required), register fields | The additive breaks its register conditions |
 | claim_judgement | `question`, `criteria`, labelled `examples`, `min_confidence` | The model judges the claim not permitted with confidence ≥ min_confidence |
+
+### Extraction params and term links (D-31)
+A rule's params come from two places:
+- **The extraction.** What the official text says, verbatim and in the source's language. It is kept as the rule's
+  source text and is never matched against a panel.
+- **The links.** Keys of accepted `ref.term_entries` (`detect.term_keys`, `term_key`, `alternative_term_keys`) and the
+  `scope` and `match` modes. The accepting person adds them when accepting a candidate, or later as a new `editorial`
+  version. Neither an extraction nor a model ever supplies a link.
+
+Printed text is judged only through the linked register entries for the panel's own language. The engine does not
+read a flat `alternatives` list. A rule without its links is withheld `data_missing`. A node × domain cannot be
+Complete while a member's linked key has no accepted entry in one of the node's languages. This is decided but not
+built yet: T-209 (database), T-210 (engine) and T-211 (console).
 
 ## Applicability
 A small predicate language: `{"all": [...]}`, `{"any": [...]}`, `{"not": X}`, `{"eq": [field, value]}`,
@@ -148,8 +161,12 @@ run against a draft in `ref.fixture_runs` (insert-only, service role only; the l
 that judged no fixture cannot be recorded as passed. `app.release_ruleset` refuses (P0039) unless every member has
 passed, failed and withheld fixtures and the draft's latest run passed, judged every one of them and still matches the
 digest, so a fixture or member changed after the run
-needs a new run. Until the runner resolves draft ids (worker follow-up, #34) and labels can be judged (#36), nothing can be
-released: that is intended.
+needs a new run. What a release run judges is D-32:
+- `nutrivo fixtures run --draft <id>` runs a draft's member fixtures and records the run;
+- synthetic labels are never part of a release run;
+- golden labels count from 30.
+
+T-210 builds it. Until then nothing can be released, and that is intended.
 
 ### The runner (T-206)
 `nutrivo fixtures run --ruleset <id> [--format text|json] [--out report.json] [--junit report.xml]` reads, and never
@@ -179,6 +196,10 @@ expected and actual.
 Evaluators register in `nutrivo_worker.fixtures_runner.EVALUATORS` by shape, and the label path in `LABEL_EVALUATOR`.
 T-403 registers mandatory_particular and prescribed_wording, and T-502 registers character_height, threshold and
 additive_condition (§The engine). claim_judgement (it would need a model, #209 Q4) and every label are
-still withheld, so no ruleset passes while synthetic or golden labels are present. Open on #36: how an unreleased
-(proposed) ruleset is named before K05 writes its members, and the golden expected-results file format. Until those
-are decided, only released ruleset ids resolve, and a golden JSON file with a `panels` list is reported per panel.
+still withheld, so no ruleset passes while synthetic or golden labels are present. D-32 settles #36:
+- a proposed ruleset is named by its draft id (`--draft`);
+- synthetic labels leave release runs;
+- golden labels count once there are 30 of them.
+
+T-210 builds it. The golden expected-results file format stays OPEN until the 30th golden label. Until T-210 lands,
+only released ruleset ids resolve, and a golden JSON file with a `panels` list is reported per panel.
