@@ -1279,6 +1279,12 @@ isOneToOne: false
 "request_export":
 { Args: { "p_request_id"?: string,"p_ws": string }; Returns: string
                            },
+"request_report":
+{ Args: { "p_check": string,"p_request_id"?: string }; Returns: string
+                           },
+"retry_extraction":
+{ Args: { "p_artwork": string }; Returns: string
+                           },
 "revoke_invitation":
 { Args: { "p_invitation": string }; Returns: string
                            },
@@ -1763,6 +1769,26 @@ isOneToOne: false
       foreignKeyName: "ruleset_members_ruleset_version_fkey"
       columns: ["ruleset_version"]
 isOneToOne: false
+      referencedRelation: "ruleset_versions"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"ruleset_seals": {
+                  Row: {
+                    "ruleset_version": string,"sealed_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "ruleset_version": string,"sealed_at"?: string
+                  }
+                  Update: {
+                    "ruleset_version"?: string,"sealed_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ruleset_seals_ruleset_version_fkey"
+      columns: ["ruleset_version"]
+isOneToOne: true
       referencedRelation: "ruleset_versions"
       referencedColumns: ["id"]
     }

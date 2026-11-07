@@ -175,6 +175,12 @@ Staff (`app_metadata.nutrivo_staff`) act through RPCs; each needs the caller's p
   gaps with `app.open_coverage_gap`). Complete needs every member rule of that node and domain tested.
 - **Release** with `app.release_ruleset` once the fixture run for the draft passed (docs/05 §The release gate). It
   writes the diffs, and alerts follow only for non-editorial ones.
+- **A release is sealed (#197).** When the releasing transaction commits, `ref.ruleset_seals` records it. From then on
+  its coverage rows, its members, the rules they pin (shape, domain, node, title) and the meaning of the gaps its
+  coverage names (node, domain, reason) cannot be changed, added to, deleted or truncated (P0047). Every change,
+  including a correction, goes into the next draft and its own release; a gap is replaced by a new gap, never
+  edited. Only the release in progress may set a gap's `opened_in` or `closed_in`, once. A gap's description stays
+  editable wording.
 
 ## The /admin console (K03, K04, T-205)
 Staff work the queues in `/admin`. The layout checks `app_metadata.nutrivo_staff` on the server before anything renders
