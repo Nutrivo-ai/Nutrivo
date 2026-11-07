@@ -169,7 +169,7 @@ export function columnsOf(nodes: BoardNodeRow[], jurisdictions: BoardJurisdictio
       regionId,
       name,
       columns: [
-        { kind: "region" as const, nodeId: regionId, regionId, label: regionId, name: `${name}, rolled up` },
+        { kind: "region" as const, nodeId: regionId, regionId, label: regionId, name: `${name}, rolled up over the markets you can see` },
         ...[...markets.get(regionId)!].sort().map((id) => ({
           kind: "market" as const,
           nodeId: id,
@@ -295,13 +295,20 @@ export function buildBoard(rows: BoardRows): BoardModel {
 // ── F04 · Portfolio findings ─────────────────────────────────────────────────────────────────────────────────────
 
 /** A finding with the job of the check it sits under (embedded from app.checks). */
-export type PortfolioFindingRow = FindingRow & { product_id: string; checks: { job_id: string | null } | null };
+export type PortfolioFindingRow = FindingRow & {
+  product_id: string;
+  /** The printed panel's language, when the finding names it (non-negotiable 4: results are per language panel). */
+  language: string | null;
+  checks: { job_id: string | null; language: string | null } | null;
+};
 
 export type PortfolioFinding = {
   productId: string;
   productName: string;
   nodeId: string;
   nodeLabel: string;
+  /** The language panel the finding was judged on, upper-case; null when the check names none. */
+  language: string | null;
   href: string;
   finding: Extract<ReportFinding, { state: "action" | "not_assessed" }>;
 };
@@ -314,6 +321,8 @@ export type PortfolioFindings = {
 };
 
 export const FINDINGS_SHOWN = 100;
+/** At most this many open findings are read for the findings view; the view says when there were more. */
+export const FINDINGS_READ_CAP = 5000;
 
 export function buildFindings(
   rows: Pick<BoardRows, "workspaceId" | "products" | "nodes" | "rulesets" | "filters" | "jurisdictions">,
@@ -355,6 +364,7 @@ export function buildFindings(
       productName: p.name,
       nodeId: f.node_id,
       nodeLabel: region ? `${region} · ${nodeCode(f.node_id)}` : f.node_id,
+      language: (f.language ?? f.checks?.language)?.toUpperCase() ?? null,
       href: cellHref(workspaceId, p.id, f.node_id),
       finding: findingOf(f, "—", workspaceId, gapMap) as PortfolioFinding["finding"],
     };

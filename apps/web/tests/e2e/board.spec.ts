@@ -249,7 +249,7 @@ test.describe("portfolio board and findings", () => {
 
     // Each with its provenance, and its rule or its coverage gap.
     const action = list.locator(`[data-finding="${s.actionId}"]`);
-    await expect(action).toContainText("Salmon & Rice Adult Dry 12 kg · EU · DE");
+    await expect(action).toContainText("Salmon & Rice Adult Dry 12 kg · EU · DE · DE panel"); // per language panel (non-negotiable 4)
     await expect(action).toContainText("Net quantity is printed too small");
     await expect(action.locator('[data-rule-key="e2e.board.netqty"]')).toHaveText("E2E citation, net quantity");
     await expect(action).toContainText("Deterministic rule");

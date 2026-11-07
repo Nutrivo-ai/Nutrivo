@@ -191,7 +191,8 @@ describe("portfolio findings (F04)", () => {
     required_mm: null,
     reason_code: "data_missing",
     created_at: "2026-11-01T00:00:00Z",
-    checks: { job_id: JOB },
+    language: null,
+    checks: { job_id: JOB, language: "de" },
     ...extra,
   });
   const action = finding("f-action", {
@@ -207,7 +208,7 @@ describe("portfolio findings (F04)", () => {
     gap_id: "GAP-EU-AT-claims",
     reason_code: "not_encoded",
   });
-  const old = finding("f-old", { checks: { job_id: OLD_JOB } });
+  const old = finding("f-old", { checks: { job_id: OLD_JOB, language: "de" } });
   const gaps = [{ gap_id: "GAP-EU-AT-claims", node_id: "EU-AT", domain: "claims", reason_code: "not_encoded", description: "Claims are not encoded" }];
 
   it("lists the open findings of each market's latest check, actions first, each with its rule or its gap", () => {
@@ -217,6 +218,7 @@ describe("portfolio findings (F04)", () => {
     const [a, g] = out.items;
     expect(a.finding).toMatchObject({ state: "action", ruleKey: "EU.767.netqty", provenance: "deterministic_rule" });
     expect(a.nodeLabel).toBe("EU · DE");
+    expect(a.language).toBe("DE"); // the panel the finding was judged on (non-negotiable 4)
     expect(g.finding).toMatchObject({ state: "not_assessed", gapId: "GAP-EU-AT-claims", title: "Claims are not encoded" });
     expect(g.finding.state === "not_assessed" && g.finding.gapId && g.finding.gapHref).toBe(`/w/${WS}/library/coverage/EU-AT#GAP-EU-AT-claims`);
   });

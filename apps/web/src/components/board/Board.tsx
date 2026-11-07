@@ -1,6 +1,7 @@
 import { EmptyState, Finding, StateCell, StateLegend, cx, stateTint } from "@/components/kit";
 import { STATE_LABEL } from "@/components/kit/states";
 import {
+  FINDINGS_READ_CAP,
   boardHref,
   type BoardCell,
   type BoardModel,
@@ -232,6 +233,13 @@ function Findings({
           {findings.total > findings.items.length ? ` · showing ${findings.items.length} of ${findings.total}${findings.capped ? "+" : ""}` : ""}
         </span>
       </div>
+      {findings.capped ? (
+        <p data-findings-capped className="mt-[10px] mb-0 text-[13px] leading-[1.5] text-n700">
+          There are more than {FINDINGS_READ_CAP.toLocaleString("en-GB")} open findings, so only the first{" "}
+          {FINDINGS_READ_CAP.toLocaleString("en-GB")} were read and the counts above stop there. Narrow the list with the
+          filters to see the rest.
+        </p>
+      ) : null}
       {findings.items.length === 0 ? (
         <div className="mt-[16px] max-w-[640px]">
           <EmptyState
@@ -262,6 +270,7 @@ function FindingItem({ item }: { item: PortfolioFinding }) {
     <li data-finding={f.id} data-product={item.productId} data-node={item.nodeId}>
       <a href={item.href} className="block pt-[10px] font-mono text-[10px] tracking-[0.06em] uppercase text-n600 no-underline hover:text-accent kit-transition">
         {item.productName} · {item.nodeLabel}
+        {item.language ? ` · ${item.language} panel` : ""}
       </a>
       {f.state === "action" ? (
         <Finding state="action" title={f.title} action={f.action} pin={f.pin} measure={f.measure} provenance={f.provenance} ruleKey={f.ruleKey} citation={f.citation} />

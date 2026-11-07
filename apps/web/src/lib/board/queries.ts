@@ -10,6 +10,7 @@ import type { GapRow } from "@/lib/report/model";
 import {
   buildBoard,
   buildFindings,
+  FINDINGS_READ_CAP,
   type BoardFilters,
   type BoardJurisdictionRow,
   type BoardModel,
@@ -41,8 +42,6 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PAGE = 1000; // PostgREST's max_rows (supabase/config.toml)
 const BATCH = 60; // ids per `in` filter, so a URL stays short
 const ROLLUP_CONCURRENCY = 8;
-/** At most this many open findings are read for the findings view; the view says when there were more. */
-export const FINDINGS_READ_CAP = 5000;
 
 /** Every row of a query, a page at a time, up to `cap`. */
 async function paged<T>(what: string, query: (from: number, to: number) => PromiseLike<Result<T[]>>, cap = Infinity): Promise<T[]> {
@@ -153,7 +152,7 @@ async function readFindings(supabase: Client, base: BaseRows): Promise<{ rows: P
           .from("check_findings")
           .select(
             "id, check_id, product_id, node_id, rule_key, gap_id, state, provenance, citation, message, recommended_action, " +
-              "text_object_id, bbox_mm, measured_mm, required_mm, reason_code, created_at, checks!inner(job_id)",
+              "text_object_id, bbox_mm, measured_mm, required_mm, reason_code, created_at, language, checks!inner(job_id, language)",
           )
           .in("checks.job_id", batch)
           .in("state", ["action", "not_assessed"])
