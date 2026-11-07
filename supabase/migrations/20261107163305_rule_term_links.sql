@@ -7,8 +7,9 @@
 --                         (the old ones were written for the unlinked version), and it reaches checks only through
 --                         the next release: a sealed release never changes (#197)
 --   P0048 (new)           a node × domain cannot be complete while a held member's linked key has no accepted entry
---                         in one of the node's languages, enforced on the draft's coverage and members, so
---                         app.release_ruleset needs no change
+--                         in one of the node's languages, enforced on the draft's coverage and members, and again
+--                         when app.release_ruleset copies the coverage into ref.coverage_nodes (the release itself
+--                         is unchanged)
 --   private.ruleset_draft_digest also covers the accepted entries of every linked key, so a term changed after a
 --                         passing fixture run makes that run stale (P0039; T-210 follow-up)
 -- Additive: no table changes. accept_candidate keeps its arguments and gains one with a default.
@@ -161,12 +162,31 @@ end $$;
 create trigger member_terms_guard after insert or update on ref.ruleset_draft_members
   for each row execute function private.member_terms_guard();
 
+-- At release: app.release_ruleset copies the draft's coverage into ref.coverage_nodes under the draft's own id, so the
+-- same check runs again there. A node's languages or the register may have changed since the draft was edited.
+create function private.released_coverage_terms_guard() returns trigger
+language plpgsql security definer set search_path = '' as $$
+declare v_missing text;
+begin
+  if new.state = 'complete' and exists (select 1 from ref.ruleset_drafts d where d.id = new.ruleset_version) then
+    v_missing := private.coverage_terms_missing(new.ruleset_version, new.node_id, new.domain);
+    if v_missing is not null then
+      raise exception 'D-31: % % cannot be released complete while a linked term has no accepted entry in each of '
+        'its languages; missing: %', new.node_id, new.domain, v_missing using errcode = 'P0048';
+    end if;
+  end if;
+  return new;
+end $$;
+create trigger released_coverage_terms_guard before insert on ref.coverage_nodes
+  for each row execute function private.released_coverage_terms_guard();
+
 -- ─── The digest covers the linked terms ──────────────────────────────────────────────────────────
 -- Same members and fixtures as before (T-204), plus, per member, the accepted register entries of its linked keys.
 create or replace function private.ruleset_draft_digest(p_draft text) returns text
 language sql stable security definer set search_path = '' as $$
+  -- A member that links no term hashes exactly as before, so runs recorded before this change stay valid.
   select encode(extensions.digest(coalesce(string_agg(
-           m.rule_key || ':' || m.version || ':' || coalesce(f.fx, '') || ':' || coalesce(t.tx, ''), E'\n'
+           m.rule_key || ':' || m.version || ':' || coalesce(f.fx, '') || coalesce(':' || t.tx, ''), E'\n'
            order by m.rule_key), ''), 'sha256'), 'hex')
   from ref.ruleset_draft_members m
   join ref.rule_versions rv on rv.rule_key = m.rule_key and rv.version = m.version
@@ -324,5 +344,5 @@ grant execute on function app.accept_candidate(uuid,text,text,text,text,text,jso
 revoke all on function private.term_link_fields(text), private.all_term_link_fields(),
                        private.linked_term_keys(jsonb), private.check_term_links(text,jsonb),
                        private.coverage_terms_missing(text,text,text), private.coverage_terms_guard(),
-                       private.member_terms_guard()
+                       private.member_terms_guard(), private.released_coverage_terms_guard()
   from public, anon, authenticated;

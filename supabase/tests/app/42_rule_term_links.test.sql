@@ -5,7 +5,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(28);
+select plan(30);
 set local client_min_messages = warning;
 
 -- ─── Staff (Sam) and a non-staff person (Nina) ──────────────────────────────────────────────────
@@ -160,9 +160,18 @@ select isnt(private.ruleset_draft_digest('2026.92-t209'), (select before from di
 set local role authenticated;
 select lives_ok($$select app.set_draft_coverage('2026.92-t209', 'EU-FI', 'mandatory_particulars', 'complete')$$,
                 '[D-31] with its Finnish entry accepted, EU-FI can be complete');
+select lives_ok($$select app.set_draft_member('2026.92-t209', 'TEST.T209.PW', 1)$$,
+                '[D-31] an unlinked member links no term, so complete coverage still holds');
 select throws_ok($$select app.set_draft_member('2026.92-t209', 'TEST.T209.PW', 2)$$, 'P0048', null,
-                 '[D-31] a member whose linked term lacks a language of complete coverage is refused there too');
+                 '[D-31] moving a member to a version whose linked term lacks a language of complete coverage is refused');
 reset role;
+-- At release: the draft's coverage is copied into ref.coverage_nodes under the draft's id and checked again, so a
+-- node language added since the draft was edited still refuses complete coverage (synthetic: a third language).
+update ref.jurisdictions set languages = array['fi', 'sv', 'de'] where id = 'EU-FI';
+insert into ref.ruleset_versions (id) values ('2026.92-t209');
+select throws_ok($$insert into ref.coverage_nodes (ruleset_version, node_id, domain, state)
+                   values ('2026.92-t209', 'EU-FI', 'mandatory_particulars', 'complete')$$, 'P0048', null,
+                 '[D-31] a release cannot carry complete coverage while a linked term lacks one of the node''s languages');
 
 select * from finish();
 rollback;
