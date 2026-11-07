@@ -96,10 +96,10 @@ while the questions on #45 are open; each is the conservative option.
     - Anything else, including a `max_content` never imported (docs/12), is withheld `data_missing`.
   - **Not stored yet.** No source gives the product's quantity or declared quantities, so in a real check
     character_height rules with several bands, and every threshold rule, are withheld `data_missing` until one does.
-- **claim_judgement (T-503, BE-22).** Asked on #53 (Q1–Q6); each choice below is the conservative option.
+- **claim_judgement (T-503, BE-22).** Asked on #53; the open decisions (Q1–Q6) are carried on #209. Each choice below is the conservative option.
   - **The harness threshold comes first.** The rule is judged only for a (rule_key, version, panel language) with a
     harness threshold record (docs/07 §The harness). Without one it is withheld `claim_not_evaluated` and no model is
-    called. Where records come from is open (#53 Q1). The check job has no source yet, so in a real check every claim
+    called. Where records come from is open (#209 Q1). The check job has no source yet, so in a real check every claim
     rule is withheld `claim_not_evaluated`.
   - It is judged on panels in one of the node's languages; other panels are not applicable. A panel whose language
     is unknown, or with no printed text, is withheld `data_missing`.
@@ -111,9 +111,12 @@ while the questions on #45 are open; each is the conservative option.
   - An abstention or a lower confidence withholds `model_abstained`, and a model error keeps its own reason. Withheld
     is never passed, but a failure on another text object still fails the rule.
   - It passes only when every text object is judged `permitted` at ≥ `min_confidence`.
+  - Judgements are shared across the job: the same (rule version, language, printed string) is one model call for
+    every panel and market. The check job heartbeats after each panel. A withheld abstention keeps its `confidence`
+    and `model_call_id`.
   - Invalid params, or a failure without an `app.model_calls` id, give `evaluator_error`.
   - The fixtures runner still withholds claim_judgement fixtures `evaluator_missing`, because it calls no model
-    (#53 Q4).
+    (#209 Q4).
 - **Withholds.**
   - A shape with no evaluator yet gives `evaluator_missing`.
   - An evaluator fault gives `evaluator_error` and is reported to Sentry.
@@ -175,7 +178,7 @@ expected and actual.
 
 Evaluators register in `nutrivo_worker.fixtures_runner.EVALUATORS` by shape, and the label path in `LABEL_EVALUATOR`.
 T-403 registers mandatory_particular and prescribed_wording, and T-502 registers character_height, threshold and
-additive_condition (§The engine). claim_judgement (it would need a model, #53 Q4) and every label are
+additive_condition (§The engine). claim_judgement (it would need a model, #209 Q4) and every label are
 still withheld, so no ruleset passes while synthetic or golden labels are present. Open on #36: how an unreleased
 (proposed) ruleset is named before K05 writes its members, and the golden expected-results file format. Until those
 are decided, only released ruleset ids resolve, and a golden JSON file with a `panels` list is reported per panel.

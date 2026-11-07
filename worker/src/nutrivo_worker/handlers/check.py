@@ -46,12 +46,16 @@ def run_check(job: Job, ctx: JobContext, store: PgCheckStore, model_client: Any 
     inputs = store.load(job.id, job.workspace_id, product_id, artwork_id, ruleset, classification_id,
                         _node_ids(p.get("node_ids")))
     results: list[CheckResult] = []
+    judgements: dict[Any, Any] = {}       # claim judgements shared by every market and panel of this job
     for n in inputs.nodes:
         with sentry_sdk.start_span(op="check.node", name=n.node.id):
             for panel in inputs.panels:
                 results.append(evaluate_check(n.node, panel, inputs.panels, n.rules, n.coverage, inputs.terms,
                                               inputs.facts, models=model_client, workspace_id=inputs.workspace_id,
-                                              model_store=ctx.store, claim_thresholds=claim_thresholds))
+                                              model_store=ctx.store, claim_thresholds=claim_thresholds,
+                                              judgement_cache=judgements))
+                # Keep the lease while judging: the reaper requeues a job idle past stale_after_s (#185 review).
+                ctx.heartbeat(checks=len(results))
     written = store.write(job.id, inputs, results)
     counts = {s: sum(1 for r in results if r.label_state == s) for s in ("clear", "action", "not_assessed")}
     outcome = "checked" if written else "already_checked"

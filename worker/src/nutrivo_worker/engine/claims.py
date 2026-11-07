@@ -116,10 +116,12 @@ def claim_judgement(ctx: RuleContext) -> RuleResult:
     lines = [ln for ln in ctx.panel.lines if ln.text and ln.text.strip()]
     if not lines:
         return RuleResult("withheld", DATA_MISSING)
-    seen: dict[str, _Judged] = {}
-    withheld: str | None = None
+    # One judgement per (rule version, language, printed string) for the whole job: the same string on another panel
+    # or in another market of the same language is the same model input, so it is never sent twice (#185 review).
+    seen: dict[tuple[str, int, str, str], _Judged] = ctx.judgement_cache if ctx.judgement_cache is not None else {}
+    withheld: _Judged | None = None
     for line in lines:
-        key = normalise(line.text, fold=False)
+        key = (rule.rule_key, rule.version, lang, normalise(line.text, fold=False))
         j = seen.get(key)
         if j is None:
             j = seen[key] = _judge(ctx, spec, line, lang)
@@ -135,9 +137,11 @@ def claim_judgement(ctx: RuleContext) -> RuleResult:
                               message=f"{rule.title}: a claim on the {lang} panel is judged {j.judgement} "
                                       f"(confidence {j.confidence:.2f}).")
         if j.outcome == "withheld":
-            withheld = withheld or j.reason
+            withheld = withheld or j
     if withheld:
-        return RuleResult("withheld", withheld)
+        # An abstention keeps the confidence and model call it came from, so it can be traced (#185 review).
+        return RuleResult("withheld", withheld.reason, confidence=withheld.confidence,
+                          model_call_id=withheld.model_call_id)
     return RuleResult("passed")
 
 

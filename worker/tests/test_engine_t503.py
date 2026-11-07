@@ -129,6 +129,27 @@ def test_abstention_or_low_confidence_is_withheld_model_abstained_never_passed(t
     assert res.findings[0]["reason_code"] == "model_abstained"
 
 
+def test_an_abstention_keeps_its_confidence_and_model_call_for_tracing(tmp_path):
+    res, store = check(tmp_path, panel("sv", "Testkula"), ScriptedModel({"Testkula": answer("permitted", 0.4)}))
+    [f] = res.findings
+    assert (f["reason_code"], f["provenance"], f["confidence"]) == ("model_abstained", "not_assessed", 0.4)
+    assert f["model_call_id"] and len(store.model_calls) == 1
+
+
+def test_one_judgement_per_string_per_job_across_markets_and_panels(tmp_path):
+    """The same printed string in two markets of the same language is one model call, not one per market."""
+    model = ScriptedModel({"Testkula": answer("permitted"), "Grön testkula": answer("prohibited")})
+    models, store, cache = models_for(tmp_path, model), FakeStore(), {}
+    fi = Node("EU-FI", ("fi", "sv"), "EU")
+    p1, p2 = panel("sv", "Testkula", "Grön testkula"), panel("sv", "Grön testkula")
+    results = [evaluate_check(node, p, (p1, p2), [rule()], COMPLETE, {}, FACTS, models=models, workspace_id="ws",
+                              model_store=store, claim_thresholds=PASSED_SV, judgement_cache=cache)
+               for node in (SE, fi) for p in (p1, p2)]
+    assert [r.label_state for r in results] == ["action"] * 4
+    assert all(r.findings[0]["model_call_id"] for r in results)
+    assert sorted(c["claim"] for c in model.calls) == ["Grön testkula", "Testkula"]
+
+
 def test_a_failure_elsewhere_on_the_panel_still_fails_after_an_abstention(tmp_path):
     model = ScriptedModel({"Grön testkula": answer("prohibited")})       # "Oklar" is unscripted: an abstention
     res, _ = check(tmp_path, panel("sv", "Oklar", "Grön testkula"), model)

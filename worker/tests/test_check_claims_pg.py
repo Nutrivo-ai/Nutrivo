@@ -36,10 +36,19 @@ def seed_claim_ruleset(conn, rv, person):
                      " values (%s, 'EU-SE', %s, 'complete', 1)", (rv, d))
 
 
+HEARTBEATS: list[dict] = []
+
+
+class RecordingContext(JobContext):
+    def heartbeat(self, **progress):
+        HEARTBEATS.append(progress)
+        super().heartbeat(**progress)
+
+
 def run(conn, s, job_id, model, thresholds, tmp_path):
     jrow = one(conn, "select payload, workspace_id from app.jobs where id = %s", job_id)
     job = Job(job_id, "check", str(jrow["workspace_id"]), jrow["payload"], 1)
-    return check_handler.run_check(job, JobContext(job, PgStore(conn), S), PgCheckStore(conn),
+    return check_handler.run_check(job, RecordingContext(job, PgStore(conn), S), PgCheckStore(conn),
                                    models_for(tmp_path, model), thresholds)
 
 
@@ -58,6 +67,9 @@ def test_a_judged_claim_is_written_as_a_model_finding_with_its_model_call(conn, 
                f["model_call_id"])
     assert (call["purpose"], call["prompt_version"], str(call["workspace_id"])) == (
         "claim_judgement", "claim_judgement.v1", s["ws"])
+    # The job heartbeats after each panel while judging, so the reaper never requeues it mid-check.
+    assert HEARTBEATS[-3:] == [{"checks": 1}, {"checks": 2}, {"outcome": "checked", "checks": 2, "clear": 0,
+                                                              "action": 1, "not_assessed": 1}]
 
 
 def test_without_a_threshold_record_the_claim_rule_is_withheld_and_no_model_is_called(conn, tmp_path):
