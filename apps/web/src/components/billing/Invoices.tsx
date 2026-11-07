@@ -143,7 +143,7 @@ function FinanceEmail({ workspaceId, initial }: { workspaceId: string; initial: 
             setSaid(null);
             start(async () => {
               const r = await saveFinanceEmail(workspaceId, email);
-              setSaid(r.ok ? { ok: true, text: "Saved. Every invoice from now goes to this address." } : { ok: false, text: r.problem ? (PROBLEM_TEXT[r.problem] ?? refusalText(r.reason)) : refusalText(r.reason) });
+              setSaid(r.ok ? { ok: true, text: "Saved. Every invoice from now goes to this address." } : { ok: false, text: (r.problem && PROBLEM_TEXT[r.problem]) || refusalText(r.reason, r.problem) });
             });
           }}
         >

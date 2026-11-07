@@ -139,11 +139,24 @@ export class FakeStripe {
     }
 
     if (res === "checkout" && a === "sessions") {
+      if (method === "GET" && !b) {
+        const data = [...this.sessions.values()]
+          .filter((x) => (!params.customer || x.customer === params.customer) && (!params.status || x.status === params.status))
+          .reverse();
+        return ok({ object: "list", data: data.slice(0, Number(params.limit ?? 10)) });
+      }
       if (method === "POST" && !b) {
         const sid = id("cs_test");
-        const session = { id: sid, object: "checkout.session", status: "open", payment_status: "unpaid", invoice: null, subscription: null, url: `${this.base}/pay/${sid}`, ...params };
+        const session = { id: sid, object: "checkout.session", status: "open", payment_status: "unpaid", invoice: null, subscription: null, created: now(), url: `${this.base}/pay/${sid}`, ...params };
         this.sessions.set(sid, session);
         return ok(session);
+      }
+      if (method === "POST" && b && c === "expire") {
+        const x = this.sessions.get(b);
+        if (!x) return missing();
+        if (x.status !== "open") return { status: 400, body: { error: { type: "invalid_request_error", code: "checkout_session_not_open", message: "Only open sessions can be expired" } } };
+        Object.assign(x, { status: "expired", url: null });
+        return ok(x);
       }
       if (method === "GET" && b) {
         const s = this.sessions.get(b);
@@ -169,8 +182,8 @@ export class FakeStripe {
       const cust = this.customers.get(String(params.customer));
       if (!cust) return missing();
       const items = ((params.subscription_details as Json)?.items as Json[]) ?? [];
-      const price = [...this.prices.values()].find((p) => p.id === items[0]?.price);
-      return ok(this.invoiceFor(cust, price ?? {}, "in_preview", false));
+      const byId = (pid: unknown) => [...this.prices.values()].find((p) => p.id === pid) ?? {};
+      return ok(this.invoiceFor(cust, byId(items[0]?.price), "in_preview", false, items.slice(1).map((i) => ({ price: byId(i.price), quantity: Number(i.quantity ?? 1) }))));
     }
 
     return missing();
@@ -183,8 +196,8 @@ export class FakeStripe {
 
   /** Stripe Tax as the fake applies it (docs/08 VAT): Swedish VAT 25% in Sweden; reverse charge for an EU business
    * with a verified VAT number; the customer's own rate (a flat 19% here) for an EU customer without one; none outside. */
-  invoiceFor(cust: Customer, price: Json, invoiceId: string, paid: boolean): Json {
-    const subtotal = Number(price.unit_amount ?? 0);
+  invoiceFor(cust: Customer, price: Json, invoiceId: string, paid: boolean, addons: { price: Json; quantity: number }[] = []): Json {
+    const subtotal = Number(price.unit_amount ?? 0) + addons.reduce((n, x) => n + Number(x.price.unit_amount ?? 0) * x.quantity, 0);
     const country = String((cust.address as Json | null)?.country ?? "");
     const eu = "AT BE BG HR CY CZ DK EE FI FR DE GR HU IE IT LV LT LU MT NL PL PT RO SK SI ES SE".split(" ").includes(country);
     const vatId = cust.tax_ids.find((t) => (t.verification as Json)?.status === "verified");
@@ -213,7 +226,9 @@ export class FakeStripe {
       total_taxes: [{ amount: tax, taxable_amount: subtotal, taxability_reason: reason, tax_behavior: "exclusive" }],
       invoice_pdf: paid ? `${this.base}/invoice/${invoiceId}.pdf` : null, hosted_invoice_url: paid ? `${this.base}/invoice/${invoiceId}` : null,
       lines: { object: "list", data: [{ description: `1 × ${String(price.product ?? "plan").replace("nutrivo_plan_", "")}`, amount: subtotal, quantity: 1,
-        period: { start, end: start + interval * 86400 }, price: { lookup_key: price.lookup_key ?? null, metadata: price.metadata ?? {} } }] },
+        period: { start, end: start + interval * 86400 }, price: { lookup_key: price.lookup_key ?? null, metadata: price.metadata ?? {} } },
+        ...addons.map((x) => ({ description: `${x.quantity} × ${String(x.price.lookup_key)}`, amount: Number(x.price.unit_amount ?? 0) * x.quantity, quantity: x.quantity,
+          period: { start, end: start + interval * 86400 }, price: { lookup_key: x.price.lookup_key ?? null, metadata: {} } }))] },
     };
   }
 
@@ -232,17 +247,19 @@ export class FakeStripe {
     const pm = { id: id("pm"), object: "payment_method", type: "card", card: { brand: "visa", last4: "4242", exp_month: 4, exp_year: 2030 }, billing_details: { name: billing.name } };
     this.paymentMethods.set(cust.id, [pm]);
     cust.invoice_settings.default_payment_method = pm.id;
-    const item = ((s.line_items as Json[]) ?? [])[0] ?? {};
-    const price = [...this.prices.values()].find((p) => p.id === item.price) ?? {};
+    const lines = (s.line_items as Json[]) ?? [];
+    const byId = (pid: unknown) => [...this.prices.values()].find((p) => p.id === pid) ?? {};
+    const price = byId(lines[0]?.price);
+    const addons = lines.slice(1).map((i) => ({ price: byId(i.price), quantity: Number(i.quantity ?? 1) }));
     const subId = id("sub");
     const invId = id("in");
-    const invoice = this.invoiceFor(cust, price, invId, true);
+    const invoice = this.invoiceFor(cust, price, invId, true, addons);
     (invoice as Json).subscription = subId;
     this.invoices.set(invId, invoice);
     const interval = (price.recurring as Json | undefined)?.interval === "year" ? 365 : 30;
     const subscription = {
       id: subId, object: "subscription", customer: cust.id, status: "active", metadata: (s.subscription_data as Json)?.metadata ?? {},
-      current_period_end: now() + interval * 86400, items: { data: [{ price, quantity: 1 }] },
+      current_period_end: now() + interval * 86400, items: { data: [{ price, quantity: 1 }, ...addons] },
     };
     this.subscriptions.set(subId, subscription);
     Object.assign(s, { status: "complete", payment_status: "paid", invoice: invId, subscription: subId });

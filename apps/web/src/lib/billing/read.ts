@@ -8,7 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { billingContext, workspaceCustomer, type BillingContext } from "./context";
 import { invoicesFrom, readInvoice, treatmentOf, type Invoice, type PaymentEventRow, type Treatment } from "./invoices";
-import { INTERVAL, readCounts, type LiveCounts, type Term } from "./plans";
+import { extrasFor, INTERVAL, readCounts, type LiveCounts, type Term } from "./plans";
 import { stripe, type Address, type Customer, type PaymentMethod, type Price } from "./stripe";
 import type { PaidPlanKey } from "../../../../../config/pricing";
 
@@ -37,18 +37,21 @@ export type Usage = {
   /** app.workspaces.plan and status. */
   plan: string;
   status: string;
-  /** Check and re-check jobs that finished: shown, never metered. */
+  /** Rows of app.checks the admin can read (decision 5 on #64): shown, never metered. */
   checksRun: number;
 };
 
-/** Everything the dials need, read now (M02.must.1: counts are read at request time, never nightly). */
+/**
+ * Everything the dials need, read now (M02.must.1: counts are read at request time, never nightly). "Checks run" is
+ * the number of app.checks rows the admin reads under RLS, one per market and language panel checked.
+ */
 export async function readUsage(supabase: Client, ws: string): Promise<Usage> {
   const app = supabase.schema("app");
   const [counts, sub, wsRow, checks] = await Promise.all([
     app.rpc("live_billable_counts", { p_ws: ws }),
     app.from("subscriptions").select("plan, term, status, editor_seats, recipes_included, current_period_end").eq("workspace_id", ws).maybeSingle(),
     app.from("workspaces").select("plan, status").eq("id", ws).maybeSingle(),
-    app.from("jobs").select("id", { count: "exact", head: true }).eq("workspace_id", ws).in("kind", ["check", "recheck"]).eq("status", "succeeded"),
+    app.from("checks").select("id", { count: "exact", head: true }).eq("workspace_id", ws),
   ]);
   if (counts.error) throw new BillingReadError("live billable counts", counts.error);
   if (sub.error) throw new BillingReadError("the subscription", sub.error);
@@ -88,31 +91,10 @@ export async function readInvoices(supabase: Client, ws: string): Promise<Invoic
   return invoicesFrom((data ?? []) as PaymentEventRow[]);
 }
 
-export type CheckoutReturn =
-  | { kind: "invoice"; invoice: Invoice }
-  /** Paid, and Stripe has not sent the invoice yet: the screen waits for it. */
-  | { kind: "pending"; plan: string | null }
-  /** Not this workspace's session, unpaid, or unknown. */
-  | { kind: "unknown" };
-
-/**
- * S-PLN-003 by id. An invoice id (`in_…`) is read from the stored events; a Checkout Session id (`cs_…`), which is where
- * Checkout returns to, is resolved through Stripe to its invoice, and only when the session is this workspace's.
- */
-export async function readInvoiceOrReturn(supabase: Client, ctx: BillingContext, id: string): Promise<CheckoutReturn> {
-  if (/^cs_[A-Za-z0-9_]{1,250}$/.test(id)) {
-    const session = await stripe<{ client_reference_id: string | null; status: string; payment_status: string; invoice: string | null; metadata?: Record<string, string> }>(
-      "GET",
-      `/v1/checkout/sessions/${encodeURIComponent(id)}`,
-    );
-    if (session.client_reference_id !== ctx.workspaceId || session.status !== "complete") return { kind: "unknown" };
-    if (!session.invoice) return { kind: "pending", plan: session.metadata?.nutrivo_plan ?? null };
-    id = session.invoice;
-  }
-  if (!/^in_[A-Za-z0-9_]{1,250}$/.test(id)) return { kind: "unknown" };
-  const invoices = await readInvoices(supabase, ctx.workspaceId);
-  const hit = invoices.find((i) => i.id === id);
-  return hit ? { kind: "invoice", invoice: hit } : { kind: "pending", plan: null };
+/** S-PLN-003 by Stripe invoice id (`in_…`), only among this workspace's stored invoice events. */
+export async function readInvoiceById(supabase: Client, ws: string, id: string): Promise<Invoice | null> {
+  if (!/^in_[A-Za-z0-9_]{1,250}$/.test(id)) return null;
+  return (await readInvoices(supabase, ws)).find((i) => i.id === id) ?? null;
 }
 
 export type BillingDetails = {
@@ -178,6 +160,29 @@ export async function priceByKey(lookupKey: string): Promise<Price | null> {
 
 export const planLookupKey = (plan: PaidPlanKey, term: Term) => `nutrivo_plan_${plan}_eur_${INTERVAL[term]}`;
 
+export type CheckoutItem = { lookupKey: string; quantity: number };
+
+/**
+ * The line items a Checkout for this plan charges (docs/08 "Stripe mapping"): the plan, then the recipe and editor-seat
+ * add-ons that cover the workspace's counts beyond what the plan includes. The worker reads them back into the
+ * mirror's recipes and seats (T-702). Only for a plan that fits (BE-34); the caller checks.
+ */
+export function checkoutItems(plan: PaidPlanKey, term: Term, counts: LiveCounts): CheckoutItem[] {
+  const interval = INTERVAL[term];
+  const extra = extrasFor(plan, counts);
+  const items: CheckoutItem[] = [{ lookupKey: planLookupKey(plan, term), quantity: 1 }];
+  if (extra.recipes) items.push({ lookupKey: `nutrivo_addon_recipe_${plan}_eur_${interval}`, quantity: extra.recipes });
+  if (extra.editorSeats) items.push({ lookupKey: `nutrivo_addon_editor_seat_${plan}_eur_${interval}`, quantity: extra.editorSeats });
+  return items;
+}
+
+/** The items with their Stripe price ids, by lookup key; null when one is not in the catalogue. */
+export async function resolveItems(items: CheckoutItem[]): Promise<{ price: string; quantity: number }[] | null> {
+  const prices = await Promise.all(items.map((i) => priceByKey(i.lookupKey)));
+  if (prices.some((p) => !p)) return null;
+  return items.map((i, n) => ({ price: prices[n]!.id, quantity: i.quantity }));
+}
+
 export type TaxPreview = { subtotal: number; tax: number; total: number; treatment: Treatment; rate: number | null; country: string | null };
 
 /**
@@ -185,16 +190,16 @@ export type TaxPreview = { subtotal: number; tax: number; total: number; treatme
  * Without one there is nothing to compute VAT from, and the screen says it is added at payment. Never throws: a
  * preview that fails is simply not shown.
  */
-export async function previewFirstInvoice(ctx: BillingContext, plan: PaidPlanKey, term: Term): Promise<TaxPreview | null> {
+export async function previewFirstInvoice(ctx: BillingContext, items: CheckoutItem[]): Promise<TaxPreview | null> {
   try {
     const c = await workspaceCustomer(ctx, { create: false });
     if (!c?.address?.country) return null;
-    const price = await priceByKey(planLookupKey(plan, term));
-    if (!price) return null;
+    const resolved = await resolveItems(items);
+    if (!resolved) return null;
     const inv = await stripe<Record<string, unknown>>("POST", "/v1/invoices/create_preview", {
       customer: c.id,
       automatic_tax: { enabled: true },
-      subscription_details: { items: [{ price: price.id, quantity: 1 }] },
+      subscription_details: { items: resolved },
     });
     const read = readInvoice({ object: "invoice", id: "in_preview", ...inv, customer_address: inv.customer_address ?? c.address });
     if (!read) return null;

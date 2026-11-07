@@ -98,15 +98,21 @@ export function refusalText(reason: Refusal, problem?: string): string {
     case "no-permission":
       return "Only an admin of the whole workspace can manage billing.";
     case "live":
-      return "This workspace already has a plan. Change it from Plan and allowance.";
+      return problem === "applying"
+        ? "A payment for this workspace was just received and is being applied. Nothing more is charged; Plan and allowance shows the plan shortly."
+        : "This workspace already has a plan. Change it from Plan and allowance.";
     case "no-customer":
       return "There is nothing on file yet. It appears here once you have a plan.";
     case "not-configured":
       return "Payments are not available right now. Nothing was charged. Try again later.";
     case "invalid":
-      return problem === "advanced_is_quoted" ? "Advanced is quoted. Write to hello@nutrivo.ai." : "That could not be accepted. Check the details and try again.";
+      if (problem === "advanced_is_quoted") return "Advanced is quoted. Write to hello@nutrivo.ai.";
+      if (problem === "does_not_fit") return "This plan cannot hold what the workspace has now. The plan picker names the one that does.";
+      return "That could not be accepted. Check the details and try again.";
     default:
-      return "Stripe did not answer. Nothing was charged or changed. Try again.";
+      return problem === "audit"
+        ? "Saved at Stripe, but the change could not be written to the audit log. We have been alerted; nothing needs doing on your side."
+        : "Stripe did not answer. Nothing was charged or changed. Try again.";
   }
 }
 

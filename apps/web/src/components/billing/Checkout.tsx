@@ -8,7 +8,7 @@ import { startCheckout } from "@/lib/billing/actions";
 import { countryName, vatLabel } from "@/lib/billing/invoices";
 import { annualSaving, annualSavingPercent, netPrice, type Term } from "@/lib/billing/plans";
 import type { BillingDetails, TaxPreview } from "@/lib/billing/read";
-import { plan as planOf } from "@/lib/public/pricing";
+import { addonAmount, plan as planOf } from "@/lib/public/pricing";
 import { hrefFor } from "@/lib/shell/routes";
 import { HELP, INPUT, LABEL } from "@/components/settings/fields";
 import { BillingNoPermission, KICKER, PortalButton, Row, euros, exact, monoDay, refusalText } from "./shared";
@@ -22,7 +22,7 @@ import type { PaidPlanKey } from "../../../../../config/pricing";
 
 export type CheckoutView =
   | { kind: "no-permission"; workspace: string }
-  | { kind: "pick-a-plan"; workspaceId: string }
+  | { kind: "pick-a-plan"; workspaceId: string; tooSmall?: { plan: PaidPlanKey; next: PaidPlanKey } }
   | { kind: "live"; workspaceId: string; plan: string }
   | {
       kind: "loaded";
@@ -30,6 +30,8 @@ export type CheckoutView =
       plan: PaidPlanKey;
       term: Term;
       counts: { recipes: number; regions: number; editorSeats: number };
+      /** Recipes and editor seats beyond the plan's, charged as add-ons up to its ceiling (BE-34). */
+      extras: { recipes: number; editorSeats: number };
       details: BillingDetails | null;
       preview: TaxPreview | null;
       today: string;
@@ -47,8 +49,12 @@ export function Checkout({ route, view }: { route: string; view: CheckoutView })
         <div className="max-w-[640px]">
           <EmptyState
             where="CHECKOUT"
-            title="Choose a plan first"
-            body="Checkout starts from the plan picker, which reads what this workspace already holds and names the plan that fits it."
+            title={view.tooSmall ? `${planOf(view.tooSmall.plan).name} cannot hold this workspace` : "Choose a plan first"}
+            body={
+              view.tooSmall
+                ? `What this workspace already holds would take the ${planOf(view.tooSmall.plan).name} bill past its ceiling, so we offer ${planOf(view.tooSmall.next).name} instead rather than keep charging. The plan picker names the plan that fits.`
+                : "Checkout starts from the plan picker, which reads what this workspace already holds and names the plan that fits it."
+            }
             action={{ label: "See the plans", href: hrefFor("/w/[workspace]/billing/plans", view.workspaceId) }}
           />
         </div>
@@ -78,7 +84,12 @@ export function Checkout({ route, view }: { route: string; view: CheckoutView })
 function Review({ view }: { view: Extract<CheckoutView, { kind: "loaded" }> }) {
   const p = planOf(view.plan);
   const annual = view.term === "annual";
-  const net = netPrice(view.plan, view.term);
+  const planNet = netPrice(view.plan, view.term);
+  const interval = annual ? "year" : "month";
+  const recipeEach = view.extras.recipes ? (addonAmount("recipe", view.plan, interval) ?? 0) : 0;
+  const seatEach = view.extras.editorSeats ? (addonAmount("editor_seat", view.plan, interval) ?? 0) : 0;
+  // Net of VAT: the plan, plus the add-ons that cover recipes and editor seats beyond it (BE-34).
+  const net = planNet + view.extras.recipes * recipeEach + view.extras.editorSeats * seatEach;
   const poId = useId();
   const [po, setPo] = useState(view.details?.poReference ?? "");
   const [pending, start] = useTransition();
@@ -169,9 +180,15 @@ function Review({ view }: { view: Extract<CheckoutView, { kind: "loaded" }> }) {
                   {p.name} · {annual ? "12 months" : "1 month"}
                 </span>
                 <span data-testid="order-net" className="font-mono text-[12.5px] text-right text-ink">
-                  {euros(net)}
+                  {euros(planNet)}
                 </span>
               </div>
+              {view.extras.recipes ? (
+                <Row size="md" testId="order-extra-recipes" k={`Extra recipes · ${view.extras.recipes} × ${euros(recipeEach)}`} v={euros(view.extras.recipes * recipeEach)} tone="ink" />
+              ) : null}
+              {view.extras.editorSeats ? (
+                <Row size="md" testId="order-extra-editors" k={`Extra editor seats · ${view.extras.editorSeats} × ${euros(seatEach)}`} v={euros(view.extras.editorSeats * seatEach)} tone="ink" />
+              ) : null}
               <Row size="md" k="Recipes included" v={p.recipes === null ? "UNLIMITED" : String(p.recipes)} />
               <Row size="md" k="Editor seats" v={p.editors === null ? "FREE, UNLIMITED" : String(p.editors)} tone={p.editors === null ? "clear" : "n700"} />
               <Row size="md" k="Viewers" v="FREE, UNLIMITED" tone="clear" />

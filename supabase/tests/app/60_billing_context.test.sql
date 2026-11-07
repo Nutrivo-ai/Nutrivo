@@ -1,9 +1,11 @@
--- T-703 · M01, M05: app.billing_context. Only an internal admin of the whole workspace reads it; it names the caller's
--- own workspace and the mirrored Stripe customer, never another workspace's; it writes nothing.
+-- T-703 · M01, M03, M05: app.billing_context and app.record_billing_change. Only an internal admin of the whole
+-- workspace (private.can_manage_billing, which is private.can_export) reads the context or records a change; the
+-- context names the caller's own workspace and the mirrored Stripe customer, never another workspace's; a recorded
+-- change is an audit row naming who changed which billing details.
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(12);
+select plan(20);
 set local client_min_messages = warning;
 
 insert into auth.users (id, email) values
@@ -79,6 +81,36 @@ set local role authenticated;
 select ok(app.billing_context('20000000-0000-4000-8703-00000000000b')->>'stripe_customer_id' is null
           and app.billing_context('20000000-0000-4000-8703-00000000000b')->>'plan' = 'free',
           '[T-703] a workspace with no subscription has a context with no customer, on the free plan');
+reset role;
+
+-- ─── M03.main: a change to the billing details is audited with who changed what ───────────────────────────────
+select ok((select prosrc like '%private.can_export(ws)%' from pg_proc where oid = 'private.can_manage_billing(uuid)'::regprocedure),
+          '[T-703] private.can_manage_billing is private.can_export, so the two cannot drift');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8703-0000000000a1","role":"authenticated"}', true);
+set local role authenticated;
+select lives_ok($$ select app.record_billing_change('20000000-0000-4000-8703-00000000000a', 'details', 'cus_t703_a',
+                     '{"legal_name":"Halden Pet Nutrition AB","vat_number":null}',
+                     '{"legal_name":"Halden Pet Nutrition AB","vat_number":"SE556734112801"}') $$,
+                '[M03.main] an admin records a change to the billing details');
+select throws_ok($$ select app.record_billing_change('20000000-0000-4000-8703-00000000000a', 'details', 'cus_other', null, '{"legal_name":"X"}') $$,
+                 '22023', null, '[T-703] a change to another customer than the workspace''s is refused (22023)');
+select throws_ok($$ select app.record_billing_change('20000000-0000-4000-8703-00000000000a', 'card', 'cus_t703_a', null, '{}') $$,
+                 '22023', null, '[T-703] an unknown kind of billing change is refused (22023)');
+select throws_ok($$ select app.record_billing_change('20000000-0000-4000-8703-00000000000a', 'finance_email', 'cus_t703_a', null, '{"email":"a@b.test","card_number":"4242"}') $$,
+                 '22023', null, '[T-703] a billing change holding other fields is refused (22023)');
+select throws_ok($$ select app.record_billing_change('20000000-0000-4000-8703-00000000000b', 'details', 'cus_t703_a', null, '{}') $$,
+                 '42501', null, '[T-703] a change to another workspace''s billing is refused (42501)');
+reset role;
+select ok((select count(*) = 1 from app.audit_events a
+           where a.workspace_id = '20000000-0000-4000-8703-00000000000a' and a.kind = 'billing.details_changed'
+             and a.object_type = 'stripe_customer' and a.object_id = 'cus_t703_a'
+             and a.actor_id = '10000000-0000-4000-8703-0000000000a1' and not a.actor_is_external
+             and a.after->>'vat_number' = 'SE556734112801' and a.before->>'vat_number' is null),
+          '[M03.main] the audit row names the admin, the customer and the VAT number before and after');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8703-0000000000c1","role":"authenticated"}', true);
+set local role authenticated;
+select throws_ok($$ select app.record_billing_change('20000000-0000-4000-8703-00000000000a', 'finance_email', 'cus_t703_a', null, '{"email":"a@b.test"}') $$,
+                 '42501', null, '[T-703] an editor cannot record a billing change (42501)');
 reset role;
 
 select * from finish();

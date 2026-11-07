@@ -96,11 +96,18 @@ export function fitFor(key: PaidPlanKey, counts: LiveCounts): Fit {
 }
 
 /**
- * The smallest paid plan that holds the workspace as it is, with nothing extra to pay. Overage (BE-34) is for growing
- * mid-term, never something to subscribe into, so a workspace that outgrows a plan is offered the next one.
+ * The plan to recommend (approved on #64): the smallest paid plan whose list price plus capped overage covers the live
+ * counts. Extra recipes and editor seats are charged as add-ons up to the plan's ceiling (BE-34); past the ceiling,
+ * or past the regions a plan holds, the next plan is offered instead.
  */
 export function recommended(counts: LiveCounts): PaidPlanKey {
-  return PAID.find((k) => fitFor(k, counts).holds) ?? "advanced";
+  return PAID.find((k) => fitFor(k, counts).fits) ?? "advanced";
+}
+
+/** What a Checkout for this plan charges on top of the plan line: the add-on quantities that cover the counts. */
+export function extrasFor(key: PaidPlanKey, counts: LiveCounts): { recipes: number; editorSeats: number } {
+  const fit = fitFor(key, counts);
+  return { recipes: fit.extraRecipes, editorSeats: fit.extraEditors };
 }
 
 /** The plan after this one: what BE-34 offers once a plan's ceiling is met. */

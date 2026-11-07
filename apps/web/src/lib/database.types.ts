@@ -1255,6 +1255,9 @@ isOneToOne: false
 "open_coverage_gap":
 { Args: { "p_description": string,"p_domain": string,"p_gap_id": string,"p_node": string,"p_reason_code": string }; Returns: string
                            },
+"record_billing_change":
+{ Args: { "p_after": Json,"p_before": Json,"p_customer": string,"p_kind": string,"p_ws": string }; Returns: undefined
+                           },
 "record_registration":
 { Args: { "p_evidence_doc"?: string,"p_expires_at"?: string,"p_node": string,"p_number": string,"p_obligation"?: string,"p_product": string,"p_registered_on": string }; Returns: string
                            },

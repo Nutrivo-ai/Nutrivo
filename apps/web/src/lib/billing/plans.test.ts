@@ -1,16 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { plans } from "../../../../../config/pricing";
-import { annualSaving, annualSavingPercent, fitFor, netPrice, nextPlan, readCounts, recommended, REGION_ADDON_ON_SALE, type LiveCounts } from "./plans";
+import { annualSaving, annualSavingPercent, extrasFor, fitFor, netPrice, nextPlan, readCounts, recommended, REGION_ADDON_ON_SALE, type LiveCounts } from "./plans";
 
 const counts = (c: Partial<LiveCounts>): LiveCounts => ({ recipes: 0, regions: ["EU"], editorSeats: 1, labelsUsed: 0, labelsAllowed: 3, ...c });
 
 describe("billing plans (T-703)", () => {
-  it("[M02.main] the plan picker recommends the smallest plan that holds the workspace's live counts", () => {
+  it("[M02.main] the plan picker recommends the smallest plan whose list price plus capped overage covers the counts", () => {
     expect(recommended(counts({ recipes: 8, editorSeats: 3 }))).toBe("basic");
-    expect(recommended(counts({ recipes: 8, editorSeats: 4 }))).toBe("standard"); // Basic holds three editors
-    expect(recommended(counts({ recipes: 11, editorSeats: 2 }))).toBe("standard"); // Basic holds ten recipes
-    expect(recommended(counts({ recipes: 31, editorSeats: 2 }))).toBe("advanced");
+    // Over Basic's ten recipes or three editors, but under its €374 ceiling: still Basic, with add-ons.
+    expect(recommended(counts({ recipes: 11, editorSeats: 2 }))).toBe("basic"); // €249 + €15
+    expect(recommended(counts({ recipes: 8, editorSeats: 4 }))).toBe("basic"); // €249 + €50
+    expect(recommended(counts({ recipes: 18, editorSeats: 1 }))).toBe("basic"); // €249 + 8 × €15 = €369
+    // Past the ceiling the next plan is offered instead.
+    expect(recommended(counts({ recipes: 19, editorSeats: 1 }))).toBe("standard"); // €384 > €374
+    expect(recommended(counts({ recipes: 8, editorSeats: 6 }))).toBe("standard"); // €249 + 3 × €50 = €399
+    expect(recommended(counts({ recipes: 50, editorSeats: 2 }))).toBe("standard"); // €499 + 20 × €12 = €739
+    expect(recommended(counts({ recipes: 51, editorSeats: 2 }))).toBe("advanced"); // €751 > €749
     expect(recommended(counts({ recipes: 0, editorSeats: 1 }))).toBe("basic");
+    expect(extrasFor("basic", counts({ recipes: 12, editorSeats: 4 }))).toEqual({ recipes: 2, editorSeats: 1 });
   });
 
   it("[M02.main] past 1.5x list the next plan is offered instead (BE-34)", () => {

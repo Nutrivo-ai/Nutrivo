@@ -1,20 +1,17 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Blueprint, EmptyState, LoadingState, cx } from "@/components/kit";
+import { Blueprint, EmptyState, cx } from "@/components/kit";
 import { Screen } from "@/components/shell";
 import { treatmentNote, vatLabel, type Invoice } from "@/lib/billing/invoices";
 import { plan as planOf } from "@/lib/public/pricing";
 import { hrefFor } from "@/lib/shell/routes";
-import { BillingNoPermission, KICKER, exact, longDay, period } from "./shared";
+import { BillingNoPermission, exact, longDay, period } from "./shared";
 
 // S-PLN-003 Invoice and receipt (design: product/Nutrivo Plans and Checkout.dc.html, screen "invoice"). M03 (T-703).
 // The invoice exactly as Stripe issued it, read from the stored `invoice.paid` event: net lines, the VAT Stripe Tax
-// charged and, for an EU business with a validated VAT number, the reverse charge (M03.must.1). Checkout returns
-// here with its session id; until Stripe's invoice event has arrived the screen says the payment is received and
-// waits for it, rather than showing an invoice it does not have.
+// charged and, for an EU business with a validated VAT number, the reverse charge (M03.must.1). Payment itself returns
+// to Plan and allowance (decision 1 on #64), which carries the design's "is live" banner; this screen is the invoice.
 
 export const SELLER = {
   name: "Sunny Ventures AB",
@@ -26,14 +23,11 @@ export const SELLER = {
 export type InvoiceScreenView =
   | { kind: "no-permission"; workspace: string }
   | { kind: "unknown"; workspaceId: string }
-  | { kind: "pending"; workspaceId: string }
   | {
       kind: "invoice";
       workspaceId: string;
       workspace: string;
       invoice: Invoice;
-      /** Reached from Checkout, and the plan is live now: the banner and "Now on" show. */
-      justSubscribed: boolean;
       inUse: { recipes: number; editorSeats: number };
     };
 
@@ -51,35 +45,10 @@ export function InvoiceView({ route, view }: { route: string; view: InvoiceScree
             action={{ label: "All invoices", href: hrefFor("/w/[workspace]/settings/billing/invoices", view.workspaceId) }}
           />
         </div>
-      ) : view.kind === "pending" ? (
-        <Pending />
       ) : (
         <Receipt view={view} />
       )}
     </Screen>
-  );
-}
-
-/** Paid at Stripe, invoice not here yet: refresh every few seconds for a minute, then say so plainly. */
-function Pending() {
-  const router = useRouter();
-  const [tries, setTries] = useState(0);
-  useEffect(() => {
-    if (tries >= 20) return;
-    const t = setTimeout(() => {
-      setTries((n) => n + 1);
-      router.refresh();
-    }, 3000);
-    return () => clearTimeout(t);
-  }, [tries, router]);
-  return (
-    <div className="max-w-[640px]" data-testid="invoice-pending">
-      <LoadingState label="PAYMENT RECEIVED · ISSUING THE INVOICE">
-        {tries < 20
-          ? "Stripe has taken the payment and is issuing the invoice. This page shows it as soon as it arrives, usually within a few seconds."
-          : "Stripe has taken the payment; the invoice has not reached us yet. It will be under Billing settings, Invoices, and it is also emailed to the billing address."}
-      </LoadingState>
-    </div>
   );
 }
 
@@ -104,12 +73,6 @@ function Receipt({ view }: { view: Extract<InvoiceScreenView, { kind: "invoice" 
   ];
   return (
     <div className="max-w-[1120px] mx-auto" data-screen="S-PLN-003">
-      {view.justSubscribed && p ? (
-        <div data-testid="live-banner" role="status" className="border border-clear bg-clear-bg py-[16px] px-[20px] flex items-center gap-[14px] mb-[20px]">
-          <span aria-hidden className="w-[12px] h-[12px] flex-none bg-clear" />
-          <p className="m-0 text-[14.5px] font-semibold">{p.name} is live. New labels are no longer limited to the free three, for every recipe in this workspace.</p>
-        </div>
-      ) : null}
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-[22px] items-start">
         <Blueprint as="article" className="py-[26px] px-[28px]">
           <div data-testid="invoice">
@@ -235,24 +198,6 @@ function Receipt({ view }: { view: Extract<InvoiceScreenView, { kind: "invoice" 
           </div>
         </Blueprint>
         <div className="flex flex-col gap-[18px]">
-          {view.justSubscribed && p ? (
-            <Blueprint as="section" className="py-[20px] px-[22px]">
-              <h2 className={cx(KICKER, "text-accent font-normal")}>Now on</h2>
-              <ul className="mt-[12px] mb-0 p-0 list-none flex flex-col gap-[9px]">
-                {[
-                  `${p.recipes === null ? "Unlimited recipes" : `${p.recipes} recipes`} and ${p.editors === null ? "people unlimited and free" : `${p.editors} editor seats`}`,
-                  "Every new label you add, past the free three",
-                  "Checks, re-checks, viewers and supplier links, never metered",
-                  "Everything already in the workspace, its reports and their verification, exactly as they were",
-                ].map((t) => (
-                  <li key={t} className="flex gap-[10px] items-baseline">
-                    <span aria-hidden className="w-[10px] h-[10px] flex-none bg-clear mt-[4px]" />
-                    <span className="text-[13px] leading-[1.45] text-n800">{t}</span>
-                  </li>
-                ))}
-              </ul>
-            </Blueprint>
-          ) : null}
           <section className="border border-rule bg-paper py-[20px] px-[22px]">
             <h2 className="m-0 text-[13.5px] font-semibold leading-[1.55] tracking-normal">Billing lives in settings</h2>
             <p className="mt-[7px] mb-0 text-[12.5px] leading-[1.5] text-n700">

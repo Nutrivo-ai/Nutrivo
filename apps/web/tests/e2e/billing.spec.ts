@@ -59,7 +59,7 @@ async function personId(userId: string) {
 }
 
 /** What the webhook leg does with a paid Checkout (T-702): store the invoice event and mirror the subscription. */
-async function deliver(ws: string, sessionId: string, plan: string, term: "monthly" | "annual") {
+async function deliver(ws: string, sessionId: string, plan: string, term: "monthly" | "annual", extraSeats = 0) {
   const res = await fetch(`${STRIPE}/__fake/payments/${sessionId}`);
   expect(res.ok).toBe(true);
   const paid = (await res.json()) as { events: Json[]; subscription: Json; invoice: Json };
@@ -68,18 +68,19 @@ async function deliver(ws: string, sessionId: string, plan: string, term: "month
     const { error } = await service.schema("app").from("payment_events").insert({ stripe_event_id: String(e.id), workspace_id: ws, type: String(e.type), payload: e as never });
     if (error) throw error;
   }
-  await applySubscription(ws, paid.subscription, plan, term, "active");
+  await applySubscription(ws, paid.subscription, plan, term, "active", extraSeats);
   return paid;
 }
 
-async function applySubscription(ws: string, sub: Json, plan: string, term: string, status: string) {
+/** As the worker maps it (T-702): the plan's seats and recipes plus the add-on quantities on the subscription. */
+async function applySubscription(ws: string, sub: Json, plan: string, term: string, status: string, extraSeats = 0) {
   const seats: Record<string, number | null> = { basic: 3, standard: 5, advanced: null };
   const recipes: Record<string, number | null> = { basic: 10, standard: 30, advanced: null };
   const { error } = await admin().schema("app").rpc("apply_subscription", {
     p_ws: ws,
     p_snapshot: {
       customer_id: String(sub.customer), subscription_id: String(sub.id), plan, term, status,
-      editor_seats: seats[plan], recipes_included: recipes[plan],
+      editor_seats: seats[plan] === null ? null : seats[plan]! + extraSeats, recipes_included: recipes[plan],
       current_period_end: new Date(Number(sub.current_period_end) * 1000).toISOString(),
     },
     p_source: "webhook",
@@ -95,6 +96,7 @@ test.describe("billing @local-only", () => {
   let ada: Person, eve: Person, gus: Person;
   let ws: string;
   let sessionId = "";
+  let invoiceId = "";
   const NAME = "Halden Pet Nutrition";
 
   test.beforeAll(async () => {
@@ -120,14 +122,27 @@ test.describe("billing @local-only", () => {
     await expect(page.getByTestId("usage-people-who-edit")).toHaveText("3"); // Ada, Eve (external) and Gus
     await expect(page.getByTestId("plan-basic")).toHaveAttribute("data-on", "true");
     await expect(page.getByTestId("plan-basic").getByRole("link", { name: "Continue to checkout" })).toBeVisible();
-    // A fourth editor is more than Basic holds: the next plan is offered instead.
-    const extra = await person("t703-ian");
-    await workspace(extra, "Ian's own");
-    await admin().schema("app").from("memberships").insert({ workspace_id: ws, person_id: await personId(extra.userId), role: "editor" });
+    // A fourth editor: Basic's list price plus one seat (€299) is under its €374 ceiling, so Basic still fits.
+    const editors = await Promise.all(["t703-ian", "t703-jo", "t703-kim"].map((l) => person(l)));
+    await Promise.all(editors.map((e, i) => workspace(e, `Own ${i}`)));
+    const addEditor = async (who: Person) => {
+      const { error } = await admin().schema("app").from("memberships").insert({ workspace_id: ws, person_id: await personId(who.userId), role: "editor", is_external: false });
+      if (error) throw error;
+    };
+    await addEditor(editors[0]);
+    await page.reload();
+    await expect(page.getByRole("heading", { level: 2, name: "Basic is the plan that fits what you already have" })).toBeVisible();
+    await expect(page.getByTestId("plan-basic").getByTestId("verdict")).toHaveText("Four editors: three included and one at €50 each a month. €299 a month in all.");
+    // Six editors take Basic to €399, past its ceiling: the next plan is offered instead (BE-34).
+    await addEditor(editors[1]);
+    await addEditor(editors[2]);
     await page.reload();
     await expect(page.getByRole("heading", { level: 2, name: "Standard is the plan that fits what you already have" })).toBeVisible();
-    await expect(page.getByTestId("plan-basic").getByTestId("verdict")).toHaveText(/Four editors is more than three\. The Standard plan holds this workspace\./);
+    await expect(page.getByTestId("plan-basic").getByTestId("verdict")).toContainText("That passes the €374 ceiling. The Standard plan is offered instead.");
     await expect(page.getByTestId("plan-basic").getByText("Too small for this workspace")).toBeVisible();
+    // Past Basic's ceiling its checkout is refused too, not only hidden in the picker.
+    await page.goto(`/w/${ws}/billing/checkout?plan=basic&term=monthly`);
+    await expect(page.getByText("Basic cannot hold this workspace")).toBeVisible();
     await axe(page);
     expect(errors).toEqual([]);
   });
@@ -155,9 +170,11 @@ test.describe("billing @local-only", () => {
     await page.getByTestId("plan-standard").getByRole("link", { name: "Continue to checkout" }).click();
     await expect(page).toHaveURL(new RegExp(`/w/${ws}/billing/checkout\\?plan=standard&term=monthly$`));
     await expect(page.getByTestId("order-net")).toHaveText("€499");
+    // Six editors on Standard's five: one seat add-on, net like everything else.
+    await expect(page.getByTestId("order-extra-editors")).toContainText("Extra editor seats · 1 × €50");
     // No billing address yet: VAT cannot be known, so it is added at payment and the total says so.
     await expect(page.getByTestId("order-vat")).toContainText("ADDED AT PAYMENT");
-    await expect(page.getByTestId("due")).toHaveText("€499 + VAT");
+    await expect(page.getByTestId("due")).toHaveText("€549 + VAT");
     await axe(page);
   });
 
@@ -174,16 +191,27 @@ test.describe("billing @local-only", () => {
     await page.getByLabel("Billing name").fill("Bergmann Tiernahrung GmbH");
     await page.getByLabel("VAT number").fill("DE123456789");
     await page.getByRole("button", { name: "Pay" }).click();
-    await page.waitForURL(new RegExp(`/w/${ws}/billing/invoices/${sessionId}$`));
-    // Paid, and the invoice event has not arrived: the screen waits for it rather than inventing one.
-    await expect(page.getByTestId("invoice-pending")).toBeVisible();
-    await deliver(ws, sessionId, "standard", "monthly");
+    // Decision 1 on #64: payment returns to Plan and allowance, which shows the plan once the webhook has applied it.
+    await page.waitForURL(new RegExp(`/w/${ws}/settings/billing\\?from=checkout$`));
+    await expect(page.getByTestId("applying")).toBeVisible();
+    // A second checkout while the payment is being applied opens nothing (docs/18: one payment per workspace).
+    await page.goto(`/w/${ws}/billing/checkout?plan=standard&term=monthly`);
+    await page.getByTestId("pay").click();
+    await expect(page.getByText("A payment for this workspace was just received")).toBeVisible();
+    await page.goto(`/w/${ws}/settings/billing?from=checkout`);
+    const paid = await deliver(ws, sessionId, "standard", "monthly", 1);
+    invoiceId = String(paid.invoice.id);
     await expect(page.getByTestId("live-banner")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("live-banner")).toContainText("Standard is live.");
+    await expect(page.getByTestId("plan-name")).toHaveText("Standard");
     // The session named the workspace from app.billing_context and asked Stripe for tax and the VAT number.
     const requests = (await (await fetch(`${STRIPE}/__fake/requests`)).json()) as { method: string; path: string; params: Json }[];
     const created = requests.find((r) => r.method === "POST" && r.path === "/v1/checkout/sessions" && r.params.client_reference_id === ws)!;
     expect(created.params).toMatchObject({ mode: "subscription", automatic_tax: { enabled: "true" }, tax_id_collection: { enabled: "true" }, subscription_data: { metadata: { workspace_id: ws } } });
+    expect(created.params.line_items).toEqual([
+      { price: "price_nutrivo_plan_standard_eur_month", quantity: "1" },
+      { price: "price_nutrivo_addon_editor_seat_standard_eur_month", quantity: "1" },
+    ]);
     // The mirror and the workspace follow.
     const { data: w } = await admin().schema("app").from("workspaces").select("plan, status").eq("id", ws).single();
     expect(w).toEqual({ plan: "standard", status: "active" });
@@ -193,7 +221,7 @@ test.describe("billing @local-only", () => {
     await expect(page.getByTestId("plan-name")).toHaveText("Standard");
     await expect(page.getByText(/^STANDARD · MONTHLY · RENEWS /)).toBeVisible();
     await expect(page.getByTestId("dial-recipes").getByTestId("count")).toHaveText("4 of 30");
-    await expect(page.getByTestId("dial-editors").getByTestId("count")).toHaveText("4 of 5");
+    await expect(page.getByTestId("dial-editors").getByTestId("count")).toHaveText("6 of 6"); // five, plus the seat add-on
     await axe(page);
     // A live subscription changes plan in the portal, never with a second checkout.
     await page.goto(`/w/${ws}/billing/checkout?plan=basic&term=monthly`);
@@ -211,7 +239,7 @@ test.describe("billing @local-only", () => {
     await axe(page);
     await row.first().getByRole("link").first().click();
     await expect(page.getByTestId("invoice")).toBeVisible();
-    await expect(page.getByTestId("subtotal")).toHaveText("€499");
+    await expect(page.getByTestId("subtotal")).toHaveText("€549");
     await expect(page.getByTestId("invoice-state")).toHaveText("Paid · nothing due");
     await axe(page);
     // Billing details are the Stripe customer's: what Checkout collected, and what the admin saves here.
@@ -225,6 +253,12 @@ test.describe("billing @local-only", () => {
     await expect(page.getByRole("status").filter({ hasText: "Saved." })).toBeVisible();
     await page.reload();
     await expect(page.getByLabel("City")).toHaveValue("Hamburg-Altona");
+    // Who changed what is in the audit log (app.record_billing_change).
+    const { data: rows } = await admin().schema("app").from("audit_events").select("kind, actor_id, before, after").eq("workspace_id", ws).eq("kind", "billing.details_changed");
+    expect(rows).toHaveLength(1);
+    expect(rows![0].actor_id).toBe(await personId(ada.userId));
+    expect((rows![0].before as Json).address).toMatchObject({ city: "Hamburg" });
+    expect((rows![0].after as Json).address).toMatchObject({ city: "Hamburg-Altona" });
     await axe(page);
     await page.goto(`/w/${ws}/settings/billing/payment`);
     await expect(page.getByTestId("card")).toContainText("VISA ···· 4242");
@@ -233,11 +267,11 @@ test.describe("billing @local-only", () => {
 
   test("[M03.must.1] A German company with a valid VAT number pays zero VAT and the invoice states the reverse charge", async ({ page, context, baseURL }) => {
     await signIn(context, ada, baseURL!);
-    await page.goto(`/w/${ws}/billing/invoices/${sessionId}`);
+    await page.goto(`/w/${ws}/billing/invoices/${invoiceId}`);
     await expect(page.getByTestId("billed-to")).toContainText("VAT DE123456789");
     await expect(page.getByTestId("vat-label")).toHaveText("VAT · reverse charge 0%");
     await expect(page.getByTestId("vat")).toHaveText("€0");
-    await expect(page.getByTestId("total")).toHaveText("€499");
+    await expect(page.getByTestId("total")).toHaveText("€549");
     await expect(page.getByTestId("vat-note")).toContainText("Reverse charge");
   });
 

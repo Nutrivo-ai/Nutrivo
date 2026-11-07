@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Blueprint, ButtonLink, cx } from "@/components/kit";
 import { SettingsHeader, SettingsMain } from "@/components/settings/SettingsFrame";
 import { billingChip } from "@/lib/billing/chip";
@@ -89,12 +91,15 @@ function Loaded({ view }: { view: Extract<PlanAllowanceView, { kind: "loaded" }>
   const fit = key ? fitFor(key, c) : null;
   const recipeAddon = key ? addonAmount("recipe", key, "month") : null;
 
+  // What the subscription includes, add-ons counted (the mirror's seats and recipes), else the plan's own figures.
+  const recipesIncluded = s?.recipesIncluded ?? p?.recipes ?? 0;
+  const seats = s?.editorSeats ?? p?.editors ?? null;
   const recipes = p
     ? p.recipes === null
       ? { count: `${c.recipes} · no limit`, pct: 0, v: "Pack sizes, artwork versions and recipe variants hang off these and are never counted. Advanced has no recipe limit." }
       : {
-          count: `${c.recipes} of ${p.recipes}`,
-          pct: (c.recipes / p.recipes) * 100,
+          count: `${c.recipes} of ${recipesIncluded}`,
+          pct: (c.recipes / Math.max(1, recipesIncluded)) * 100,
           v:
             "Pack sizes, artwork versions and recipe variants hang off these and are never counted." +
             (recipeAddon !== null && p.overageCap !== null
@@ -103,11 +108,19 @@ function Loaded({ view }: { view: Extract<PlanAllowanceView, { kind: "loaded" }>
         }
     : { count: `${c.recipes} · no limit`, pct: 0, v: "Pack sizes, artwork versions and recipe variants hang off these and are never counted. The free plan counts labels, not recipes." };
   const regionMax = p ? p.regionsIncluded : 1;
-  const editors = p && p.editors !== null
-    ? { count: `${c.editorSeats} of ${p.editors}`, pct: (c.editorSeats / p.editors) * 100 }
+  const editors = p && seats !== null
+    ? { count: `${c.editorSeats} of ${seats}`, pct: (c.editorSeats / Math.max(1, seats)) * 100 }
     : { count: `${c.editorSeats} · no seat check`, pct: 0 };
 
   return (
+    <>
+    {view.returning && live && p ? (
+      <div data-testid="live-banner" role="status" className="border border-clear bg-clear-bg py-[16px] px-[20px] flex items-center gap-[14px] mb-[20px]">
+        <span aria-hidden className="w-[12px] h-[12px] flex-none bg-clear" />
+        <p className="m-0 text-[14.5px] font-semibold leading-[1.55]">{p.name} is live. New labels are no longer limited to the free three, for every recipe in this workspace.</p>
+      </div>
+    ) : null}
+    {view.returning && !live ? <Applying /> : null}
     <div data-screen="S-BIL-001" className="grid gap-[20px] items-start grid-cols-1 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
       <Blueprint as="section" className="py-[22px] px-[24px]">
         <div data-testid="dials">
@@ -172,11 +185,6 @@ function Loaded({ view }: { view: Extract<PlanAllowanceView, { kind: "loaded" }>
                   : `${euros(amount(key, "month"))} per month · excl. VAT`
                 : "€0 · three labels, no card, no clock"}
             </p>
-            {view.returning && !live ? (
-              <p role="status" data-testid="applying" className="mt-[12px] mb-0 text-[12.5px] leading-[1.5] text-action">
-                Payment received. Stripe is confirming the subscription; this page shows the new plan within a minute.
-              </p>
-            ) : null}
             <div className="mt-[16px] flex flex-col gap-[6px]">
               {p && key && s ? (
                 <>
@@ -239,5 +247,30 @@ function Loaded({ view }: { view: Extract<PlanAllowanceView, { kind: "loaded" }>
         )}
       </div>
     </div>
+    </>
+  );
+}
+
+/**
+ * Checkout returns here (decision 1 on #64). Until the webhook has applied the subscription the page says the payment
+ * was received and refreshes itself every few seconds for a minute; after that it says plainly where things stand.
+ */
+function Applying() {
+  const router = useRouter();
+  const [tries, setTries] = useState(0);
+  useEffect(() => {
+    if (tries >= 20) return;
+    const t = setTimeout(() => {
+      setTries((n) => n + 1);
+      router.refresh();
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [tries, router]);
+  return (
+    <p role="status" data-testid="applying" className="m-0 mb-[20px] border border-ink border-l-4 border-l-action bg-paper py-[14px] px-[18px] text-[13px] leading-[1.5]">
+      {tries < 20
+        ? "Payment received. Stripe is confirming the subscription; this page shows the new plan as soon as it is applied, usually within seconds."
+        : "Payment received. The subscription has not reached us yet; it will appear here, and the invoice under Invoices, as soon as Stripe confirms it. Nothing is charged twice."}
+    </p>
   );
 }

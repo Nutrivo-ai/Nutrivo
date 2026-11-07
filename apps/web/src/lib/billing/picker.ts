@@ -1,5 +1,6 @@
 // S-PLN-001 (T-703 · M01, M02): the plan picker's cards and headline, built from the live counts and
-// config/pricing.ts. Pure, so the wording is tested and the screen only draws it. Every price is net ("EXCL. VAT"):
+// config/pricing.ts. The recommended plan is the smallest whose list price plus capped overage covers the counts
+// (approved on #64); a card that needs add-ons says what they cost. Pure, so the wording is tested and the screen only draws it. Every price is net ("EXCL. VAT"):
 // VAT is added on the invoice (M01.must.1, BE-35).
 import { addonAmount, amount, plan, type PlanKey } from "@/lib/public/pricing";
 import { fitFor, INTERVAL, isLive, NEXT_REGION_NOTE, nextPlan, recommended, type LiveCounts, type Term } from "./plans";
@@ -92,13 +93,24 @@ export function buildPicker({ counts, checksRun, term, plan: currentPlan, subscr
 
     let verdict: string;
     let verdictTone: Tone;
-    if (!fit.holds) {
-      const over: string[] = [];
-      if (fit.extraRecipes) over.push(`${Words(counts.recipes)} recipes is more than ${words(p.recipes ?? 0)}.`);
-      if (fit.extraEditors) over.push(`${Words(counts.editorSeats)} editors is more than ${words(p.editors ?? 0)}.`);
-      if (!fit.regionsFit) over.push(`${Words(regions)} regions is more than it holds.`);
-      verdict = `${over.join(" ")} The ${plan(nextPlan(key)).name} plan holds this workspace.`;
+    const each = (addon: "recipe" | "editor_seat") => euros(addonAmount(addon, key, "month") ?? 0);
+    const extras: string[] = [];
+    if (fit.extraRecipes) extras.push(`${Words(counts.recipes)} recipes: ${words(p.recipes ?? 0)} included and ${words(fit.extraRecipes)} at ${each("recipe")} each a month.`);
+    if (fit.extraEditors) extras.push(`${Words(counts.editorSeats)} editors: ${words(p.editors ?? 0)} included and ${words(fit.extraEditors)} at ${each("editor_seat")} each a month.`);
+    if (!fit.fits) {
+      // BE-34: past the ceiling (or past the regions the plan holds) the next plan is offered, not more overage.
+      const why: string[] = [];
+      if (fit.extraRecipes || fit.extraEditors) {
+        why.push(fit.pastCap && p.overageCap !== null
+          ? `${extras.join(" ")} That passes the ${euros(p.overageCap)} ceiling.`
+          : extras.join(" "));
+      }
+      if (!fit.regionsFit) why.push(`${Words(regions)} regions is more than it holds.`);
+      verdict = `${why.join(" ")} The ${plan(nextPlan(key)).name} plan is offered instead.`;
       verdictTone = "blocked";
+    } else if (extras.length) {
+      verdict = `${extras.join(" ")} ${euros(fit.monthly)} a month in all.`;
+      verdictTone = key === best ? "clear" : "action";
     } else if (key === best) {
       const spare: string[] = [];
       if (p.recipes !== null) spare.push(plural(p.recipes - counts.recipes, "recipe", "recipes"));
@@ -117,7 +129,7 @@ export function buildPicker({ counts, checksRun, term, plan: currentPlan, subscr
     let action: CardAction;
     if (key === "advanced") action = isCurrent ? { kind: "none", label: "Your plan" } : { kind: "contact", label: "Talk to us" };
     else if (isCurrent) action = { kind: "none", label: "Your plan" };
-    else if (!fit.holds) action = { kind: "none", label: "Too small for this workspace" };
+    else if (!fit.fits) action = { kind: "none", label: "Too small for this workspace" };
     else if (live) action = { kind: "switch", plan: key, label: `Switch to ${p.name}` };
     else action = { kind: "checkout", plan: key, primary: key === best, label: key === best ? "Continue to checkout" : `Choose ${p.name}` };
 

@@ -18,10 +18,17 @@ vi.mock("@sentry/nextjs", () => ({
 
 const WS = "20000000-0000-4000-8703-00000000000a";
 const OTHER = "20000000-0000-4000-8703-00000000000b";
-let context: { data: Json | null; error: { code: string; message: string } | null };
-const rpc = vi.fn(async (...call: unknown[]) => {
-  void call;
-  return context;
+type Answer = { data: unknown; error: { code: string; message: string } | null };
+let context: Answer;
+let counts: Json;
+let audited: Answer;
+// app.billing_context, app.live_billable_counts and app.record_billing_change, by name.
+const rpc = vi.fn(async (name: string, args?: Json): Promise<Answer> => {
+  void args;
+  if (name === "billing_context") return context;
+  if (name === "live_billable_counts") return { data: counts, error: null };
+  if (name === "record_billing_change") return audited;
+  return { data: null, error: { code: "42883", message: `no ${name}` } };
 });
 vi.mock("@/lib/supabase/server", () => ({ createClient: async () => ({ schema: () => ({ rpc }) }) }));
 
@@ -32,7 +39,7 @@ const ctx = (over: Json = {}) => ({
 });
 
 let fake: FakeStripe;
-const { startCheckout, openPortal, saveBillingDetails } = await import("./actions");
+const { startCheckout, openPortal, saveBillingDetails, saveFinanceEmail } = await import("./actions");
 
 async function redirectOf(p: Promise<unknown>): Promise<string> {
   try {
@@ -52,6 +59,8 @@ beforeEach(() => {
   vi.stubEnv("NUTRIVO_ENV", "ci");
   vi.stubEnv("APP_BASE_URL", "");
   context = ctx();
+  counts = { recipes: 8, regions: ["EU"], editor_seats: 3, labels_used: 3, labels_allowed: 3 };
+  audited = { data: null, error: null };
   rpc.mockClear();
 });
 afterEach(() => {
@@ -75,7 +84,8 @@ describe("billing actions (T-703)", () => {
     const customer = [...fake.customers.values()][0];
     expect(p.customer).toBe(customer.id);
     expect(customer.metadata.workspace_id).toBe(WS);
-    expect(p.success_url).toBe(`https://app.nutrivo.test/w/${WS}/billing/invoices/{CHECKOUT_SESSION_ID}`);
+    // Decision 1 on #64: payment returns to Plan and allowance.
+    expect(p.success_url).toBe(`https://app.nutrivo.test/w/${WS}/settings/billing?from=checkout`);
     expect(p.cancel_url).toBe(`https://app.nutrivo.test/w/${WS}/billing/checkout?plan=standard&term=monthly`);
   });
 
@@ -158,5 +168,56 @@ describe("billing actions (T-703)", () => {
     const before = fake.requests.length;
     expect(await saveBillingDetails(WS, { legalName: "X", line1: "Y", line2: "", postalCode: "1", city: "Z", country: "DE", vat: "SE556734112801", companyId: "", poReference: "" })).toMatchObject({ ok: false, reason: "invalid", problem: "vat" });
     expect(fake.requests.length).toBe(before);
+  });
+  it("[M02.main] Checkout charges the add-ons that cover the counts, and refuses a plan past its ceiling (BE-34)", async () => {
+    // Twelve recipes and four editors on Basic: two recipes at €15 and one seat at €50 on top of €249 (€329 ≤ €374).
+    counts = { recipes: 12, regions: ["EU"], editor_seats: 4, labels_used: 3, labels_allowed: 3 };
+    await redirectOf(startCheckout(WS, { plan: "basic", term: "monthly" }));
+    expect(sessionParams().line_items).toEqual([
+      { price: "price_nutrivo_plan_basic_eur_month", quantity: "1" },
+      { price: "price_nutrivo_addon_recipe_basic_eur_month", quantity: "2" },
+      { price: "price_nutrivo_addon_editor_seat_basic_eur_month", quantity: "1" },
+    ]);
+    // Nineteen recipes would pass €374 on Basic: refused before Stripe opens a session.
+    counts = { recipes: 19, regions: ["EU"], editor_seats: 1, labels_used: 3, labels_allowed: 3 };
+    const before = fake.sessions.size;
+    expect(await startCheckout(WS, { plan: "basic", term: "monthly" })).toEqual({ ok: false, reason: "invalid", problem: "does_not_fit" });
+    expect(fake.sessions.size).toBe(before);
+  });
+
+  it("[M01.main] one payment per workspace: an open session for the same order is reused, another is expired, a paid one refuses", async () => {
+    const first = await redirectOf(startCheckout(WS, { plan: "standard", term: "monthly" }));
+    const again = await redirectOf(startCheckout(WS, { plan: "standard", term: "monthly" }));
+    expect(again).toBe(first);
+    expect(fake.sessions.size).toBe(1);
+    // A different order (annual) expires the open monthly session before opening its own.
+    const annual = await redirectOf(startCheckout(WS, { plan: "standard", term: "annual" }));
+    expect(annual).not.toBe(first);
+    const statuses = [...fake.sessions.values()].map((x) => x.status);
+    expect(statuses).toEqual(["expired", "open"]);
+    // Every create carries an idempotency key for the order.
+    expect(fake.requests.filter((r) => r.method === "POST" && r.path === "/v1/checkout/sessions").every((r) => r.idempotencyKey?.startsWith(`nutrivo-checkout-${WS}-`))).toBe(true);
+    // Paid, and the webhook has not applied it yet: no second session.
+    const open = [...fake.sessions.values()].find((x) => x.status === "open")!;
+    const cust = [...fake.customers.values()][0];
+    cust.address = { line1: "Industrivägen 4", line2: null, postal_code: "412 63", city: "Göteborg", country: "SE" };
+    fake.pay(String(open.id), { name: "Halden Pet Nutrition AB", address: cust.address as Json });
+    expect(await startCheckout(WS, { plan: "standard", term: "annual" })).toEqual({ ok: false, reason: "live", problem: "applying" });
+  });
+
+  it("[M03.main] a change to the billing details is audited with what it was and what it is", async () => {
+    await saveBillingDetails(WS, { legalName: "Halden Pet Nutrition AB", line1: "Industrivägen 4", line2: "", postalCode: "412 63", city: "Göteborg", country: "SE", vat: "", companyId: "", poReference: "" });
+    const r = await saveBillingDetails(WS, { legalName: "Halden Pet Nutrition AB", line1: "Industrivägen 4", line2: "", postalCode: "412 63", city: "Göteborg", country: "SE", vat: "SE556734112801", companyId: "556734-1128", poReference: "" });
+    expect(r).toEqual({ ok: true });
+    const calls = rpc.mock.calls.filter((c) => c[0] === "record_billing_change");
+    expect(calls).toHaveLength(2);
+    const last = calls[1][1] as Json;
+    expect(last).toMatchObject({ p_ws: WS, p_kind: "details", p_customer: [...fake.customers.keys()][0] });
+    expect(last.p_before).toMatchObject({ vat_number: null, company_id: "" });
+    expect(last.p_after).toMatchObject({ vat_number: "SE556734112801", company_id: "556734-1128", legal_name: "Halden Pet Nutrition AB" });
+    // When the audit row cannot be written the person is told, never passed over in silence.
+    audited = { data: null, error: { code: "XX000", message: "down" } };
+    expect(await saveFinanceEmail(WS, "ekonomi@halden.test")).toEqual({ ok: false, reason: "error", problem: "audit" });
+    expect(rpc.mock.calls.filter((c) => c[0] === "record_billing_change").at(-1)![1]).toMatchObject({ p_kind: "finance_email", p_after: { email: "ekonomi@halden.test" } });
   });
 });
