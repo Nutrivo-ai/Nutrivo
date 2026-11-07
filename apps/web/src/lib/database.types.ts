@@ -433,6 +433,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"dunning_steps": {
+                  Row: {
+                    "created_at": string,"day": number,"failed_at": string,"job_ref": string | null,"outcome": string,"stripe_invoice_id": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"day": number,"failed_at": string,"job_ref"?: string | null,"outcome": string,"stripe_invoice_id": string,"workspace_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"day"?: number,"failed_at"?: string,"job_ref"?: string | null,"outcome"?: string,"stripe_invoice_id"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "dunning_steps_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"envelope_items": {
                   Row: {
                     "envelope_id": string,"gap_id": string | null,"id": string,"kind": string,"payload": NonNullable<Json>,"product_id": string,"provenance": string,"rule_key": string | null,"workspace_id": string
@@ -1051,14 +1071,14 @@ isOneToOne: false
                   ]
                 },"subscriptions": {
                   Row: {
-                    "current_period_end": string | null,"editor_seats": number | null,"plan": string,"recipes_included": number | null,"regions": (string)[],"status": string,"stripe_customer_id": string | null,"stripe_subscription_id": string | null,"term": string | null,"updated_at": string,"workspace_id": string
+                    "amount_per_period": number | null,"current_period_end": string | null,"editor_seats": number | null,"overage_cap": number | null,"plan": string,"plan_recipes": number | null,"recipe_unit_amount": number | null,"recipes_included": number | null,"regions": (string)[],"status": string,"stripe_customer_id": string | null,"stripe_subscription_id": string | null,"term": string | null,"updated_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "current_period_end"?: string | null,"editor_seats"?: number | null,"plan": string,"recipes_included"?: number | null,"regions"?: (string)[],"status": string,"stripe_customer_id"?: string | null,"stripe_subscription_id"?: string | null,"term"?: string | null,"updated_at"?: string,"workspace_id": string
+                    "amount_per_period"?: number | null,"current_period_end"?: string | null,"editor_seats"?: number | null,"overage_cap"?: number | null,"plan": string,"plan_recipes"?: number | null,"recipe_unit_amount"?: number | null,"recipes_included"?: number | null,"regions"?: (string)[],"status": string,"stripe_customer_id"?: string | null,"stripe_subscription_id"?: string | null,"term"?: string | null,"updated_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "current_period_end"?: string | null,"editor_seats"?: number | null,"plan"?: string,"recipes_included"?: number | null,"regions"?: (string)[],"status"?: string,"stripe_customer_id"?: string | null,"stripe_subscription_id"?: string | null,"term"?: string | null,"updated_at"?: string,"workspace_id"?: string
+                    "amount_per_period"?: number | null,"current_period_end"?: string | null,"editor_seats"?: number | null,"overage_cap"?: number | null,"plan"?: string,"plan_recipes"?: number | null,"recipe_unit_amount"?: number | null,"recipes_included"?: number | null,"regions"?: (string)[],"status"?: string,"stripe_customer_id"?: string | null,"stripe_subscription_id"?: string | null,"term"?: string | null,"updated_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -1240,6 +1260,11 @@ isOneToOne: false
 "decide_term":
 { Args: { "p_decision": string,"p_note"?: string,"p_term_entry": string }; Returns: string
                            },
+"dunning_due":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "day": number,"failed_at": string,"stripe_invoice_id": string,"workspace_id": string
+            }[]
+                           },
 "invite_member":
 { Args: { "p_access_ends_at"?: string,"p_email": string,"p_is_external"?: boolean,"p_role": string,"p_scope_family_ids"?: (string)[],"p_scope_node_ids"?: (string)[],"p_ws": string }; Returns: string
                            },
@@ -1255,8 +1280,14 @@ isOneToOne: false
 "open_coverage_gap":
 { Args: { "p_description": string,"p_domain": string,"p_gap_id": string,"p_node": string,"p_reason_code": string }; Returns: string
                            },
+"recipe_overage_context":
+{ Args: { "p_ws": string }; Returns: Json
+                           },
 "record_billing_change":
 { Args: { "p_after": Json,"p_before": Json,"p_customer": string,"p_kind": string,"p_ws": string }; Returns: undefined
+                           },
+"record_dunning_step":
+{ Args: { "p_day": number,"p_invoice": string,"p_outcome": string,"p_ref": string,"p_ws": string }; Returns: string
                            },
 "record_registration":
 { Args: { "p_evidence_doc"?: string,"p_expires_at"?: string,"p_node": string,"p_number": string,"p_obligation"?: string,"p_product": string,"p_registered_on": string }; Returns: string
