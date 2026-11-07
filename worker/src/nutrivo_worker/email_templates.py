@@ -406,8 +406,8 @@ def receipt(*, to: str, invoice: Invoice, url: str, pdf: bytes) -> Email:
 
 
 # ── Payment failed (M04, BE-36, T-704) ─────────────────────────────────────────────────────────────────
-# No email design exists. The wording follows Billing Settings "If a payment fails" day by day; it is a founder item
-# on #65 (Q6). What it must always say: the amount, what happens next, and that nothing is deleted and every report
+# No email design exists. The wording follows Billing Settings "If a payment fails" day by day; accepted on #65 (Q6,
+# 7 Nov 2026), and a founder reads it before G8. What it must always say: the amount, what happens next, and that nothing is deleted and every report
 # already sent stays verifiable.
 DUNNING_NEXT = {
     0: "We will try the card again in three days. Nothing changes in the product.",

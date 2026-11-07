@@ -148,7 +148,9 @@ of a larger invoice.
   - Over the cap, on an annual term, or when an amount is unknown, it fails permanently and nothing is charged.
   - It never lowers the quantity. A subscription that stopped paying after the recipe was allowed is never charged:
     the job fails visibly (`app.jobs`, Sentry) for a person to look at (#65 Q8).
-- **Conservative defaults (questions on #65).**
+- **Defaults, accepted on #65 on 7 Nov 2026.** ar835 accepted all nine as written. abnutrivo's decision comment
+  accepts Q3 and keeps Q1, Q2 and Q4 open as commercial questions for both founders, with these defaults in force
+  until then.
   1. Every recurring item counts toward the cap, so Standard with the region add-on (€698) has room for 4 recipes.
   2. An annual term has no overage.
   3. Proration is Stripe's default.
@@ -186,12 +188,17 @@ How it runs:
    T-702). A cancelled subscription leaves `dunning` or `new_artwork_stopped` for `active` (on the free plan) once
    no invoice of the workspace is still open.
 
-Day 7's admin-only banner is a web change that is not built yet; admins can already read `app.dunning_steps`.
+Day 7's admin-only banner is a web change and a follow-up task (#65 Q7); admins can already read
+`app.dunning_steps`.
 
-**Open on #65:**
-- Who retries. Nutrivo retries on days 3 and 7, so Stripe's own automatic retries should be off in the Stripe
-  dashboard, or a card is tried twice.
-- The email copy, which follows the Billing Settings design, and its recipients.
-- The day-7 banner.
-- Q9: whether an open invoice is still collected (retried, emailed, day 14) after the subscription is cancelled.
-  The built default is no.
+**Decided on #65 (7 Nov 2026).** The defaults stand. abnutrivo's comment keeps Q9 open as a commercial question,
+with the default in force until then.
+- **Retries (Q5).** Nutrivo retries on days 3 and 7. Stripe's Smart Retries must be off in the Stripe dashboard, or a
+  card is tried twice. That is a founder's dashboard step.
+- **Emails (Q6).** They go to the Stripe customer email, which is the finance address. The copy follows the Billing
+  Settings design, and a founder reads it before G8.
+- **After a cancellation (Q9).** An open invoice is not collected: no retry, no email, no day-14 stop.
+- **Unbilled recipe (Q8).** The visible job failure stands. abnutrivo's comment adds a follow-up: an audit row
+  `billing.overage_not_charged`.
+- **Webhook events.** The endpoint must send `invoice.voided` and `invoice.marked_uncollectible`. That is a founder's
+  dashboard step.
