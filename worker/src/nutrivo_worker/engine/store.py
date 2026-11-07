@@ -129,13 +129,15 @@ class PgCheckStore:
     def _additives(self, product_id: str) -> list[dict[str, Any]] | None:
         """The formula's additive lines with their register row (additive_condition). None when the product has no
         formula lines at all: a formula never entered is missing data (withheld data_missing), not a formula without
-        additives, which is the only case an additive rule is not_applicable (#172)."""
+        additives, which is the only case an additive rule is not_applicable (#172). None too when any line is not
+        matched to the register (neither a feed material nor an additive): that line may be an additive, so the
+        formula cannot be read as additive-free and additive rules are withheld, never passed (#76, Q1)."""
         rows = self.conn.execute(
-            """select f.additive_ref, f.amount, f.unit, a.id, a.species, a.max_content, a.expiry
+            """select f.feed_material_ref, f.additive_ref, f.amount, f.unit, a.id, a.species, a.max_content, a.expiry
                  from app.formula_lines f left join ref.feed_additives a on a.id = f.additive_ref
                 where f.product_id = %s
                 order by f.position, f.id""", (product_id,)).fetchall()
-        if not rows:
+        if not rows or any(r["feed_material_ref"] is None and r["additive_ref"] is None for r in rows):
             return None
         return [{"additive_ref": r["additive_ref"], "amount": _num(r["amount"]), "unit": r["unit"],
                  "register": {"species": list(r["species"]) if r["species"] is not None else None,
