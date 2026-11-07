@@ -202,7 +202,7 @@ called under the person's own session, so the database names them as the decider
 - **`/admin/coverage`**: start a draft, put accepted versions in it, open gaps, and set each node × domain. Complete is
   refused (P0010) until every member rule for it is accepted and tested. The release panel lists what blocks the
   release (missing fixtures, no fixture run, a run that failed or judged too few) and shows the database's refusal as
-  it is. Until the runner records draft runs (T-206), every release is refused, and the page says so.
+  it is. A draft's run is recorded by `nutrivo fixtures run --draft <id>` (T-210, docs/05 §The runner).
 - **`/admin/glossary`**: the latest release's glossary, read only.
 
 ## Candidate targets
