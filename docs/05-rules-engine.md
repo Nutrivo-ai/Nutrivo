@@ -29,8 +29,10 @@ A rule's params come from two places:
 
 Printed text is judged only through the linked register entries for the panel's own language. The engine does not
 read a flat `alternatives` list. A rule without its links is withheld `data_missing`. A node × domain cannot be
-Complete while a member's linked key has no accepted entry in one of the node's languages. The engine part is built
-(T-210); the database (T-209) and the console (T-211) follow.
+Complete while a member's linked key has no accepted entry in one of the node's languages (P0048). The engine (T-210)
+and the database (T-209: `app.accept_candidate` with `p_links`, `app.relink_rule`) are built; the console (T-211)
+follows. The draft digest also covers the accepted entries of every linked key, so a term changed after a fixture run
+makes the run stale.
 
 ## Applicability
 A small predicate language: `{"all": [...]}`, `{"any": [...]}`, `{"not": X}`, `{"eq": [field, value]}`,
@@ -147,7 +149,8 @@ needs a new run. What a release run judges is D-32:
 - synthetic labels are never part of a release run;
 - golden labels count from 30.
 
-T-210 built it (§The runner). A real rule still needs its term links (T-209, T-211) before its fixtures can pass.
+T-210 built it (§The runner). A real rule still needs its term links (T-209; in the console from T-211) before its
+fixtures can pass.
 
 ### The runner (T-206, T-210)
 `nutrivo fixtures run --ruleset <id> | --draft <id> [--format text|json] [--out report.json] [--junit report.xml]

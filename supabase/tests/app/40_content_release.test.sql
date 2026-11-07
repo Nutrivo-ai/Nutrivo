@@ -66,7 +66,7 @@ insert into ref.term_entries (id, term_key, language, term, kind, article_ref, s
 
 -- ─── Grants ─────────────────────────────────────────────────────────────────────────────────────
 select ok(not has_function_privilege('anon', 'app.release_ruleset(text,text)', 'execute')
-          and not has_function_privilege('anon', 'app.accept_candidate(uuid,text,text,text,text,text,jsonb,text,date,date)', 'execute')
+          and not has_function_privilege('anon', 'app.accept_candidate(uuid,text,text,text,text,text,jsonb,text,date,date,jsonb)', 'execute')
           and has_function_privilege('authenticated', 'app.release_ruleset(text,text)', 'execute'),
           '[T-204] the staff RPCs are executable by authenticated users (staff checked inside) and never by anon');
 select ok(not has_table_privilege('authenticated', 'ref.ruleset_drafts', 'select')
