@@ -46,7 +46,10 @@ tasks:
   - {id: T-205, ms: M2, lanes: [web], deps: [T-204, T-203, T-102], wf: [K03, K04], title: "/admin content console: review queue, term register, coverage, glossary, release"}
   - {id: T-206, ms: M2, lanes: [worker], deps: [T-008], title: "Fixtures runner: nutrivo fixtures run --ruleset <id>"}
   - {id: T-207, ms: M2, lanes: [worker], deps: [T-201], wf: [J01], title: "Source watch and model triage for horizon items"}
-  - {id: T-208, ms: M2, lanes: [content], gate: human, deps: [T-205, T-206, T-202], title: "Founders accept the first EU core rules and release the first ruleset (gate G6)"}
+  - {id: T-209, ms: M2, lanes: [db], deps: [T-204], title: "Rule-to-term links (D-31): accept_candidate takes the person's term links, an editorial re-link RPC, Complete refused while a linked term lacks a node language"}
+  - {id: T-210, ms: M2, lanes: [worker], deps: [T-206, T-403, T-502], title: "Release runs (D-32): fixtures run --draft records ref.fixture_runs; synthetic labels out of release runs, golden labels from 30; alternatives judged only through alternative_term_keys (D-31)"}
+  - {id: T-211, ms: M2, lanes: [web], deps: [T-205, T-209], title: "/admin/rules: link accepted terms when accepting or re-linking a rule (D-31)"}
+  - {id: T-208, ms: M2, lanes: [content], gate: human, deps: [T-205, T-206, T-202, T-209, T-210, T-211], title: "Founders accept the first EU core rules and release the first ruleset (gate G6)"}
   # ── M3 · Artwork extraction ─────────────────────────────────────────────────────────────────────────
   - {id: T-301, ms: M3, lanes: [worker], deps: [T-008], title: "Extraction spike: pypdfium2 against pdfplumber, results recorded in docs/06"}
   - {id: T-302, ms: M3, lanes: [worker], deps: [T-301], title: "Extraction to the contract: worker gates BE-16, BE-17, BE-18 pass; pypdfium2 + fontTools engine with pdfplumber moved to dev dependencies (D-15); synthetic generator wraps the operator line and adds one deliberate gutter-overflow fixture with expected panel attribution (#39)"}
