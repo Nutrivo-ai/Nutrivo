@@ -75,7 +75,8 @@ class Settings(BaseModel):
     mailpit_url: str = "http://127.0.0.1:54324"
     app_base_url: str | None = None
 
-    # Stripe (D-18, T-702): billing_sync and billing_reconcile read subscriptions; the worker never writes to Stripe.
+    # Stripe (D-18): billing_sync and billing_reconcile read subscriptions (T-702); recipe_overage sets the recipe add-on
+    # and dunning retries an invoice (T-704), each with an Idempotency-Key. Nothing else is written to Stripe.
     # Test keys only until gate G8 (T-705): a live key is refused outside prod.
     stripe_secret_key: SecretStr | None = None
 
