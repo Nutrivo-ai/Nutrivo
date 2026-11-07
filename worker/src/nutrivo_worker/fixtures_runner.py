@@ -1,5 +1,6 @@
-"""`nutrivo fixtures run --ruleset <id>`: the rule fixtures of a ruleset's members, the synthetic labels and the golden
-labels, each compared with its ground truth per language panel (docs/05 §Fixtures, K05).
+"""`nutrivo fixtures run --ruleset <id> | --draft <id>`: the rule fixtures of a ruleset's or a draft's members and,
+once there are enough of them, the golden labels, each compared with its ground truth per language panel (docs/05
+§Fixtures, K05, D-32).
 
 Every item ends in one of three results:
   matched   an evaluator ran and its outcome is the expected one
@@ -12,12 +13,19 @@ withheld with `evaluator_missing`, never passed, and a runner-level withhold nev
 fixture expects `withheld`. Labels need extraction and the engine, so until LABEL_EVALUATOR is set they are withheld
 with `engine_unavailable`. The run passes only when every item matched and at least one rule fixture ran.
 
-The runner only reads: the database over a read-only transaction, fixtures/synth/out and fixtures/golden from disk."""
+Labels (D-32): synthetic labels are never part of a run, because their wording is invented and is never in the term
+register (run_synthetic stays for the worker's own tests). Golden labels count once fixtures/golden holds GOLDEN_GATE
+of them; below that the report gives their count and leaves them out.
+
+Reads come from one repeatable-read, read-only transaction and fixtures/golden on disk. A draft run is then recorded
+as one ref.fixture_runs row (record_run), with the digest read in that same snapshot, so the release gate
+(app.release_ruleset, P0039) sees exactly what was judged."""
 from __future__ import annotations
 
 import json
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
+from importlib import metadata
 from pathlib import Path
 from typing import Any, Literal, Protocol
 from xml.etree import ElementTree as ET
@@ -29,6 +37,7 @@ from .errors import SafeError
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SYNTH_DIR = REPO_ROOT / "fixtures" / "synth" / "out"
 GOLDEN_DIR = REPO_ROOT / "fixtures" / "golden"
+GOLDEN_GATE = 30   # golden labels gate releases from this many (docs/05, docs/13, D-32)
 
 Outcome = Literal["passed", "failed", "withheld"]
 Result = Literal["matched", "differed", "withheld"]
@@ -44,6 +53,10 @@ EVALUATOR_ERROR = "evaluator_error"         # an evaluator raised: withheld, nev
 
 class UnknownRuleset(SafeError):
     """The ruleset id names no released ruleset."""
+
+
+class UnknownDraft(UnknownRuleset):
+    """The draft id names no draft, or one already released (frozen): nothing is run or recorded."""
 
 
 @dataclass(frozen=True)
@@ -100,8 +113,9 @@ class ItemResult:
 
 @dataclass
 class Report:
-    ruleset_version: str
+    ruleset_version: str            # the released ruleset, or the draft, that was run
     results: list[ItemResult]
+    labels: dict[str, Any] = field(default_factory=dict)   # what the run did with labels and why (D-32)
 
     @property
     def summary(self) -> dict[str, Any]:
@@ -124,7 +138,7 @@ class Report:
 
     def to_dict(self) -> dict[str, Any]:
         return {"ruleset_version": self.ruleset_version, "passed": self.passed, "summary": self.summary,
-                "results": [asdict(r) for r in self.results]}
+                "labels": self.labels, "results": [asdict(r) for r in self.results]}
 
 
 class FixtureStore(Protocol):
@@ -161,6 +175,52 @@ class PgFixtureStore:
                  join ref.rules r on r.rule_key = m.rule_key
                 where m.ruleset_version = %s order by f.rule_key, f.name, f.id""", (ruleset_version,)).fetchall()
         terms = accepted_terms(self.conn, ruleset_version) if rows else {}
+        return [RuleFixture(str(r["id"]), r["rule_key"], r["version"], r["shape"], r["name"], r["input"] or {},
+                            r["expected_outcome"], r["expected"], r["params"] or {},
+                            r["applicability"] or {"all": []}, terms) for r in rows]
+
+
+class DraftFixtureStore:
+    """Reads a draft's members (ref.ruleset_draft_members), their fixtures and the term register a release of the draft
+    would carry. A draft whose id is already a released ruleset is frozen and is refused."""
+
+    def __init__(self, conn: Any):
+        self.conn = conn
+
+    def _known(self, draft_id: str) -> None:
+        row = self.conn.execute(
+            """select exists (select 1 from ref.ruleset_versions v where v.id = d.id) as released
+                 from ref.ruleset_drafts d where d.id = %s""", (draft_id,)).fetchone()
+        if row is None:
+            raise UnknownDraft(f"no ruleset draft {draft_id}")
+        if row["released"]:
+            raise UnknownDraft(f"draft {draft_id} is already released; run --ruleset {draft_id} instead")
+
+    def digest(self, draft_id: str) -> str:
+        """private.ruleset_draft_digest at this snapshot: what the release gate compares the run with."""
+        self._known(draft_id)
+        return self.conn.execute("select private.ruleset_draft_digest(%s) as d", (draft_id,)).fetchone()["d"]
+
+    def members(self, draft_id: str) -> list[Member]:
+        self._known(draft_id)
+        rows = self.conn.execute(
+            """select m.rule_key, m.version, r.shape
+                 from ref.ruleset_draft_members m join ref.rules r using (rule_key)
+                where m.draft_id = %s order by m.rule_key""", (draft_id,)).fetchall()
+        return [Member(r["rule_key"], r["version"], r["shape"]) for r in rows]
+
+    def fixtures(self, draft_id: str) -> list[RuleFixture]:
+        rows = self.conn.execute(
+            """select f.id, f.rule_key, f.version, r.shape, f.name, f.input, f.expected_outcome, f.expected,
+                      rv.params, rv.applicability
+                 from ref.ruleset_draft_members m
+                 join ref.rule_fixtures f on f.rule_key = m.rule_key and f.version = m.version
+                 join ref.rule_versions rv on rv.rule_key = m.rule_key and rv.version = m.version
+                 join ref.rules r on r.rule_key = m.rule_key
+                where m.draft_id = %s order by f.rule_key, f.name, f.id""", (draft_id,)).fetchall()
+        # Nothing can be pinned to the draft's id before its release (the foreign key names ruleset_versions), so
+        # this is the accepted register pinned to no ruleset: what the release would carry.
+        terms = accepted_terms(self.conn, draft_id) if rows else {}
         return [RuleFixture(str(r["id"]), r["rule_key"], r["version"], r["shape"], r["name"], r["input"] or {},
                             r["expected_outcome"], r["expected"], r["params"] or {},
                             r["applicability"] or {"all": []}, terms) for r in rows]
@@ -311,14 +371,47 @@ def run_golden(golden_dir: Path, label_evaluator: LabelEvaluator | None = None) 
     return results
 
 
-def run(store: FixtureStore, ruleset_version: str, synth_dir: Path = SYNTH_DIR, golden_dir: Path = GOLDEN_DIR,
-        evaluators: dict[str, Evaluator] | None = None,
-        label_evaluator: LabelEvaluator | None = None) -> Report:
+def golden_label_count(golden_dir: Path) -> int:
+    """How many golden labels there are: every top-level entry but README and hidden files. The file format is OPEN
+    until the 30th label (D-32), so this counts a label's folder or loose file once each, which reaches the gate no
+    later than any per-file count would."""
+    if not golden_dir.is_dir():
+        return 0
+    return sum(1 for p in golden_dir.iterdir() if p.name.lower() != "readme.md" and not p.name.startswith("."))
+
+
+def run(store: FixtureStore, ruleset_version: str, golden_dir: Path = GOLDEN_DIR,
+        evaluators: dict[str, Evaluator] | None = None, label_evaluator: LabelEvaluator | None = None,
+        golden_gate: int = GOLDEN_GATE) -> Report:
+    """Rule fixtures always; golden labels once there are golden_gate of them; synthetic labels never (D-32)."""
     label_evaluator = LABEL_EVALUATOR if label_evaluator is None else label_evaluator
     results = run_rule_fixtures(store, ruleset_version, evaluators)
-    results += run_synthetic(synth_dir, label_evaluator)
-    results += run_golden(golden_dir, label_evaluator)
-    return Report(ruleset_version, results)
+    count = golden_label_count(golden_dir)
+    included = count >= golden_gate
+    if included:
+        results += run_golden(golden_dir, label_evaluator)
+    labels = {"synthetic": "not part of a release run (D-32)",
+              "golden": {"count": count, "threshold": golden_gate, "included": included}}
+    return Report(ruleset_version, results, labels)
+
+
+def runner_name() -> str:
+    try:
+        version = metadata.version("nutrivo-worker")
+    except metadata.PackageNotFoundError:
+        version = "unknown"
+    return f"nutrivo-worker {version} fixtures_runner"
+
+
+def record_run(conn: Any, draft_id: str, digest: str, report: Report) -> str:
+    """Insert the draft's run into ref.fixture_runs (insert-only) and return its id. `rule_fixtures_ran` is every
+    rule fixture an evaluator judged; the release gate requires it to equal all of the draft's fixtures."""
+    summary = {**report.summary, "labels": report.labels}
+    row = conn.execute(
+        """insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, summary, runner)
+           values (%s, %s, %s, %s, %s::jsonb, %s) returning id""",
+        (draft_id, digest, report.passed, report.rule_fixtures_ran, json.dumps(summary), runner_name())).fetchone()
+    return str(row["id"])
 
 
 def format_text(report: Report) -> str:
@@ -326,6 +419,9 @@ def format_text(report: Report) -> str:
     head = (f"ruleset {report.ruleset_version}: {'PASSED' if report.passed else 'NOT PASSED'} "
             f"({s['matched']} matched, {s['differed']} differed, {s['withheld']} withheld of {s['total']})")
     lines = [head]
+    golden = report.labels.get("golden")
+    if golden and not golden["included"]:
+        lines.append(f"  golden labels: {golden['count']} of {golden['threshold']}, not yet part of the run (D-32)")
     for r in report.results:
         where = r.item if r.panel is None else f"{r.item} panel {r.panel}"
         lang = f" [{r.language}]" if r.language else ""
