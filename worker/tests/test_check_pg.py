@@ -300,9 +300,99 @@ def test_a_product_with_no_formula_has_no_additives_fact_so_additive_rules_are_w
     store = PgCheckStore(conn)
     load = lambda: store.load(job, s["ws"], s["product"], s["av"], "T172-NOFORMULA", None, ["EU-SE"])
     assert load().facts["additives"] is None
-    conn.execute("insert into app.formula_lines (workspace_id, product_id, position, ingredient, percent)"
-                 " values (%s, %s, 1, 'Test chicken', 40)", (s["ws"], s["product"]))
+    conn.execute("insert into ref.feed_materials (number, names) values ('TEST.9.9.9', '{\"en\": \"Test chicken\"}')"
+                 " on conflict do nothing")
+    conn.execute("insert into app.formula_lines (workspace_id, product_id, position, ingredient, percent,"
+                 " feed_material_ref) values (%s, %s, 1, 'Test chicken', 40, 'TEST.9.9.9')", (s["ws"], s["product"]))
     assert load().facts["additives"] == []
+    # #76 Q1: a line matched to neither register row may be an additive, so the formula is not additive-free.
+    conn.execute("insert into app.formula_lines (workspace_id, product_id, position, ingredient, percent)"
+                 " values (%s, %s, 2, 'Botanical blend 4B', 0.6)", (s["ws"], s["product"]))
+    assert load().facts["additives"] is None
+
+
+def set_formula_lines(conn, s, lines):
+    """app.set_formula_lines as the editor, through RLS and the RPC's own permission check (T-1001)."""
+    with conn.transaction():
+        conn.execute("select set_config('request.jwt.claims', %s, true)",
+                     (f'{{"sub":"{s["user"]}","role":"authenticated"}}',))
+        conn.execute("set local role authenticated")
+        n = one(conn, "select app.set_formula_lines(%s, %s) as n", s["product"], Jsonb(lines))["n"]
+        conn.execute("reset role")
+    return n
+
+
+def seed_additive_rule(conn, s, rv):
+    """The synthetic ruleset plus one additive_condition rule, a matching synthetic register additive and a synthetic
+    feed material (T-1001). Synthetic test rows only, rolled back with the test."""
+    seed_ruleset(conn, rv, s["person"])
+    key = "TEST.T1001.ADDITIVE"
+    conn.execute("insert into ref.rules (rule_key, shape, domain, node_id, title) values (%s, 'additive_condition',"
+                 " 'composition', 'EU-SE', 'Synthetic additive rule') on conflict do nothing", (key,))
+    conn.execute("insert into ref.rule_versions (rule_key, version, status, params, applicability, article_ref,"
+                 " source_excerpt, accepted_by, accepted_at) values (%s, 1, 'accepted', %s, '{\"all\": []}',"
+                 " 'TEST Art. 1', 'synthetic', %s, now()) on conflict do nothing",
+                 (key, Jsonb({"check": "authorised_for_species", "species_wordings": {"cat": ["test cats"]}}),
+                  s["person"]))
+    conn.execute("insert into ref.ruleset_members (ruleset_version, rule_key, version) values (%s, %s, 1)", (rv, key))
+    conn.execute("insert into ref.feed_additives (id, name, species) values ('TEST-3b999', 'Synthetic additive',"
+                 " '{\"test cats\"}') on conflict do nothing")
+    conn.execute("insert into ref.feed_materials (number, names) values ('TEST.9.9.9', '{\"en\": \"Test chicken\"}')"
+                 " on conflict do nothing")
+    return key
+
+
+MATCHED = [{"ingredient": "Test chicken", "percent": 60, "feed_material_ref": "TEST.9.9.9"},
+           {"ingredient": "Synthetic additive", "additive_ref": "TEST-3b999", "amount": 10, "unit": "mg/kg"}]
+
+
+def test_E01_a_check_is_judged_only_on_the_formula_it_was_requested_for(conn):
+    """[E01.main] The formula is pinned like the artwork and classification: a job requested with no formula, run after
+    a formula was entered, withholds its additive rules instead of passing them on a formula its key does not name;
+    and when the formula is removed again, request_check returns that job, which therefore never shows a pass."""
+    s = seed_product(conn)
+    key = seed_additive_rule(conn, s, "T1001-PINNED")
+    j0 = request_check(conn, s)                                   # requested with no formula: digest "-"
+    set_formula_lines(conn, s, MATCHED)                           # entered before the worker runs j0
+    assert run_job(conn, j0) == "succeeded"
+    assert all(key in c["withheld_rule_keys"] and key not in c["passed_rule_keys"] for c in checks_of(conn, j0))
+    j1 = request_check(conn, s)
+    assert j1 != j0 and run_job(conn, j1) == "succeeded"
+    assert all(key in c["passed_rule_keys"] for c in checks_of(conn, j1))
+    set_formula_lines(conn, s, [])
+    assert request_check(conn, s) == j0                           # back to "no formula": j0, which passed nothing
+    assert all(key not in c["passed_rule_keys"] for c in checks_of(conn, j0))
+
+
+def test_E01_main_a_formula_entered_through_the_brief_gets_additive_rules_evaluated(conn):
+    """[E01.main] Without a formula the synthetic additive rule is withheld data_missing. Once the editor enters a
+    formula through app.set_formula_lines, request_check is a new job (the formula is in its key) and that job
+    evaluates the additive rule: passed, not withheld. A line not matched to the register withholds it again (#76 Q1)."""
+    s = seed_product(conn)
+    key = seed_additive_rule(conn, s, "T1001-ADDITIVE")
+
+    before = request_check(conn, s)
+    assert run_job(conn, before) == "succeeded"
+    assert all(key in c["withheld_rule_keys"] and key not in c["passed_rule_keys"] for c in checks_of(conn, before))
+    assert {f["reason_code"] for f in findings_of(conn, before) if f["rule_key"] == key} == {"data_missing"}
+    assert request_check(conn, s) == before                     # nothing changed: the same job
+
+    assert set_formula_lines(conn, s, MATCHED) == 2
+    lines = conn.execute("select applied_by from app.formula_lines where product_id = %s", (s["product"],)).fetchall()
+    assert [str(r["applied_by"]) for r in lines] == [s["person"]] * 2          # a person applied it (E03)
+    after = request_check(conn, s)
+    assert after != before
+    assert one(conn, "select payload from app.jobs where id = %s", after)["payload"]["formula_digest"] != "-"
+    assert run_job(conn, after) == "succeeded"
+    checks = checks_of(conn, after)
+    assert checks and all(key in c["passed_rule_keys"] and key not in c["withheld_rule_keys"] for c in checks)
+    assert [f for f in findings_of(conn, after) if f["rule_key"] == key and f["reason_code"] == "data_missing"] == []
+
+    set_formula_lines(conn, s, [{"ingredient": "Test chicken", "percent": 60, "feed_material_ref": "TEST.9.9.9"},
+                                {"ingredient": "Botanical blend 4B", "percent": 0.6}])
+    unmatched = request_check(conn, s)
+    assert unmatched not in (before, after) and run_job(conn, unmatched) == "succeeded"
+    assert all(key in c["withheld_rule_keys"] for c in checks_of(conn, unmatched))
 
 
 def test_179_DB_1_a_node_missing_domain_rows_is_checked_not_assessed_not_refused(conn):
