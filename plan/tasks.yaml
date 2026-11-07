@@ -64,6 +64,7 @@ tasks:
   - {id: T-406, ms: M4, lanes: [web, worker], deps: [T-405], wf: [I04], title: "Public verification Edge Function and page"}
   - {id: T-407, ms: M4, lanes: [web], deps: [T-404, T-406], title: "Demo path end to end (@demo) and docs/demo.md"}
   - {id: T-408, ms: M4, lanes: [db], deps: [T-405], wf: [I01], title: "app.request_report(p_check): a member requests a check's label report PDF; enqueues the report job (I01 producer, #47)"}
+  - {id: T-409, ms: M4, lanes: [db], deps: [T-408, T-601], title: "Scope app.jobs, app.shares and app.supersessions to family and market like product_nodes and checks (#8 DB-5 decision 2; #188): a member reads a job, share or supersession only when they see its product (private.can_see_product) and its market (private.node_in_scope); product-less jobs (export, billing) keep their current readers. Expand/contract: nullable scope columns set by every producer and backfilled, then the policy; pgTAP proves a viewer, a family-scoped and a market-scoped member no longer read another family's or market's report job (progress.ref) or check job, and that every producer still works"}
   # ── M5 · Engine complete ────────────────────────────────────────────────────────────────────────────
   - {id: T-501, ms: M5, lanes: [worker, content], deps: [T-203], title: "Claims evaluation harness with Langfuse dataset runs"}
   - {id: T-502, ms: M5, lanes: [worker], deps: [T-403, T-202], wf: [D05], title: "Evaluators threshold, additive_condition, character_height"}

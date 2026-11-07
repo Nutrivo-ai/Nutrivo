@@ -32,7 +32,7 @@ rows or screens to make the demo look greener. The point to make on stage is thi
 | Classification | — | T-402 (#162). Checks run without it today. |
 | Run the check | Upload & scope's closing bar, "Run the check" (T-505), then "Open the report" | — |
 | Label report | The label report screen (T-404) | — |
-| Report PDF | **No producer and no download button** | The worker job exists (T-405). `app.request_report` (db) is task T-408; the download button (web) is proposed on #49. |
+| Report PDF | **No download button** | The worker job (T-405) and its producer `app.request_report` (T-408) exist; the download button (web) is proposed on #49. |
 | Public verification | `/verify/<ref>` through the `verify` function (T-406) | — |
 
 Until the bold gap closes, use **Option A** on stage. Option B needs an operator at a second terminal.
@@ -87,12 +87,11 @@ and the audit log see her.
 ```sh
 DB=postgresql://postgres:postgres@127.0.0.1:54322/postgres
 HOLM='{"sub":"da7a0002-0000-4000-8000-000000000001","role":"authenticated"}'
-# Issue the report PDF for Germany's German panel of the latest check (the stand-in for request_report):
+# Issue the report PDF for Germany's German panel of the latest check (the stand-in for the download button):
 CHECK=$(psql "$DB" -Atc "select id from app.checks where product_id = 'da7a0004-0000-4000-8000-000000004471'
   and node_id = 'EU-DE' and language = 'de' order by at desc limit 1")
 psql "$DB" -Atq -c "begin; select set_config('request.jwt.claims', '$HOLM', true);
-  select private.enqueue('report', 'da7a0000-0000-4000-8000-000000000001', 'report:$CHECK:' || gen_random_uuid(),
-  jsonb_build_object('check_id', '$CHECK')); commit;"
+  set local role authenticated; select app.request_report('$CHECK'); commit;"
 # A few seconds later, the reference and where the PDF is stored:
 psql "$DB" -Atc "select progress->>'ref', progress->>'path' from app.jobs where kind = 'report' order by created_at desc limit 1"
 ```
