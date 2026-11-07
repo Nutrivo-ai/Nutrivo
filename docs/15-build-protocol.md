@@ -60,7 +60,11 @@ Any task may touch docs/. Anything else outside the task's lanes fails the proto
    or push last.
 9. **Merge.** Through the merge queue, or only when up to date with main, so the PR is tested on the latest main and
    main stays green. A Claude Code session updates the branch and squash-merges once every required check is green,
-   every thread is resolved and no review requests changes (D-24).
+   every thread is resolved and no review requests changes (D-24). It does so only through `make pr-update`,
+   `make pr-review` and `make pr-merge` (`scripts/protocol/pr.py`), which re-read those conditions from GitHub and
+   pin the merge to the checked head SHA. `make pr-check PR=N` says, read-only, whether a PR is mergeable and why
+   not. `.claude/settings.json` keeps denying `gh api -X` from the shell, so these targets are the only write path.
+   GitHub's own ruleset is the second line; the script does not rely on it being applied.
 10. **Staging.** Once `STAGING_DEPLOY_ENABLED` is set at T-010 (docs/22 §4), every merge deploys to staging, then runs
     smoke tests and the Sentry and Langfuse round-trip. A failure rolls back and opens an incident issue.
 11. **Close.** The issue closes, dependants become ready, and `spec/conformance-baseline.json` keeps the IDs the task

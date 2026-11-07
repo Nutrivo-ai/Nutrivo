@@ -14,7 +14,7 @@ WEB_TEST = pnpm --dir apps/web test --reporter=default --reporter=junit --output
 PSQL = $(if $(shell command -v psql),psql -Atq postgresql://postgres:postgres@127.0.0.1:54322/postgres,docker exec -i supabase_db_nutrivo psql -Atq -U postgres)
 
 # Every target is a command, never a file: without this, `make fixtures` sees the fixtures/ directory and does nothing.
-.PHONY: help bootstrap db-start db-reset db-migrate fixtures typegen env-check doctor design-fetch design-check \
+.PHONY: help pr-check pr-merge pr-update pr-review pr-comment bootstrap db-start db-reset db-migrate fixtures typegen env-check doctor design-fetch design-check \
         validate-plan workflows issues-sync next verify-task autopilot status gates db-tap test verify-fast verify e2e \
         e2e-ci smoke acceptance-staging conformance conformance-update stripe-catalogue
 
@@ -62,6 +62,16 @@ issues-sync: ## create or update one GitHub issue per task
 	$(PY) scripts/protocol/sync-issues.py
 next: ## claim the next ready task: LANE=db|worker|web|infra|content|any
 	$(PY) scripts/protocol/next-task.py --lane $(LANE) --claim
+pr-check: ## PR=123: read-only, says whether pr-merge would merge it and why not
+	$(PY) scripts/protocol/pr.py check $(PR)
+pr-merge: ## PR=123: squash-merge only when up to date, required checks green, no changes requested, threads resolved (D-24)
+	$(PY) scripts/protocol/pr.py merge $(PR)
+pr-update: ## PR=123: merge main into the PR branch (Update branch)
+	$(PY) scripts/protocol/pr.py update $(PR)
+pr-review: ## PR=123 EVENT=APPROVE|REQUEST_CHANGES|COMMENT BODY=file.md: never your own PR or your own last push (D-24)
+	$(PY) scripts/protocol/pr.py review $(PR) --event $(EVENT) --body $(BODY)
+pr-comment: ## PR=123 BODY=file.md: a comment on a PR or issue
+	$(PY) scripts/protocol/pr.py comment $(PR) --body $(BODY)
 verify-task: ## T=T-123: the fast suite, acceptance coverage and the task's checks
 	bash scripts/protocol/verify-task.sh $(T)
 autopilot: ## run tasks with Claude Code headless: LANE=web MAX_TASKS=3
