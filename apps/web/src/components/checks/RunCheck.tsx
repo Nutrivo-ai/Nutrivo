@@ -9,7 +9,7 @@ import { passLine, requestCheck, type CheckRefusal, type Readiness } from "@/lib
 import { resolveRequestId } from "@/lib/observability/request-id";
 import { createClient } from "@/lib/supabase/client";
 
-type State = { step: "idle" } | { step: "requesting" } | { step: "refused"; refusal: CheckRefusal } | { step: "running"; jobId: string };
+type State = { step: "idle" } | { step: "requesting" } | { step: "refused"; refusal: CheckRefusal } | { step: "running"; jobId: string; requestId: string };
 
 /**
  * S-NV2-002's closing bar (Nutrivo 2.0, screen "scope"): what one pass covers, "Re-check as often as you like", and
@@ -31,7 +31,11 @@ export function RunCheck({
 }) {
   const db = useMemo(() => createClient(), []);
   const [state, setState] = useState<State>({ step: "idle" });
-  const job = useCheckJob(db, state.step === "running" ? state.jobId : null);
+  const [generation, setGeneration] = useState(0);
+  const job = useCheckJob(db, state.step === "running" ? state.jobId : null, {
+    requestId: state.step === "running" ? state.requestId : undefined,
+    generation,
+  });
   const report = `/w/${workspaceId}/products/${productId}/report`;
   // The design's own button (Nutrivo 2.0, scope): an accent-600 hairline, square, tracked 0.02em, beyond the kit's primary.
   const designed = {
@@ -55,7 +59,7 @@ export function RunCheck({
       return;
     }
     if (posthog.__loaded) posthog.capture("check_requested", { job_id: result.jobId });
-    setState({ step: "running", jobId: result.jobId });
+    setState({ step: "running", jobId: result.jobId, requestId });
   }
 
   const view = state.step === "running" ? job.view : null;
@@ -97,7 +101,15 @@ export function RunCheck({
 
       <div className="mt-[12px] empty:hidden" aria-live="polite">
         {state.step === "requesting" ? <LoadingState label="Starting the check" /> : null}
-        {view && (view.phase === "waiting" || view.phase === "queued" || view.phase === "running") ? (
+        {view && job.stalled && (view.phase === "waiting" || view.phase === "queued" || view.phase === "running") ? (
+          <ErrorState
+            where="CHECK · STILL RUNNING"
+            title="This is taking longer than usual"
+            body="The check has not finished yet. Nothing is lost and nothing was counted; the worker picks it up again on its own, and leaving this screen does not stop it."
+            action={{ label: "Check again", onClick: () => setGeneration((g) => g + 1), variant: "secondary" }}
+          />
+        ) : null}
+        {view && !job.stalled && (view.phase === "waiting" || view.phase === "queued" || view.phase === "running") ? (
           <LoadingState
             label={view.phase === "running" ? "Checking every market and language panel" : view.phase === "queued" && view.retrying ? "Waiting to try again" : "Queued for checking"}
           >
