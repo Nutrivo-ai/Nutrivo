@@ -169,13 +169,17 @@ target × source. It never writes a rule.
 Staff (`app_metadata.nutrivo_staff`) act through RPCs; each needs the caller's person record and is audited.
 - **Accept a candidate** with `app.accept_candidate`, choosing the key checked against the text. The version takes
   that extraction's params, article reference and excerpt unchanged; the person adds title, shape, domain and node
-  (new rule keys only), applicability, the effect of the change and its dates, and the term links (D-31; from T-209).
-  A rule accepted without links is withheld until it is re-linked as a new editorial version. A candidate is refused until its
-  second key has run, and a key that is not verbatim is refused.
+  (new rule keys only), applicability, the effect of the change and its dates, and the term links (D-31, `p_links`).
+  A candidate is refused until its second key has run, and a key that is not verbatim is refused. An extraction never
+  carries links; each linked key must already have an accepted register entry.
+- **Re-link** an accepted rule with `app.relink_rule`: a new editorial version with the new links. A rule accepted
+  without links is withheld until then. The new version needs its own passed, failed and withheld fixtures, and it
+  reaches checks only through the next release.
 - **Terms** are accepted or rejected with `app.decide_term`, only from the stored official text in the term's own
   language.
 - **Coverage** is edited on a draft (`app.create_ruleset_draft`, `app.set_draft_member`, `app.set_draft_coverage`,
-  gaps with `app.open_coverage_gap`). Complete needs every member rule of that node and domain tested.
+  gaps with `app.open_coverage_gap`). Complete needs every member rule of that node and domain tested (P0010), and
+  every term they link accepted in each of the node's languages (P0048).
 - **Release** with `app.release_ruleset` once the fixture run for the draft passed (docs/05 §The release gate). It
   writes the diffs, and alerts follow only for non-editorial ones.
 - **A release is sealed (#197).** When the releasing transaction commits, `ref.ruleset_seals` records it. From then on
@@ -202,7 +206,7 @@ called under the person's own session, so the database names them as the decider
 - **`/admin/coverage`**: start a draft, put accepted versions in it, open gaps, and set each node × domain. Complete is
   refused (P0010) until every member rule for it is accepted and tested. The release panel lists what blocks the
   release (missing fixtures, no fixture run, a run that failed or judged too few) and shows the database's refusal as
-  it is. Until the runner records draft runs (T-206), every release is refused, and the page says so.
+  it is. A draft's run is recorded by `nutrivo fixtures run --draft <id>` (T-210, docs/05 §The runner).
 - **`/admin/glossary`**: the latest release's glossary, read only.
 
 ## Candidate targets

@@ -1220,7 +1220,7 @@ isOneToOne: false
           }
           Functions: {
             "accept_candidate":
-{ Args: { "p_applicability": Json,"p_candidate": string,"p_domain": string,"p_effect_type": string,"p_effective_from"?: string,"p_node": string,"p_sell_through_until"?: string,"p_shape": string,"p_title": string,"p_use": string }; Returns: Json
+{ Args: { "p_applicability": Json,"p_candidate": string,"p_domain": string,"p_effect_type": string,"p_effective_from"?: string,"p_links"?: Json,"p_node": string,"p_sell_through_until"?: string,"p_shape": string,"p_title": string,"p_use": string }; Returns: Json
                            },
 "accept_invitation":
 { Args: { "p_token": string }; Returns: string
@@ -1297,6 +1297,9 @@ isOneToOne: false
                            },
 "release_ruleset":
 { Args: { "p_draft": string,"p_notes"?: string }; Returns: Json
+                           },
+"relink_rule":
+{ Args: { "p_links": Json,"p_note"?: string,"p_rule_key": string }; Returns: Json
                            },
 "remove_member":
 { Args: { "p_membership": string,"p_reason"?: string }; Returns: string
