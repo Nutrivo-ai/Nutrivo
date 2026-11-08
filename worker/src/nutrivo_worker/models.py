@@ -24,7 +24,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, ClassVar, Protocol, TypeVar
+from typing import Any, Protocol, TypeVar
 
 import sentry_sdk
 from pydantic import BaseModel, ValidationError
@@ -137,7 +137,6 @@ class _AnthropicMessages:
     """Bedrock and the Anthropic API share the Messages surface of the anthropic SDK."""
 
     name = "anthropic"
-    extra_body: ClassVar[dict[str, Any] | None] = None
 
     def __init__(self, client: Any, models: dict[str, str]):
         self.client, self.models = client, models
@@ -148,28 +147,20 @@ class _AnthropicMessages:
     def complete(self, model_id: str, system: str, user: str, schema: dict, max_tokens: int) -> Raw:
         r = self.client.messages.create(model=model_id, max_tokens=max_tokens, system=system,
                                         messages=[{"role": "user", "content": user}],
-                                        output_config={"format": {"type": "json_schema", "schema": schema}},
-                                        **({"extra_body": self.extra_body} if self.extra_body else {}))
+                                        output_config={"format": {"type": "json_schema", "schema": schema}})
         text = next((b.text for b in r.content if getattr(b, "type", None) == "text"), None)
         # The configured id (the EU inference profile), so app.model_calls shows the route that was used.
         return Raw(self.name, model_id, text, r.stop_reason, r.usage.input_tokens, r.usage.output_tokens)
 
 
 class Bedrock(_AnthropicMessages):
-    """anthropic SDK 2.x sends `anthropic_version: 2026-10-21` in the Bedrock body, which Bedrock accepts only for
-    Claude 4.7 and later; our dev models and triage (Sonnet 4.6, Haiku 4.5, docs/07) are older. We keep sending the
-    version SDK 1.x sent until every BEDROCK_MODEL_* is a 4.7+ model (platform.claude.com/docs/en/api/
-    migration-2026-10-21). Our requests use no field that differs between the two versions."""
-
     name = "bedrock"
-    extra_body: ClassVar[dict[str, Any] | None] = {"anthropic_version": "bedrock-2023-05-31"}
 
-    def __init__(self, settings: Settings, http_client: Any = None):
+    def __init__(self, settings: Settings):
         import anthropic
 
         client = anthropic.AnthropicBedrock(aws_region=settings.aws_region, timeout=settings.model_timeout_s,
-                                            max_retries=settings.model_max_retries,
-                                            **({"http_client": http_client} if http_client is not None else {}))
+                                            max_retries=settings.model_max_retries)
         super().__init__(client, dict(settings.bedrock_models))
 
 
