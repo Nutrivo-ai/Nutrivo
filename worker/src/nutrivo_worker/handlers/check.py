@@ -1,5 +1,6 @@
 """check (D04): run a check of a product's latest artwork in its markets. Payload from app.request_check, ids only:
-{"product_id", "artwork_version_id", "ruleset_version", "classification_id", "node_ids"}.
+{"product_id", "artwork_version_id", "ruleset_version", "classification_id", "node_ids", "formula_digest"}; the
+formula digest pins the formula the check was requested for (T-1001).
 
 Per market × language panel the engine evaluates the pinned ruleset (nutrivo_worker.engine); every app.checks row
 and its findings are written in one transaction with the product markets (docs/05 step 7). Idempotent: a retry or a
@@ -43,8 +44,11 @@ def run_check(job: Job, ctx: JobContext, store: PgCheckStore, model_client: Any 
     artwork_id = payload_uuid(p.get("artwork_version_id"), "artwork_version_id")
     classification_id = payload_uuid(p["classification_id"], "classification_id") \
         if p.get("classification_id") else None
+    formula_digest = p.get("formula_digest")
+    if formula_digest is not None and (not isinstance(formula_digest, str) or not formula_digest):
+        raise PermanentJobError("payload formula_digest is not a digest")
     inputs = store.load(job.id, job.workspace_id, product_id, artwork_id, ruleset, classification_id,
-                        _node_ids(p.get("node_ids")))
+                        _node_ids(p.get("node_ids")), formula_digest)
     results: list[CheckResult] = []
     judgements: dict[Any, Any] = {}       # claim judgements shared by every market and panel of this job
     for n in inputs.nodes:
