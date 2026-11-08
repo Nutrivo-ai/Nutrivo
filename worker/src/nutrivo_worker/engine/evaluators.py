@@ -9,9 +9,11 @@ mandatory_particular
   applicable on other panels) or `any_panel` (present when printed on any panel of the artwork, each in its own
   language). Failed when no term is printed.
 prescribed_wording
-  params: `term_key`, `alternatives` (a list, or a map of language to list, of wordings also permitted), `match`:
-  `case_folded` (default) or `exact`. Judged on each panel printed in one of the node's languages (not applicable on
-  other panels). Failed when neither the register entry for the panel's language nor an alternative is printed.
+  params: `term_key`, `alternative_term_keys` (register keys of wordings also permitted), `match`: `case_folded`
+  (default) or `exact`. Judged on each panel printed in one of the node's languages (not applicable on other panels).
+  Failed when neither the register entry for the panel's language nor an alternative's entry in that language is
+  printed. The extraction's own `wordings` and `alternatives` are source text and are never matched (D-31): only
+  register entries in the panel's language are, so a wording in another language can never pass a panel.
 Matching is on NFC text with whitespace collapsed."""
 from __future__ import annotations
 
@@ -108,11 +110,10 @@ def prescribed_wording(ctx: RuleContext) -> RuleResult:
     prescribed = _terms(ctx, [term_key], language)
     if not prescribed:
         return _withheld()
-    alternatives = params.get("alternatives") or []
-    if isinstance(alternatives, dict):
-        alternatives = alternatives.get(language) or []
-    if not isinstance(alternatives, list) or not all(isinstance(a, str) for a in alternatives):
-        raise InvalidParams(f"{ctx.rule.rule_key}: alternatives are not a list of wordings")
+    alt_keys = params.get("alternative_term_keys") or []
+    if not isinstance(alt_keys, list) or not all(isinstance(k, str) and k for k in alt_keys):
+        raise InvalidParams(f"{ctx.rule.rule_key}: alternative_term_keys are not a list of term keys")
+    alternatives = _terms(ctx, alt_keys, language) if alt_keys else []
     found, line = find_printed(ctx.panel, prescribed + alternatives, fold=match == "case_folded")
     if found:
         return _passed(line)
