@@ -433,6 +433,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"dunning_steps": {
+                  Row: {
+                    "created_at": string,"day": number,"failed_at": string,"job_ref": string | null,"outcome": string,"stripe_invoice_id": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"day": number,"failed_at": string,"job_ref"?: string | null,"outcome": string,"stripe_invoice_id": string,"workspace_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"day"?: number,"failed_at"?: string,"job_ref"?: string | null,"outcome"?: string,"stripe_invoice_id"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "dunning_steps_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"envelope_items": {
                   Row: {
                     "envelope_id": string,"gap_id": string | null,"id": string,"kind": string,"payload": NonNullable<Json>,"product_id": string,"provenance": string,"rule_key": string | null,"workspace_id": string
@@ -981,14 +1001,14 @@ isOneToOne: false
                   ]
                 },"shares": {
                   Row: {
-                    "channel": string,"created_at": string,"created_by": string | null,"expires_at": string | null,"id": string,"recipient": string | null,"report_id": string,"revoked_at": string | null,"token_hash": string,"workspace_id": string
+                    "channel": string,"created_at": string,"created_by": string | null,"expires_at": string | null,"id": string,"product_id": string,"recipient": string | null,"report_id": string,"revoked_at": string | null,"token_hash": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "channel": string,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"recipient"?: string | null,"report_id": string,"revoked_at"?: string | null,"token_hash": string,"workspace_id": string
+                    "channel": string,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"product_id": string,"recipient"?: string | null,"report_id": string,"revoked_at"?: string | null,"token_hash": string,"workspace_id": string
                   }
                   Update: {
-                    "channel"?: string,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"recipient"?: string | null,"report_id"?: string,"revoked_at"?: string | null,"token_hash"?: string,"workspace_id"?: string
+                    "channel"?: string,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"product_id"?: string,"recipient"?: string | null,"report_id"?: string,"revoked_at"?: string | null,"token_hash"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -996,6 +1016,12 @@ isOneToOne: false
       columns: ["created_by"]
 isOneToOne: false
       referencedRelation: "people"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shares_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "shares_report_id_fkey"
@@ -1051,14 +1077,14 @@ isOneToOne: false
                   ]
                 },"subscriptions": {
                   Row: {
-                    "current_period_end": string | null,"editor_seats": number | null,"plan": string,"recipes_included": number | null,"regions": (string)[],"status": string,"stripe_customer_id": string | null,"stripe_subscription_id": string | null,"term": string | null,"updated_at": string,"workspace_id": string
+                    "amount_per_period": number | null,"current_period_end": string | null,"editor_seats": number | null,"overage_cap": number | null,"plan": string,"plan_recipes": number | null,"recipe_unit_amount": number | null,"recipes_included": number | null,"regions": (string)[],"status": string,"stripe_customer_id": string | null,"stripe_subscription_id": string | null,"term": string | null,"updated_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "current_period_end"?: string | null,"editor_seats"?: number | null,"plan": string,"recipes_included"?: number | null,"regions"?: (string)[],"status": string,"stripe_customer_id"?: string | null,"stripe_subscription_id"?: string | null,"term"?: string | null,"updated_at"?: string,"workspace_id": string
+                    "amount_per_period"?: number | null,"current_period_end"?: string | null,"editor_seats"?: number | null,"overage_cap"?: number | null,"plan": string,"plan_recipes"?: number | null,"recipe_unit_amount"?: number | null,"recipes_included"?: number | null,"regions"?: (string)[],"status": string,"stripe_customer_id"?: string | null,"stripe_subscription_id"?: string | null,"term"?: string | null,"updated_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "current_period_end"?: string | null,"editor_seats"?: number | null,"plan"?: string,"recipes_included"?: number | null,"regions"?: (string)[],"status"?: string,"stripe_customer_id"?: string | null,"stripe_subscription_id"?: string | null,"term"?: string | null,"updated_at"?: string,"workspace_id"?: string
+                    "amount_per_period"?: number | null,"current_period_end"?: string | null,"editor_seats"?: number | null,"overage_cap"?: number | null,"plan"?: string,"plan_recipes"?: number | null,"recipe_unit_amount"?: number | null,"recipes_included"?: number | null,"regions"?: (string)[],"status"?: string,"stripe_customer_id"?: string | null,"stripe_subscription_id"?: string | null,"term"?: string | null,"updated_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -1200,7 +1226,7 @@ isOneToOne: false
           }
           Functions: {
             "accept_candidate":
-{ Args: { "p_applicability": Json,"p_candidate": string,"p_domain": string,"p_effect_type": string,"p_effective_from"?: string,"p_node": string,"p_sell_through_until"?: string,"p_shape": string,"p_title": string,"p_use": string }; Returns: Json
+{ Args: { "p_applicability": Json,"p_candidate": string,"p_domain": string,"p_effect_type": string,"p_effective_from"?: string,"p_links"?: Json,"p_node": string,"p_sell_through_until"?: string,"p_shape": string,"p_title": string,"p_use": string }; Returns: Json
                            },
 "accept_invitation":
 { Args: { "p_token": string }; Returns: string
@@ -1215,6 +1241,9 @@ isOneToOne: false
                            },
 "apply_subscription":
 { Args: { "p_ref": string,"p_snapshot": Json,"p_source": string,"p_ws": string }; Returns: string
+                           },
+"billing_context":
+{ Args: { "p_ws": string }; Returns: Json
                            },
 "change_member":
 { Args: { "p_access_ends_at": string,"p_is_external": boolean,"p_membership": string,"p_role": string,"p_scope_family_ids": (string)[],"p_scope_node_ids": (string)[] }; Returns: string
@@ -1231,11 +1260,19 @@ isOneToOne: false
 "create_ruleset_draft":
 { Args: { "p_id": string,"p_notes"?: string }; Returns: string
                            },
+"create_share":
+{ Args: { "p_channel": string,"p_expires_in_days"?: number,"p_recipient"?: string,"p_report": string,"p_request_id"?: string }; Returns: Json
+                           },
 "create_workspace":
 { Args: { "p_name": string }; Returns: string
                            },
 "decide_term":
 { Args: { "p_decision": string,"p_note"?: string,"p_term_entry": string }; Returns: string
+                           },
+"dunning_due":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "day": number,"failed_at": string,"stripe_invoice_id": string,"workspace_id": string
+            }[]
                            },
 "invite_member":
 { Args: { "p_access_ends_at"?: string,"p_email": string,"p_is_external"?: boolean,"p_role": string,"p_scope_family_ids"?: (string)[],"p_scope_node_ids"?: (string)[],"p_ws": string }; Returns: string
@@ -1252,6 +1289,18 @@ isOneToOne: false
 "open_coverage_gap":
 { Args: { "p_description": string,"p_domain": string,"p_gap_id": string,"p_node": string,"p_reason_code": string }; Returns: string
                            },
+"open_share":
+{ Args: { "p_token": string,"p_user_agent"?: string }; Returns: Json
+                           },
+"recipe_overage_context":
+{ Args: { "p_ws": string }; Returns: Json
+                           },
+"record_billing_change":
+{ Args: { "p_after": Json,"p_before": Json,"p_customer": string,"p_kind": string,"p_ws": string }; Returns: undefined
+                           },
+"record_dunning_step":
+{ Args: { "p_day": number,"p_invoice": string,"p_outcome": string,"p_ref": string,"p_ws": string }; Returns: string
+                           },
 "record_registration":
 { Args: { "p_evidence_doc"?: string,"p_expires_at"?: string,"p_node": string,"p_number": string,"p_obligation"?: string,"p_product": string,"p_registered_on": string }; Returns: string
                            },
@@ -1266,6 +1315,9 @@ isOneToOne: false
                            },
 "release_ruleset":
 { Args: { "p_draft": string,"p_notes"?: string }; Returns: Json
+                           },
+"relink_rule":
+{ Args: { "p_links": Json,"p_note"?: string,"p_rule_key": string }; Returns: Json
                            },
 "remove_member":
 { Args: { "p_membership": string,"p_reason"?: string }; Returns: string
@@ -1284,6 +1336,9 @@ isOneToOne: false
                            },
 "revoke_invitation":
 { Args: { "p_invitation": string }; Returns: string
+                           },
+"revoke_share":
+{ Args: { "p_share": string }; Returns: string
                            },
 "rollup_state":
 { Args: { "p_node": string,"p_product": string }; Returns: string
