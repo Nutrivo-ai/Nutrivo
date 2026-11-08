@@ -29,6 +29,11 @@ that are all clear; otherwise it is Not assessed. The answer cites the deciding 
 `gap_id`, and pins the latest check's `ruleset_version` and `artwork_sha`. S-MOB-004 Capture reads and writes nothing:
 no RPC, job or storage path takes a pack photo or compares one with approved artwork (open on #57).
 
+**How the board reads contract 3 (T-506).** S-NV2-006 shows each market cell as `app.product_nodes.display_state` and
+each region cell as `app.rollup_state(product, region)`, one call per product × region the product is sold in, as the
+database answers it; the web never rolls a state up. A product-wide roll-up (the phone board, S-MOB-001) and a batched
+one for the 300-recipe budget need a set-returning function in the database (open on #56).
+
 ## RPCs (writes go through these; more are added per milestone in the same pattern)
 | Function | Workflow | Notes |
 |---|---|---|
