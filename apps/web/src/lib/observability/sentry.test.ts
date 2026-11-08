@@ -36,6 +36,24 @@ describe("Sentry scrubber", () => {
     expect(text).toContain("next=%2Finvite%2F[token]");
   });
 
+  it("[I02.main] removes a share token from the path and from an encoded next= parameter", () => {
+    const SHARE = "share_sample_".repeat(4);
+    const text = scrubString(
+      `GET https://app.nutrivo.ai/share/${SHARE}?x=1 then /sign-in?next=%2Fshare%2F${SHARE} and /share/${SHARE}`,
+    );
+    expect(text).not.toContain(SHARE);
+    expect(text).toContain("/share/[token]?x=1");
+    expect(text).toContain("next=%2Fshare%2F[token]");
+    const crumb = scrubBreadcrumb({ category: "navigation", data: { from: "/", to: `/share/${SHARE}` } });
+    expect(JSON.stringify(crumb)).not.toContain(SHARE);
+    const tx = scrubTransaction({
+      type: "transaction",
+      transaction: `/share/${SHARE}`,
+      request: { url: `https://app.nutrivo.ai/share/${SHARE}` },
+    } as TransactionEvent);
+    expect(JSON.stringify(tx)).not.toContain(SHARE);
+  });
+
   it("scrubs transactions and breadcrumbs, which carry URLs too", () => {
     const tx = scrubTransaction({
       type: "transaction",
