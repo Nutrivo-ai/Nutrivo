@@ -132,6 +132,40 @@ def test_record_then_replay_without_any_provider(prompts, tmp_path):
         make(prompts, tmp_path, mode="replay", providers=[nobody]).call("triage", "v1", {"x": "2"}, Answer)
 
 
+@pytest.mark.parametrize("model_id", ["eu.anthropic.claude-haiku-4-5-20251001-v1:0", "eu.anthropic.claude-sonnet-4-6"])
+def test_bedrock_sends_the_api_version_pre_4_7_models_accept(monkeypatch, model_id):
+    """anthropic SDK 2.x defaults the Bedrock body to anthropic_version 2026-10-21, which Bedrock refuses for models
+    before Claude 4.7 (Haiku 4.5 triage, Sonnet 4.6 in dev). The real SDK runs against a mock transport: no network.
+    SDK 1.x is built on httpx and 2.x on httpx2; both have the same MockTransport surface."""
+    try:
+        import httpx2
+    except ImportError:
+        import httpx as httpx2
+
+    from nutrivo_worker.models import Bedrock
+
+    for k in ("AWS_PROFILE", "AWS_SESSION_TOKEN"):
+        monkeypatch.delenv(k, raising=False)
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "AKIAFAKEFAKEFAKEFAKE")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "fake")
+    sent: dict = {}
+
+    def bedrock(request):
+        sent.update(path=request.url.path, body=json.loads(request.content))
+        return httpx2.Response(200, json={"id": "m", "type": "message", "role": "assistant", "model": model_id,
+                                          "content": [{"type": "text", "text": '{"answer": "OK"}'}],
+                                          "stop_reason": "end_turn", "stop_sequence": None,
+                                          "usage": {"input_tokens": 7, "output_tokens": 3}})
+
+    s = Settings(aws_region="eu-central-1", bedrock_models={"triage": model_id})
+    p = Bedrock(s, http_client=httpx2.Client(transport=httpx2.MockTransport(bedrock)))
+    raw = p.complete(model_id, "Say OK.", "data", output_json_schema(Answer), 64)
+    assert sent["body"]["anthropic_version"] == "bedrock-2023-05-31"
+    assert sent["body"]["output_config"]["format"]["type"] == "json_schema" and "temperature" not in sent["body"]
+    assert sent["path"].endswith("/invoke") and "model" not in sent["body"]
+    assert (raw.text, raw.stop_reason, raw.input_tokens, raw.output_tokens) == ('{"answer": "OK"}', "end_turn", 7, 3)
+
+
 def test_committed_cassette_replays_a_real_bedrock_response():
     """worker/tests/cassettes/smoke/ was recorded against dev Bedrock (MODELS_MODE=record); CI replays it."""
     s = Settings(models_mode="replay", prompts_dir=TESTS / "prompts", cassette_dir=TESTS / "cassettes")
