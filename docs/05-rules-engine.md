@@ -105,7 +105,10 @@ while the questions on #45 are open; each is the conservative option.
   - **additive_condition** reads `check`, `additives` (identification numbers; absent means every additive of the
     formula) and `species_wordings`. It judges the formula lines whose `additive_ref` it names; with none, it is not
     applicable. A product with no formula lines at all has no formula yet, which is missing data: every additive rule
-    is withheld `data_missing`, never not applicable (#172). Each check:
+    is withheld `data_missing`, never not applicable (#172). So is a formula with any line matched to neither a feed
+    material nor an additive of the register: that line may be an additive, so the formula cannot be read as
+    additive-free (#76, T-1001). The formula is pinned like the artwork: a check job carries the formula digest it was
+    requested for, and when the formula has changed since, its additive rules are withheld `data_missing`. Each check:
     - `authorised_for_species` fails on an expired register row. It passes only when a register species string equals
       one of `species_wordings[species]`; the register's strings are unsplit, so a miss proves nothing.
     - `within_max_content` compares the line's amount with `max_content` in the same unit.
