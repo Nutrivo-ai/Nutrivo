@@ -137,6 +137,14 @@ incident. A failed manual run adds a comment to the open incident instead of ope
 Until a founder decides how a staging web rollback works (T-010's issue), a failed staging deploy leaves the web build
 in place and says so: roll it back by hand in Vercel.
 
+**The Vercel project.** The web app deploys from one Vercel project in the **Nutrivoai** team (Pro plan; the Hobby
+plan does not allow commercial use). It is connected to `Nutrivo-ai/Nutrivo` with Root Directory `apps/web`, so
+`apps/web/vercel.json` applies: the Next.js preset, the pnpm install and build commands, and region `fra1` (D-02).
+`VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` in Infisical (staging and prod) are that team's and that project's IDs. No
+other Vercel team or project is connected to the repository: a second one builds every push and posts its own status
+on every pull request. Set by abnutrivo, 8 Nov 2026, after the earlier `nutrivo` team's project reported "Account is
+blocked".
+
 ## 5 · Claude Code on the web, per person
 Each founder runs Claude Code at claude.ai/code in the Claude Team workspace "Nutrivo.ai", with GitHub connected
 (a Claude organisation owner enables the GitHub connector), on the repository `nutrivo-ai/Nutrivo`.
