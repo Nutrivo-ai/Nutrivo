@@ -14,7 +14,7 @@ WEB_TEST = pnpm --dir apps/web test --reporter=default --reporter=junit --output
 PSQL = $(if $(shell command -v psql),psql -Atq postgresql://postgres:postgres@127.0.0.1:54322/postgres,docker exec -i supabase_db_nutrivo psql -Atq -U postgres)
 
 # Every target is a command, never a file: without this, `make fixtures` sees the fixtures/ directory and does nothing.
-.PHONY: help bootstrap db-start db-reset db-migrate fixtures typegen env-check doctor design-fetch design-check \
+.PHONY: help pr-check pr-update pr-merge bootstrap db-start db-reset db-migrate fixtures typegen env-check doctor design-fetch design-check \
         validate-plan workflows issues-sync next verify-task autopilot status gates db-tap test verify-fast verify e2e \
         e2e-ci smoke acceptance-staging conformance conformance-update stripe-catalogue
 
@@ -62,6 +62,12 @@ issues-sync: ## create or update one GitHub issue per task
 	$(PY) scripts/protocol/sync-issues.py
 next: ## claim the next ready task: LANE=db|worker|web|infra|content|any
 	$(PY) scripts/protocol/next-task.py --lane $(LANE) --claim
+pr-check: ## PR=123: may it merge (D-24)? lists every reason it may not
+	$(PY) scripts/protocol/pr.py check $(PR)
+pr-update: ## PR=123: bring it up to date with its base (GitHub's Update branch, a merge commit)
+	$(PY) scripts/protocol/pr.py update $(PR)
+pr-merge: ## PR=123: squash-merge, only if up to date, every required check green, no changes requested, threads resolved
+	$(PY) scripts/protocol/pr.py merge $(PR)
 verify-task: ## T=T-123: the fast suite, acceptance coverage and the task's checks
 	bash scripts/protocol/verify-task.sh $(T)
 autopilot: ## run tasks with Claude Code headless: LANE=web MAX_TASKS=3

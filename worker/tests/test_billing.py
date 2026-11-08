@@ -23,7 +23,9 @@ def test_snapshot_maps_plan_term_dials_and_add_ons():
                     stripe.product)
     assert snap == {"customer_id": "cus_A", "subscription_id": "sub_A1", "plan": "standard", "term": "annual",
                     "status": "active", "editor_seats": 7, "recipes_included": 35,
-                    "current_period_end": "2027-01-15T08:00:00+00:00"}
+                    "current_period_end": "2027-01-15T08:00:00+00:00",
+                    # T-704: an annual term has no cap; prices without unit_amount give no amounts (never a guess)
+                    "plan_recipes": 30, "amount_per_period": None, "recipe_unit_amount": None, "overage_cap": None}
 
 
 def test_snapshot_unlimited_dials_mean_no_check_and_products_are_read_once_per_run():

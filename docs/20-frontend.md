@@ -87,6 +87,16 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
   no-dead-controls crawl, and the width-independent regions of the S-MOB-003 and S-MOB-004 baselines (the state label,
   kickers and the capture title) until spec/screens.yaml Q2 settles how a 390 px route compares with a 284 px phone.
 
+### Built in T-506: the board (`apps/web/src/components/board`, `apps/web/src/lib/board`)
+- **S-NV2-006 Board** at `/w/[workspace]/board`: the stat tiles (answers unproven, stale against ruleset), the filter
+  chips (links, so filters live in the URL), products × markets grouped by region with each region's roll-up cell from
+  `app.rollup_state`, the ruleset each row was judged against, and the legend. `?view=findings` lists the open findings
+  across the portfolio (F04). Empty: "Add a product". An empty workspace keeps the screen title "Board".
+- **Not built** (#56): the "Obligations with a date" tile, S-MOB-001 at 390 px and the 300-recipe budget (both need a
+  set-returning roll-up in the database), S-MIS-003's search and saved views (F02, LATER).
+- **Tests** (`tests/e2e/board.spec.ts`): F01.main, F01.must.1, F04.main, the empty state, axe, the screen's links and
+  no buttons, and the legend against the S-NV2-006 baseline.
+
 ## 6 · Performance
 Lighthouse budgets on the public pages (LCP under 2.5 s); a 1.5 s budget for the board with 300 recipes
 (spec/nfr.yaml).

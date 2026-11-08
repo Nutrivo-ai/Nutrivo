@@ -45,3 +45,16 @@ export async function inviteLinkFromEmail(email: string, count = 1): Promise<str
   if (!href) throw new Error("no invitation link in the email");
   return new URL(href).pathname;
 }
+
+/** Waits for the `count`-th email to `email` and returns the shared-report link in it (Template 01, /share/<token>). */
+export async function shareLinkFromEmail(email: string, count = 1): Promise<string> {
+  let found: Summary[] = [];
+  await expect
+    .poll(async () => (found = await messagesTo(email)).length, { timeout: 90_000, message: `report email ${count} to the test address` })
+    .toBeGreaterThanOrEqual(count);
+  const newest = found.sort((a, b) => b.Created.localeCompare(a.Created))[0];
+  const message = (await (await fetch(`${mailpit()}/api/v1/message/${newest.ID}`)).json()) as { HTML: string; Text: string };
+  const href = /href="([^"]*\/share\/[A-Za-z0-9_-]+)"/.exec(message.HTML)?.[1] ?? /(\S*\/share\/[A-Za-z0-9_-]+)/.exec(message.Text)?.[1];
+  if (!href) throw new Error("no share link in the email");
+  return new URL(href).pathname;
+}
