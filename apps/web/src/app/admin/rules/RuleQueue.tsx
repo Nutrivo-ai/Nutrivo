@@ -3,10 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import { Blueprint, Button, EmptyState, cx } from "@/components/kit";
-import type { Extraction, Jurisdiction, RuleCandidate } from "@/lib/admin/reads";
+import type { AcceptedRule, Extraction, Jurisdiction, LinkableTerm, RuleCandidate } from "@/lib/admin/reads";
 import { languageName } from "@/lib/admin/language";
 import { DOMAINS, EFFECT_TYPES, SHAPES, label } from "@/lib/admin/staff";
 import { acceptCandidate, rejectCandidate } from "../actions";
+import { AcceptedRules, LinkFields } from "./TermLinks";
 
 // docs/12 "Accepting a rule: the checklist", as the person works through it.
 const CHECKLIST = [
@@ -15,6 +16,7 @@ const CHECKLIST = [
   "Parameters and units are exactly what the text says; the article reference is exact to the paragraph.",
   "Applicability (species, product class, life stage, market) matches the text, no wider and no narrower.",
   "Dates: effective_from and any sell-through period are set where the act gives them.",
+  "Term links (D-31): each linked term is the register entry for what the text requires, with an accepted entry in every language of the markets the rule holds on.",
   "Fixtures exist for passed, failed and withheld, and pass (checked again at release).",
 ];
 
@@ -57,16 +59,18 @@ function blockedReason(c: RuleCandidate): string | null {
 
 type Outcome = { tone: "done" | "refused"; text: string; candidate: string } | null;
 
-function Candidate({ c, nodes, outcome, setOutcome }: { c: RuleCandidate; nodes: Jurisdiction[]; outcome: Outcome; setOutcome: (o: Outcome) => void }) {
+function Candidate({ c, nodes, terms, outcome, setOutcome }: { c: RuleCandidate; nodes: Jurisdiction[]; terms: LinkableTerm[]; outcome: Outcome; setOutcome: (o: Outcome) => void }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const blocked = blockedReason(c);
+  // The links depend on the shape: the existing rule's, or the one chosen for a new rule key.
+  const [shape, setShape] = useState<string | null>(c.existingRule?.shape ?? null);
 
   function accept(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     start(async () => {
-      const result = await acceptCandidate(c.id, form);
+      const result = await acceptCandidate(c.id, shape, form);
       if (result.ok) {
         const v = result.value as { rule_key?: string; version?: number } | null;
         setOutcome({ tone: "done", candidate: c.id, text: `Accepted as ${v?.rule_key ?? c.ruleKey} v${v?.version ?? "?"}, with your name and the time.` });
@@ -137,7 +141,7 @@ function Candidate({ c, nodes, outcome, setOutcome }: { c: RuleCandidate; nodes:
                 </label>
                 <label className="text-[13px]">
                   <span className={caption}>Shape</span>
-                  <select name="shape" required defaultValue="" className={field}>
+                  <select name="shape" required defaultValue="" onChange={(e) => setShape(e.target.value || null)} className={field}>
                     <option value="" disabled>Choose</option>
                     {SHAPES.map((s) => <option key={s} value={s}>{label(s)}</option>)}
                   </select>
@@ -162,6 +166,9 @@ function Candidate({ c, nodes, outcome, setOutcome }: { c: RuleCandidate; nodes:
               <span className={caption}>Applicability (docs/05 predicate, no wider and no narrower than the text)</span>
               <textarea name="applicability" required rows={3} placeholder='{"all": [{"eq": ["species", "dog"]}]}' className={cx(field, "font-mono")} />
             </label>
+            <div className="md:col-span-2">
+              <LinkFields shape={shape} terms={terms} />
+            </div>
             <label className="text-[13px]">
               <span className={caption}>Effect of the change (BE-09)</span>
               <select name="effect_type" required defaultValue="" className={field}>
@@ -193,7 +200,7 @@ function Candidate({ c, nodes, outcome, setOutcome }: { c: RuleCandidate; nodes:
   );
 }
 
-export function RuleQueue({ candidates, nodes }: { candidates: RuleCandidate[]; nodes: Jurisdiction[] }) {
+export function RuleQueue({ candidates, nodes, terms, rules }: { candidates: RuleCandidate[]; nodes: Jurisdiction[]; terms: LinkableTerm[]; rules: AcceptedRule[] }) {
   // Page-level, so the outcome stays on screen after a decided candidate leaves the queue.
   const [outcome, setOutcome] = useState<Outcome>(null);
   return (
@@ -210,8 +217,9 @@ export function RuleQueue({ candidates, nodes }: { candidates: RuleCandidate[]; 
               body="Candidates appear here after the K01 and K02 extractions have read a stored official text. Nothing becomes a rule without a person's acceptance."
             />
           ) : (
-            candidates.map((c) => <Candidate key={c.id} c={c} nodes={nodes} outcome={outcome} setOutcome={setOutcome} />)
+            candidates.map((c) => <Candidate key={c.id} c={c} nodes={nodes} terms={terms} outcome={outcome} setOutcome={setOutcome} />)
           )}
+          <AcceptedRules rules={rules} terms={terms} />
         </div>
         <aside className="border border-rule bg-panel py-[14px] px-[16px]">
           <p className="m-0 font-mono text-[10px] tracking-[0.12em] uppercase text-n600">Accepting a rule: the checklist</p>

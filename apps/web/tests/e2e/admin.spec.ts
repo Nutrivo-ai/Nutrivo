@@ -408,6 +408,74 @@ test.describe("@local-only /admin content console", () => {
     expect(errors).toEqual([]);
   });
 
+  test("[T-211] staff link register terms when accepting a rule, re-link it, and see P0048 (D-31)", async ({ page, context, baseURL }) => {
+    test.setTimeout(150_000);
+    // Setup as the service role: one accepted synthetic term (Swedish only) and one candidate. Synthetic, not law.
+    const KEY = `TEST_T211_${RUN}`;
+    const LINKED = `TEST.T211.${RUN}`;
+    const svSource = await source("sv");
+    const accepted = await admin().schema("ref").from("term_entries").insert({
+      term_key: KEY, language: "sv", term: `TEST syntetiskt parti ${run}`, kind: "heading", article_ref: "TEST Art. 2(1)",
+      source_id: svSource, status: "accepted",
+    });
+    if (accepted.error) throw accepted.error;
+    const value = { verified: true, extraction: { found: true, article_ref: "TEST Art. 2(1)", excerpt: `TEST synthetic excerpt two ${run}`, params: { particular: "TEST batch", conditions: [] } } };
+    const inserted = await admin().schema("ref").from("rule_candidates").insert({
+      source_id: svSource, article: "TEST Art. 2", proposed_rule_key: LINKED, first_value: value, second_value: value, agree: true, decision: "pending",
+    }).select("id").single();
+    if (inserted.error) throw inserted.error;
+
+    await signIn(context, staff, baseURL!);
+    const errors = watch(page);
+    await page.goto("/admin/rules");
+    const card = page.locator(`[data-candidate="${inserted.data.id}"]`);
+    await card.getByLabel("First key").check();
+    await card.getByLabel("Title").fill(`TEST T-211 rule ${run}`);
+    // The links follow the shape: nothing to choose until it is picked.
+    await expect(card.locator("[data-links]")).toContainText("Choose the shape first");
+    await card.getByLabel("Shape").selectOption("mandatory_particular");
+    await card.getByLabel("Domain").selectOption("mandatory_particulars");
+    await card.getByLabel("Held on node").selectOption("EU-FI");
+    await card.getByLabel(/Applicability/).fill('{"all": []}');
+    await card.getByRole("checkbox", { name: new RegExp(KEY) }).check();
+    await card.getByLabel("Scope").selectOption("any_panel");
+    await card.getByLabel(/Effect of the change/).selectOption("new_obligation");
+    await card.getByRole("button", { name: "Accept this rule version" }).click();
+    await expect(page.locator('[data-said="rules"]')).toHaveText(`Accepted as ${LINKED} v1, with your name and the time.`);
+    const v1 = await admin().schema("ref").from("rule_versions").select("params").eq("rule_key", LINKED).eq("version", 1).single();
+    expect(v1.data?.params).toEqual({ particular: "TEST batch", conditions: [], detect: { term_keys: [KEY] }, scope: "any_panel" });
+
+    // The accepted rule shows its links, and a re-link writes v2 (editorial) with the new ones.
+    const row = page.locator(`[data-rule-links="${LINKED}"]`);
+    await expect(row.locator("[data-current-links]")).toHaveText(`detected by ${KEY} · scope any panel`);
+    await row.getByText("Change the term links").click();
+    await row.getByLabel("Scope").selectOption("each_panel_in_node_language");
+    await row.getByRole("button", { name: "Save as v2" }).click();
+    await expect(page.locator('[data-said="relink"]')).toContainText(`Saved ${LINKED} v2 with the new links.`);
+    const v2 = await admin().schema("ref").from("rule_versions").select("effect_type, supersedes_version, params").eq("rule_key", LINKED).eq("version", 2).single();
+    expect(v2.data).toEqual({ effect_type: "editorial", supersedes_version: 1, params: { particular: "TEST batch", conditions: [], detect: { term_keys: [KEY] } } });
+    await axe(page);
+
+    // P0048 on the coverage screen: EU-FI reads Finnish and Swedish, and the linked term has no Finnish entry.
+    const draft = `2026.11-t211${run}`;
+    const made = await staff.db.schema("app").rpc("create_ruleset_draft", { p_id: draft });
+    expect(made.error).toBeNull();
+    const member = await staff.db.schema("app").rpc("set_draft_member", { p_draft: draft, p_rule_key: LINKED, p_version: 2 });
+    expect(member.error).toBeNull();
+    const fixtures = await admin().schema("ref").from("rule_fixtures").insert(
+      (["passed", "failed", "withheld"] as const).map((o) => ({ rule_key: LINKED, version: 2, name: `TEST ${o} ${run}`, input: { test: o }, expected_outcome: o })),
+    );
+    if (fixtures.error) throw fixtures.error;
+    await page.goto(`/admin/coverage?draft=${draft}&node=EU-FI`);
+    const cell = page.locator('[data-coverage="EU-FI:mandatory_particulars"]');
+    await cell.getByLabel("State").selectOption("complete");
+    await cell.getByRole("button", { name: "Save" }).click();
+    await expect(page.locator('[data-said="coverage-mandatory_particulars"]')).toContainText("Refused: a linked term lacks one of the node's languages (D-31)");
+    await page.reload();
+    await expect(page.locator('[data-coverage="EU-FI:mandatory_particulars"]')).not.toHaveAttribute("data-state", "complete");
+    expect(errors).toEqual([]);
+  });
+
   test("S-NV2-029: the term queue's routing note and decision row match the design at 1600 px", async ({ page, context, baseURL }) => {
     await signIn(context, staff, baseURL!);
     await page.goto(`/admin/terms?entry=${held}`);
@@ -426,7 +494,7 @@ test.describe("@local-only /admin content console", () => {
     const made = await staff.db.schema("app").rpc("create_ruleset_draft", { p_id: crawlDraft });
     expect(made.error).toBeNull();
     // Decisions that write content are exercised by the K03/K04 tests above, not clicked blind here.
-    const covered = /^(ACCEPT|REJECT|Reject|Accept this rule version)$/;
+    const covered = /^(ACCEPT|REJECT|Reject|Accept this rule version|Save as v\d+)$/;
     for (const route of [`/admin/terms?entry=${derived}`, "/admin/rules", `/admin/coverage?draft=${crawlDraft}&node=EU-SE`, "/admin/glossary"]) {
       const errors = watch(page);
       await page.goto(route);

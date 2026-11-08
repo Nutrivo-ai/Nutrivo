@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { extraction, releaseBlockers, type DraftMember } from "./model";
-import { isStaff, refusal, staffMfa } from "./staff";
+import { currentLinks, hasLinks, isStaff, linkKind, linksFromForm, refusal, staffMfa } from "./staff";
 
 describe("/admin staff check (T-205)", () => {
   it("is staff only when app_metadata.nutrivo_staff is exactly true", () => {
@@ -65,5 +65,58 @@ describe("release blockers", () => {
       "The latest fixture run judged 2 of 3 fixtures.",
     ]);
     expect(releaseBlockers({ members: [member(["failed", "passed", "withheld"])], latestRun: { ...run, ruleFixturesRan: 3 }, fixturesExpected: 3 })).toEqual([]);
+  });
+});
+
+// T-211 · D-31: term links, as the /admin/rules forms build them for app.accept_candidate and app.relink_rule.
+function form(entries: [string, string][]) {
+  const f = new FormData();
+  for (const [k, v] of entries) f.append(k, v);
+  return f;
+}
+
+describe("[T-211] term links per rule shape (D-31)", () => {
+  it("offers detection terms, wording terms or nothing, by shape", () => {
+    expect(["mandatory_particular", "threshold", "character_height"].map(linkKind)).toEqual(["detect", "detect", "detect"]);
+    expect(linkKind("prescribed_wording")).toBe("wording");
+    expect([linkKind("additive_condition"), linkKind("claim_judgement"), linkKind(null)]).toEqual(["none", "none", "none"]);
+  });
+
+  it("builds detect links, with a scope only when it is not the default", () => {
+    expect(linksFromForm("mandatory_particular", form([["link_detect", "a"], ["link_detect", "b"], ["link_scope", "each_panel_in_node_language"]])))
+      .toEqual({ ok: true, links: { detect: { term_keys: ["a", "b"] } } });
+    expect(linksFromForm("mandatory_particular", form([["link_detect", "a"], ["link_scope", "any_panel"]])))
+      .toEqual({ ok: true, links: { detect: { term_keys: ["a"] }, scope: "any_panel" } });
+    // threshold and character_height take no scope.
+    expect(linksFromForm("threshold", form([["link_detect", "a"], ["link_scope", "any_panel"]])))
+      .toEqual({ ok: true, links: { detect: { term_keys: ["a"] } } });
+  });
+
+  it("builds wording links; the prescribed term is never also an alternative", () => {
+    expect(linksFromForm("prescribed_wording", form([["link_term_key", "p"], ["link_alternatives", "q"], ["link_alternatives", "p"], ["link_match", "exact"]])))
+      .toEqual({ ok: true, links: { term_key: "p", alternative_term_keys: ["q"], match: "exact" } });
+    expect(linksFromForm("prescribed_wording", form([["link_term_key", "p"], ["link_match", "case_folded"]])))
+      .toEqual({ ok: true, links: { term_key: "p" } });
+  });
+
+  it("sends no links when no term is chosen (the rule stays withheld), and refuses alternatives without the term", () => {
+    expect(linksFromForm("mandatory_particular", form([["link_scope", "any_panel"]]))).toEqual({ ok: true, links: null });
+    expect(linksFromForm("prescribed_wording", form([["link_match", "exact"]]))).toEqual({ ok: true, links: null });
+    expect(linksFromForm("additive_condition", form([["link_detect", "a"]]))).toEqual({ ok: true, links: null });
+    const refused = linksFromForm("prescribed_wording", form([["link_alternatives", "q"]]));
+    expect(refused.ok).toBe(false);
+  });
+
+  it("reads a stored version's links back, ignoring the extraction's own params", () => {
+    const params = { particular: "x", conditions: [], wordings: ["w"], alternatives: ["source text"], detect: { term_keys: ["a"] }, scope: "any_panel" };
+    expect(currentLinks(params)).toEqual({ detect: ["a"], scope: "any_panel", termKey: null, alternatives: [], match: null });
+    expect(hasLinks(params)).toBe(true);
+    expect(hasLinks({ wordings: ["w"], alternatives: ["source text"] })).toBe(false);
+    expect(currentLinks(null)).toEqual({ detect: [], scope: null, termKey: null, alternatives: [], match: null });
+  });
+
+  it("shows P0048 as a refusal with the database's reason", () => {
+    expect(refusal({ code: "P0048", message: "D-31: EU-FI mandatory_particulars is complete only when ..." }).kind).toBe("refused");
+    expect(refusal({ code: "P0048", message: "x" }).message).toBe("Refused: a linked term lacks one of the node's languages (D-31): x");
   });
 });
