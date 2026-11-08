@@ -24,7 +24,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Protocol, TypeVar
+from typing import Any, ClassVar, Protocol, TypeVar
 
 import sentry_sdk
 from pydantic import BaseModel, ValidationError
@@ -137,7 +137,7 @@ class _AnthropicMessages:
     """Bedrock and the Anthropic API share the Messages surface of the anthropic SDK."""
 
     name = "anthropic"
-    extra_body: dict[str, Any] | None = None
+    extra_body: ClassVar[dict[str, Any] | None] = None
 
     def __init__(self, client: Any, models: dict[str, str]):
         self.client, self.models = client, models
@@ -162,7 +162,7 @@ class Bedrock(_AnthropicMessages):
     migration-2026-10-21). Our requests use no field that differs between the two versions."""
 
     name = "bedrock"
-    extra_body = {"anthropic_version": "bedrock-2023-05-31"}
+    extra_body: ClassVar[dict[str, Any] | None] = {"anthropic_version": "bedrock-2023-05-31"}
 
     def __init__(self, settings: Settings, http_client: Any = None):
         import anthropic
