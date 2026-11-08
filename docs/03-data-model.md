@@ -26,6 +26,11 @@ ref.ruleset_members, ref.term_decisions, ref.fixture_runs, ref.ruleset_seals. Pr
 including for the table owner (BE-05). Accepted `ref.rule_versions` rows are permanent (BE-08). Products have no
 delete (BE-13).
 
+**Shares (T-601).** `app.shares.product_id` is the report's product, denormalised (filled by a trigger when a
+writer leaves it out, refused when it disagrees) so the read policy stays single-table: a member reads a share where
+they can see the product. `revoked_at` and the worker's `token_hash` replacement are the only updates; the access log
+is insert-only.
+
 **Released coverage is sealed (#197, #8 DB-3).** A deferred constraint trigger on `ref.ruleset_versions` writes a
 `ref.ruleset_seals` row when the releasing transaction commits, after everything the release wrote; seals for every
 earlier release were backfilled. For a sealed ruleset, P0047 refuses INSERT, UPDATE, DELETE and TRUNCATE on its
@@ -65,7 +70,7 @@ deterministic_rule or model_judgement needs a rule_key (23514); a clear check ta
 | rule effect_type | new_obligation · tightened_threshold · withdrawn_authorisation · prescribed_wording · editorial |
 | panel failure_code | outlined_text · rasterised · missing_font · colour_space · no_true_scale · unreadable |
 | audit_events.kind (access) | `session.started` (one row per active membership at every sign-in, `after` = `{aal}`) · `access.password_changed` (no before or after: never the secret). Written by triggers on `auth.sessions` and `auth.users`, so no client can skip or forge them; the actor is always the account holder, also when the hash changes through the admin API (T-103) |
-| withheld reason_code | coverage: not_encoded · partially_encoded · out_of_scope · pending_acceptance (need gap_id); extraction: the failure codes (need panel_id); data_missing · model_abstained · model_unavailable · model_refused · model_output_invalid; engine (T-403, #45): evaluator_missing (no evaluator for the rule's shape yet) · evaluator_error (the rule's params or applicability cannot be evaluated) |
+| withheld reason_code | coverage: not_encoded · partially_encoded · out_of_scope · pending_acceptance (need gap_id); extraction: the failure codes (need panel_id); data_missing · model_abstained · model_unavailable · model_refused · model_output_invalid; engine (T-403, #45): evaluator_missing (no evaluator for the rule's shape yet) · evaluator_error (the rule's params or applicability cannot be evaluated); claims (T-503, #53): claim_not_evaluated (no claims harness threshold record for the rule version and panel language) |
 
 ## Error codes raised by the database
 | Code | Meaning |
@@ -89,6 +94,7 @@ deterministic_rule or model_judgement needs a rule_key (23514); a clear check ta
 | P0045 | D03: the classification changed since it was read (the basis is not the product's latest); reload and confirm again |
 | P0046 | A finding whose workspace, product or node differ from its check's (#179 DB-6) |
 | P0047 | #197: a sealed (released) ruleset's coverage, members, pinned rule metadata or named gap changed after its release; change it in the next draft |
+| P0048 | D-31: a draft's node × domain set complete, or a member set under complete coverage, while a held member's linked term has no accepted entry in one of the node's languages (T-209) |
 | P0291 / P0292 / P0293 | Certificate: no signing grant / two-factor required / open findings |
 
 ## Naming reconciliation

@@ -1001,14 +1001,14 @@ isOneToOne: false
                   ]
                 },"shares": {
                   Row: {
-                    "channel": string,"created_at": string,"created_by": string | null,"expires_at": string | null,"id": string,"recipient": string | null,"report_id": string,"revoked_at": string | null,"token_hash": string,"workspace_id": string
+                    "channel": string,"created_at": string,"created_by": string | null,"expires_at": string | null,"id": string,"product_id": string,"recipient": string | null,"report_id": string,"revoked_at": string | null,"token_hash": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "channel": string,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"recipient"?: string | null,"report_id": string,"revoked_at"?: string | null,"token_hash": string,"workspace_id": string
+                    "channel": string,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"product_id": string,"recipient"?: string | null,"report_id": string,"revoked_at"?: string | null,"token_hash": string,"workspace_id": string
                   }
                   Update: {
-                    "channel"?: string,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"recipient"?: string | null,"report_id"?: string,"revoked_at"?: string | null,"token_hash"?: string,"workspace_id"?: string
+                    "channel"?: string,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"product_id"?: string,"recipient"?: string | null,"report_id"?: string,"revoked_at"?: string | null,"token_hash"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -1016,6 +1016,12 @@ isOneToOne: false
       columns: ["created_by"]
 isOneToOne: false
       referencedRelation: "people"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shares_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "shares_report_id_fkey"
@@ -1220,7 +1226,7 @@ isOneToOne: false
           }
           Functions: {
             "accept_candidate":
-{ Args: { "p_applicability": Json,"p_candidate": string,"p_domain": string,"p_effect_type": string,"p_effective_from"?: string,"p_node": string,"p_sell_through_until"?: string,"p_shape": string,"p_title": string,"p_use": string }; Returns: Json
+{ Args: { "p_applicability": Json,"p_candidate": string,"p_domain": string,"p_effect_type": string,"p_effective_from"?: string,"p_links"?: Json,"p_node": string,"p_sell_through_until"?: string,"p_shape": string,"p_title": string,"p_use": string }; Returns: Json
                            },
 "accept_invitation":
 { Args: { "p_token": string }; Returns: string
@@ -1236,6 +1242,9 @@ isOneToOne: false
 "apply_subscription":
 { Args: { "p_ref": string,"p_snapshot": Json,"p_source": string,"p_ws": string }; Returns: string
                            },
+"billing_context":
+{ Args: { "p_ws": string }; Returns: Json
+                           },
 "change_member":
 { Args: { "p_access_ends_at": string,"p_is_external": boolean,"p_membership": string,"p_role": string,"p_scope_family_ids": (string)[],"p_scope_node_ids": (string)[] }; Returns: string
                            },
@@ -1250,6 +1259,9 @@ isOneToOne: false
                            },
 "create_ruleset_draft":
 { Args: { "p_id": string,"p_notes"?: string }; Returns: string
+                           },
+"create_share":
+{ Args: { "p_channel": string,"p_expires_in_days"?: number,"p_recipient"?: string,"p_report": string,"p_request_id"?: string }; Returns: Json
                            },
 "create_workspace":
 { Args: { "p_name": string }; Returns: string
@@ -1277,8 +1289,14 @@ isOneToOne: false
 "open_coverage_gap":
 { Args: { "p_description": string,"p_domain": string,"p_gap_id": string,"p_node": string,"p_reason_code": string }; Returns: string
                            },
+"open_share":
+{ Args: { "p_token": string,"p_user_agent"?: string }; Returns: Json
+                           },
 "recipe_overage_context":
 { Args: { "p_ws": string }; Returns: Json
+                           },
+"record_billing_change":
+{ Args: { "p_after": Json,"p_before": Json,"p_customer": string,"p_kind": string,"p_ws": string }; Returns: undefined
                            },
 "record_dunning_step":
 { Args: { "p_day": number,"p_invoice": string,"p_outcome": string,"p_ref": string,"p_ws": string }; Returns: string
@@ -1298,6 +1316,9 @@ isOneToOne: false
 "release_ruleset":
 { Args: { "p_draft": string,"p_notes"?: string }; Returns: Json
                            },
+"relink_rule":
+{ Args: { "p_links": Json,"p_note"?: string,"p_rule_key": string }; Returns: Json
+                           },
 "remove_member":
 { Args: { "p_membership": string,"p_reason"?: string }; Returns: string
                            },
@@ -1315,6 +1336,9 @@ isOneToOne: false
                            },
 "revoke_invitation":
 { Args: { "p_invitation": string }; Returns: string
+                           },
+"revoke_share":
+{ Args: { "p_share": string }; Returns: string
                            },
 "rollup_state":
 { Args: { "p_node": string,"p_product": string }; Returns: string
