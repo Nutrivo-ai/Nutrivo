@@ -6,7 +6,7 @@
 | Database app tests | supabase/tests/app/ | `make gates` | Claude Code |
 | Worker gates | worker/tests/gates/ | `make test` (active from `.milestone` 3) | People only |
 | Worker unit and handler tests | worker/tests/ | `make test` | Claude Code |
-| Rule fixtures | ref.rule_fixtures, plus the synthetic and golden labels | `nutrivo fixtures run --ruleset <id>` (docs/05 §Fixtures; JSON and JUnit for CI) | Drafted by Claude Code, confirmed by the accepting person |
+| Rule fixtures | ref.rule_fixtures, plus the golden labels from 30 (synthetic labels never, D-32) | `nutrivo fixtures run --draft <id>` before a release, recorded for the gate; `--ruleset <id>` read only (docs/05 §The runner; JSON and JUnit for CI) | Drafted by Claude Code, confirmed by the accepting person |
 | Synthetic labels | fixtures/synth/ | `make fixtures` | Generator in the repository |
 | Demo seed (Halden Pet Nutrition) | supabase/tests/app/fixtures/demo_halden.psql; tests in 10_demo_seed | `supabase/seed/demo/load.sh` | Claude Code |
 | Golden labels | fixtures/golden/ | Release gate from 30 labels | People only |

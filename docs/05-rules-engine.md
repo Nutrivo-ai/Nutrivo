@@ -29,8 +29,10 @@ A rule's params come from two places:
 
 Printed text is judged only through the linked register entries for the panel's own language. The engine does not
 read a flat `alternatives` list. A rule without its links is withheld `data_missing`. A node × domain cannot be
-Complete while a member's linked key has no accepted entry in one of the node's languages. This is decided but not
-built yet: T-209 (database), T-210 (engine) and T-211 (console).
+Complete while a member's linked key has no accepted entry in one of the node's languages (P0048). The engine (T-210)
+and the database (T-209: `app.accept_candidate` with `p_links`, `app.relink_rule`) are built; the console (T-211)
+follows. The draft digest also covers the accepted entries of every linked key, so a term changed after a fixture run
+makes the run stale.
 
 ## Applicability
 A small predicate language: `{"all": [...]}`, `{"any": [...]}`, `{"not": X}`, `{"eq": [field, value]}`,
@@ -69,8 +71,10 @@ while the questions on #45 are open; each is the conservative option.
   - A market's label state is the state of its worst panel.
 - **mandatory_particular** reads `detect.term_keys` and `scope`: `each_panel_in_node_language` (the default) or
   `any_panel`.
-- **prescribed_wording** reads `term_key`, `alternatives` (a list, or a map of language to list) and `match`:
-  `case_folded` (the default) or `exact`. It is judged only on panels printed in one of the node's languages.
+- **prescribed_wording** reads `term_key`, `alternative_term_keys` (register keys of wordings also permitted) and
+  `match`: `case_folded` (the default) or `exact`. It is judged only on panels printed in one of the node's languages,
+  against the register entries of both kinds of key in the panel's language (D-31, T-210). The extraction's
+  `alternatives`, a list or a map, is never read, so a wording in another language cannot pass a panel.
 - **Matching** compares NFC text with whitespace collapsed.
 - **Terms** are the accepted `ref.term_entries` in the panel's language that are pinned to the ruleset; when none
   are pinned to it, the ones pinned to no ruleset.
@@ -109,8 +113,29 @@ while the questions on #45 are open; each is the conservative option.
     - Anything else, including a `max_content` never imported (docs/12), is withheld `data_missing`.
   - **Not stored yet.** No source gives the product's quantity or declared quantities, so in a real check
     character_height rules with several bands, and every threshold rule, are withheld `data_missing` until one does.
+- **claim_judgement (T-503, BE-22).** Asked on #53; the open decisions (Q1–Q6) are carried on #209. Each choice below is the conservative option.
+  - **The harness threshold comes first.** The rule is judged only for a (rule_key, version, panel language) with a
+    harness threshold record (docs/07 §The harness). Without one it is withheld `claim_not_evaluated` and no model is
+    called. Where records come from is open (#209 Q1). The check job has no source yet, so in a real check every claim
+    rule is withheld `claim_not_evaluated`.
+  - It is judged on panels in one of the node's languages; other panels are not applicable. A panel whose language
+    is unknown, or with no printed text, is withheld `data_missing`.
+  - Each text object is judged as printed, in the panel's language and never translated. The call goes through
+    `nutrivo_worker.models` with `claim_judgement.v1` and the rule version's `question`, `criteria`, `examples` (in
+    that language) and `min_confidence`: exactly what the harness measured. A string printed twice is judged once.
+  - `prohibited` or `needs_evidence` at confidence ≥ `min_confidence` fails the rule. The `action` finding has
+    provenance `model_judgement`, its `confidence` and `model_call_id`, and is pinned to the text object.
+  - An abstention or a lower confidence withholds `model_abstained`, and a model error keeps its own reason. Withheld
+    is never passed, but a failure on another text object still fails the rule.
+  - It passes only when every text object is judged `permitted` at ≥ `min_confidence`.
+  - Judgements are shared across the job: the same (rule version, language, printed string) is one model call for
+    every panel and market. The check job heartbeats after each panel. A withheld abstention keeps its `confidence`
+    and `model_call_id`.
+  - Invalid params, or a failure without an `app.model_calls` id, give `evaluator_error`.
+  - The fixtures runner still withholds claim_judgement fixtures `evaluator_missing`, because it calls no model
+    (#209 Q4).
 - **Withholds.**
-  - A shape with no evaluator yet gives `evaluator_missing`. `claim_judgement` has none until T-503.
+  - A shape with no evaluator yet gives `evaluator_missing`.
   - An evaluator fault gives `evaluator_error` and is reported to Sentry.
   - A model error from `nutrivo_worker.models` keeps its own reason: `model_unavailable`, `model_refused` or
     `model_output_invalid`.
@@ -145,15 +170,27 @@ needs a new run. What a release run judges is D-32:
 - synthetic labels are never part of a release run;
 - golden labels count from 30.
 
-T-210 builds it. Until then nothing can be released, and that is intended.
+T-210 built it (§The runner). A real rule still needs its term links (T-209; in the console from T-211) before its
+fixtures can pass.
 
-### The runner (T-206)
-`nutrivo fixtures run --ruleset <id> [--format text|json] [--out report.json] [--junit report.xml]` reads, and never
-writes:
-- the rule fixtures of every member of a released ruleset (`ref.ruleset_members` × `ref.rule_fixtures`, in a
-  read-only transaction);
-- the synthetic labels (`fixtures/synth/out/*.truth.json`);
-- the golden labels (`fixtures/golden/`).
+### The runner (T-206, T-210)
+`nutrivo fixtures run --ruleset <id> | --draft <id> [--format text|json] [--out report.json] [--junit report.xml]
+[--golden DIR]` reads, in one repeatable-read, read-only transaction:
+- the rule fixtures of every member, with each member's params, applicability and the accepted term register:
+  - `--ruleset`: a released ruleset (`ref.ruleset_members`);
+  - `--draft`: a draft (`ref.ruleset_draft_members`), with the register its release would carry (entries pinned to
+    no ruleset), plus `private.ruleset_draft_digest` in the same snapshot;
+- the golden labels (`fixtures/golden/`), once there are 30 of them (D-32).
+
+Synthetic labels are never part of a run (D-32): their wording is invented and never in the register. They are
+tested by the worker's own tests. Golden labels are counted as the top-level entries of `fixtures/golden/` other than
+README and hidden files, because their file format is OPEN until the 30th. Below 30 the report gives the count and
+leaves them out (`labels.golden`).
+
+A `--ruleset` run writes nothing. A `--draft` run writes one row to `ref.fixture_runs` in its own short transaction,
+whether it passed or not, because the latest run is the one the release gate reads. The row holds the snapshot's
+digest, `passed`, `rule_fixtures_ran` and the summary. A draft that does not exist, or one that is already released
+(frozen), exits 2 and records nothing.
 
 It reports each item, per language panel for labels, as one of:
 - `matched`: an evaluator ran and its outcome equals the expected outcome, including the reason code for a withheld
@@ -168,17 +205,13 @@ It reports each item, per language panel for labels, as one of:
 
 A runner-level withhold never counts as a match, even for a fixture that expects `withheld`. The run passes (exit 0)
 only when every item matched and at least one rule fixture was evaluated. Exit 1 means something differed or was
-withheld. Exit 2 means an unknown ruleset or missing configuration. With `--format json`, stdout carries the report
+withheld. Exit 2 means an unknown ruleset or draft, a released draft, or missing configuration. With `--format json`, stdout carries the report
 alone (logs go to stderr). The report holds `ruleset_version`, `passed`, a summary per kind and every result with
 expected and actual.
 
 Evaluators register in `nutrivo_worker.fixtures_runner.EVALUATORS` by shape, and the label path in `LABEL_EVALUATOR`.
 T-403 registers mandatory_particular and prescribed_wording, and T-502 registers character_height, threshold and
-additive_condition (§The engine). claim_judgement and every label are
-still withheld, so no ruleset passes while synthetic or golden labels are present. D-32 settles #36:
-- a proposed ruleset is named by its draft id (`--draft`);
-- synthetic labels leave release runs;
-- golden labels count once there are 30 of them.
-
-T-210 builds it. The golden expected-results file format stays OPEN until the 30th golden label. Until T-210 lands,
-only released ruleset ids resolve, and a golden JSON file with a `panels` list is reported per panel.
+additive_condition (§The engine). claim_judgement (it would need a model, #209 Q4) and every label are still
+withheld; `LABEL_EVALUATOR` is unset, so from the 30th golden label no run passes until it is. The golden
+expected-results file format stays OPEN until then; meanwhile a golden JSON file with a `panels` list is reported per
+panel.

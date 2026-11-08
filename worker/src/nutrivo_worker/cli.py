@@ -13,8 +13,9 @@
                    re-render an issued label report from its stored model and compare it with the issued PDF (BE-26;
                    exit 0 identical, 1 not, 2 unknown reference)
   nutrivo config   the resolved settings, secrets masked
-  nutrivo fixtures run --ruleset <id>
-                   rule fixtures, synthetic and golden labels against a ruleset (exit 0 passed, 1 not, 2 error)"""
+  nutrivo fixtures run --ruleset <id> | --draft <id>
+                   rule fixtures (and golden labels from 30) against a released ruleset, read only, or a draft, whose
+                   run is recorded in ref.fixture_runs for the release gate (exit 0 passed, 1 not, 2 error; D-32)"""
 from __future__ import annotations
 
 import argparse
@@ -369,7 +370,9 @@ def cmd_config(settings: Settings) -> int:
 
 
 def cmd_fixtures_run(settings: Settings, args: argparse.Namespace) -> int:
-    """Read only. stdout carries the report alone, so --format json stays machine-readable."""
+    """Everything is read in one repeatable-read, read-only transaction. A draft's run is then recorded in its own
+    short transaction, with the digest read in that same snapshot; a released ruleset's run writes nothing. stdout
+    carries the report alone, so --format json stays machine-readable."""
     import sentry_sdk
 
     from . import engine  # noqa: F401  registers the evaluators in fixtures_runner.EVALUATORS
@@ -377,14 +380,26 @@ def cmd_fixtures_run(settings: Settings, args: argparse.Namespace) -> int:
     from .db import connect
 
     dsn = settings.require_database()
+    target = args.draft or args.ruleset
     try:
         with sentry_sdk.start_transaction(op="cli", name="fixtures.run") as txn:
-            txn.set_tag("ruleset_version", args.ruleset)
+            txn.set_tag("ruleset_version", target)
+            txn.set_tag("draft", bool(args.draft))
             conn = connect(dsn)
             try:
-                conn.execute("set session characteristics as transaction read only")
+                conn.execute("set session characteristics as transaction isolation level repeatable read, read only")
                 with conn.transaction():
-                    report = fr.run(fr.PgFixtureStore(conn), args.ruleset, Path(args.synth), Path(args.golden))
+                    if args.draft:
+                        store = fr.DraftFixtureStore(conn)
+                        digest = store.digest(args.draft)
+                    else:
+                        store = fr.PgFixtureStore(conn)
+                    report = fr.run(store, target, Path(args.golden))
+                if args.draft:
+                    conn.execute("set session characteristics as transaction read write")
+                    with conn.transaction():
+                        run_id = fr.record_run(conn, args.draft, digest, report)
+                    log.info("fixture run recorded", extra=kv(draft=args.draft, run_id=run_id, passed=report.passed))
             finally:
                 conn.close()
             txn.set_tag("passed", report.passed)
@@ -468,15 +483,16 @@ def main(argv: list[str] | None = None) -> int:
     ev.add_argument("--evals", default=str(WORKER_ROOT / "evals" / "claims"), help="the evaluation sets")
     ev.add_argument("--prompt-version", default="v1", help="claim_judgement prompt version (default v1)")
     ev.add_argument("--out", help="also write the JSON report to this file")
-    from .fixtures_runner import GOLDEN_DIR, SYNTH_DIR
+    from .fixtures_runner import GOLDEN_DIR
     fixtures = sub.add_parser("fixtures", help="fixture commands").add_subparsers(dest="fixtures_command",
                                                                                    metavar="subcommand")
     fx_run = fixtures.add_parser("run", help="run the fixtures against a ruleset and compare with the ground truth")
-    fx_run.add_argument("--ruleset", required=True, help="the ruleset version id, e.g. 2026.11-a")
+    target = fx_run.add_mutually_exclusive_group(required=True)
+    target.add_argument("--ruleset", help="a released ruleset version id, e.g. 2026.11-a (read only)")
+    target.add_argument("--draft", help="a ruleset draft id; the run is recorded for the release gate (K05)")
     fx_run.add_argument("--format", choices=("text", "json"), default="text", help="stdout format")
     fx_run.add_argument("--out", help="also write the JSON report to this file")
     fx_run.add_argument("--junit", help="also write a JUnit XML report to this file")
-    fx_run.add_argument("--synth", default=str(SYNTH_DIR), help="synthetic truth files (default fixtures/synth/out)")
     fx_run.add_argument("--golden", default=str(GOLDEN_DIR), help="golden labels, read only (default fixtures/golden)")
     args = parser.parse_args(argv)
     if not args.command or (args.command == "fixtures" and not args.fixtures_command):
