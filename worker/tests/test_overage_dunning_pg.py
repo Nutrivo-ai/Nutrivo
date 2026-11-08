@@ -4,7 +4,6 @@ and day 14, with public.verify_reference still current. Stripe is in memory (tes
 
 Each test runs in one transaction that is rolled back (payment_events and dunning_steps are insert-only). Locally the
 tests skip without the stack; CI's worker job fails such a skip (tests/pgtest.py)."""
-import time
 import uuid
 
 import psycopg
@@ -106,8 +105,11 @@ class World:
         assert self.status() == "dunning"
 
     def payment_failed(self, invoice, days_ago):
+        # Stamp from the database's now() (the transaction's start, which app.dunning_due compares against), rounded
+        # down: the host clock may be past now() by the setup time or clock skew, leaving a day-0 failure not yet due.
+        now = self.conn.execute("select floor(extract(epoch from now()))::bigint as t").fetchone()["t"]
         event = {"id": f"evt_{self.tag}_{invoice}", "object": "event", "type": "invoice.payment_failed",
-                 "livemode": False, "created": int(time.time()) - days_ago * 86400,
+                 "livemode": False, "created": now - days_ago * 86400,
                  "data": {"object": {"id": invoice, "object": "invoice", "customer": self.cus, "subscription": self.sub,
                                      "number": "NV-0042", "currency": "eur", "amount_due": 29880,
                                      "customer_email": "finance@halden.test", "status": "open"}}}
