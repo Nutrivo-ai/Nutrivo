@@ -223,7 +223,12 @@ function panelCaption(p: PanelRow, objects: TextObjectRow[]): string {
   return `Page ${p.page} · panel ${p.panel_index + 1} · ${size} · ${read}`;
 }
 
-function findingOf(f: FindingRow, pin: string, rows: ReportRows, gaps: Map<string, GapRow>): ReportFinding {
+/**
+ * One finding row as the report shows it. Exported for the portfolio findings (F04, T-506), so a finding reads the same
+ * on the board as in its label report: an action needs its rule_key, a withheld finding links to its gap or says none
+ * was recorded.
+ */
+export function findingOf(f: FindingRow, pin: string, workspaceId: string, gaps: Map<string, GapRow>): ReportFinding {
   const provenance: Provenance = isProvenance(f.provenance) ? f.provenance : "not_assessed";
   const base = {
     id: f.id,
@@ -257,7 +262,7 @@ function findingOf(f: FindingRow, pin: string, rows: ReportRows, gaps: Map<strin
         provenance,
         reasonCode: reasonCode as WithheldReason,
         gapId: f.gap_id,
-        gapHref: gapHref(rows.workspaceId, gap?.node_id ?? f.node_id, f.gap_id),
+        gapHref: gapHref(workspaceId, gap?.node_id ?? f.node_id, f.gap_id),
         title: gap?.description ?? f.message,
         action: reasonAction(reasonCode),
       };
@@ -319,7 +324,7 @@ export function buildReport(rows: ReportRows): ReportModel {
       if (own.some((f) => f.text_object_id === o.id)) pinned.set(o.id, String(pinned.size + 1));
     }
     const findings = own.map((f) => {
-      const finding = findingOf(f, (f.text_object_id && pinned.get(f.text_object_id)) || "—", rows, gaps);
+      const finding = findingOf(f, (f.text_object_id && pinned.get(f.text_object_id)) || "—", rows.workspaceId, gaps);
       if (finding.state === "not_assessed" && finding.gapId === null) ungapped++;
       return finding;
     });

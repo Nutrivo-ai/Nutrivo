@@ -101,6 +101,16 @@ describe("audit log wording (S-WSS-005)", () => {
     expect(whatText(row({ kind: "brand.new_kind" }))).toBe("brand.new_kind");
   });
 
+  it("[I02.main] says who a report was shared with, and what was revoked, never a token", () => {
+    expect(kindLabel("share.created")).toEqual({ label: "SHARE", tone: "accent" });
+    expect(whatText(row({ kind: "share.created", after: { ref: "NTV7QK4", channel: "link" } }))).toBe("Report NTV7QK4 shared by link");
+    expect(whatText(row({ kind: "share.created", after: { ref: "NTV7QK4", channel: "email", recipient: "b@r.test" } }))).toBe(
+      "Report NTV7QK4 emailed to b@r.test",
+    );
+    expect(whatText(row({ kind: "share.revoked", before: { channel: "link" } }))).toBe("Share link revoked");
+    expect(whatText(row({ kind: "share.revoked", before: { channel: "email", recipient: "b@r.test" } }))).toBe("Share to b@r.test revoked");
+  });
+
   it("reads the filter and the cursor from the query, refusing anything else", () => {
     expect(filterKey("access")).toBe("access");
     expect(filterKey("nope")).toBe("all");

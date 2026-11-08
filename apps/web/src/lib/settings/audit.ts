@@ -55,6 +55,7 @@ const KIND_LABEL: [prefix: string, label: string, tone: KindTone][] = [
   ["ruleset.", "RULESET", "action"],
   ["workspace.", "WORKSPACE", "n600"],
   ["export.", "EXPORT", "n600"],
+  ["share.", "SHARE", "accent"],
   ["billing.", "BILLING", "n600"],
 ];
 
@@ -262,6 +263,13 @@ export function whatText(row: Pick<AuditRow, "kind" | "before" | "after" | "rule
       return "Password changed";
     case "export.requested":
       return "Full export of the workspace requested";
+    case "share.created": {
+      const ref = str(a.ref);
+      const to = a.channel === "email" ? `emailed to ${str(a.recipient) ?? "a recipient"}` : "shared by link";
+      return `Report${ref ? ` ${ref}` : ""} ${to}`;
+    }
+    case "share.revoked":
+      return b.channel === "email" ? `Share to ${str(b.recipient) ?? "a recipient"} revoked` : "Share link revoked";
     case "billing.event_received":
       return `Billing event received${str(a.type) ? ` · ${str(a.type)}` : ""}`;
     case "billing.subscription_synced": {
