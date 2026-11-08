@@ -17,14 +17,19 @@ formula_lines, intended_claims · Artwork: artwork_versions, extraction_runs, ar
 classifications · Checks: checks, check_findings, envelopes, envelope_items · Artefacts: reports, certificates,
 shares, share_access_log, supersessions · Registration and documents: registrations, registration_packs, suppliers,
 supplier_documents, document_requests · Money: subscriptions, allowances, allowance_consumptions, billing_details,
-payment_events · Ops: jobs, notifications, notification_prefs, alerts, alert_reads, saved_views, model_calls,
+payment_events, dunning_steps · Ops: jobs, notifications, notification_prefs, alerts, alert_reads, saved_views, model_calls,
 audit_events.
 
 **Insert-only:** checks, check_findings, reports, certificates, supersessions, supplier_documents, audit_events,
-payment_events, allowance_consumptions, classifications, model_calls, share_access_log, ref.ruleset_versions,
+payment_events, dunning_steps, allowance_consumptions, classifications, model_calls, share_access_log, ref.ruleset_versions,
 ref.ruleset_members, ref.term_decisions, ref.fixture_runs, ref.ruleset_seals. Privileges are revoked and a trigger rejects UPDATE, DELETE and TRUNCATE,
 including for the table owner (BE-05). Accepted `ref.rule_versions` rows are permanent (BE-08). Products have no
 delete (BE-13).
+
+**Shares (T-601).** `app.shares.product_id` is the report's product, denormalised (filled by a trigger when a
+writer leaves it out, refused when it disagrees) so the read policy stays single-table: a member reads a share where
+they can see the product. `revoked_at` and the worker's `token_hash` replacement are the only updates; the access log
+is insert-only.
 
 **Released coverage is sealed (#197, #8 DB-3).** A deferred constraint trigger on `ref.ruleset_versions` writes a
 `ref.ruleset_seals` row when the releasing transaction commits, after everything the release wrote; seals for every
@@ -65,7 +70,7 @@ deterministic_rule or model_judgement needs a rule_key (23514); a clear check ta
 | rule effect_type | new_obligation · tightened_threshold · withdrawn_authorisation · prescribed_wording · editorial |
 | panel failure_code | outlined_text · rasterised · missing_font · colour_space · no_true_scale · unreadable |
 | audit_events.kind (access) | `session.started` (one row per active membership at every sign-in, `after` = `{aal}`) · `access.password_changed` (no before or after: never the secret). Written by triggers on `auth.sessions` and `auth.users`, so no client can skip or forge them; the actor is always the account holder, also when the hash changes through the admin API (T-103) |
-| withheld reason_code | coverage: not_encoded · partially_encoded · out_of_scope · pending_acceptance (need gap_id); extraction: the failure codes (need panel_id); data_missing · model_abstained · model_unavailable · model_refused · model_output_invalid; engine (T-403, #45): evaluator_missing (no evaluator for the rule's shape yet) · evaluator_error (the rule's params or applicability cannot be evaluated) |
+| withheld reason_code | coverage: not_encoded · partially_encoded · out_of_scope · pending_acceptance (need gap_id); extraction: the failure codes (need panel_id); data_missing · model_abstained · model_unavailable · model_refused · model_output_invalid; engine (T-403, #45): evaluator_missing (no evaluator for the rule's shape yet) · evaluator_error (the rule's params or applicability cannot be evaluated); claims (T-503, #53): claim_not_evaluated (no claims harness threshold record for the rule version and panel language) |
 
 ## Error codes raised by the database
 | Code | Meaning |
@@ -80,7 +85,7 @@ deterministic_rule or model_judgement needs a rule_key (23514); a clear check ta
 | P0010 | BE-10: coverage set complete where no accepted, tested member rule covers the node and domain |
 | P0021 | BE-21: Clear where coverage is incomplete (any of the six domains not complete), or an action or not_assessed finding under a clear check |
 | P0032 / P0033 / P0036 | Free allowance used / no editor seat / new artworks paused by dunning |
-| P0034 | BE-34: a new recipe (family) on a paid plan whose included recipes are all live; the hint names the next plan (T-401, provisional until T-704 sets the € overage cap, #43 Q1) |
+| P0034 | BE-34: a new recipe (family) that the paid plan cannot take: its paid recipes are all live and one more would pass the 1.5x overage cap (monthly terms only; annual terms take no overage). The hint is JSON `{plan, recipes_included, overage_cap, term, next_plan}` (T-401, T-704) |
 | P0038 | Ruleset member is not an accepted version |
 | P0039 | K05: release refused: a member without fixtures, or no passing fixture run that matches the draft's members and fixtures |
 | P0040 / P0041 / P0042 | Invitation invalid (or already accepted, so it cannot be revoked) / email mismatch / already a member |
@@ -89,6 +94,7 @@ deterministic_rule or model_judgement needs a rule_key (23514); a clear check ta
 | P0045 | D03: the classification changed since it was read (the basis is not the product's latest); reload and confirm again |
 | P0046 | A finding whose workspace, product or node differ from its check's (#179 DB-6) |
 | P0047 | #197: a sealed (released) ruleset's coverage, members, pinned rule metadata or named gap changed after its release; change it in the next draft |
+| P0048 | D-31: a draft's node × domain set complete, or a member set under complete coverage, while a held member's linked term has no accepted entry in one of the node's languages (T-209) |
 | P0291 / P0292 / P0293 | Certificate: no signing grant / two-factor required / open findings |
 
 ## Naming reconciliation

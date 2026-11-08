@@ -14,7 +14,8 @@ from nutrivo_worker.models import Models
 SE = Node("EU-SE", ("sv",), "EU")
 COMPLETE = [Coverage(d, "complete", None, None) for d in core.COVERAGE_DOMAINS]  # #179 DB-1: all six
 TERMS = {("test_batch", "sv"): ("Testparti",), ("test_batch", "en"): ("Test lot",),
-         ("test_designation", "sv"): ("Testfoder för katter",), ("test_designation", "en"): ("Test food for cats",)}
+         ("test_designation", "sv"): ("Testfoder för katter",), ("test_designation", "en"): ("Test food for cats",),
+         ("test_designation_alt", "sv"): ("Testkost för katter",), ("test_designation_alt", "en"): ("Test meal for cats",)}
 FACTS = {"species": "cat", "life_stage": "adult", "product_class": "complete", "intended_use": None,
          "parnut_status": None, "format": "dry"}
 
@@ -96,7 +97,7 @@ def test_prescribed_wording_case_folded_exact_and_alternatives():
     exact = rule("TEST.T403.DESIG", "prescribed_wording", {"term_key": "test_designation", "match": "exact"})
     assert check(panel("sv", "TESTFODER FÖR KATTER"), [exact]).label_state == "action"
     alt = rule("TEST.T403.DESIG", "prescribed_wording",
-               {"term_key": "test_designation", "alternatives": {"sv": ["Testkost för katter"]}})
+               {"term_key": "test_designation", "alternative_term_keys": ["test_designation_alt"]})   # D-31
     assert check(panel("sv", "Testkost för katter"), [alt]).label_state == "clear"
     assert check(panel("sv", "Testkost för hundar"), [alt]).label_state == "action"
 
@@ -114,7 +115,7 @@ def test_invalid_params_are_an_evaluator_error_withheld_never_passed():
 
 
 def test_a_shape_without_an_evaluator_is_withheld_evaluator_missing():
-    r = rule("TEST.T403.H", "claim_judgement", {}, domain="claims_wording")   # no evaluator until T-503
+    r = rule("TEST.T403.H", "test_shape_without_evaluator", {}, domain="claims_wording")
     res = check(panel("sv", "x"), [r])
     assert res.withheld == ["TEST.T403.H"] and res.findings[0]["reason_code"] == "evaluator_missing"
 

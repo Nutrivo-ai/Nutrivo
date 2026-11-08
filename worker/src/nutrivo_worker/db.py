@@ -94,13 +94,15 @@ class PgStore:
                                       (r["kind"], json.dumps({"job_id": str(r["id"])})))
         return [Reaped(str(r["id"]), r["kind"], r["status"], r["attempts"]) for r in rows]
 
-    def insert_model_call(self, row: dict[str, Any]) -> None:
-        self.conn.execute(
+    def insert_model_call(self, row: dict[str, Any]) -> str:
+        """Returns the row's id, for a finding's model_call_id (engine.claims)."""
+        r = self.conn.execute(
             """insert into app.model_calls (workspace_id, purpose, provider, model_id, prompt_version, input_hash,
                                             output, input_tokens, output_tokens, cost_eur, latency_ms)
                values (%(workspace_id)s, %(purpose)s, %(provider)s, %(model_id)s, %(prompt_version)s, %(input_hash)s,
-                       %(output)s, %(input_tokens)s, %(output_tokens)s, %(cost_eur)s, %(latency_ms)s)""",
-            {**row, "output": Jsonb(row.get("output"))})
+                       %(output)s, %(input_tokens)s, %(output_tokens)s, %(cost_eur)s, %(latency_ms)s) returning id""",
+            {**row, "output": Jsonb(row.get("output"))}).fetchone()
+        return str(r["id"])
 
     def job_progress(self, job_id: str) -> dict[str, Any]:
         row = self.conn.execute("select progress from app.jobs where id = %s", (job_id,)).fetchone()
@@ -280,6 +282,19 @@ class PgStore:
     def apply_subscription(self, workspace_id: str, snapshot: dict[str, Any], source: str, ref: str) -> str:
         return self.conn.execute("select app.apply_subscription(%s, %s, %s, %s) as outcome",
                                  (workspace_id, Jsonb(snapshot), source, ref)).fetchone()["outcome"]
+
+    # ── recipe_overage, dunning (T-704) ─────────────────────────────────────────────────────────────────────
+    def recipe_overage_context(self, workspace_id: str) -> dict[str, Any] | None:
+        row = self.conn.execute("select app.recipe_overage_context(%s) as c", (workspace_id,)).fetchone()
+        return row["c"] if row else None
+
+    def dunning_due(self) -> list[dict[str, Any]]:
+        return list(self.conn.execute(
+            """select workspace_id::text, stripe_invoice_id, day, failed_at from app.dunning_due()""").fetchall())
+
+    def record_dunning_step(self, workspace_id: str, invoice_id: str, day: int, outcome: str, ref: str) -> str:
+        return self.conn.execute("select app.record_dunning_step(%s, %s, %s, %s, %s) as r",
+                                 (workspace_id, invoice_id, day, outcome, ref)).fetchone()["r"]
 
     # ── session_revoke (A06) ────────────────────────────────────────────────────────────────────────────
     def membership_for_revoke(self, membership_id: str) -> dict[str, Any] | None:

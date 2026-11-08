@@ -5,6 +5,8 @@ import { RENDER_ARGS } from "./tests/visual/render";
 // the production build on port 3000.
 export default defineConfig({
   testDir: "./tests/e2e",
+  // T-703: the fake Stripe for the local stack's billing tests, when scripts/ci/e2e.sh points STRIPE_API_BASE at it.
+  globalSetup: "./tests/fake-stripe/global-setup.ts",
   // Screenshot assertions name their image under tests/visual/: design baselines (baselines/<screen id>.png, written by
   // `pnpm baselines` from design/) or the kit's own images (kit/<name>.png, written with --update-snapshots).
   snapshotPathTemplate: "{testDir}/../visual/{arg}{ext}",

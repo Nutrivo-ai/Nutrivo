@@ -118,8 +118,9 @@ class FakeStore:
                 out.append(Reaped(job_id, j.kind, j.status, j.attempts))
         return out
 
-    def insert_model_call(self, row: dict[str, Any]) -> None:
+    def insert_model_call(self, row: dict[str, Any]) -> str:
         self.model_calls.append(row)
+        return f"00000000-0000-4000-8000-{len(self.model_calls):012d}"
 
     def job_progress(self, job_id: str) -> dict[str, Any]:
         return dict(self.jobs[job_id].progress)

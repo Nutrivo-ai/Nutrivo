@@ -11,16 +11,17 @@ const BEARER = /\b(Bearer)\s+[A-Za-z0-9._~+/=-]+/gi;
 const JWT = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/g;
 const SECRET_PARAM = /([?&](?:token|access_token|refresh_token|code|apikey|key)=)[^&#\s]+/gi;
 const SENSITIVE_KEY = /authorization|cookie|token|secret|password|apikey|api_key/i;
-// A04: the emailed invitation token is a bearer secret carried in the path (/invite/<token>), also URL-encoded inside
-// a next= parameter (%2Finvite%2F<token>). Path segments are not query parameters, so SECRET_PARAM misses them.
-const INVITE_PATH = /(\/invite\/|%2Finvite%2F)[^/?#&\s"']+/gi;
+// A04 and I02: invitation and share tokens are bearer secrets carried in the path (/invite/<token>, /share/<token>),
+// also URL-encoded inside a next= parameter (%2Finvite%2F<token>). Path segments are not query parameters, so
+// SECRET_PARAM misses them.
+const TOKEN_PATH = /(\/(?:invite|share)\/|%2F(?:invite|share)%2F)[^/?#&\s"']+/gi;
 
 export function scrubString(value: string): string {
   return value
     .replace(JWT, "[jwt]")
     .replace(BEARER, "$1 [token]")
     .replace(SECRET_PARAM, "$1[redacted]")
-    .replace(INVITE_PATH, "$1[token]")
+    .replace(TOKEN_PATH, "$1[token]")
     .replace(EMAIL, "[email]");
 }
 

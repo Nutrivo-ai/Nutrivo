@@ -237,7 +237,7 @@ class ModelResult:
 
 
 class ModelCallStore(Protocol):
-    def insert_model_call(self, row: dict[str, Any]) -> None: ...
+    def insert_model_call(self, row: dict[str, Any]) -> Any: ...   # may return the row's id (engine.claims)
 
 
 class Models:
