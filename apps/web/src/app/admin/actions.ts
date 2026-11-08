@@ -11,7 +11,7 @@ import type { Database, Json } from "@/lib/database.types";
 import { REQUEST_ID_HEADER, resolveRequestId } from "@/lib/observability/request-id";
 import { createClient } from "@/lib/supabase/server";
 import { staffGate } from "@/lib/admin/server";
-import { refusal, type ActionResult, type RpcFailure } from "@/lib/admin/staff";
+import { linksFromForm, refusal, type ActionResult, type RpcFailure } from "@/lib/admin/staff";
 
 type Call = (db: Awaited<ReturnType<typeof createClient>>) => PromiseLike<{ data: unknown; error: RpcFailure | null }>;
 
@@ -55,7 +55,9 @@ export async function decideTerm(entryId: string, decision: "accept" | "reject",
 }
 
 // ─── Rule candidates (K01/K02 → J02) ──────────────────────────────────────────────────────────────
-export async function acceptCandidate(candidateId: string, form: FormData): Promise<ActionResult<Json>> {
+// `shape` is the rule's: its stored shape for an existing rule key, the chosen one for a new key. It only picks which
+// link fields the form offers; the database checks the links against the shape it stores (T-209).
+export async function acceptCandidate(candidateId: string, shape: string | null, form: FormData): Promise<ActionResult<Json>> {
   let applicability: Json;
   try {
     applicability = JSON.parse(text(form.get("applicability")) ?? "") as Json;
@@ -64,6 +66,8 @@ export async function acceptCandidate(candidateId: string, form: FormData): Prom
   }
   const use = text(form.get("use"));
   if (use !== "first" && use !== "second") return { ok: false, kind: "refused", message: "Refused: choose the extraction you checked against the text." };
+  const links = linksFromForm(shape ?? text(form.get("shape")), form);
+  if (!links.ok) return { ok: false, kind: "refused", message: links.message };
   return run<Json>(
     "accept_candidate",
     (db) =>
@@ -78,8 +82,22 @@ export async function acceptCandidate(candidateId: string, form: FormData): Prom
         p_effect_type: text(form.get("effect_type")) ?? undefined,
         p_effective_from: text(form.get("effective_from")) ?? undefined,
         p_sell_through_until: text(form.get("sell_through_until")) ?? undefined,
+        // D-31: the person's term links; none leaves the rule withheld until it is re-linked.
+        p_links: (links.links as Json) ?? undefined,
         // Null for a rule that already exists: it keeps its shape, domain and node (the generated types say string).
       } as unknown as AcceptArgs),
+    ["/admin/rules", "/admin/coverage"],
+  );
+}
+
+// D-31: a new accepted version with effect 'editorial' carrying the new links; fixtures are written anew (T-209).
+export async function relinkRule(ruleKey: string, shape: string, form: FormData): Promise<ActionResult<Json>> {
+  const links = linksFromForm(shape, form);
+  if (!links.ok) return { ok: false, kind: "refused", message: links.message };
+  if (!links.links) return { ok: false, kind: "refused", message: "Refused: choose at least one term to link." };
+  return run<Json>(
+    "relink_rule",
+    (db) => db.schema("app").rpc("relink_rule", { p_rule_key: ruleKey, p_links: links.links as Json, p_note: text(form.get("note")) ?? undefined }),
     ["/admin/rules", "/admin/coverage"],
   );
 }

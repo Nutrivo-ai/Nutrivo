@@ -203,6 +203,11 @@ called under the person's own session, so the database names them as the decider
   writes nothing and moves to the next entry (#35).
 - **`/admin/rules`**: each rule candidate with both extractions side by side and the checklist above. Accepting asks
   for the extraction checked against the text plus what the extraction does not hold; applicability has no default.
+  The term links (D-31, T-211) follow the rule's shape and are chosen from the accepted register, each term showing
+  the languages it has an accepted entry in. They are optional, and a rule without them is withheld. Below the queue,
+  **Accepted rules: term links** lists each rule's latest accepted version with its links. "Change the term links"
+  saves a new editorial version through `app.relink_rule`, which then needs its own fixtures and takes effect from
+  the next release. Refusals, P0048 included, show the database's reason.
 - **`/admin/coverage`**: start a draft, put accepted versions in it, open gaps, and set each node × domain. Complete is
   refused (P0010) until every member rule for it is accepted and tested. The release panel lists what blocks the
   release (missing fixtures, no fixture run, a run that failed or judged too few) and shows the database's refusal as

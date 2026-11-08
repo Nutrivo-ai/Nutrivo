@@ -2,7 +2,7 @@
 // read throws AdminReadError, which the admin error boundary shows and Sentry records with the code only.
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/database.types";
+import type { Database, Json } from "@/lib/database.types";
 import { AdminReadError } from "./server";
 import { extraction, type DraftMember, type Extraction, type FixtureRun } from "./model";
 import { DOMAINS } from "./staff";
@@ -154,6 +154,58 @@ export async function readRuleQueue(db: Db): Promise<RuleCandidate[]> {
       existingRule: rule ? { shape: rule.shape, domain: rule.domain, nodeId: rule.node_id, title: rule.title } : null,
     };
   });
+}
+
+// ─── D-31 · term links (T-211) ────────────────────────────────────────────────────────────────────
+/** An accepted register term a rule can link to, with the languages it has an accepted entry in. */
+export type LinkableTerm = { termKey: string; kind: string; entries: { language: string; term: string }[] };
+
+/** The accepted register pinned to no ruleset: what app.accept_candidate and app.relink_rule accept as links. */
+export async function readLinkableTerms(db: Db): Promise<LinkableTerm[]> {
+  const rows = must(
+    "accepted terms",
+    await db
+      .schema("ref")
+      .from("term_entries")
+      .select("term_key, kind, language, term")
+      .eq("status", "accepted")
+      .is("ruleset_version", null)
+      .order("term_key")
+      .order("language")
+      .limit(5000),
+  );
+  const byKey = new Map<string, LinkableTerm>();
+  for (const r of rows) {
+    const t = byKey.get(r.term_key) ?? { termKey: r.term_key, kind: r.kind, entries: [] };
+    t.entries.push({ language: r.language, term: r.term });
+    byKey.set(r.term_key, t);
+  }
+  return [...byKey.values()];
+}
+
+/** A rule's latest accepted version, which a re-link supersedes. */
+export type AcceptedRule = { ruleKey: string; version: number; title: string; shape: string; nodeId: string; params: Json };
+
+export async function readAcceptedRules(db: Db): Promise<AcceptedRule[]> {
+  const rows = must(
+    "accepted rule versions",
+    await db
+      .schema("ref")
+      .from("rule_versions")
+      .select("rule_key, version, params, rules(title, shape, node_id)")
+      .eq("status", "accepted")
+      .order("rule_key")
+      .order("version", { ascending: false })
+      .limit(2000),
+  );
+  const latest = new Map<string, AcceptedRule>();
+  for (const r of rows) {
+    if (latest.has(r.rule_key)) continue;
+    const rule = (Array.isArray(r.rules) ? r.rules[0] : r.rules) as { title: string; shape: string; node_id: string } | null;
+    if (!rule) continue;
+    latest.set(r.rule_key, { ruleKey: r.rule_key, version: r.version, title: rule.title, shape: rule.shape, nodeId: rule.node_id, params: r.params });
+  }
+  return [...latest.values()];
 }
 
 export type Jurisdiction = { id: string; name: string; nodeType: string; parentId: string | null };
