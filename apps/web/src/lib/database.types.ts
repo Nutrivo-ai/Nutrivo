@@ -1352,6 +1352,12 @@ isOneToOne: false
 "set_draft_member":
 { Args: { "p_draft": string,"p_rule_key": string,"p_version": number }; Returns: undefined
                            },
+"set_formula_lines":
+{ Args: { "p_lines": Json,"p_product": string }; Returns: number
+                           },
+"set_intended_claims":
+{ Args: { "p_claims": (string)[],"p_language": string,"p_product": string }; Returns: number
+                           },
 "set_product_stage":
 { Args: { "p_product": string,"p_reason"?: string,"p_stage": string }; Returns: string
                            }

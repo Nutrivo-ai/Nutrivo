@@ -63,7 +63,8 @@ class PgCheckStore:
         return self.conn.execute(sql, args).fetchone()
 
     def load(self, job_id: str, workspace_id: str | None, product_id: str, artwork_version_id: str,
-             ruleset_version: str, classification_id: str | None, node_ids: list[str]) -> CheckInputs:
+             ruleset_version: str, classification_id: str | None, node_ids: list[str],
+             formula_digest: str | None = None) -> CheckInputs:
         if self._one("select 1 from ref.ruleset_versions where id = %s", ruleset_version) is None:
             raise NoReleasedRuleset(f"P0003: ruleset {ruleset_version} has not been released")
         product = self._one("select workspace_id, format from app.products where id = %s", product_id)
@@ -90,7 +91,7 @@ class PgCheckStore:
             if c:                     # an unconfirmed classification is missing data, never a guess (#45)
                 facts.update(c)
         facts["format"] = product["format"]
-        facts["additives"] = self._additives(product_id)
+        facts["additives"] = self._additives(product_id, formula_digest)
         # No stored source gives the product's quantity (character_height bands) or declared quantities
         # (threshold) yet (#52): both stay missing, so those rules are withheld data_missing, never guessed.
         facts["quantity"] = None
@@ -126,16 +127,26 @@ class PgCheckStore:
                            r["status"], r["failure_code"], tuple(lines.get(str(r["id"]), ())), str(r["id"]))
                      for r in rows)
 
-    def _additives(self, product_id: str) -> list[dict[str, Any]] | None:
+    def _additives(self, product_id: str, pinned: str | None = None) -> list[dict[str, Any]] | None:
         """The formula's additive lines with their register row (additive_condition). None when the product has no
         formula lines at all: a formula never entered is missing data (withheld data_missing), not a formula without
-        additives, which is the only case an additive rule is not_applicable (#172)."""
+        additives, which is the only case an additive rule is not_applicable (#172). None too when any line is not
+        matched to the register (neither a feed material nor an additive): that line may be an additive, so the
+        formula cannot be read as additive-free and additive rules are withheld, never passed (#76, Q1).
+
+        `pinned` is the formula digest app.request_check put in the job (its key holds it too). The lines and their
+        digest are read in one statement, so one snapshot: when the formula changed after the job was requested, the
+        job is not judged on a formula other than its own, and the facts are missing (withheld) instead (#76 review).
+        A payload without a digest (requested before T-1001) reads the formula as it is."""
         rows = self.conn.execute(
-            """select f.additive_ref, f.amount, f.unit, a.id, a.species, a.max_content, a.expiry
+            """select f.feed_material_ref, f.additive_ref, f.amount, f.unit, a.id, a.species, a.max_content, a.expiry,
+                      private.formula_digest(f.product_id) as digest
                  from app.formula_lines f left join ref.feed_additives a on a.id = f.additive_ref
                 where f.product_id = %s
                 order by f.position, f.id""", (product_id,)).fetchall()
-        if not rows:
+        if pinned is not None and (rows[0]["digest"] if rows else "-") != pinned:
+            return None
+        if not rows or any(r["feed_material_ref"] is None and r["additive_ref"] is None for r in rows):
             return None
         return [{"additive_ref": r["additive_ref"], "amount": _num(r["amount"]), "unit": r["unit"],
                  "register": {"species": list(r["species"]) if r["species"] is not None else None,
