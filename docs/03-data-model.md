@@ -89,6 +89,7 @@ deterministic_rule or model_judgement needs a rule_key (23514); a clear check ta
 | P0045 | D03: the classification changed since it was read (the basis is not the product's latest); reload and confirm again |
 | P0046 | A finding whose workspace, product or node differ from its check's (#179 DB-6) |
 | P0047 | #197: a sealed (released) ruleset's coverage, members, pinned rule metadata or named gap changed after its release; change it in the next draft |
+| P0048 | D-31: a draft's node × domain set complete, or a member set under complete coverage, while a held member's linked term has no accepted entry in one of the node's languages (T-209) |
 | P0291 / P0292 / P0293 | Certificate: no signing grant / two-factor required / open findings |
 
 ## Naming reconciliation
