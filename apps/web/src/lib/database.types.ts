@@ -1242,6 +1242,9 @@ isOneToOne: false
 "apply_subscription":
 { Args: { "p_ref": string,"p_snapshot": Json,"p_source": string,"p_ws": string }; Returns: string
                            },
+"billing_context":
+{ Args: { "p_ws": string }; Returns: Json
+                           },
 "change_member":
 { Args: { "p_access_ends_at": string,"p_is_external": boolean,"p_membership": string,"p_role": string,"p_scope_family_ids": (string)[],"p_scope_node_ids": (string)[] }; Returns: string
                            },
@@ -1291,6 +1294,9 @@ isOneToOne: false
                            },
 "recipe_overage_context":
 { Args: { "p_ws": string }; Returns: Json
+                           },
+"record_billing_change":
+{ Args: { "p_after": Json,"p_before": Json,"p_customer": string,"p_kind": string,"p_ws": string }; Returns: undefined
                            },
 "record_dunning_step":
 { Args: { "p_day": number,"p_invoice": string,"p_outcome": string,"p_ref": string,"p_ws": string }; Returns: string

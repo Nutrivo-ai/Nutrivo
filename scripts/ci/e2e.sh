@@ -11,6 +11,9 @@ export SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" DAT
 # Mail the stack sends lands in Mailpit; tests read it through Mailpit's API at MAILPIT_URL (older CLIs: INBUCKET_URL).
 export MAILPIT_URL="${MAILPIT_URL:-${INBUCKET_URL:-http://127.0.0.1:54324}}"
 export MODELS_MODE=replay EMAIL_MODE=mailpit NUTRIVO_ENV=ci
+# T-703: the web server's Stripe calls go to the fake Stripe the Playwright global setup serves on this port
+# (apps/web/tests/fake-stripe), with a placeholder test-mode key it accepts. Nothing here reaches Stripe.
+export STRIPE_API_BASE="http://127.0.0.1:12111" STRIPE_SECRET_KEY="sk_test_fake"
 
 # A server already on port 3000 (a previous run's, or `pnpm dev`) would be tested instead of this build.
 if curl -s -o /dev/null --max-time 2 http://localhost:3000/; then
