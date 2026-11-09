@@ -262,11 +262,11 @@ test.describe("@local-only Promote a brief to artwork (E04)", () => {
     await page.waitForLoadState("networkidle");
     const controls = page.locator('main[data-screen="S-NV2-004"]').locator("a, button").filter({ visible: true });
     const names = (await controls.evaluateAll((els) => els.map((e) => e.textContent ?? ""))).map((t) => t.trim()).sort();
-    expect(names).toEqual(["Add a line", "Paste", "Promote to artwork", "Save DE claims"]);
+    expect(names).toEqual(["Add a line", "Paste", "Promote to artwork", "Save EN claims"]);
     // Save is disabled, with nothing typed; it enables once a claim is.
-    await expect(page.getByRole("button", { name: "Save DE claims" })).toBeDisabled();
-    await page.getByLabel("Claims, one per line").fill("Für Katzen");
-    await expect(page.getByRole("button", { name: "Save DE claims" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Save EN claims" })).toBeDisabled();
+    await page.getByLabel("Claims, one per line").fill("For adult cats");
+    await expect(page.getByRole("button", { name: "Save EN claims" })).toBeEnabled();
     await page.getByRole("button", { name: "Paste", exact: true }).click();
     const paste = page.getByRole("dialog", { name: "Paste the formula" });
     await expect(paste).toBeVisible();
