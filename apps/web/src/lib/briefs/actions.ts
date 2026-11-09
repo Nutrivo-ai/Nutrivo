@@ -7,6 +7,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { REQUEST_ID_HEADER, resolveRequestId } from "@/lib/observability/request-id";
 import { createClient } from "@/lib/supabase/server";
 import { searchRegister as search } from "./queries";
@@ -18,13 +19,13 @@ export type BriefResult = { ok: true; count: number } | { ok: false; reason: Bri
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CODES: Record<string, BriefRefusal> = { "42501": "no-permission", "22023": "invalid" };
 
-async function run(step: string, write: () => PromiseLike<{ data: unknown; error: { code?: string } | null }>): Promise<BriefResult> {
+async function run(step: string, write: (requestId: string) => PromiseLike<{ data: unknown; error: { code?: string } | null }>): Promise<BriefResult> {
   const requestId = resolveRequestId((await headers()).get(REQUEST_ID_HEADER));
   return Sentry.withScope(async (scope) => {
     scope.setTag("request_id", requestId);
     scope.setTag("area", "briefs");
     scope.setTag("briefs_step", step);
-    const { data, error } = await write();
+    const { data, error } = await write(requestId);
     if (error) {
       const reason = (error.code && CODES[error.code]) || "error";
       if (reason === "error") Sentry.captureException(new Error(`${step} failed: ${error.code ?? "error"}`));
@@ -58,6 +59,24 @@ export async function saveClaims(workspaceId: string, productId: string, languag
   );
   if (result.ok) revalidatePath(`/w/${workspaceId}/briefs/${productId}`);
   return result;
+}
+
+export type PromoteResult = { ok: false; reason: BriefRefusal };
+
+/**
+ * T-1003 · E04 Promote a brief to artwork, step 1: the stage becomes in_development through C04's
+ * app.set_product_stage (permission, lock and audit are the database's), then step 2 is Upload & scope (D01) for the
+ * same product. Only a refusal returns; success redirects.
+ */
+export async function promoteBrief(workspaceId: string, productId: string): Promise<PromoteResult> {
+  if (!UUID.test(productId) || !UUID.test(workspaceId)) return { ok: false, reason: "invalid" };
+  const db = await createClient();
+  const result = await run("promote_brief", (requestId) =>
+    db.schema("app").rpc("set_product_stage", { p_product: productId, p_stage: "in_development" }).setHeader(REQUEST_ID_HEADER, requestId),
+  );
+  if (!result.ok) return result;
+  revalidatePath(`/w/${workspaceId}`, "layout");
+  redirect(`/w/${workspaceId}/products/${productId}/check`);
 }
 
 export type RegisterSearch = { ok: true; rows: RegisterRow[] } | { ok: false };

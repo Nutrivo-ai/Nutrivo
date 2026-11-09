@@ -9,6 +9,7 @@ import { useId, useMemo, useState, useTransition } from "react";
 import { Button, Dialog, EmptyState } from "@/components/kit";
 import { findInRegister, saveClaims, saveFormula, type BriefRefusal } from "@/lib/briefs/actions";
 import type { Brief } from "@/lib/briefs/queries";
+import { PromoteToArtwork } from "./PromoteToArtwork";
 import {
   FORMULA_CHANGES_OUTCOMES,
   NOT_MATCHED_NOTE,
@@ -269,7 +270,10 @@ export function BriefForm({ workspaceId, brief }: { workspaceId: string; brief: 
         </section>
       </div>
 
-      <IntendedClaims workspaceId={workspaceId} brief={brief} />
+      <div className="min-w-0">
+        <IntendedClaims workspaceId={workspaceId} brief={brief} />
+        {brief.stage === "brief" ? <PromoteToArtwork workspaceId={workspaceId} productId={brief.id} /> : null}
+      </div>
 
       <Dialog
         open={pasteOpen}
