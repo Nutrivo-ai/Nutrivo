@@ -9,6 +9,7 @@ vi.mock("@/lib/briefs/actions", () => ({
   saveFormula: async () => ({ ok: true, count: 0 }),
   saveClaims: async () => ({ ok: true, count: 0 }),
   findInRegister: async () => ({ ok: true, rows: [] }),
+  promoteBrief: async () => ({ ok: false, reason: "error" }),
 }));
 
 const WS = "20000000-0000-4000-8101-00000000000a";
@@ -54,7 +55,8 @@ describe("BriefForm", () => {
     const html = renderToStaticMarkup(<BriefForm workspaceId={WS} brief={brief} />);
     expect(html.match(/Not matched to the register/g)).toHaveLength(1);
     expect(html).toContain(">Paste<");
-    for (const absent of ["Upload", "Import from spec", "Screen this brief", "What we can answer with this"]) {
+    // ">Upload<" is the formula's Upload control; T-1003's promote note names the Upload & scope screen.
+    for (const absent of [">Upload<", "Import from spec", "Screen this brief", "What we can answer with this"]) {
       expect(html).not.toContain(absent);
     }
   });

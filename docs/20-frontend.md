@@ -74,6 +74,15 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
 | Workspace Settings, Plans and Checkout, Billing Settings | Settings and billing routes | T-107, T-108, T-703 |
 | Partner Tier, Partner Upsell | After launch (N01, N03) | — |
 
+### Built in T-1003: promote a brief to artwork (`apps/web/src/components/briefs/PromoteToArtwork.tsx`)
+- **S-NV2-004 Brief & formula** gains **Promote to artwork**, an outline button under the intended claims, shown only at
+  stage brief. It calls C04's `app.set_product_stage` to `in_development` (E04 step 1) and opens Upload & scope (S-NV2-002)
+  for the same product (step 2, D01). It has pending ("Promoting…") and refused states (role, not found, error), and
+  failures go to Sentry tagged `area: briefs`, `briefs_step: promote_brief` with the request id. The design has no
+  promote control, so its placement and wording are the default proposed on #78 (Q1).
+- **Tests** (`tests/e2e/briefs.spec.ts`): E04.main, a viewer's no-permission state with no control and the database's
+  42501, axe, and the screen's first no-dead-controls crawl (Paste, Add a line, Save claims, Promote to artwork).
+
 ### Built in T-507: the mobile reading views (`apps/web/src/components/mobile`)
 - **S-MOB-003 The verdict** at `/w/[workspace]/products/[product]/nodes/[node]`, in the phone's three blocks: the state
   with its glyph, *What to do* with one link (the registration pack, the label report, the coverage gap or Upload &

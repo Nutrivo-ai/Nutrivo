@@ -176,3 +176,106 @@ test.describe("@local-only Brief & formula (E01)", () => {
     await axe(page);
   });
 });
+
+// T-1003 · E04 Promote a brief to artwork: step 1 is C04's app.set_product_stage to in_development, step 2 is Upload &
+// scope (D01) for the same product, where its artwork is uploaded (D01's own spec covers the upload). The control's
+// placement is the default proposed on #78 (Q1); the design has none.
+test.describe("@local-only Promote a brief to artwork (E04)", () => {
+  test.skip(!haveStack(), "needs the local stack (scripts/ci/e2e.sh)");
+  test.use({ viewport: { width: 1600, height: 1000 } });
+
+  let editor: Person, viewer: Person, ws: string;
+
+  async function brief(name: string) {
+    const created = await editor.db.schema("app").rpc("create_product", {
+      p_ws: ws, p_name: name, p_family_name: name, p_stage: "brief", p_species: "cat", p_nodes: ["EU-DE"],
+    });
+    if (created.error) throw created.error;
+    return created.data as string;
+  }
+
+  async function stage(productId: string) {
+    const { data, error } = await admin().schema("app").from("products").select("stage").eq("id", productId).single();
+    if (error) throw error;
+    return data.stage as string;
+  }
+
+  test.beforeAll(async () => {
+    [editor, viewer] = await Promise.all([person("t1003-editor"), person("t1003-viewer")]);
+    ws = await workspace(editor, "T-1003 promote");
+    await workspace(viewer, "Viewer's own");
+    const grant = await admin().schema("app").from("memberships").insert({ workspace_id: ws, person_id: await personId(viewer), role: "viewer" });
+    if (grant.error) throw grant.error;
+  });
+
+  test("[E04.main] Promote a brief to artwork: the main path works end to end", async ({ page, context, baseURL }) => {
+    const productId = await brief("Indoor Cat Hairball Dry");
+    await signIn(context, editor, baseURL!);
+    const errors = watch(page);
+    await page.goto(`/w/${ws}/briefs/${productId}`);
+    await expect(page.getByRole("heading", { name: "Indoor Cat Hairball Dry — working brief" })).toBeVisible();
+    const promote = page.getByRole("button", { name: "Promote to artwork" });
+    await expect(promote).toHaveAccessibleDescription(/The stage becomes In development/);
+    await axe(page);
+    await page.waitForLoadState("networkidle");
+    await promote.click();
+
+    // Step 2: Upload & scope for the same product, ready for its artwork (D01).
+    await expect(page).toHaveURL(new RegExp(`/w/${ws}/products/${productId}/check$`));
+    await expect(page.getByRole("button", { name: "Choose a file" })).toBeVisible();
+    await axe(page);
+
+    // Step 1, as stored: the stage is in_development, changed by the editor through C04 and audited.
+    expect(await stage(productId)).toBe("in_development");
+    const audit = await admin().schema("app").from("audit_events").select("actor_id, before, after")
+      .eq("object_id", productId).eq("kind", "product.stage_changed");
+    if (audit.error) throw audit.error;
+    expect(audit.data.map((a) => [a.actor_id, a.before, a.after])).toEqual([
+      [await personId(editor), { stage: "brief" }, { stage: "in_development" }],
+    ]);
+
+    // Back on the brief, a product past the brief stage offers no second promotion.
+    await page.goto(`/w/${ws}/briefs/${productId}`);
+    await expect(page.getByRole("heading", { name: "Indoor Cat Hairball Dry — working brief" })).toBeVisible();
+    await expect(page.locator("[data-promote]")).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
+  test("a viewer has no promote control, and the database refuses the viewer's stage change", async ({ page, context, baseURL }) => {
+    const productId = await brief("Kitten Pâté Wet");
+    await signIn(context, viewer, baseURL!);
+    await page.goto(`/w/${ws}/briefs/${productId}`);
+    await expect(page.getByText("Your role cannot open Brief & formula")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Promote to artwork" })).toHaveCount(0);
+    await expect(page.locator("[data-promote]")).toHaveCount(0);
+    await axe(page);
+    const refused = await viewer.db.schema("app").rpc("set_product_stage", { p_product: productId, p_stage: "in_development" });
+    expect(refused.error?.code).toBe("42501");
+    expect(await stage(productId)).toBe("brief");
+  });
+
+  test("no dead controls on Brief & formula: every button and link in the screen does something", async ({ page, context, baseURL }) => {
+    const productId = await brief("Senior Cat Renal Wet");
+    await signIn(context, editor, baseURL!);
+    const errors = watch(page);
+    await page.goto(`/w/${ws}/briefs/${productId}`);
+    await page.waitForLoadState("networkidle");
+    const controls = page.locator('main[data-screen="S-NV2-004"]').locator("a, button").filter({ visible: true });
+    const names = (await controls.evaluateAll((els) => els.map((e) => e.textContent ?? ""))).map((t) => t.trim()).sort();
+    expect(names).toEqual(["Add a line", "Paste", "Promote to artwork", "Save DE claims"]);
+    // Save is disabled, with nothing typed; it enables once a claim is.
+    await expect(page.getByRole("button", { name: "Save DE claims" })).toBeDisabled();
+    await page.getByLabel("Claims, one per line").fill("Für Katzen");
+    await expect(page.getByRole("button", { name: "Save DE claims" })).toBeEnabled();
+    await page.getByRole("button", { name: "Paste", exact: true }).click();
+    const paste = page.getByRole("dialog", { name: "Paste the formula" });
+    await expect(paste).toBeVisible();
+    await paste.getByRole("button", { name: "Cancel" }).click();
+    await expect(paste).toBeHidden();
+    await page.getByRole("button", { name: "Add a line" }).click();
+    await expect(page.locator("tr[data-line]")).toHaveCount(1);
+    await page.getByRole("button", { name: "Promote to artwork" }).click();
+    await expect(page).toHaveURL(new RegExp(`/w/${ws}/products/${productId}/check$`));
+    expect(errors).toEqual([]);
+  });
+});
