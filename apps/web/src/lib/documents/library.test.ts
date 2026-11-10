@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildLibrary, expiryOf, fileName, formatDay, typeLabel, type DocumentRow } from "./library";
+import { buildLibrary, expiryOf, fileName, formatDay, typeLabel, withoutSuperseded, type DocumentRow } from "./library";
 
 const TODAY = "2026-11-03";
 
@@ -94,5 +94,17 @@ describe("document library (H01)", () => {
   it("writes days as the design does, with the year only when it is not this year's", () => {
     expect(formatDay("2026-06-03", TODAY)).toBe("3 JUN");
     expect(formatDay("2027-03-31", TODAY)).toBe("31 MAR 2027");
+  });
+});
+
+describe("supplier uploads in the library (H03, T-802)", () => {
+  it("[H03.main] lists a promoted upload once, by its new clean row, and keeps an unscanned one", () => {
+    const rows = [
+      { id: "q1", promoted_from: null, scan_status: "quarantine" },
+      { id: "c1", promoted_from: "q1", scan_status: "clean" },
+      { id: "q2", promoted_from: null, scan_status: "quarantine" },
+      { id: "own", promoted_from: null, scan_status: "clean" },
+    ];
+    expect(withoutSuperseded(rows).map((r) => r.id)).toEqual(["c1", "q2", "own"]);
   });
 });

@@ -159,6 +159,15 @@ export function buildLibrary(input: {
   };
 }
 
+/**
+ * H03 (T-802): a supplier upload is scanned and its result is a NEW row (promoted_from = the quarantine row), so the
+ * quarantine row stays as history (insert-only). The library lists each document once: by its latest row.
+ */
+export function withoutSuperseded<T extends { id: string; promoted_from: string | null }>(rows: T[]): T[] {
+  const superseded = new Set(rows.map((r) => r.promoted_from).filter((p): p is string => p !== null));
+  return rows.filter((r) => !superseded.has(r.id));
+}
+
 /** Today's date (UTC) as YYYY-MM-DD. */
 export function todayUtc(now: Date = new Date()): string {
   return now.toISOString().slice(0, 10);
@@ -170,7 +179,7 @@ export async function readLibrary(db: Client, workspaceId: string, today: string
   const [docs, nodes] = await Promise.all([
     app
       .from("supplier_documents")
-      .select("id, doc_type, storage_path, valid_to, scan_status, created_at, product_id, suppliers(name)")
+      .select("id, doc_type, storage_path, valid_to, scan_status, created_at, product_id, promoted_from, suppliers(name)")
       .eq("workspace_id", workspaceId),
     app.from("product_nodes").select("node_id, product_id, products!inner(stage)").eq("workspace_id", workspaceId),
   ]);
@@ -185,9 +194,10 @@ export async function readLibrary(db: Client, workspaceId: string, today: string
     scan_status: string;
     created_at: string;
     product_id: string | null;
+    promoted_from: string | null;
     suppliers: { name: string } | null;
   };
-  const rows = (docs.data ?? []) as unknown as DocRow[];
+  const rows = withoutSuperseded((docs.data ?? []) as unknown as DocRow[]);
   type NodeRow = { node_id: string; product_id: string; products: { stage: string } | null };
   const live = ((nodes.data ?? []) as unknown as NodeRow[]).filter((n) => n.products?.stage !== "discontinued");
 

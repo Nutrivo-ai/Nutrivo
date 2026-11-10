@@ -54,6 +54,22 @@ describe("Sentry scrubber", () => {
     expect(JSON.stringify(tx)).not.toContain(SHARE);
   });
 
+  it("[H03.must.1] removes a supplier-link token from the path, an encoded next= parameter, breadcrumbs and transactions", () => {
+    const LINK = "supplier_sample_".repeat(3);
+    const text = scrubString(`GET https://app.nutrivo.ai/supplier/${LINK}?x=1 then /sign-in?next=%2Fsupplier%2F${LINK}`);
+    expect(text).not.toContain(LINK);
+    expect(text).toContain("/supplier/[token]?x=1");
+    expect(text).toContain("next=%2Fsupplier%2F[token]");
+    const crumb = scrubBreadcrumb({ category: "navigation", data: { from: "/", to: `/supplier/${LINK}` } });
+    expect(JSON.stringify(crumb)).not.toContain(LINK);
+    const tx = scrubTransaction({
+      type: "transaction",
+      transaction: `/supplier/${LINK}`,
+      request: { url: `https://app.nutrivo.ai/supplier/${LINK}` },
+    } as TransactionEvent);
+    expect(JSON.stringify(tx)).not.toContain(LINK);
+  });
+
   it("scrubs transactions and breadcrumbs, which carry URLs too", () => {
     const tx = scrubTransaction({
       type: "transaction",
