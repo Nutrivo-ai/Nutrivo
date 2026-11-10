@@ -31,11 +31,12 @@ insert into app.product_nodes (product_id, node_id, workspace_id) values
   ('40000000-0000-4000-8504-0000000000a1','EU-SE','20000000-0000-4000-8504-00000000000a'),
   ('40000000-0000-4000-8504-0000000000a1','EU-DE','20000000-0000-4000-8504-00000000000a'),
   ('40000000-0000-4000-8504-0000000000b1','EU-SE','20000000-0000-4000-8504-00000000000b');
-insert into app.supplier_documents (id, workspace_id, doc_type, storage_path, file_sha256, uploaded_via) values
+-- clean: only a clean document can be a registration's evidence (20261110102854_require_clean_evidence.sql)
+insert into app.supplier_documents (id, workspace_id, doc_type, storage_path, file_sha256, uploaded_via, scan_status) values
   ('60000000-0000-4000-8504-0000000000a1','20000000-0000-4000-8504-00000000000a','registration_certificate',
-   'documents/a/x.pdf', repeat('a', 64), 'member'),
+   'documents/a/x.pdf', repeat('a', 64), 'member', 'clean'),
   ('60000000-0000-4000-8504-0000000000b1','20000000-0000-4000-8504-00000000000b','registration_certificate',
-   'documents/b/x.pdf', repeat('b', 64), 'member');
+   'documents/b/x.pdf', repeat('b', 64), 'member', 'clean');
 
 create function pg_temp.as_user(uid text) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', uid, 'role', 'authenticated')::text, true);
