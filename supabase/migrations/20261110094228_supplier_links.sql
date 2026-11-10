@@ -5,7 +5,7 @@
 --
 -- app.request_document(p_ws, p_title, p_doc_type, p_supplier, p_supplier_name, p_supplier_email, p_product, p_request_id)
 --   An editor of the product (private.can_edit_product), or for a workspace document an admin, portfolio manager or
---   editor of the workspace (42501 otherwise, a missing product or supplier too). Upserts the supplier by email within
+--   editor of the workspace with no family scope (42501 otherwise, a missing product or supplier too). Upserts the supplier by email within
 --   the workspace, inserts the request with NO token (expires in 14 days) and queues the notify job
 --   {template:'supplier_request', document_request_id, request_id?} keyed docreq:<id>, whose worker mints the token, stores only its SHA-256
 --   and emails the link (H02 step 2, H02.must.1). doc_type must be one encoded in ref.document_requirements (22023).
@@ -104,6 +104,12 @@ begin
      and (new.consumed_at is null or new.document_id is null) then
     raise exception 'a request is fulfilled by the document its upload became' using errcode = '23514';
   end if;
+  if new.document_id is distinct from old.document_id and not exists (
+       select 1 from app.supplier_documents d
+       where d.id = new.document_id and d.request_id = new.id and d.workspace_id = new.workspace_id
+         and d.scan_status = 'clean' and d.promoted_from is not null) then
+    raise exception 'a request is fulfilled by the clean document its upload became' using errcode = '23514';
+  end if;
   if new.token_hash is distinct from old.token_hash
      and (new.token_hash is null or old.consumed_at is not null or old.fulfilled_at is not null
           or old.expires_at <= now()) then
@@ -123,8 +129,14 @@ language plpgsql security definer set search_path = '' as $$
 declare v_supplier app.suppliers; v_email text; v_name text; v_title text; v_id uuid := gen_random_uuid();
         v_expires timestamptz; v_job uuid; v_rid text;
 begin
+  -- A workspace document (no product) is readable by every member, so only an editor-class member whose scope is
+  -- the whole workspace (no family scope) may ask for one; a scoped editor asks for their products' documents.
   if private.person_id() is null
-     or (p_product is null and not private.has_role(p_ws, '{admin,portfolio_manager,editor}'))
+     or (p_product is null and not exists (
+           select 1 from app.memberships m
+           where m.workspace_id = p_ws and m.person_id = private.person_id() and m.ended_at is null
+             and (m.access_ends_at is null or m.access_ends_at > now())
+             and m.role in ('admin','portfolio_manager','editor') and m.scope_family_ids is null))
      or (p_product is not null and not exists (select 1 from app.products p
                                                where p.id = p_product and p.workspace_id = p_ws
                                                  and private.can_edit_product(p.id))) then

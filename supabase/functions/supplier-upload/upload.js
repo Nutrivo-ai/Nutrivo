@@ -220,7 +220,8 @@ export function makeHandler({ supabaseUrl, serviceKey, allowedOrigin = "*", fetc
     try {
       accepted = await rpc("accept_supplier_upload", { p_token: token, p_path: path, p_sha256: sha }, requestId);
     } catch {
-      await remove();
+      // The database may have committed before the answer was lost: keep the object, so an accepted upload is never
+      // left without its file. An object nobody accepted stays in the private quarantine bucket, unread.
       return done(503, { error: "unavailable" }, "db_error");
     }
     if (!accepted || accepted.status !== "accepted") {

@@ -182,4 +182,4 @@ def test_H03_main_the_supplier_upload_function_node_tests():
     run = subprocess.run([node, "--test", "upload.test.mjs"], cwd=ROOT / "supabase" / "functions" / "supplier-upload",
                          capture_output=True, text=True, check=False, timeout=120)
     assert run.returncode == 0, run.stdout[-4000:] + run.stderr[-2000:]
-    assert "# fail 0" in run.stdout and "# pass 9" in run.stdout
+    assert "# fail 0" in run.stdout and "# pass 10" in run.stdout

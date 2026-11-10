@@ -18,7 +18,7 @@ const zip = (...parts) => new Uint8Array([0x50, 0x4b, 0x03, 0x04, ...enc(`${part
 const DOCX_BYTES = zip("word/document.xml");
 const XLSX_BYTES = zip("xl/workbook.xml");
 
-function backend({ state = "open", acceptAs = null, rpcStatus = 200 } = {}) {
+function backend({ state = "open", acceptAs = null, rpcStatus = 200, acceptThrows = false } = {}) {
   const calls = [];
   const lines = [];
   const objects = new Map();
@@ -35,6 +35,7 @@ function backend({ state = "open", acceptAs = null, rpcStatus = 200 } = {}) {
                                     expires_at: "2026-11-24T09:00:00+00:00" } : { status: "unknown" });
     }
     if (u.pathname === "/rest/v1/rpc/accept_supplier_upload") {
+      if (acceptThrows) { used = true; throw new TypeError("connection reset after commit"); }
       const { p_token } = JSON.parse(init.body);
       const ok = acceptAs === null ? p_token === TOKEN && !used : acceptAs;
       if (ok) used = true;
@@ -167,6 +168,14 @@ test("[H03.main] a type that the bytes do not prove, an empty file or one over 2
   const declared = new Request("http://fn.local/x", { method: "POST", headers: { "content-type": "multipart/form-data; boundary=x",
                                                                                    "content-length": String(MAX_BYTES * 2) }, body: "x" });
   assert.equal((await b.handle(declared)).status, 413);
+});
+
+test("[H03.must.1] an accept whose answer is lost keeps the file, since the database may have committed", async () => {
+  const b = backend({ acceptThrows: true });
+  const res = await b.handle(upload(TOKEN));
+  assert.equal(res.status, 503);
+  assert.deepEqual([...b.objects.keys()], [`${WS}/${REQ}/Premix-spec-2026.pdf`]);
+  assert.ok(!b.calls.some((c) => c.init.method === "DELETE"));
 });
 
 test("[T-802] OPTIONS answers CORS, other methods 405, unavailability 503, and the rate limit 429", async () => {

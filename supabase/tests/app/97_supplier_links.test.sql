@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(56);
+select plan(59);
 set local client_min_messages = warning;
 
 -- ─── A: Alice (admin), Carl (editor), Vera (viewer), Sid (editor scoped to family A2). B: Bob (admin). ──────────────
@@ -73,6 +73,16 @@ select ok(not has_table_privilege('authenticated', 'app.document_requests', 'ins
           and not has_table_privilege('authenticated', 'app.supplier_documents', 'insert')
           and not has_table_privilege('anon', 'app.document_requests', 'select'),
           '[T-802] no client writes suppliers, requests or documents, and anon reads none');
+select ok(not has_function_privilege('authenticated', 'private.is_service_caller()', 'execute')
+          and not has_function_privilege('authenticated', 'private.supplier_token_hash(text)', 'execute')
+          and not has_function_privilege('authenticated', 'private.document_request_guard()', 'execute')
+          and not exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects'
+                          and coalesce(qual, '') || coalesce(with_check, '') like '%quarantine%'),
+          '[T-802] the helpers are not executable by clients, and no storage policy reaches quarantine');
+select pg_temp.as_user('00000000-0000-4000-8802-0000000000a1');
+select throws_ok($$select app.supplier_request_for_token('x')$$, '42501', null,
+                 '[H03.must.1] a member''s JWT is refused by the service functions, even for the table owner');
+select set_config('request.jwt.claims', '', true);
 select is((select count(*)::int from information_schema.routines where routine_schema = 'public'
            and routine_name in ('request_document','supplier_request_for_token','accept_supplier_upload','record_scan_result')),
           0, '[T-802] nothing is added to the public schema');
@@ -134,6 +144,8 @@ set local role authenticated;
 select throws_ok($$select app.request_document('20000000-0000-4000-8802-00000000000a', 'x', 't802_test_spec', null, 'S', 's@s.test',
                    '40000000-0000-4000-8802-00000000000a')$$,
                  '42501', null, '[H02.main] an editor outside the product''s scope cannot request for it');
+select throws_ok($$select app.request_document('20000000-0000-4000-8802-00000000000a', 'x', 't802_test_spec', null, 'S', 's@s.test')$$,
+                 '42501', null, '[H02.main] nor ask for a workspace document every member would read');
 reset role;
 select pg_temp.as_user('00000000-0000-4000-8802-0000000000b1');
 set local role authenticated;
@@ -221,7 +233,7 @@ reset role;
 select ok(pg_temp.v('scan1b') ->> 'status' = 'already' and pg_temp.v('scan1b') ->> 'document_id' = pg_temp.v('scan1') ->> 'document_id',
           '[H03.main] recording the scan again is idempotent');
 select throws_ok(format($$update app.supplier_documents set scan_status = 'clean' where id = %L$$, pg_temp.v('up1') ->> 'document_id'),
-                 null, null, '[H03.main] supplier documents stay insert-only');
+                 'P0005', null, '[H03.main] supplier documents stay insert-only');
 select pg_temp.as_user('00000000-0000-4000-8802-0000000000f1');
 set local role authenticated;
 select ok(private.can_read_object('documents', pg_temp.v('path1') #>> '{}'),
