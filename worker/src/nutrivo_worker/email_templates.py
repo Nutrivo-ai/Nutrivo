@@ -143,6 +143,28 @@ def invitation(*, to: str, inviter: str, workspace: str, role: str, expires_at: 
     ))
 
 
+def supplier_request(*, to: str, requester: str | None, workspace: str, title: str, expires_at: datetime,
+                     url: str) -> Email:
+    """H02 (T-802): a supplier is asked for one document through a scoped link. The six designed templates have no
+    supplier email (#69 question 5), so this uses their shared layout and the design's own promise: a scoped link,
+    sent without creating an account. The title is the editor's own words; it is escaped like every other text."""
+    who = f"{requester} at {workspace}" if requester else workspace
+    return render(Layout(
+        template="supplier_request", to=to,
+        subject=f"{workspace} has asked you for a document",
+        preheader="One upload through a link. No account, no password.",
+        heading=f"{workspace} has asked you for a document",
+        body=[f"{who} asks for: {title}.",
+              ("Upload it through the link below. You do not need an account or a password, and the link opens "
+               "this one request and nothing else. PDF, DOCX or XLSX, up to 25 MB.")],
+        cta="Upload the document", cta_url=url,
+        secondary=(f"The link works for one upload and expires on {long_date(expires_at)}. If it lapses, ask "
+                   f"{workspace} to send another."),
+        footer=(f"You received this because {who} entered your address as a supplier. If you were not expecting it, "
+                "ignore this email."),
+    ))
+
+
 # ── Shared wording helpers ─────────────────────────────────────────────────────────────────────────────
 WORDS = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve",
          "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty")

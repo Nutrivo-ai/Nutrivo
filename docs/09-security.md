@@ -38,7 +38,12 @@ needs the URL at once, and a job must never carry a token, so `app.create_share`
 stored, and the web's Sentry scrubber redacts `/share/<token>` like `/invite/<token>`. A revoked, expired or unknown share token gets the identical `unknown` answer, and revoking a share never
 touches `public.verify_reference` (BE-27). Share reads are scoped to the report's product (`app.shares.product_id`).
 Buckets are private and path-prefixed by workspace id. Supplier uploads land in quarantine, are scanned (ClamAV),
-then promoted. Reads of artwork, documents and reports follow the record, not the folder: `private.can_read_object` finds the row
+then promoted (T-802): a supplier link is 32 random bytes minted by the worker, stored only as SHA-256, emailed once, and
+sent by the portal to the `supplier-upload` function in a POST body only; it reaches one request and is used up by the
+upload, and expired, used, unknown and malformed links get one identical answer. The web's Sentry scrubber redacts
+`/supplier/<token>` like `/invite/<token>`, the portal sets `Referrer-Policy: no-referrer` and `noindex`, and jobs, logs
+and audit events carry ids only. The scan is `clamscan` inside the worker container (signatures fetched by `freshclam`
+at image build); no outside scanning service is used. A file that cannot be scanned is never promoted. Reads of artwork, documents and reports follow the record, not the folder: `private.can_read_object` finds the row
 that names the object, requires the object's folder to be that row's workspace, and applies the row's product and
 market scope, so a family- or market-scoped member never lists the rest of the workspace's files (#179 DB-5).
 `app.register_artwork` refuses a path outside the caller's workspace and product folder (#179 DB-7). Signed URLs are short-lived (minutes for viewing, 7 days for exports).

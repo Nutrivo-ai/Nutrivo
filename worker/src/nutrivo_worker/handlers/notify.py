@@ -1,7 +1,8 @@
 """notify: the six emails (design/public/Nutrivo Email Templates.dc.html) and the in-app notifications (O01, BE-39).
 
 Templates: `invitation` (02, A03), `report` (01, I02), `rule_changed` (03, J03), `document_expiring` (04, H04),
-`allowance_used` (05, B02) and `receipt` (06, M03). Each producer task enqueues its own job; docs/04-contracts.md
+`allowance_used` (05, B02) and `receipt` (06, M03), plus `supplier_request` (H02, T-802: no designed template;
+the shared layout). Each producer task enqueues its own job; docs/04-contracts.md
 gives every payload, key and outcome. Payloads hold ids only.
 
 One delivery (`deliver`): an `app.notifications` row for each recipient who is a member, written together with
@@ -12,7 +13,7 @@ as a warning); when nobody could be emailed the job fails. Account-level provide
 person's notification_prefs per channel (a missing row means enabled); 01, 02, 05 and 06 always send. Recipients who
 are not members (a report's addressee, an invoice's payer) get the email and no row.
 
-The invitation (and a report sent by email) mints its token here, stores only its hash and emails it: the token exists
+The invitation (and a report sent by email, and a supplier request) mints its token here, stores only its hash and emails it: the token exists
 in this process's memory and in the email, nowhere else (docs/09). Sending errors retry from the queue with backoff
 (docs/18); a job that cannot be delivered at all fails with a safe error."""
 from __future__ import annotations
@@ -45,6 +46,8 @@ class NotifyStore(Protocol):
     def insert_notifications(self, job_id: str, workspace_id: str, kind: str, severity: str,
                              rows: list[tuple[str, dict[str, Any]]]) -> int: ...
     def share_for_email(self, share_id: str) -> dict[str, Any] | None: ...
+    def document_request_for_email(self, request_id: str) -> dict[str, Any] | None: ...
+    def set_document_request_token(self, request_id: str, token_hash: bytes) -> bool: ...
     def set_share_token(self, share_id: str, token_hash: bytes) -> bool: ...
     def report_summary(self, report_id: str, workspace_id: str) -> dict[str, Any] | None: ...
     def rule_diff(self, rule_diff_id: str) -> dict[str, Any] | None: ...
@@ -56,6 +59,7 @@ class NotifyStore(Protocol):
     def invoice_pdf(self, payment_event_id: str) -> bytes | None: ...
 
 
+SUPPLIER_PATH = "/supplier/"   # S-NV2-028, the supplier portal (spec/screens.yaml)
 SHARE_PATH = "/share/"   # the shared-report page T-601 serves; the route is in the T-602 PR's founder items
 
 
@@ -215,6 +219,39 @@ def send_report(job: Job, ctx: JobContext, store: NotifyStore, mailer: mail.Mail
                                    url=f"{base_url}{SHARE_PATH}{token}")
     deliver(job, ctx, store, Delivery("report_sent", [Recipient("recipient", share["recipient"])], lambda r: email),
             mailer)
+
+
+# ── supplier_request (H02, T-802) ──────────────────────────────────────────────────────────────────────
+def send_supplier_request(job: Job, ctx: JobContext, store: NotifyStore, mailer: mail.Mailer | None = None) -> None:
+    """A document request to a supplier. Like the invitation, the link's token is minted here and only its SHA-256 is
+    stored (H02.must.1); a retry after a failed send mints a new one, which replaces the undelivered one. A request
+    that is used, fulfilled or expired is a recorded no-op: its link can no longer be issued."""
+    request_id = payload_uuid(job.payload.get("document_request_id"), "document_request_id")
+    if store.job_progress(job.id).get("email") == "sent":
+        return _done(ctx, "already_sent")   # never mint again: that would kill the link already delivered
+    req = store.document_request_for_email(request_id)
+    if req is None:
+        raise PermanentJobError(f"document request {request_id} does not exist")
+    _same_workspace(job, req["workspace_id"], f"document request {request_id}")
+    if not req["supplier_email"]:
+        raise PermanentJobError(f"document request {request_id} names no supplier address")
+    if not req["title"]:
+        raise PermanentJobError(f"document request {request_id} says nothing about what it asks for")
+    if req["consumed_at"] is not None or req["fulfilled_at"] is not None:
+        return _done(ctx, "skipped_used")
+    if req["expires_at"] <= datetime.now(UTC):
+        return _done(ctx, "skipped_expired")
+    mailer = mailer or mail.mailer_for(ctx.settings)
+    base_url = ctx.settings.require_app_base_url()
+    token, token_hash = new_token()
+    if not store.set_document_request_token(request_id, token_hash):
+        return _done(ctx, "skipped_not_open")   # used or expired since it was read
+    email = email_templates.supplier_request(to=req["supplier_email"], requester=req["requester_name"],
+                                             workspace=req["workspace_name"], title=req["title"],
+                                             expires_at=req["expires_at"], url=f"{base_url}{SUPPLIER_PATH}{token}")
+    message_id = mail.send(mailer, email)
+    ctx.heartbeat(email="sent", outcome="sent", **({"message_id": message_id} if message_id else {}))
+    log.info("supplier request email sent", extra=kv(document_request_id=request_id))
 
 
 # ── Template 03 · rule_changed (J03; O01.must.1) ───────────────────────────────────────────────────────
@@ -415,7 +452,8 @@ def send_payment_failed(job: Job, ctx: JobContext, store: NotifyStore, mailer: m
 
 TEMPLATES = {"invitation": send_invitation, "report": send_report, "rule_changed": send_rule_changed,
              "document_expiring": send_document_expiring, "allowance_used": send_allowance_used,
-             "receipt": send_receipt, "payment_failed": send_payment_failed}
+             "receipt": send_receipt, "payment_failed": send_payment_failed,
+             "supplier_request": send_supplier_request}
 
 
 @handler("notify")
