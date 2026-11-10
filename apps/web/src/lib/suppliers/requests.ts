@@ -1,5 +1,6 @@
 // S-NV2-014 Suppliers (T-802; H02). The workspace's suppliers and their document requests, read under the member's
-// session (RLS), and what the request form may offer. Nothing here writes: a request is made by app.request_document
+// session (RLS: a family-scoped member reads only requests for their products and the workspace's own, so the counts
+// are within their scope), and what the request form may offer. Nothing here writes: a request is made by app.request_document
 // (actions.ts). The design's "Materials supplied", "Specs current" and "Portal" columns have no source and are left
 // out (#69 question 2); the screen shows each supplier's address, documents received against requested, and the state
 // of its latest request.

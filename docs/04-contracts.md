@@ -128,7 +128,8 @@ artwork, documents, reports, exports, sources, quarantine. Paths start with the 
 A member reads an artwork, document or report object only through the row that names it (`artwork_versions.storage_path`,
 `supplier_documents.storage_path`, `reports.pdf_path`, in that workspace's folder) and only within their scope: the
 row's product must be visible to them (`private.can_see_product`), a report's market too (`node_in_scope`), and a
-document without a product is workspace-wide (#179 DB-5). An object no row names is the service role's only. Only an
+document without a product is workspace-wide (#179 DB-5). The `app.supplier_documents` and `app.document_requests`
+rows are read under the same scope (a product row by a member who sees the product, a product-less row by every member). An object no row names is the service role's only. Only an
 internal, unscoped admin reads its exports
 (`private.can_export`: a full export carries every product, so scoped and external members, admins included, never read
 one).

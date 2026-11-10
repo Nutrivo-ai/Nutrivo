@@ -1,6 +1,6 @@
 -- T-801 · H01: the document library reads app.supplier_documents, app.suppliers and ref.document_requirements under
--- the member's session. No migration: the tables, their read_member policies and the insert-only guard exist since
--- 20261008000003/4. This file proves the read paths the screen relies on and that nothing about them is writable.
+-- the member's session. No migration: the tables and the insert-only guard exist since 20261008000003/4 (the read
+-- policy is read_scoped since 20261110102830; see 98_supplier_scope.test.sql). This file proves the read paths the screen relies on and that nothing about them is writable.
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;

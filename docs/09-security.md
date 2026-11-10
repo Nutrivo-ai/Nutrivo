@@ -45,7 +45,10 @@ upload, and expired, used, unknown and malformed links get one identical answer.
 and audit events carry ids only. The scan is `clamscan` inside the worker container (signatures fetched by `freshclam`
 at image build); no outside scanning service is used. A file that cannot be scanned is never promoted. Reads of artwork, documents and reports follow the record, not the folder: `private.can_read_object` finds the row
 that names the object, requires the object's folder to be that row's workspace, and applies the row's product and
-market scope, so a family- or market-scoped member never lists the rest of the workspace's files (#179 DB-5).
+market scope, so a family- or market-scoped member never lists the rest of the workspace's files (#179 DB-5). The
+`app.supplier_documents` and `app.document_requests` rows follow the same rule (`read_scoped`, 20261110102830): a row
+with a product is read only by a member who sees that product, a row without one by every member of its workspace;
+`app.suppliers` has no product and is read by every member.
 `app.register_artwork` refuses a path outside the caller's workspace and product folder (#179 DB-7). Signed URLs are short-lived (minutes for viewing, 7 days for exports).
 
 ## Authentication
