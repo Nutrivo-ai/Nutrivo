@@ -397,14 +397,14 @@ isOneToOne: false
                   ]
                 },"document_requests": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"doc_type": string,"expires_at": string,"fulfilled_at": string | null,"id": string,"product_id": string | null,"supplier_id": string,"token_hash": string | null,"workspace_id": string
+                    "consumed_at": string | null,"created_at": string,"created_by": string | null,"doc_type": string,"document_id": string | null,"expires_at": string,"fulfilled_at": string | null,"id": string,"product_id": string | null,"supplier_id": string,"title": string | null,"token_hash": string | null,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"doc_type": string,"expires_at"?: string,"fulfilled_at"?: string | null,"id"?: string,"product_id"?: string | null,"supplier_id": string,"token_hash"?: string | null,"workspace_id": string
+                    "consumed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"doc_type": string,"document_id"?: string | null,"expires_at"?: string,"fulfilled_at"?: string | null,"id"?: string,"product_id"?: string | null,"supplier_id": string,"title"?: string | null,"token_hash"?: string | null,"workspace_id": string
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"doc_type"?: string,"expires_at"?: string,"fulfilled_at"?: string | null,"id"?: string,"product_id"?: string | null,"supplier_id"?: string,"token_hash"?: string | null,"workspace_id"?: string
+                    "consumed_at"?: string | null,"created_at"?: string,"created_by"?: string | null,"doc_type"?: string,"document_id"?: string | null,"expires_at"?: string,"fulfilled_at"?: string | null,"id"?: string,"product_id"?: string | null,"supplier_id"?: string,"title"?: string | null,"token_hash"?: string | null,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -412,6 +412,12 @@ isOneToOne: false
       columns: ["created_by"]
 isOneToOne: false
       referencedRelation: "people"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "document_requests_document_id_fkey"
+      columns: ["document_id"]
+isOneToOne: false
+      referencedRelation: "supplier_documents"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "document_requests_product_id_fkey"
@@ -1117,14 +1123,14 @@ isOneToOne: false
                   ]
                 },"supplier_documents": {
                   Row: {
-                    "created_at": string,"doc_type": string,"file_sha256": string,"id": string,"product_id": string | null,"scan_status": string,"storage_path": string,"supplier_id": string | null,"uploaded_via": string,"valid_from": string | null,"valid_to": string | null,"workspace_id": string
+                    "created_at": string,"doc_type": string,"file_sha256": string,"id": string,"product_id": string | null,"promoted_from": string | null,"request_id": string | null,"scan_status": string,"storage_path": string,"supplier_id": string | null,"uploaded_via": string,"valid_from": string | null,"valid_to": string | null,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"doc_type": string,"file_sha256": string,"id"?: string,"product_id"?: string | null,"scan_status"?: string,"storage_path": string,"supplier_id"?: string | null,"uploaded_via": string,"valid_from"?: string | null,"valid_to"?: string | null,"workspace_id": string
+                    "created_at"?: string,"doc_type": string,"file_sha256": string,"id"?: string,"product_id"?: string | null,"promoted_from"?: string | null,"request_id"?: string | null,"scan_status"?: string,"storage_path": string,"supplier_id"?: string | null,"uploaded_via": string,"valid_from"?: string | null,"valid_to"?: string | null,"workspace_id": string
                   }
                   Update: {
-                    "created_at"?: string,"doc_type"?: string,"file_sha256"?: string,"id"?: string,"product_id"?: string | null,"scan_status"?: string,"storage_path"?: string,"supplier_id"?: string | null,"uploaded_via"?: string,"valid_from"?: string | null,"valid_to"?: string | null,"workspace_id"?: string
+                    "created_at"?: string,"doc_type"?: string,"file_sha256"?: string,"id"?: string,"product_id"?: string | null,"promoted_from"?: string | null,"request_id"?: string | null,"scan_status"?: string,"storage_path"?: string,"supplier_id"?: string | null,"uploaded_via"?: string,"valid_from"?: string | null,"valid_to"?: string | null,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -1132,6 +1138,18 @@ isOneToOne: false
       columns: ["product_id"]
 isOneToOne: false
       referencedRelation: "products"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "supplier_documents_promoted_from_fkey"
+      columns: ["promoted_from"]
+isOneToOne: false
+      referencedRelation: "supplier_documents"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "supplier_documents_request_id_fkey"
+      columns: ["request_id"]
+isOneToOne: false
+      referencedRelation: "document_requests"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "supplier_documents_supplier_id_fkey"
@@ -1231,6 +1249,9 @@ isOneToOne: false
 "accept_invitation":
 { Args: { "p_token": string }; Returns: string
                            },
+"accept_supplier_upload":
+{ Args: { "p_path": string,"p_sha256": string,"p_token": string }; Returns: Json
+                           },
 "add_product_markets":
 { Args: { "p_nodes": (string)[],"p_product": string }; Returns: number
                            },
@@ -1304,6 +1325,9 @@ isOneToOne: false
 "record_registration":
 { Args: { "p_evidence_doc"?: string,"p_expires_at"?: string,"p_node": string,"p_number": string,"p_obligation"?: string,"p_product": string,"p_registered_on": string }; Returns: string
                            },
+"record_scan_result":
+{ Args: { "p_document": string,"p_outcome": string }; Returns: Json
+                           },
 "record_stripe_event":
 { Args: { "p_event": Json }; Returns: Json
                            },
@@ -1324,6 +1348,9 @@ isOneToOne: false
                            },
 "request_check":
 { Args: { "p_nodes"?: (string)[],"p_product": string }; Returns: string
+                           },
+"request_document":
+{ Args: { "p_doc_type": string,"p_product"?: string,"p_request_id"?: string,"p_supplier"?: string,"p_supplier_email"?: string,"p_supplier_name"?: string,"p_title": string,"p_ws": string }; Returns: Json
                            },
 "request_export":
 { Args: { "p_request_id"?: string,"p_ws": string }; Returns: string
@@ -1360,6 +1387,9 @@ isOneToOne: false
                            },
 "set_product_stage":
 { Args: { "p_product": string,"p_reason"?: string,"p_stage": string }; Returns: string
+                           },
+"supplier_request_for_token":
+{ Args: { "p_token": string }; Returns: Json
                            }
           }
           Enums: {
