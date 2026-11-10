@@ -113,7 +113,11 @@ variable is `true`:
 1. After a merge, refuses to start while an issue labelled `incident` titled "Staging deploy failed …" is open
    (docs/19).
 2. Runs migrations (`supabase db push`), then Edge Functions, then the Render worker, then the Vercel web build, in
-   docs/18's order. Before deploying the worker it records the deploy that was live, as its rollback target.
+   docs/18's order. Before the Edge Functions it sets their secrets in the Supabase project
+   (`scripts/deploy/function-secrets.sh`: `STRIPE_WEBHOOK_SECRET`, `SENTRY_DSN_FUNCTIONS`, `NUTRIVO_ENV`,
+   `NUTRIVO_RELEASE`, never printed); a missing one, a value that is not a `whsec_` signing secret or a DSN outside
+   Sentry's EU region stops the deploy there. Before deploying the worker it records the deploy that was live, as its
+   rollback target.
 3. Runs the `@smoke` suite against the build it just deployed (`STAGING_DOMAIN`, or the deployment's own URL).
 4. Creates the Sentry release (the git SHA) and marks the staging deploy.
 5. Runs the doctor with `--strict`, which includes the Sentry, Langfuse and PostHog round-trip. After T-010 a check
@@ -124,10 +128,19 @@ variable is `true`:
 
 **Before setting `STAGING_DEPLOY_ENABLED`**, the staging prerequisites (the checklist on T-010's issue) must all be in
 place. Then:
-1. Run Actions → doctor with `staging` and `all` ticked, `strict` not ticked. Every name must be present. Every
+1. Store the two values the Edge Functions need in the staging Infisical project:
+   - `SENTRY_DSN_FUNCTIONS`: the DSN of the Sentry project `nutrivo-functions` (platform Deno, error monitoring
+     only, EU: the host ends in `.de.sentry.io`).
+   - `STRIPE_WEBHOOK_SECRET`: in Stripe's test mode, Developers → Webhooks → Add endpoint.
+     - URL: `https://<staging project ref>.supabase.co/functions/v1/stripe-webhook`.
+     - Events: `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`,
+       `customer.subscription.deleted`, `invoice.paid`, `invoice.payment_failed`.
+     - Then the endpoint's signing secret (`whsec_…`).
+     - Production gets its own endpoint and secret at gate G8 (T-705).
+2. Run Actions → doctor with `staging` and `all` ticked, `strict` not ticked. Every name must be present. Every
    service check must be green except those that need the first deploy: the schema checks (`postgres`,
-   `supabase-grants`) and `app` may skip.
-2. Set the variable and run `deploy-staging` once by hand. Its last step runs the doctor strictly.
+   `supabase-grants`), `function-secrets` and `app` may skip.
+3. Set the variable and run `deploy-staging` once by hand. Its last step runs the doctor strictly.
 3. Run the doctor again with `all` and `strict` ticked. Every required check must now be green. Link this run on the
    issue.
 

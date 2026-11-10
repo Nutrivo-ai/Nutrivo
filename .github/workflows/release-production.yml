@@ -36,6 +36,8 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: 22 }
       - run: supabase link --project-ref "$SUPABASE_PROJECT_REF" -p "$SUPABASE_DB_PASSWORD" && supabase db push -p "$SUPABASE_DB_PASSWORD"
+      # The functions' secrets first (scripts/deploy/function-secrets.sh), from the prod Infisical project.
+      - run: bash scripts/deploy/function-secrets.sh prod "$GITHUB_SHA"
       - run: if [ -d supabase/functions ]; then supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"; fi
       - id: worker
         run: bash scripts/deploy/render.sh "$RENDER_WORKER_SERVICE_ID" "$GITHUB_SHA"

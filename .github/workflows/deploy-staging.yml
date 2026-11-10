@@ -56,6 +56,11 @@ jobs:
       - name: Database migrations (expand/contract only)
         id: database
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF" -p "$SUPABASE_DB_PASSWORD" && supabase db push -p "$SUPABASE_DB_PASSWORD"
+      # The functions' secrets first, so a function never goes live without them (stripe-webhook refuses every event
+      # without STRIPE_WEBHOOK_SECRET); values come from the staging Infisical project and are never printed.
+      - name: Edge Function secrets
+        id: function-secrets
+        run: bash scripts/deploy/function-secrets.sh staging "$DEPLOY_SHA"
       - name: Edge Functions
         id: functions
         run: if [ -d supabase/functions ]; then supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF"; fi

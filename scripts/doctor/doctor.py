@@ -6,11 +6,12 @@ from datetime import datetime, timezone
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REQUIRED = {
     "dev": ["bedrock", "bedrock-profiles", "stripe", "sentry", "langfuse", "infisical-scope"],
-    "staging": ["supabase", "supabase-management", "postgres", "supabase-grants", "bedrock", "bedrock-profiles",
-                "bedrock-retention", "anthropic", "ses", "stripe", "sentry", "langfuse", "posthog", "vercel", "render",
-                "app"],
-    "prod": ["supabase", "supabase-management", "postgres", "supabase-grants", "bedrock", "bedrock-profiles",
-             "bedrock-retention", "anthropic", "ses", "stripe", "sentry", "langfuse", "posthog", "vercel", "render"],
+    "staging": ["supabase", "supabase-management", "function-secrets", "postgres", "supabase-grants", "bedrock",
+                "bedrock-profiles", "bedrock-retention", "anthropic", "ses", "stripe", "sentry", "langfuse", "posthog",
+                "vercel", "render", "app"],
+    "prod": ["supabase", "supabase-management", "function-secrets", "postgres", "supabase-grants", "bedrock",
+             "bedrock-profiles", "bedrock-retention", "anthropic", "ses", "stripe", "sentry", "langfuse", "posthog",
+             "vercel", "render"],
 }
 WRITES = {"sentry", "langfuse", "posthog", "bedrock"}  # skipped with --readonly
 E = os.environ.get
@@ -111,6 +112,28 @@ def c_supabase_management(env):
     region = json.loads(b).get("region")
     assert region == "eu-central-1", f"project region is {region}; decision D-02 says eu-central-1"
     return f"project in {region}"
+
+
+# What scripts/deploy/function-secrets.sh puts in each Supabase project before the Edge Functions deploy.
+FUNCTION_SECRETS = ("STRIPE_WEBHOOK_SECRET", "SENTRY_DSN_FUNCTIONS", "NUTRIVO_ENV", "NUTRIVO_RELEASE")
+
+
+def c_function_secrets(env):
+    """The Edge Functions' secrets exist in the Supabase project (names only: the Management API never returns a
+    value), and the stored DSN is in Sentry's EU region. stripe-webhook refuses every event without its secret."""
+    need("SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_REF", "STRIPE_WEBHOOK_SECRET", "SENTRY_DSN_FUNCTIONS")
+    host = urllib.parse.urlparse(E("SENTRY_DSN_FUNCTIONS")).hostname or ""
+    assert host.endswith(SENTRY_EU_SUFFIX), f"SENTRY_DSN_FUNCTIONS is not in Sentry's EU region (*{SENTRY_EU_SUFFIX}, D-17)"
+    assert E("STRIPE_WEBHOOK_SECRET").startswith("whsec_"), "STRIPE_WEBHOOK_SECRET is not a Stripe signing secret"
+    s, b = http("GET", f"https://api.supabase.com/v1/projects/{E('SUPABASE_PROJECT_REF')}/secrets",
+                bearer(E("SUPABASE_ACCESS_TOKEN")))
+    assert s == 200, f"management API returned {s} for the project's secrets"
+    names = {row.get("name") for row in json.loads(b)}
+    missing = [n for n in FUNCTION_SECRETS if n not in names]
+    if missing and not any(n in names for n in FUNCTION_SECRETS):
+        raise Skip("no function secrets yet: deploy-staging sets them before the functions deploy")
+    assert not missing, f"missing in the Supabase project: {', '.join(missing)} (scripts/deploy/function-secrets.sh)"
+    return f"{len(FUNCTION_SECRETS)} function secrets set"
 
 
 def psql(sql):
@@ -425,7 +448,8 @@ def c_infisical_scope(env):
     return "; ".join(report)
 
 
-CHECKS = {"supabase": c_supabase, "supabase-management": c_supabase_management, "postgres": c_postgres,
+CHECKS = {"supabase": c_supabase, "supabase-management": c_supabase_management,
+          "function-secrets": c_function_secrets, "postgres": c_postgres,
           "supabase-grants": c_supabase_grants, "bedrock": c_bedrock, "bedrock-profiles": c_bedrock_profiles,
           "bedrock-retention": c_bedrock_retention, "ses": c_ses, "anthropic": c_anthropic, "stripe": c_stripe,
           "sentry": c_sentry, "langfuse": c_langfuse, "posthog": c_posthog, "vercel": c_vercel, "render": c_render, "app": c_app,

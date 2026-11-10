@@ -4,7 +4,11 @@ Every failure is seen within minutes, every model call can be explained later, a
 
 ## Sentry: errors, performance, crons
 - **Projects and setup.**
-  - Projects `SENTRY_PROJECT_WEB` (@sentry/nextjs: client, server and edge) and `SENTRY_PROJECT_WORKER` (sentry-sdk).
+  - Projects `SENTRY_PROJECT_WEB` (@sentry/nextjs: client, server and edge) and `SENTRY_PROJECT_WORKER` (sentry-sdk),
+    plus `nutrivo-functions` for the stripe-webhook Edge Function (@sentry/deno, DSN `SENTRY_DSN_FUNCTIONS`).
+    The function sends only the failures Stripe retries (`misconfigured`, `db_unreachable`, `db_error`,
+    `exception`), as a message tagged with the event id, type and outcome. It has no default integrations, no request
+    and no payload; its environment and release are `NUTRIVO_ENV` and `NUTRIVO_RELEASE`.
   - Environment = dev / staging / prod; release = the git SHA. CI uploads web source maps with
     `SENTRY_AUTH_TOKEN` and marks deploys.
   - Trace sample rate: 1.0 in staging, 0.2 in production.

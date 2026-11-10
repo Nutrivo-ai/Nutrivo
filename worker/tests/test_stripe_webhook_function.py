@@ -16,4 +16,4 @@ def test_M04_main_the_stripe_webhook_function_verifies_signatures_and_stores_thr
     run = subprocess.run([node, "--test", "webhook.test.mjs"], cwd=FUNCTION, capture_output=True, text=True, check=False,
                          timeout=120)
     assert run.returncode == 0, run.stdout[-4000:] + run.stderr[-2000:]
-    assert "# fail 0" in run.stdout and "# pass 7" in run.stdout
+    assert "# fail 0" in run.stdout and "# pass 9" in run.stdout

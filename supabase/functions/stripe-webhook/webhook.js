@@ -8,7 +8,8 @@
 // Answers: 405 not POST · 413 too large · 400 unsigned, badly signed, stale or not an event (Stripe does not retry
 // these, and nothing is stored) · 200 stored or already stored · 500 misconfigured or the database failed (Stripe
 // retries with backoff for three days, and the worker's daily reconciliation repairs anything it gives up on).
-// Logs carry ids and outcomes only, never the payload or the secret.
+// Logs carry ids and outcomes only, never the payload or the secret. The failures Stripe will retry (misconfigured,
+// db_unreachable, db_error, exception) also go to `report`, which index.ts sends to Sentry with the same fields.
 
 export const TOLERANCE_S = 300;
 export const MAX_BYTES = 1024 * 1024;
@@ -51,12 +52,21 @@ function answer(status, body) {
 }
 
 export function makeHandler({ secret, supabaseUrl, serviceKey, fetchFn = fetch, now = () => Date.now(),
-                              log = (line) => console.log(JSON.stringify(line)) }) {
-  return async function handle(req) {
+                              log = (line) => console.log(JSON.stringify(line)), report = async (_line) => {} }) {
+  async function failed(line, body) {
+    log(line);
+    try {
+      await report(line);
+    } catch {
+      // reporting never changes the answer Stripe gets
+    }
+    return answer(500, body);
+  }
+
+  async function handle(req) {
     if (req.method !== "POST") return answer(405, { error: "method_not_allowed" });
     if (!secret || !supabaseUrl || !serviceKey) {
-      log({ fn: "stripe-webhook", outcome: "misconfigured" });
-      return answer(500, { error: "misconfigured" });
+      return failed({ fn: "stripe-webhook", outcome: "misconfigured" }, { error: "misconfigured" });
     }
     if (Number(req.headers.get("content-length") ?? 0) > MAX_BYTES) return answer(413, { error: "too_large" });
     const payload = await req.text();
@@ -84,17 +94,25 @@ export function makeHandler({ secret, supabaseUrl, serviceKey, fetchFn = fetch, 
         body: JSON.stringify({ p_event: event }),
       });
     } catch (err) {
-      log({ fn: "stripe-webhook", stripe_event_id: event.id, type: event.type, outcome: "db_unreachable",
-            error: err?.name ?? "Error" });
-      return answer(500, { error: "unavailable" });
+      return failed({ fn: "stripe-webhook", stripe_event_id: event.id, type: event.type, outcome: "db_unreachable",
+                      error: err?.name ?? "Error" }, { error: "unavailable" });
     }
     if (!res.ok) {
-      log({ fn: "stripe-webhook", stripe_event_id: event.id, type: event.type, outcome: "db_error", status: res.status });
-      return answer(500, { error: "unavailable" });
+      return failed({ fn: "stripe-webhook", stripe_event_id: event.id, type: event.type, outcome: "db_error",
+                      status: res.status }, { error: "unavailable" });
     }
     const result = await res.json();
     log({ fn: "stripe-webhook", stripe_event_id: event.id, type: event.type,
           outcome: result?.duplicate ? "duplicate" : "stored", job_id: result?.job_id ?? null });
     return answer(200, { received: true });
+  }
+
+  return async function (req) {
+    try {
+      return await handle(req);
+    } catch (err) {
+      return failed({ fn: "stripe-webhook", outcome: "exception", error: err?.name ?? "Error" },
+                    { error: "unavailable" });
+    }
   };
 }
