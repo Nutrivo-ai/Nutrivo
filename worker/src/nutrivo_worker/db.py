@@ -171,6 +171,37 @@ class PgStore:
             returning id""", (token_hash, share_id)).fetchone()
         return row is not None
 
+    # ── notify (H02, T-802) ─────────────────────────────────────────────────────────────────────────────
+    def document_request_for_email(self, request_id: str) -> dict[str, Any] | None:
+        return self.conn.execute(
+            """select r.id::text, r.workspace_id::text, r.title, r.expires_at, r.consumed_at, r.fulfilled_at,
+                      s.email::text as supplier_email, s.name as supplier_name, w.name as workspace_name,
+                      p.display_name as requester_name
+                 from app.document_requests r
+                 join app.suppliers s on s.id = r.supplier_id and s.workspace_id = r.workspace_id
+                 join app.workspaces w on w.id = r.workspace_id
+                 left join app.people p on p.id = r.created_by and p.tombstoned_at is null
+                where r.id = %s""", (request_id,)).fetchone()
+
+    def set_document_request_token(self, request_id: str, token_hash: bytes) -> bool:
+        """Store the hash of a new link while the request is open; the guard trigger refuses any other change."""
+        row = self.conn.execute(
+            """update app.document_requests set token_hash = %s
+                where id = %s and consumed_at is null and fulfilled_at is null and expires_at > now()
+            returning id""", (token_hash, request_id)).fetchone()
+        return row is not None
+
+    # ── scan (H03, T-802) ───────────────────────────────────────────────────────────────────────────────
+    def quarantined_upload(self, document_id: str) -> dict[str, Any] | None:
+        return self.conn.execute(
+            """select d.id::text, d.workspace_id::text, d.storage_path, d.scan_status, d.uploaded_via,
+                      d.request_id::text, d.promoted_from::text, d.file_sha256,
+                      (select n.id::text from app.supplier_documents n where n.promoted_from = d.id) as result_id
+                 from app.supplier_documents d where d.id = %s""", (document_id,)).fetchone()
+
+    def record_scan_result(self, document_id: str, outcome: str) -> dict[str, Any]:
+        return self.conn.execute("select app.record_scan_result(%s, %s) as r", (document_id, outcome)).fetchone()["r"]
+
     def report_summary(self, report_id: str, workspace_id: str) -> dict[str, Any] | None:
         """Template 01's counts over the report's pinned checks (docs/04-contracts.md), within the share's workspace."""
         return self.conn.execute(

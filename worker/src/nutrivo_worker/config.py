@@ -16,6 +16,7 @@ Env = Literal["local", "dev", "ci", "staging", "prod"]
 ModelsMode = Literal["live", "record", "replay"]
 ModelClass = Literal["judgement", "triage", "extraction"]
 EmailMode = Literal["ses", "mailpit"]
+ScanMode = Literal["clamav", "eicar_only"]
 
 DEPLOYED: tuple[Env, ...] = ("staging", "prod")
 
@@ -79,6 +80,19 @@ class Settings(BaseModel):
     # and dunning retries an invoice (T-704), each with an Idempotency-Key. Nothing else is written to Stripe.
     # Test keys only until gate G8 (T-705): a live key is refused outside prod.
     stripe_secret_key: SecretStr | None = None
+
+    # Malware scan of supplier uploads (H03, docs/09): ClamAV's clamscan in the worker image, no outside service.
+    # 'eicar_only' flags only the EICAR test file and passes everything else; it exists for CI's end-to-end run, whose
+    # worker has no ClamAV, and is refused in staging and prod. CI defaults to it, every other environment to clamav.
+    scan_mode: ScanMode = "clamav"
+    clamscan_path: str = "clamscan"
+    scan_timeout_s: int = Field(300, ge=10)
+
+    @model_validator(mode="after")
+    def _real_scanner_when_deployed(self) -> Settings:
+        if self.env in DEPLOYED and self.scan_mode != "clamav":
+            raise ConfigError(f"SCAN_MODE={self.scan_mode} is refused in {self.env}: deployed workers scan with ClamAV")
+        return self
 
     @model_validator(mode="after")
     def _email_matches_env(self) -> Settings:
@@ -167,6 +181,9 @@ class Settings(BaseModel):
             "stripe_secret_key": secret("STRIPE_SECRET_KEY"),
         }
         values["email_mode_override"] = get("EMAIL_MODE")
+        values["scan_mode"] = get("SCAN_MODE") or ("eicar_only" if env == "ci" else "clamav")
+        if get("CLAMSCAN_PATH"):
+            values["clamscan_path"] = get("CLAMSCAN_PATH")
         for field, name in (("ses_from_address", "SES_FROM_ADDRESS"), ("mailpit_url", "MAILPIT_URL"),
                             ("app_base_url", "APP_BASE_URL")):
             if get(name):
