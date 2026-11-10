@@ -15,19 +15,21 @@ function sign(payload, t = NOW_S, secret = SECRET) {
 const EVENT = JSON.stringify({ id: "evt_t702_1", object: "event", type: "invoice.paid",
                                data: { object: { object: "invoice", customer: "cus_A", subscription: "sub_A1" } } });
 
-function harness({ status = 200, body = { stored: true, duplicate: false, job_id: "j1" }, throws = false } = {}) {
+function harness({ status = 200, body = { stored: true, duplicate: false, job_id: "j1" }, throws = false,
+                   badJson = false } = {}) {
   const calls = [];
   const lines = [];
+  const reports = [];
   const handle = makeHandler({
     secret: SECRET, supabaseUrl: "http://db.local/", serviceKey: "service-role-key",
-    now: () => NOW_S * 1000, log: (l) => lines.push(l),
+    now: () => NOW_S * 1000, log: (l) => lines.push(l), report: async (l) => { reports.push(l); },
     fetchFn: async (url, init) => {
       calls.push({ url, init });
       if (throws) throw new TypeError("fetch failed");
-      return new Response(JSON.stringify(body), { status });
+      return new Response(badJson ? "<html>" : JSON.stringify(body), { status });
     },
   });
-  return { handle, calls, lines };
+  return { handle, calls, lines, reports };
 }
 
 const post = (payload, signature) => new Request("http://fn.local/stripe-webhook", {
@@ -95,4 +97,31 @@ test("[T-702] not POST, too large or misconfigured", async () => {
   assert.equal((await handle(post(big, sign(big)))).status, 413);
   const bare = makeHandler({ secret: "", supabaseUrl: "http://db.local", serviceKey: "k", log: () => {} });
   assert.equal((await bare(post(EVENT, sign(EVENT)))).status, 500);
+});
+
+test("[T-702] the failures Stripe retries are reported with ids and outcomes only; others are not", async () => {
+  const cases = [
+    [{ status: 503 }, { outcome: "db_error", status: 503, stripe_event_id: "evt_t702_1", type: "invoice.paid" }],
+    [{ throws: true }, { outcome: "db_unreachable", error: "TypeError", stripe_event_id: "evt_t702_1" }],
+    [{ badJson: true }, { outcome: "exception", error: "SyntaxError" }],
+  ];
+  for (const [opts, expected] of cases) {
+    const { handle, reports } = harness(opts);
+    assert.equal((await handle(post(EVENT, sign(EVENT)))).status, 500);
+    assert.equal(reports.length, 1);
+    for (const [k, v] of Object.entries(expected)) assert.equal(reports[0][k], v);
+    assert.ok(!JSON.stringify(reports).includes("cus_A") && !JSON.stringify(reports).includes(SECRET));
+  }
+  const ok = harness();
+  await ok.handle(post(EVENT, sign(EVENT)));
+  await ok.handle(post(EVENT, null));
+  assert.deepEqual(ok.reports, []);
+});
+
+test("[T-702] a misconfigured function is reported, and a failing reporter never changes the answer", async () => {
+  const reports = [];
+  const bare = makeHandler({ secret: "", supabaseUrl: "http://db.local", serviceKey: "k", log: () => {},
+                             report: async (l) => { reports.push(l); throw new Error("sentry down"); } });
+  assert.equal((await bare(post(EVENT, sign(EVENT)))).status, 500);
+  assert.deepEqual(reports, [{ fn: "stripe-webhook", outcome: "misconfigured" }]);
 });

@@ -73,8 +73,11 @@ to `app.subscriptions` and `app.workspaces.plan / status`.
    - An unsigned, wrongly signed, stale or malformed request gets 400 and nothing is stored.
    - Otherwise the function calls `app.record_stripe_event` with the service role and answers 200, whether the event
      was stored now or before.
-   - A database failure answers 500, so Stripe retries.
+   - A database failure answers 500, so Stripe retries. Those failures also go to Sentry (`nutrivo-functions`, docs/17),
+     with the event id, type and outcome only.
    - Logs hold event ids, types and outcomes only.
+   - Its secrets reach the Supabase project from the deploy jobs (`scripts/deploy/function-secrets.sh`), and the
+     doctor's `function-secrets` check proves they are there. Founders' set-up steps: docs/22 §4.
 2. **Storing.** `app.record_stripe_event` is service role only.
    - It inserts the event with `on conflict do nothing` and resolves the workspace (see the checkout contract below).
    - For the eight types above it queues a `billing_sync` job whose payload is `{"stripe_event_id"}` only.
