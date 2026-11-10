@@ -141,9 +141,13 @@ in place and says so: roll it back by hand in Vercel.
 (vercel.com/nutrivoai/nutrivo; Pro plan, because the Hobby plan does not allow commercial use). It is connected to
 `Nutrivo-ai/Nutrivo` with Root Directory `apps/web`, so `apps/web/vercel.json` applies: the Next.js preset, the pnpm
 install and build commands, and region `fra1` (D-02). `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` in Infisical (staging
-and prod) are that team's and that project's IDs. No other Vercel team or project is connected to the repository: a
-second one builds every push and posts its own status on every pull request. Set by abnutrivo on 8 Nov 2026, after
-two teams were connected and one reported "Account is blocked" (#187).
+and prod) are that team's and that project's IDs. Only that project should be connected to the repository: a second
+one builds every push and posts its own status, and both report as "Vercel – nutrivo", so they overwrite each other on
+pull requests. As of 10 Nov 2026 an older project is still connected, `nutrivo` in the `nutrivo` team
+(vercel.com/nutrivo/nutrivo). It is not under abnutrivo's Vercel logins, and ar835 has been asked to check theirs.
+Whoever owns it disconnects it in Vercel (Settings → Git).
+Removing the repository from the Vercel GitHub App installation instead would cut off both teams. Set by abnutrivo on
+8 Nov 2026, after one of the two reported "Account is blocked" (#187).
 
 ## 5 · Claude Code on the web, per person
 Each founder runs Claude Code at claude.ai/code in the Claude Team workspace "Nutrivo.ai", with GitHub connected
