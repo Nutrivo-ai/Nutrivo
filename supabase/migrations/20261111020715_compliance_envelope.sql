@@ -16,12 +16,17 @@ alter table app.envelopes
   add constraint envelopes_nutrient_adequacy_out_of_scope check ('nutrient_adequacy' = any(out_of_scope));
 create unique index envelopes_one_per_job on app.envelopes(job_id) where job_id is not null;
 create index envelopes_product on app.envelopes(product_id, created_at desc);
+-- node_ids lists every market of the product; a viewer scoped to some markets must not read the others (as
+-- app.product_nodes hides them), so clients read every column but node_ids.
+revoke select on app.envelopes from authenticated;
+grant select (id, workspace_id, product_id, ruleset_version, inputs_hash, created_at, job_id, formula_digest,
+              out_of_scope) on app.envelopes to authenticated;
 comment on column app.envelopes.out_of_scope is
   'E02.must.2: what this envelope never answers. Nutrient adequacy stays out of scope until FEDIAF is licensed (D-10).';
 
 -- ─── 2 · app.envelope_items: one requirement, permission, limit, obligation or withheld item per market × language ─
 alter table app.envelope_items
-  add column node_id      text references ref.jurisdictions(id),
+  add column node_id      text not null references ref.jurisdictions(id),
   add column language     text,
   add column rule_version int,
   add column reason_code  text,
@@ -30,7 +35,11 @@ alter table app.envelope_items
     (kind = 'not_assessed') = (provenance = 'not_assessed')
     and (kind = 'not_assessed') = (reason_code is not null)),
   add constraint envelope_items_versioned check (rule_key is null or rule_version is not null);
-create index envelope_items_envelope on app.envelope_items(envelope_id);
+create index envelope_items_envelope on app.envelope_items(envelope_id, node_id);
+-- Items now name their market: read them by product and market scope, as app.check_findings (0004 read only by product).
+drop policy read_scoped on app.envelope_items;
+create policy read_scoped on app.envelope_items for select to authenticated
+  using (private.can_see_product(product_id) and private.node_in_scope(workspace_id, node_id));
 
 -- The model never decides coverage or produces an envelope item (non-negotiable 6): no model_judgement until a claim
 -- judgement has a harness source (#209 Q1). A later task relaxes this with its own tests.
@@ -47,7 +56,8 @@ create table app.envelope_nodes (
   open_items    int  not null default 0 check (open_items >= 0),
   withheld      int  not null default 0 check (withheld >= 0),
   created_at    timestamptz not null default now(),
-  unique (envelope_id, node_id)
+  unique (envelope_id, node_id),
+  check (state <> 'clear' or (withheld = 0 and open_items = 0))
 );
 alter table app.envelope_nodes enable row level security;
 create policy read_scoped on app.envelope_nodes for select to authenticated
@@ -73,6 +83,32 @@ begin
 end $$;
 create trigger envelope_child_guard before insert on app.envelope_items
   for each row execute function private.envelope_child_guard();
+
+-- An envelope belongs to its product's workspace, so node_in_scope reads the right memberships.
+create function private.envelope_workspace_guard() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if new.workspace_id is distinct from (select pr.workspace_id from app.products pr where pr.id = new.product_id) then
+    raise exception 'an envelope belongs to its product''s workspace' using errcode = '23514';
+  end if;
+  return new;
+end $$;
+create trigger envelope_workspace_guard before insert on app.envelopes
+  for each row execute function private.envelope_workspace_guard();
+
+-- A market's answer seals it: no item is added for a market once its envelope_nodes row is written, so nothing
+-- withheld can appear beside a Clear written before it (E02.must.1).
+create function private.envelope_item_seal() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if exists (select 1 from app.envelope_nodes n where n.envelope_id = new.envelope_id and n.node_id = new.node_id) then
+    raise exception 'BE-21: market % of envelope % is already answered; a new input is a new envelope',
+      new.node_id, new.envelope_id using errcode = 'P0021';
+  end if;
+  return new;
+end $$;
+create trigger envelope_item_seal before insert on app.envelope_items
+  for each row execute function private.envelope_item_seal();
 create trigger envelope_child_guard before insert on app.envelope_nodes
   for each row execute function private.envelope_child_guard();
 
@@ -81,7 +117,7 @@ create trigger envelope_child_guard before insert on app.envelope_nodes
 -- items before the node rows, in one transaction.
 create function private.envelope_verdict_guard() returns trigger
 language plpgsql set search_path = '' as $$
-declare v_ruleset text;
+declare v_ruleset text; v_withheld int; v_open int;
 begin
   if new.state = 'clear' then
     select e.ruleset_version into v_ruleset from app.envelopes e where e.id = new.envelope_id;
@@ -94,11 +130,21 @@ begin
         new.node_id, v_ruleset using errcode = 'P0021';
     end if;
   end if;
+  -- The counters the screen reads are the items' own.
+  select count(*) filter (where i.kind = 'not_assessed'),
+         count(*) filter (where i.kind = 'prohibited' or (i.kind = 'limit' and i.payload ->> 'outcome' = 'exceeds'))
+    into v_withheld, v_open
+    from app.envelope_items i where i.envelope_id = new.envelope_id and i.node_id = new.node_id;
+  if new.withheld <> v_withheld or new.open_items <> v_open then
+    raise exception 'market % counts % withheld and % open, its items % and %', new.node_id, new.withheld,
+      new.open_items, v_withheld, v_open using errcode = '23514';
+  end if;
   return new;
 end $$;
 create trigger envelope_verdict_guard before insert on app.envelope_nodes
   for each row execute function private.envelope_verdict_guard();
-revoke all on function private.envelope_child_guard(), private.envelope_verdict_guard() from public, anon;
+revoke all on function private.envelope_child_guard(), private.envelope_verdict_guard(),
+  private.envelope_workspace_guard(), private.envelope_item_seal() from public, anon, authenticated;
 
 -- Insert-only (BE-05): an envelope is pinned evidence of what a brief was told; a new input is a new envelope.
 do $$

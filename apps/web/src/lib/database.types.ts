@@ -461,14 +461,14 @@ isOneToOne: false
                   ]
                 },"envelope_items": {
                   Row: {
-                    "citation": string | null,"envelope_id": string,"gap_id": string | null,"id": string,"kind": string,"language": string | null,"node_id": string | null,"payload": NonNullable<Json>,"product_id": string,"provenance": string,"reason_code": string | null,"rule_key": string | null,"rule_version": number | null,"workspace_id": string
+                    "citation": string | null,"envelope_id": string,"gap_id": string | null,"id": string,"kind": string,"language": string | null,"node_id": string,"payload": NonNullable<Json>,"product_id": string,"provenance": string,"reason_code": string | null,"rule_key": string | null,"rule_version": number | null,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "citation"?: string | null,"envelope_id": string,"gap_id"?: string | null,"id"?: string,"kind": string,"language"?: string | null,"node_id"?: string | null,"payload"?: NonNullable<Json>,"product_id": string,"provenance": string,"reason_code"?: string | null,"rule_key"?: string | null,"rule_version"?: number | null,"workspace_id": string
+                    "citation"?: string | null,"envelope_id": string,"gap_id"?: string | null,"id"?: string,"kind": string,"language"?: string | null,"node_id": string,"payload"?: NonNullable<Json>,"product_id": string,"provenance": string,"reason_code"?: string | null,"rule_key"?: string | null,"rule_version"?: number | null,"workspace_id": string
                   }
                   Update: {
-                    "citation"?: string | null,"envelope_id"?: string,"gap_id"?: string | null,"id"?: string,"kind"?: string,"language"?: string | null,"node_id"?: string | null,"payload"?: NonNullable<Json>,"product_id"?: string,"provenance"?: string,"reason_code"?: string | null,"rule_key"?: string | null,"rule_version"?: number | null,"workspace_id"?: string
+                    "citation"?: string | null,"envelope_id"?: string,"gap_id"?: string | null,"id"?: string,"kind"?: string,"language"?: string | null,"node_id"?: string,"payload"?: NonNullable<Json>,"product_id"?: string,"provenance"?: string,"reason_code"?: string | null,"rule_key"?: string | null,"rule_version"?: number | null,"workspace_id"?: string
                   }
                   Relationships: [
                     {

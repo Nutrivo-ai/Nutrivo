@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(27);
+select plan(34);
 set local client_min_messages = warning;
 
 -- ─── A: Ed (editor), Vic (viewer), Dee (viewer scoped to EU-DE). B: Bo (admin). ────────────────────────────────
@@ -120,18 +120,6 @@ insert into app.envelope_items (workspace_id, product_id, envelope_id, node_id, 
    'EU-DE',null,'not_assessed',null,null,'GAP-T1002-DE-COMP','not_assessed','not_encoded',null,'{}');
 
 -- ─── E02.must.1: anything not encoded is withheld with its gap, never Clear ─────────────────────────────────────
-select throws_ok($$insert into app.envelope_nodes (workspace_id, product_id, envelope_id, node_id, state)
-                   values ('20000000-0000-4000-8102-00000000000a','40000000-0000-4000-8102-00000000000a',
-                           '60000000-0000-4000-8102-0000000000e1','EU-DE','clear')$$,
-                 'P0021', null, '[E02.must.1] a market with an encoding gap is never clear in its envelope');
-select lives_ok($$insert into app.envelope_nodes (workspace_id, product_id, envelope_id, node_id, state, withheld)
-                  values ('20000000-0000-4000-8102-00000000000a','40000000-0000-4000-8102-00000000000a',
-                          '60000000-0000-4000-8102-0000000000e1','EU-DE','not_assessed', 1)$$,
-                '[E02.must.1] the same market is written not_assessed');
-select lives_ok($$insert into app.envelope_nodes (workspace_id, product_id, envelope_id, node_id, state)
-                  values ('20000000-0000-4000-8102-00000000000a','40000000-0000-4000-8102-00000000000a',
-                          '60000000-0000-4000-8102-0000000000e1','EU-AT','clear')$$,
-                '[E02.must.1] a fully encoded market with nothing withheld can be clear as briefed');
 select throws_ok($$insert into app.envelope_items (workspace_id, product_id, envelope_id, node_id, kind, rule_key,
                                                  rule_version, provenance)
                    values ('20000000-0000-4000-8102-00000000000a','40000000-0000-4000-8102-00000000000a',
@@ -152,6 +140,41 @@ select throws_ok($$insert into app.envelope_items (workspace_id, product_id, env
                    values ('20000000-0000-4000-8102-00000000000a','40000000-0000-4000-8102-00000000000a',
                            '60000000-0000-4000-8102-0000000000e1','EU-FR','permitted','T1002.R3',1,'deterministic_rule')$$,
                  '23514', null, '[T-1002] an item names only a market the envelope was computed for');
+
+select throws_ok($$insert into app.envelope_items (workspace_id, product_id, envelope_id, kind, rule_key,
+                                                 rule_version, provenance, reason_code)
+                   values ('20000000-0000-4000-8102-00000000000a','40000000-0000-4000-8102-00000000000a',
+                           '60000000-0000-4000-8102-0000000000e1','not_assessed','T1002.R4',1,'not_assessed','data_missing')$$,
+                 '23502', null, '[E02.must.1] every item names its market, so none can sit outside a market''s answer');
+select throws_ok($$insert into app.envelope_nodes (workspace_id, product_id, envelope_id, node_id, state, withheld)
+                   values ('20000000-0000-4000-8102-00000000000a','40000000-0000-4000-8102-00000000000a',
+                           '60000000-0000-4000-8102-0000000000e1','EU-DE','not_assessed', 0)$$,
+                 '23514', null, '[E02.must.1] a market''s withheld count is its items'' own');
+select throws_ok($$insert into app.envelope_nodes (workspace_id, product_id, envelope_id, node_id, state, withheld)
+                   values ('20000000-0000-4000-8102-00000000000a','40000000-0000-4000-8102-00000000000a',
+                           '60000000-0000-4000-8102-0000000000e1','EU-AT','clear', 2)$$,
+                 '23514', null, '[E02.must.1] a clear market counts nothing withheld');
+select throws_ok($$insert into app.envelope_nodes (workspace_id, product_id, envelope_id, node_id, state)
+                   values ('20000000-0000-4000-8102-00000000000a','40000000-0000-4000-8102-00000000000a',
+                           '60000000-0000-4000-8102-0000000000e1','EU-DE','clear')$$,
+                 'P0021', null, '[E02.must.1] a market with an encoding gap is never clear in its envelope');
+select lives_ok($$insert into app.envelope_nodes (workspace_id, product_id, envelope_id, node_id, state, withheld)
+                  values ('20000000-0000-4000-8102-00000000000a','40000000-0000-4000-8102-00000000000a',
+                          '60000000-0000-4000-8102-0000000000e1','EU-DE','not_assessed', 1)$$,
+                '[E02.must.1] the same market is written not_assessed');
+select lives_ok($$insert into app.envelope_nodes (workspace_id, product_id, envelope_id, node_id, state)
+                  values ('20000000-0000-4000-8102-00000000000a','40000000-0000-4000-8102-00000000000a',
+                          '60000000-0000-4000-8102-0000000000e1','EU-AT','clear')$$,
+                '[E02.must.1] a fully encoded market with nothing withheld can be clear as briefed');
+select throws_ok($$insert into app.envelope_items (workspace_id, product_id, envelope_id, node_id, kind, rule_key,
+                                                 rule_version, provenance, reason_code)
+                   values ('20000000-0000-4000-8102-00000000000a','40000000-0000-4000-8102-00000000000a',
+                           '60000000-0000-4000-8102-0000000000e1','EU-AT','not_assessed','T1002.R5',1,'not_assessed',
+                           'data_missing')$$,
+                 'P0021', null, '[E02.must.1] once a market is answered, nothing withheld can be added beside its Clear');
+select throws_ok($$insert into app.envelopes (workspace_id, product_id, ruleset_version, inputs_hash)
+                   values ('20000000-0000-4000-8102-00000000000b','40000000-0000-4000-8102-00000000000a','T1002-V','w')$$,
+                 '23514', null, '[T-1002] an envelope belongs to its product''s workspace');
 
 -- ─── E02.must.2: nutrient adequacy stays out of scope ──────────────────────────────────────────────────────────
 select ok((select 'nutrient_adequacy' = any(out_of_scope) from app.envelopes
@@ -178,6 +201,10 @@ select pg_temp.as_user('00000000-0000-4000-8102-0000000000d1');
 set local role authenticated;
 select results_eq($$select node_id from app.envelope_nodes$$, $$values ('EU-DE'::text)$$,
                   '[T-1002] a viewer scoped to EU-DE reads only that market''s row');
+select results_eq($$select distinct node_id from app.envelope_items$$, $$values ('EU-DE'::text)$$,
+                  '[T-1002] and only that market''s items');
+select throws_ok($$select node_ids from app.envelopes$$, '42501', null,
+                 '[T-1002] the envelope''s full market list is not readable by clients');
 reset role;
 select pg_temp.as_user('00000000-0000-4000-8102-0000000000b1');
 set local role authenticated;
