@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(35);
+select plan(37);
 set local client_min_messages = warning;
 
 -- ─── A: Ed (editor), Fay (viewer), Max (viewer scoped to EU-DE). B: Bo (admin). ────────────────────────────────
@@ -194,6 +194,12 @@ select throws_ok(format('select app.mark_alerts_read(array[%L]::uuid[])', (selec
 select is((select count(*)::int from app.alert_reads), 0,
           '[J03.must.2] another workspace''s admin reads none of A''s read state');
 reset role;
+select throws_ok($$select app.mark_alerts_read(array['80000000-0000-4000-8901-0000000000ff']::uuid[])$$, '42501', null,
+                 '[J03.must.2] an alert that does not exist is refused like one the caller cannot read');
+select ok(not has_function_privilege('anon', 'app.mark_alerts_read(uuid[])', 'execute')
+          and not has_function_privilege('anon', 'app.fan_out_rule_diff(uuid)', 'execute')
+          and not has_function_privilege('authenticated', 'app.run_alert_sweep(date)', 'execute'),
+          '[J03.must.2] anon executes no alert RPC and members cannot run the sweep');
 
 select * from finish();
 rollback;
