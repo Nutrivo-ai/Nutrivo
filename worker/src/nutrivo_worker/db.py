@@ -3,6 +3,7 @@ Every statement is its own short transaction; the reaper's update and requeue sh
 from __future__ import annotations
 
 import json
+from datetime import date
 from typing import Any
 
 import psycopg
@@ -230,22 +231,36 @@ class PgStore:
                 where rd.id = %s""", (rule_diff_id,)).fetchone()
 
     def rule_change_recipients(self, rule_diff_id: str, workspace_id: str) -> list[dict[str, Any]]:
-        """Contract 5 (app.affected_objects) joined to each active member whose scope holds the product's recipe and
-        market, the same test as private.family_in_scope and private.node_in_scope."""
+        """The alerts the fan-out wrote for this diff in this workspace (app.alerts, from contract 5 at fan-out time;
+        J03), joined to each active member whose scope holds the product's recipe and market, the same test as
+        private.family_in_scope and private.node_in_scope. The email names what the inbox shows, never a recount."""
         return self.conn.execute(
-            """select p.id::text as person_id, p.email::text as email, ao.product_id::text, pr.name as product_name,
-                      ao.node_id
-                 from app.affected_objects(%s) ao
-                 join app.products pr on pr.id = ao.product_id
-                 join app.memberships m on m.workspace_id = ao.workspace_id and m.ended_at is null
+            """select p.id::text as person_id, p.email::text as email, al.product_id::text, pr.name as product_name,
+                      al.node_id
+                 from (select distinct a.product_id, a.node_id from app.alerts a
+                        where a.rule_diff_id = %s and a.workspace_id = %s) al
+                 join app.products pr on pr.id = al.product_id and pr.workspace_id = %s
+                 join app.memberships m on m.workspace_id = pr.workspace_id and m.ended_at is null
                       and (m.access_ends_at is null or m.access_ends_at > now())
                       and (m.scope_family_ids is null or pr.family_id = any(m.scope_family_ids))
-                      and (m.scope_node_ids is null or ao.node_id = any(m.scope_node_ids)
-                           or (select j.parent_id from ref.jurisdictions j where j.id = ao.node_id)
+                      and (m.scope_node_ids is null or al.node_id = any(m.scope_node_ids)
+                           or (select j.parent_id from ref.jurisdictions j where j.id = al.node_id)
                               = any(m.scope_node_ids))
                  join app.people p on p.id = m.person_id and p.tombstoned_at is null and p.email is not null
-                where ao.workspace_id = %s
-                order by 1, 4, 5""", (rule_diff_id, workspace_id)).fetchall()
+                order by 1, 4, 5""", (rule_diff_id, workspace_id, workspace_id)).fetchall()
+
+    # ── diff_fanout (T-901, J03) ─────────────────────────────────────────────────────────────────────────
+    def fan_out_rule_diff(self, rule_diff_id: str) -> dict[str, Any] | None:
+        """app.fan_out_rule_diff in its own transaction; None for an unknown diff (P0002)."""
+        try:
+            with self.conn.transaction():
+                return self.conn.execute("select app.fan_out_rule_diff(%s) as r", (rule_diff_id,)).fetchone()["r"]
+        except psycopg.errors.NoDataFound:
+            return None
+
+    def run_alert_sweep(self, day: date) -> dict[str, Any]:
+        with self.conn.transaction():
+            return self.conn.execute("select app.run_alert_sweep(%s) as r", (day,)).fetchone()["r"]
 
     def document_for_notice(self, document_id: str) -> dict[str, Any] | None:
         return self.conn.execute(
