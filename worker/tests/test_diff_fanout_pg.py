@@ -143,6 +143,12 @@ def test_J03_main_a_released_diff_becomes_alerts_then_one_batched_email_per_work
     assert w.run("diff_fanout", job)[1]["progress"]["alerts"] == 0
     assert len(w.alerts(diff)) == 2
 
+    # Puppy mini is re-checked after the fan-out and now applies the rule: contract 5 would name it, but it has no
+    # alert, so the email (built from the alerts) must not name it either.
+    w.conn.execute("insert into app.checks (workspace_id, product_id, node_id, ruleset_version, label_state, "
+                   "applied_rule_keys, at) values (%s, %s, 'EU-FR', %s, 'action', %s, now() + interval '1 minute')",
+                   (w.ws, w.puppy, w.ruleset, [w.rule]))
+
     # The daily sweep queues one rule_changed job per affected workspace, inside its cron check-in.
     sweep = str(w.conn.execute("select private.enqueue_alert_sweep() as id").fetchone()["id"])
     outcome, row = w.run("diff_fanout", sweep)
@@ -160,7 +166,7 @@ def test_J03_main_a_released_diff_becomes_alerts_then_one_batched_email_per_work
     outcome, row = w.run("notify", mine)
     assert outcome == "succeeded", row
     assert sorted(e.to for e in w.mailer.sent) == sorted([w.anna["email"], w.ben["email"]])
-    assert all("Senior salmon" in e.text and "Puppy mini" not in e.text for e in w.mailer.sent)
+    assert all("Senior salmon" in e.text and "Puppy mini" not in e.text for e in w.mailer.sent)   # what the inbox shows
 
 
 def test_J03_must_1_alerts_name_recipes_through_the_applied_rule_join(world):
@@ -224,3 +230,18 @@ def test_T901_the_sweep_moves_an_arrived_alert_in_force_with_a_new_row(world):
                    (w.ws, diff, w.salmon, today))
     w.run("diff_fanout", str(w.conn.execute("select private.enqueue_alert_sweep() as id").fetchone()["id"]))
     assert sorted(a["phase"] for a in w.alerts(diff)) == ["coming", "in_force"]
+
+
+def test_J03_must_1_a_recipe_rechecked_without_the_rule_gets_no_in_force_alert(world):
+    w = world
+    today = datetime.now(UTC).date()
+    diff = w.diff(effective_from=today.isoformat())
+    w.conn.execute("insert into app.alerts (workspace_id, rule_diff_id, product_id, node_id, phase, effect_type, "
+                   "effective_from) values (%s, %s, %s, 'EU-FR', 'coming', 'prescribed_wording', %s)",
+                   (w.ws, diff, w.salmon, today))
+    # Reformulated and re-checked: the latest check no longer applies or withholds the rule.
+    w.conn.execute("insert into app.checks (workspace_id, product_id, node_id, ruleset_version, label_state, "
+                   "applied_rule_keys, at) values (%s, %s, 'EU-FR', %s, 'action', %s, now() + interval '1 minute')",
+                   (w.ws, w.salmon, w.ruleset, [w.rule2]))
+    w.run("diff_fanout", str(w.conn.execute("select private.enqueue_alert_sweep() as id").fetchone()["id"]))
+    assert [a["phase"] for a in w.alerts(diff)] == ["coming"]

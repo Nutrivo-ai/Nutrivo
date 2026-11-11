@@ -11,8 +11,8 @@
 --    latest check's applied and withheld rule keys per product × market, never a re-evaluation). phase is 'coming'
 --    while the diff's effective_from is after the UTC day, else 'in_force'; the dates are the diff's.
 -- 2. pg_cron queues one diff_fanout sweep job a day (07:23 UTC, key diff_fanout:sweep:<day>). The worker calls
---    app.run_alert_sweep, which (a) writes the 'in_force' row of each 'coming' alert whose date has arrived (a new
---    row: nothing is updated) and (b) queues one notify 'rule_changed' job per diff × workspace that has alerts, key
+--    app.run_alert_sweep, which (a) writes the 'in_force' row of each 'coming' alert whose date has arrived and that
+--    contract 5 still names (a new row: nothing is updated) and (b) queues one notify 'rule_changed' job per diff × workspace that has alerts, key
 --    rule_changed:<diff>:<workspace>: Template 03's "per material change, batched daily, never hourly". The second
 --    phase never sends a second email (same key). Both defaults are a founder question on #72.
 -- 3. app.mark_alerts_read records the caller's own read of alerts they can read (BE-39): one row per person.
@@ -114,12 +114,22 @@ begin
     raise exception 'the sweep day must be today or earlier' using errcode = '22023';
   end if;
 
+  -- Only where contract 5 still names the product × market: a recipe re-checked since the fan-out (a reformulation
+  -- that no longer applies or withholds the rule) or discontinued gets no in_force alert (BE-24, J03.must.1).
+  with due as (
+    select distinct a.rule_diff_id from app.alerts a
+    where a.phase = 'coming' and a.effective_from <= p_day
+      and not exists (select 1 from app.alerts f where f.rule_diff_id = a.rule_diff_id and f.product_id = a.product_id
+                        and f.node_id = a.node_id and f.phase = 'in_force')),
+  still as (
+    select d.rule_diff_id, ao.product_id, ao.node_id
+    from due d cross join lateral app.affected_objects(d.rule_diff_id) ao)
   insert into app.alerts (workspace_id, rule_diff_id, product_id, node_id, phase, effect_type, effective_from,
                           sell_through_until)
   select a.workspace_id, a.rule_diff_id, a.product_id, a.node_id, 'in_force', a.effect_type, a.effective_from,
          a.sell_through_until
   from app.alerts a
-  join app.products pr on pr.id = a.product_id and pr.stage <> 'discontinued'
+  join still s on s.rule_diff_id = a.rule_diff_id and s.product_id = a.product_id and s.node_id = a.node_id
   where a.phase = 'coming' and a.effective_from <= p_day
   on conflict (rule_diff_id, product_id, node_id, phase) do nothing;
   get diagnostics v_in_force = row_count;

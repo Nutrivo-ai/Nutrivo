@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(37);
+select plan(38);
 set local client_min_messages = warning;
 
 -- ─── A: Ed (editor), Fay (viewer), Max (viewer scoped to EU-DE). B: Bo (admin). ────────────────────────────────
@@ -117,12 +117,18 @@ select is((select array_agg(a.workspace_id = pr.workspace_id) from app.alerts a 
 -- d4 took effect yesterday; its 'coming' row stands for one fanned out before that day.
 insert into app.alerts (workspace_id, rule_diff_id, product_id, node_id, phase, effect_type, effective_from) values
   ('20000000-0000-4000-8901-00000000000a','80000000-0000-4000-8901-0000000000d4','40000000-0000-4000-8901-0000000000a2',
+   'EU-DE','coming','prescribed_wording', current_date - 1),
+  -- a1's latest EU-DE check applies T901.R only: contract 5 no longer names it for d4 (re-checked since the fan-out)
+  ('20000000-0000-4000-8901-00000000000a','80000000-0000-4000-8901-0000000000d4','40000000-0000-4000-8901-0000000000a1',
    'EU-DE','coming','prescribed_wording', current_date - 1);
 select is(app.run_alert_sweep(current_date) - 'day',
           '{"in_force": 1, "notify_jobs": 4}'::jsonb,
           '[J03.main] the sweep writes the in_force row of an arrived alert and one notify job per diff × workspace');
 select is((select count(*)::int from app.alerts where rule_diff_id = '80000000-0000-4000-8901-0000000000d4'
-           and phase = 'coming'), 1, '[J03.main] the coming row stays: the phase change is a new row');
+           and phase = 'coming'), 2, '[J03.main] the coming rows stay: the phase change is a new row');
+select ok(not exists (select 1 from app.alerts where rule_diff_id = '80000000-0000-4000-8901-0000000000d4'
+                      and product_id = '40000000-0000-4000-8901-0000000000a1' and phase = 'in_force'),
+          '[J03.must.1] a recipe whose latest check no longer applies the rule gets no in_force alert');
 select is((select count(*)::int from app.alerts where rule_diff_id = '80000000-0000-4000-8901-0000000000d4'
            and phase = 'in_force' and effective_from = current_date - 1), 1,
           '[J03.main] the in_force row carries the diff''s date');
