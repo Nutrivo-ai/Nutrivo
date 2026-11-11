@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(41);
+select plan(42);
 set local client_min_messages = warning;
 
 -- ─── A: Alice (admin), Carl (editor), Vera (viewer), Val (viewer scoped to family A2), Fay (editor scoped to family
@@ -138,6 +138,12 @@ insert into t (name, id) values ('job:billing', private.enqueue('billing_sync', 
 insert into app.jobs (id, kind, workspace_id, idempotency_key, payload) values
   ('70000000-0000-4000-8409-000000000001', 'check', '20000000-0000-4000-8409-00000000000a', 't409-raw-check', '{}');
 insert into t (name, id) values ('job:raw_check', '70000000-0000-4000-8409-000000000001');
+-- Product-less jobs that must not be read workspace-wide: a notify naming a share that is not this workspace's, and a
+-- bulk re-check naming products under a key job_scope does not know.
+insert into t (name, id) values ('job:foreign_notify', private.enqueue('notify', '20000000-0000-4000-8409-00000000000a',
+  't409-foreign-notify', '{"template":"report","share_id":"80000000-0000-4000-8409-0000000000b1"}'));
+insert into t (name, id) values ('job:bulk', private.enqueue('bulk_recheck', '20000000-0000-4000-8409-00000000000a',
+  't409-bulk', '{"product_ids":["40000000-0000-4000-8409-00000000000a"]}'));
 -- The worker finishes the report job: its progress names the reference.
 update app.jobs set status = 'succeeded', progress = '{"ref":"nv-t409-reference-0000000a1"}' where id = pg_temp.id('job:report');
 -- Supersessions of the report: one written now, and one written before T-409 (no product: the trigger is off).
@@ -148,7 +154,7 @@ insert into app.supersessions (workspace_id, artefact_type, artefact_id, rule_ke
   ('20000000-0000-4000-8409-00000000000a', 'report', '60000000-0000-4000-8409-0000000000a1', 'TEST.T409.LEGACY', '0000.00-empty');
 alter table app.supersessions enable trigger supersessions_scope;
 
-select is((select count(*)::int from t where name like 'job:%' and id is not null), 10,
+select is((select count(*)::int from t where name like 'job:%' and name not in ('job:raw_check','job:foreign_notify','job:bulk') and id is not null), 9,
           '[T-409] every producer still queues its job: artwork, check (twice), report, share email, supplier request, '
           'supplier upload, export and billing');
 select is((select product_id::text || ' ' || coalesce(node_ids::text, '-') from app.jobs where id = pg_temp.id('job:extract')),
@@ -214,11 +220,12 @@ select throws_ok($$update app.shares set node_id = 'EU-DE'
                  '23514', null, '[T-409] a share''s market cannot move away from its report''s');
 
 -- ─── Who reads what ─────────────────────────────────────────────────────────────────────────────────────────────
--- Unscoped members read every job of the workspace except a product job that names no product (fail closed).
+-- Unscoped members read every job of the workspace except, failing closed, a check job naming no product, a notify
+-- naming a share that is not the workspace's and a bulk re-check (not a product-less kind).
 select pg_temp.as_user('a1');
 set local role authenticated;
 select is(pg_temp.jobs_seen(), 'job:billing,job:check_both,job:check_se,job:docreq_notify,job:export,job:extract,job:report,job:scan,job:share_notify',
-          '[T-409] an unscoped admin reads every job; a check job naming no product is read by no member');
+          '[T-409] an unscoped admin reads every job; a product job without a product, a notify naming a foreign share and a bulk re-check are read by no member');
 select is(pg_temp.others_seen(), 'share,supersession:40000000-0000-4000-8409-00000000000a,supersession:legacy',
           '[T-409] an unscoped admin reads the share and both supersessions');
 reset role;
@@ -249,11 +256,11 @@ select is(pg_temp.others_seen(), '', '[T-409] a family-scoped member reads no sh
 reset role;
 
 -- An editor scoped to EU-DE: the product's Swedish report, check, share and supersessions are gone; the artwork and
--- supplier jobs (no market) stay, and so does the two-market check he requested himself.
+-- supplier jobs (no market) stay. The two-market check he requested himself is gone too: it names EU-SE (#198 Q1).
 select pg_temp.as_user('e2');
 set local role authenticated;
-select is(pg_temp.jobs_seen(), 'job:billing,job:check_both,job:docreq_notify,job:export,job:extract,job:scan',
-          '[T-409] a market-scoped member no longer reads another market''s report job or check job');
+select is(pg_temp.jobs_seen(), 'job:billing,job:docreq_notify,job:export,job:extract,job:scan',
+          '[T-409] a market-scoped member no longer reads another market''s report job or check job, even one they requested');
 select is((select count(*)::int from app.jobs where progress ? 'ref'), 0,
           '[T-409] a market-scoped member no longer reads another market''s report reference (progress.ref)');
 select is(pg_temp.others_seen(), '', '[T-409] a market-scoped member reads no share or supersession of another market');
@@ -278,10 +285,18 @@ set local role authenticated;
 select is(pg_temp.jobs_seen() || '|' || pg_temp.others_seen(), '|',
           '[T-409] another workspace''s admin reads no job, share or supersession of workspace A');
 reset role;
+-- Carl requested the report job; once his scope narrows to family A2 he no longer reads it or its reference.
+update app.memberships set scope_family_ids = '{30000000-0000-4000-8409-0000000000a2}'
+where person_id = '10000000-0000-4000-8409-0000000000c1';
+select pg_temp.as_user('c1');
+set local role authenticated;
+select is((select count(*)::int from app.jobs where id = pg_temp.id('job:report')), 0,
+          '[T-409] a requester whose scope no longer covers the product does not read the report job they requested');
+reset role;
 update app.memberships set ended_at = now() where person_id = '10000000-0000-4000-8409-0000000000e2';
 select pg_temp.as_user('e2');
 set local role authenticated;
-select is(pg_temp.jobs_seen(), '', '[T-409] a requester whose membership has ended no longer reads their own job');
+select is(pg_temp.jobs_seen(), '', '[T-409] a member whose membership has ended reads no job');
 reset role;
 
 -- Realtime authorizes each change with this policy: the publication still carries app.jobs.

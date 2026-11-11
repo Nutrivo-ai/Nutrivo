@@ -14,9 +14,11 @@
 --      scoped through its artefact instead (private.supersession_visible). No producer writes supersessions yet;
 --   4. the read policies change.
 --
--- Multi-market jobs (#198 Q1, default while it is open): a check job names several markets (node_ids). A member reads
--- it only when every one is in their scope, so a job never shows a market outside it. The member who requested a job
--- reads it while they are a member, so a market-scoped editor still follows their own check.
+-- Multi-market jobs (#198 Q1): a check job names several markets (node_ids). A member reads it only when every one is
+-- in their scope, so a job never shows a market outside it. Requesting a job grants nothing more: a member whose scope
+-- does not cover it (or no longer does) does not read it.
+-- Product-less jobs fail closed: only the kinds listed below are read workspace-wide, and only when their payload names
+-- none of the ids a scope comes from (an id of another workspace gives no scope, and such a job is read by no member).
 
 -- ─── 1 · Columns ─────────────────────────────────────────────────────────────────────────────────────────────────
 alter table app.jobs add column product_id uuid references app.products(id), add column node_ids text[];
@@ -141,8 +143,7 @@ update app.shares s set node_id = r.node_id from app.reports r
 where r.id = s.report_id and s.node_id is null and r.node_id is not null;
 
 -- No constraint yet: a raw writer (tests, the service role) may still insert a check job whose payload names nothing.
--- The policy fails closed instead: a job of a product kind (extract, check, recheck, report) with no product is read
--- by no member, never workspace-wide.
+-- The policy fails closed instead (section 4): such a job is read by no member, never workspace-wide.
 
 -- ─── 4 · Policies ────────────────────────────────────────────────────────────────────────────────────────────────
 -- Every node of the list is in the caller's scope in the workspace (an empty or null list names no market).
@@ -167,9 +168,12 @@ $$;
 drop policy read_member on app.jobs;
 create policy read_scoped on app.jobs for select to authenticated
   using (case when product_id is null
-                then private.is_member(workspace_id) and kind not in ('extract','check','recheck','report')
-              else (private.can_see_product(product_id) and private.nodes_in_scope(workspace_id, node_ids))
-                   or (requested_by = private.person_id() and private.is_member(workspace_id)) end);
+                then private.is_member(workspace_id)
+                     and kind in ('export','notify','session_revoke','billing_sync','billing_reconcile','recipe_overage',
+                                  'dunning','diff_fanout')
+                     and not payload ?| array['product_id','check_id','artwork_version_id','share_id',
+                                              'document_request_id','document_id']
+              else private.can_see_product(product_id) and private.nodes_in_scope(workspace_id, node_ids) end);
 
 drop policy read_scoped on app.shares;
 create policy read_scoped on app.shares for select to authenticated
