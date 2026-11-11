@@ -1333,6 +1333,9 @@ isOneToOne: false
               "day": number,"failed_at": string,"stripe_invoice_id": string,"workspace_id": string
             }[]
                            },
+"envelope_inputs_hash":
+{ Args: { "p_product": string }; Returns: string
+                           },
 "invite_member":
 { Args: { "p_access_ends_at"?: string,"p_email": string,"p_is_external"?: boolean,"p_role": string,"p_scope_family_ids"?: (string)[],"p_scope_node_ids"?: (string)[],"p_ws": string }; Returns: string
                            },

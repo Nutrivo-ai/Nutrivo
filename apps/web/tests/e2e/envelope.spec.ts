@@ -70,11 +70,26 @@ test.describe("@local-only Design envelope (E02)", () => {
 
     // Cached by inputs_hash: screening again with the same inputs is the same job and the same envelope.
     const before = await page.locator("[data-envelope]").getAttribute("data-envelope");
-    await page.getByRole("button", { name: "Screen again" }).click();
+    // Wait for the Server Action itself: the screen already shows the envelope, so nothing visible changes.
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes(`/briefs/${productId}/envelope`)),
+      page.getByRole("button", { name: "Screen again" }).click(),
+    ]);
     await expect(page).toHaveURL(new RegExp(`/w/${ws}/briefs/${productId}/envelope$`));
     await expect(page.locator("[data-envelope]")).toHaveAttribute("data-envelope", before!);
     const { count } = await admin().schema("app").from("envelopes").select("id", { count: "exact", head: true }).eq("product_id", productId);
     expect(count).toBe(1);
+
+    // A changed input: the envelope of the earlier inputs is not shown as this brief's; back to them, it is again.
+    const claims = await editor.db.schema("app").rpc("set_intended_claims", { p_product: productId, p_language: "de", p_claims: ["Für ältere Hunde"] });
+    if (claims.error) throw claims.error;
+    await page.reload();
+    await expect(page.getByText("This brief has not been screened yet")).toBeVisible();
+    await expect(page.locator("[data-envelope]")).toHaveCount(0);
+    const cleared = await editor.db.schema("app").rpc("set_intended_claims", { p_product: productId, p_language: "de", p_claims: [] });
+    if (cleared.error) throw cleared.error;
+    await page.reload();
+    await expect(page.locator("[data-envelope]")).toHaveAttribute("data-envelope", before!);
     expect(errors).toEqual([]);
   });
 
@@ -82,9 +97,12 @@ test.describe("@local-only Design envelope (E02)", () => {
     const productId = await brief("Adult Maintenance Wet");
     // Written as the worker writes it (service role), on the empty ruleset: synthetic rule keys and wording.
     const app = admin().schema("app");
+    // The screen shows the envelope for the brief's current inputs only, so it is written for that hash.
+    const current = await editor.db.schema("app").rpc("envelope_inputs_hash", { p_product: productId });
+    if (current.error || !current.data) throw current.error ?? new Error("no inputs hash");
     const { data: env, error } = await app
       .from("envelopes")
-      .insert({ workspace_id: ws, product_id: productId, ruleset_version: "0000.00-empty", inputs_hash: `e2e-${productId}`, node_ids: ["EU-DE"] })
+      .insert({ workspace_id: ws, product_id: productId, ruleset_version: "0000.00-empty", inputs_hash: current.data, node_ids: ["EU-DE"] })
       .select("id")
       .single();
     if (error) throw error;

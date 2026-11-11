@@ -133,7 +133,7 @@ export async function searchRegister(db: Db, q: string): Promise<RegisterRow[]> 
   ];
 }
 
-/** T-1002 · E02: the latest envelope of a brief and the latest envelope job, read under RLS (S-NV2-005). */
+/** T-1002 · E02: the brief's envelope for its current inputs (app.envelope_inputs_hash) and that envelope's job, under RLS (S-NV2-005). */
 export type EnvelopeRead = {
   product: { id: string; name: string; stage: string; nodes: string[] };
   envelope: {
@@ -144,7 +144,7 @@ export type EnvelopeRead = {
     nodes: EnvelopeNodeRow[];
     items: EnvelopeItemRow[];
   } | null;
-  /** The newest envelope job, when it is newer than the envelope shown (queued, running, failed or superseded). */
+  /** The latest envelope job for the brief's current inputs, unless it is the one that wrote the envelope shown. */
   job: { id: string; status: string; outcome: string | null; createdAt: string } | null;
 };
 
@@ -160,11 +160,16 @@ export async function readEnvelope(db: Db, workspaceId: string, productId: strin
   if (error) throw new ShellReadError("envelope", error);
   if (!product) return null;
 
+  // Only the envelope and the job for the brief as it is now: an envelope of earlier inputs is never shown as current.
+  const current = await db.schema("app").rpc("envelope_inputs_hash", { p_product: productId });
+  if (current.error) throw new ShellReadError("envelope inputs", current.error);
+  const hash = current.data ?? "-";
   const [env, job] = await Promise.all([
     app
       .from("envelopes")
       .select("id, ruleset_version, created_at, out_of_scope, job_id")
       .eq("product_id", productId)
+      .eq("inputs_hash", hash)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -173,7 +178,8 @@ export async function readEnvelope(db: Db, workspaceId: string, productId: strin
       .select("id, status, progress, created_at")
       .eq("kind", "envelope")
       .eq("payload->>product_id", productId)
-      .order("created_at", { ascending: false })
+      .eq("payload->>inputs_hash", hash)
+      .order("updated_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
   ]);

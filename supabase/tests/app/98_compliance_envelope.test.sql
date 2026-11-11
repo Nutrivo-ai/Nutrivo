@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(34);
+select plan(38);
 set local client_min_messages = warning;
 
 -- ─── A: Ed (editor), Vic (viewer), Dee (viewer scoped to EU-DE). B: Bo (admin). ────────────────────────────────
@@ -203,14 +203,41 @@ select results_eq($$select node_id from app.envelope_nodes$$, $$values ('EU-DE':
                   '[T-1002] a viewer scoped to EU-DE reads only that market''s row');
 select results_eq($$select distinct node_id from app.envelope_items$$, $$values ('EU-DE'::text)$$,
                   '[T-1002] and only that market''s items');
-select throws_ok($$select node_ids from app.envelopes$$, '42501', null,
-                 '[T-1002] the envelope''s full market list is not readable by clients');
+
 reset role;
 select pg_temp.as_user('00000000-0000-4000-8102-0000000000b1');
 set local role authenticated;
 select is((select count(*)::int from app.envelope_nodes) + (select count(*)::int from app.envelope_items)
           + (select count(*)::int from app.envelopes), 0,
           '[T-1002] another workspace reads none of the envelope');
+reset role;
+
+-- ─── E02.main: going back to earlier inputs, and retrying a failed job ─────────────────────────────────────────
+-- job1 (no claims) failed; job3 (a German claim) has its envelope. Removing the claim returns to job1's inputs.
+update app.jobs set status = 'failed', attempts = 5, last_error = 'boom' where id = (select id from t_ids where name = 'job1');
+update app.jobs set status = 'succeeded' where id = (select id from t_ids where name = 'job3');
+select pg_temp.as_user('00000000-0000-4000-8102-0000000000e1');
+set local role authenticated;
+select is(app.set_intended_claims('40000000-0000-4000-8102-00000000000a', 'de', '{}'), 0,
+          '[E02.main] the editor removes the claim: the brief is back to its first inputs');
+insert into t_ids select 'job4', app.request_envelope('40000000-0000-4000-8102-00000000000a');
+select is(app.envelope_inputs_hash('40000000-0000-4000-8102-00000000000a'),
+          (select payload ->> 'inputs_hash' from app.jobs where id = (select id from t_ids where name = 'job1')),
+          '[E02.main] app.envelope_inputs_hash gives the screen the brief''s current inputs');
+select app.set_intended_claims('40000000-0000-4000-8102-00000000000a', 'de', array['Für ältere Hunde']) is not null;
+insert into t_ids select 'job5', app.request_envelope('40000000-0000-4000-8102-00000000000a');
+reset role;
+select ok((select status = 'queued' and attempts = 0 and last_error is null from app.jobs
+           where id = (select id from t_ids where name = 'job4'))
+          and (select id from t_ids where name = 'job4') = (select id from t_ids where name = 'job1'),
+          '[E02.main] a failed job for inputs with no envelope is queued again, not returned as failed');
+select ok((select id from t_ids where name = 'job5') = (select id from t_ids where name = 'job3')
+          and (select status from app.jobs where id = (select id from t_ids where name = 'job3')) = 'succeeded',
+          '[E02.main] inputs that already have their envelope return its job unchanged: the cached envelope');
+select pg_temp.as_user('00000000-0000-4000-8102-0000000000b1');
+set local role authenticated;
+select is(app.envelope_inputs_hash('40000000-0000-4000-8102-00000000000a'), null,
+          '[T-1002] another workspace gets no hash for the product');
 reset role;
 
 select * from finish();

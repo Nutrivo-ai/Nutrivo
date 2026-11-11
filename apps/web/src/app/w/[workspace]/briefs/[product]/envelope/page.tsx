@@ -61,7 +61,7 @@ export default async function Page({ params }: PageProps<"/w/[workspace]/briefs/
               <EmptyState
                 where="DESIGN ENVELOPE"
                 title="This brief has not been screened yet"
-                body="Screening reads the accepted rules for each of the brief's markets: what it must carry, what it may say and the ceilings its additives must stay within. Anything not encoded is listed as not assessed."
+                body="Screening reads the accepted rules for each of the brief's markets: what it must carry, what it may say and the ceilings its additives must stay within. Anything not encoded is listed as not assessed. An envelope is for the brief as it stands: after a change to its formula, claims or markets, screen it again."
               />
             </div>
           ) : null}

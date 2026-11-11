@@ -16,11 +16,9 @@ alter table app.envelopes
   add constraint envelopes_nutrient_adequacy_out_of_scope check ('nutrient_adequacy' = any(out_of_scope));
 create unique index envelopes_one_per_job on app.envelopes(job_id) where job_id is not null;
 create index envelopes_product on app.envelopes(product_id, created_at desc);
--- node_ids lists every market of the product; a viewer scoped to some markets must not read the others (as
--- app.product_nodes hides them), so clients read every column but node_ids.
-revoke select on app.envelopes from authenticated;
-grant select (id, workspace_id, product_id, ruleset_version, inputs_hash, created_at, job_id, formula_digest,
-              out_of_scope) on app.envelopes to authenticated;
+-- node_ids lists the product's markets, readable by anyone who can see the product, as the check and envelope job
+-- payloads already are (app.jobs read_member): the open founder decision DB-5 Q2 on #8. A column grant would hide it
+-- but breaks PostgREST's embedded counts (Discontinued products reads envelopes(count)).
 comment on column app.envelopes.out_of_scope is
   'E02.must.2: what this envelope never answers. Nutrient adequacy stays out of scope until FEDIAF is licensed (D-10).';
 
@@ -191,12 +189,17 @@ grant execute on function private.envelope_inputs_hash(uuid, text[]) to service_
 
 -- ─── 7 · app.request_envelope: an editor asks for the brief's envelope ──────────────────────────────────────────
 -- Who: an editor of the product (private.can_edit_product), as app.request_check; anyone else is 42501. The latest
--- released ruleset (P0003 when none). The markets are the product's. One job per (product, ruleset, inputs_hash): a
--- second request with the same inputs returns the same job, and so the cached envelope. No artwork is needed: a brief
+-- released ruleset (P0003 when none). The markets are the product's (22023 when none). No artwork is needed: a brief
 -- is screened before it has one. Payload: ids and digests only. Audited envelope.requested.
+-- One job per (product, ruleset, inputs_hash), keyed envelope:<product>:<ruleset>:<inputs_hash>:
+-- - an envelope already written for these inputs: its job is returned (the cached envelope, E02 step 3);
+-- - otherwise a job for the key that ended without one (failed, cancelled, or superseded because the inputs changed
+--   before it ran, and since changed back) is reset to queued and sent again, as app.retry_extraction does;
+-- - a queued or running job is returned as it is; with none, a new job is queued.
 create function app.request_envelope(p_product uuid) returns uuid
 language plpgsql security definer set search_path = '' as $$
-declare v_ws uuid; v_ruleset text; v_nodes text[]; v_hash text; v_formula text; v_job uuid;
+declare v_ws uuid; v_ruleset text; v_nodes text[]; v_hash text; v_formula text; v_key text; v_job app.jobs;
+        v_id uuid; v_rid text;
 begin
   if private.person_id() is null or not private.can_edit_product(p_product) then
     raise exception 'not permitted' using errcode = '42501';
@@ -210,12 +213,43 @@ begin
   end if;
   v_hash := private.envelope_inputs_hash(p_product, v_nodes);
   v_formula := private.formula_digest(p_product);
-  v_job := private.enqueue('envelope', v_ws, format('envelope:%s:%s:%s', p_product, v_ruleset, v_hash),
-    jsonb_build_object('product_id', p_product, 'ruleset_version', v_ruleset, 'inputs_hash', v_hash,
-                       'node_ids', to_jsonb(v_nodes), 'formula_digest', v_formula));
-  perform private.write_audit(v_ws, 'envelope.requested', 'product', p_product::text, null,
-                              jsonb_build_object('job_id', v_job, 'inputs_hash', v_hash), v_ruleset);
-  return v_job;
+  v_key := format('envelope:%s:%s:%s', p_product, v_ruleset, v_hash);
+
+  select * into v_job from app.jobs j where j.idempotency_key = v_key for update;
+  if found and v_job.status in ('failed', 'cancelled', 'succeeded')
+     and not exists (select 1 from app.envelopes e where e.product_id = p_product and e.ruleset_version = v_ruleset
+                                                     and e.inputs_hash = v_hash) then
+    v_rid := private.request_id();
+    update app.jobs j
+    set status = 'queued', attempts = 0, last_error = null, progress = '{}'::jsonb, updated_at = now(),
+        payload = (j.payload - 'request_id')
+                  || case when v_rid is null then '{}'::jsonb else jsonb_build_object('request_id', v_rid) end
+    where j.id = v_job.id;
+    if to_regnamespace('pgmq') is not null then
+      execute format('select pgmq.send(%L, %L::jsonb)', 'envelope', jsonb_build_object('job_id', v_job.id)::text);
+    end if;
+    v_id := v_job.id;
+  else
+    v_id := private.enqueue('envelope', v_ws, v_key,
+      jsonb_build_object('product_id', p_product, 'ruleset_version', v_ruleset, 'inputs_hash', v_hash,
+                         'node_ids', to_jsonb(v_nodes), 'formula_digest', v_formula));
+  end if;
+  perform private.write_audit(v_ws, 'envelope.requested', 'product', p_product::text,
+                              case when v_job.id is not null then jsonb_build_object('status', v_job.status) end,
+                              jsonb_build_object('job_id', v_id, 'inputs_hash', v_hash), v_ruleset);
+  return v_id;
 end $$;
 revoke execute on function app.request_envelope(uuid) from public, anon;
 grant execute on function app.request_envelope(uuid) to authenticated;
+
+-- ─── 8 · app.envelope_inputs_hash: which envelope is the brief's current one ────────────────────────────────────
+-- For whoever can see the product (null otherwise): the hash of its current inputs, so Design envelope shows the
+-- envelope (and the job) for the brief as it is now, never one computed from earlier inputs. Only a hash leaves.
+create function app.envelope_inputs_hash(p_product uuid) returns text
+language sql stable security definer set search_path = '' as $$
+  select case when private.can_see_product(p_product) then
+    private.envelope_inputs_hash(p_product, array(select pn.node_id from app.product_nodes pn
+                                                  where pn.product_id = p_product order by pn.node_id)) end
+$$;
+revoke execute on function app.envelope_inputs_hash(uuid) from public, anon;
+grant execute on function app.envelope_inputs_hash(uuid) to authenticated;

@@ -238,3 +238,8 @@ def test_E02_main_a_job_whose_inputs_changed_writes_nothing(conn):
     assert one(conn, "select progress from app.jobs where id = %s", job_id)["progress"]["outcome"] == "superseded"
     newer = request(conn, s)
     assert newer != job_id and run_job(conn, newer) == "succeeded" and envelope_of(conn, newer) is not None
+
+    # Back to the first inputs: the superseded job is queued again and now computes its envelope.
+    conn.execute("update app.formula_lines set amount = 10 where product_id = %s and position = 2", (s["product"],))
+    assert request(conn, s) == job_id
+    assert run_job(conn, job_id) == "succeeded" and envelope_of(conn, job_id) is not None
