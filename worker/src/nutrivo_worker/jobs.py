@@ -34,7 +34,7 @@ from .logs import get_logger, kv, log_context, workspace_hash
 log = get_logger(__name__)
 
 KINDS = ("extract", "check", "recheck", "bulk_recheck", "report", "export", "notify", "session_revoke", "diff_fanout",
-         "billing_sync", "billing_reconcile", "recipe_overage", "dunning", "scan")
+         "billing_sync", "billing_reconcile", "recipe_overage", "dunning", "scan", "envelope")
 Outcome = Literal["succeeded", "retry", "failed", "duplicate", "busy", "missing", "malformed"]
 
 

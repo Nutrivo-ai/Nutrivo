@@ -98,6 +98,7 @@ begin
 end $$;
 create trigger envelope_verdict_guard before insert on app.envelope_nodes
   for each row execute function private.envelope_verdict_guard();
+revoke all on function private.envelope_child_guard(), private.envelope_verdict_guard() from public, anon;
 
 -- Insert-only (BE-05): an envelope is pinned evidence of what a brief was told; a new input is a new envelope.
 do $$
