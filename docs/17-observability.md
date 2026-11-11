@@ -21,7 +21,7 @@ Every failure is seen within minutes, every model call can be explained later, a
   - `source-watch` (J01, `nutrivo sources watch`): check-ins only, with no schedule declared, until a weekly
     scheduler exists (a db or infra task); that task adds the schedule (Monday, docs/12) so no missed run is
     reported for a run nothing makes;
-  - `stripe-reconcile` and `dunning`, daily;
+  - `stripe-reconcile`, `dunning` and `alert-sweep` (J03, T-901), daily;
   - `expiry-reminders`, daily;
   - `synthetic-smoke-prod`, every 15 min after launch.
   A missed check-in alerts.

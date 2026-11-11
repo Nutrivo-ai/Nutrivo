@@ -3,6 +3,7 @@ Every statement is its own short transaction; the reaper's update and requeue sh
 from __future__ import annotations
 
 import json
+from datetime import date
 from typing import Any
 
 import psycopg
@@ -246,6 +247,19 @@ class PgStore:
                  join app.people p on p.id = m.person_id and p.tombstoned_at is null and p.email is not null
                 where ao.workspace_id = %s
                 order by 1, 4, 5""", (rule_diff_id, workspace_id)).fetchall()
+
+    # ── diff_fanout (T-901, J03) ─────────────────────────────────────────────────────────────────────────
+    def fan_out_rule_diff(self, rule_diff_id: str) -> dict[str, Any] | None:
+        """app.fan_out_rule_diff in its own transaction; None for an unknown diff (P0002)."""
+        try:
+            with self.conn.transaction():
+                return self.conn.execute("select app.fan_out_rule_diff(%s) as r", (rule_diff_id,)).fetchone()["r"]
+        except psycopg.errors.NoDataFound:
+            return None
+
+    def run_alert_sweep(self, day: date) -> dict[str, Any]:
+        with self.conn.transaction():
+            return self.conn.execute("select app.run_alert_sweep(%s) as r", (day,)).fetchone()["r"]
 
     def document_for_notice(self, document_id: str) -> dict[str, Any] | None:
         return self.conn.execute(
