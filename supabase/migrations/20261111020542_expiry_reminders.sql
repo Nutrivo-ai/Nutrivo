@@ -5,6 +5,8 @@
 -- the Sentry cron check-in 'expiry-reminders' (docs/17) and calls app.queue_expiry_reminders, which queues one
 -- notify job per document and notice: {template:'document_expiring', document_id, notice_days, person_ids}, keyed
 -- doc:<id>:<days>, so a document gets each of the 60, 30 and 7-day notices at most once however often this runs.
+-- A notice whose job failed is re-queued by the next run while it is still the notice due (its progress kept, so no
+-- one is notified twice): a failure never uses up the key.
 -- The notice is the nearest threshold still ahead: a document 25 days from expiry gets the 30-day notice; a missed
 -- day never sends the 60-day notice late. Payloads hold ids only.
 --
@@ -32,7 +34,7 @@ end $$;
 -- ─── The notices due today, queued once each ─────────────────────────────────────────────────────────────────────
 create function app.queue_expiry_reminders(p_ref text) returns jsonb
 language plpgsql security definer set search_path = '' as $$
-declare r record; v_job uuid; v_before int; v_queued int := 0; v_already int := 0;
+declare r record; v_job uuid; v_key text; v_status text; v_queued int := 0; v_requeued int := 0; v_already int := 0;
         v_today date := (now() at time zone 'UTC')::date;   -- the notify job counts days in UTC too
 begin
   perform private.require_service();
@@ -59,21 +61,36 @@ begin
                         and n.valid_to > d.valid_to)
     order by d.valid_to, d.id
   loop
-    select count(*) into v_before from app.jobs j
-    where j.idempotency_key = 'doc:' || r.id::text || ':' || r.notice_days::text;
-    v_job := private.enqueue('notify', r.workspace_id, 'doc:' || r.id::text || ':' || r.notice_days::text,
-                             jsonb_build_object('template', 'document_expiring', 'document_id', r.id,
-                                                'notice_days', r.notice_days, 'person_ids', to_jsonb(r.person_ids)));
-    if v_before = 0 then
+    v_key := 'doc:' || r.id::text || ':' || r.notice_days::text;
+    select j.id, j.status into v_job, v_status from app.jobs j where j.idempotency_key = v_key;
+    if v_job is null then
+      v_job := private.enqueue('notify', r.workspace_id, v_key,
+                               jsonb_build_object('template', 'document_expiring', 'document_id', r.id,
+                                                  'notice_days', r.notice_days, 'person_ids', to_jsonb(r.person_ids)));
       v_queued := v_queued + 1;
       perform private.write_audit(r.workspace_id, 'document.expiry_notice_queued', 'supplier_document', r.id::text,
                                   null, jsonb_build_object('notice_days', r.notice_days, 'valid_to', r.valid_to,
                                                            'job_id', v_job, 'ref', left(p_ref, 255)));
+    elsif v_status = 'failed' then
+      -- A notice that failed (no display name yet, mail down past max_attempts) is retried by the next daily run
+      -- while it is still the notice due, so it is never lost. progress stays: the notify handler resumes from it,
+      -- so nobody already emailed or given a row gets a second one. The owners are named afresh.
+      update app.jobs j
+      set status = 'queued', attempts = 0, last_error = null, updated_at = now(),
+          payload = j.payload || jsonb_build_object('person_ids', to_jsonb(r.person_ids))
+      where j.id = v_job;
+      if to_regnamespace('pgmq') is not null then
+        execute format('select pgmq.send(%L, %L::jsonb)', 'notify', jsonb_build_object('job_id', v_job)::text);
+      end if;
+      v_requeued := v_requeued + 1;
+      perform private.write_audit(r.workspace_id, 'document.expiry_notice_requeued', 'supplier_document', r.id::text,
+                                  null, jsonb_build_object('notice_days', r.notice_days, 'job_id', v_job,
+                                                           'ref', left(p_ref, 255)));
     else
-      v_already := v_already + 1;
+      v_already := v_already + 1;                 -- queued, running or done: one reminder per document and notice
     end if;
   end loop;
-  return jsonb_build_object('queued', v_queued, 'already', v_already);
+  return jsonb_build_object('queued', v_queued, 'requeued', v_requeued, 'already', v_already);
 end $$;
 revoke execute on function app.queue_expiry_reminders(text) from public, anon, authenticated;
 grant execute on function app.queue_expiry_reminders(text) to service_role;

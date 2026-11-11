@@ -3,9 +3,10 @@
 pg_cron queues one job a day at 06:23 UTC (private.enqueue_expiry_reminders, keyed by the UTC date). The job runs
 inside the Sentry cron check-in 'expiry-reminders' (docs/17) and calls app.queue_expiry_reminders, which queues one
 notify job per document and notice (60, 30 or 7 days; key doc:<id>:<days>, ids only), so a rerun, a retry or a
-second job on the same day queues nothing new. The notify handler (T-602) sends the email and the in-app row. One
-transaction: either every notice due is queued or none is, and a failure retries the whole job (bounded by
-max_attempts) while the check-in reports the error."""
+second job on the same day queues nothing new. A notice whose notify job failed is re-queued (the same job, its
+progress kept) by the next run while it is still the notice due, so a failure never uses up its key. The notify
+handler (T-602) sends the email and the in-app row. One transaction: either every notice due is queued or none is, and a failure retries
+the whole job (bounded by max_attempts) while the check-in reports the error."""
 from __future__ import annotations
 
 from typing import Protocol
@@ -24,7 +25,7 @@ class ExpiryStore(Protocol):
 def expiry_reminders(job: Job, ctx: JobContext, store: ExpiryStore) -> dict[str, int]:
     with obs.cron_checkin(obs.EXPIRY_REMINDERS_MONITOR, obs.EXPIRY_REMINDERS_CONFIG):
         counts = store.queue_expiry_reminders(job.id)
-        counts = {"queued": int(counts.get("queued", 0)), "already": int(counts.get("already", 0))}
+        counts = {k: int(counts.get(k, 0)) for k in ("queued", "requeued", "already")}
         ctx.heartbeat(**counts)
         log.info("expiry_reminders finished", extra=kv(**counts))
     return counts

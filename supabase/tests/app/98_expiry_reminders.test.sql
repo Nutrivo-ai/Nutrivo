@@ -3,7 +3,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(12);
+select plan(14);
 set local client_min_messages = warning;
 
 -- ─── H: Hanna (admin) requested a document due in 20 days; another due in 3; one in 90; one quarantined.
@@ -63,7 +63,7 @@ set local role service_role;
 -- ─── H04.main: one notice per document, at the nearest threshold, ids only ───────────────────────────────────────
 select is(private.enqueue_expiry_reminders(), private.enqueue_expiry_reminders(),
           '[T-803][H04.main] the daily job is queued once a day');
-select is(app.queue_expiry_reminders('run-1'), '{"queued": 2, "already": 0}'::jsonb,
+select is(app.queue_expiry_reminders('run-1'), '{"queued": 2, "requeued": 0, "already": 0}'::jsonb,
           '[T-803][H04.main] two documents are due a notice');
 select is((select array_agg(idempotency_key order by idempotency_key) from app.jobs
            where kind = 'notify' and workspace_id = '20000000-0000-4000-8803-00000000000a'),
@@ -76,7 +76,7 @@ select is((select payload - 'request_id' from app.jobs
           '[T-803][H04.main] the payload holds ids only, the requester as pack owner');
 select is((select count(*)::int from app.jobs where workspace_id = '20000000-0000-4000-8803-00000000000c'), 0,
           '[T-803] a closed workspace gets no reminder');
-select is(app.queue_expiry_reminders('run-2'), '{"queued": 0, "already": 2}'::jsonb,
+select is(app.queue_expiry_reminders('run-2'), '{"queued": 0, "requeued": 0, "already": 2}'::jsonb,
           '[T-803][H04.main] a second run queues nothing new');
 select is((select count(*)::int from app.jobs where kind = 'notify' and idempotency_key like 'doc:60000000-0000-4000-8803-%'),
           2, '[T-803][H04.main] one reminder per document and threshold');
@@ -84,6 +84,14 @@ select is((select count(*)::int from app.audit_events where kind = 'document.exp
            and workspace_id = '20000000-0000-4000-8803-00000000000a'), 2,
           '[T-803] each queued notice is audited once');
 reset role;
+-- A failed notice is re-queued by the next run, never lost; nothing else is touched.
+update app.jobs set status = 'failed', attempts = 5, last_error = 'document has no display name'
+where idempotency_key = 'doc:60000000-0000-4000-8803-0000000000a1:30';
+select is(app.queue_expiry_reminders('run-3'), '{"queued": 0, "requeued": 1, "already": 1}'::jsonb,
+          '[T-803][H04.main] a failed notice is re-queued by the next run');
+select is((select status || ':' || attempts from app.jobs
+           where idempotency_key = 'doc:60000000-0000-4000-8803-0000000000a1:30'), 'queued:0',
+          '[T-803][H04.main] the same job, queued again with its attempts reset');
 
 select * from finish();
 rollback;

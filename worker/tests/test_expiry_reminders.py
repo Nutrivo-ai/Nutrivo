@@ -42,8 +42,8 @@ def _run(store):
 
 def test_T803_H04_main_the_daily_job_queues_the_notices_inside_the_cron_check_in(checkins):
     store = _Store()
-    assert _run(store) == {"queued": 2, "already": 1}
-    assert store.refs == ["job-1"] and store.progress == {"queued": 2, "already": 1}
+    assert _run(store) == {"queued": 2, "requeued": 0, "already": 1}
+    assert store.refs == ["job-1"] and store.progress == {"queued": 2, "requeued": 0, "already": 1}
     assert [(c[0], c[1]) for c in checkins] == [("expiry-reminders", "in_progress"), ("expiry-reminders", "ok")]
     assert checkins[0][2]["schedule"] == {"type": "crontab", "value": "23 6 * * *"}   # the pg_cron schedule
 

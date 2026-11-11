@@ -157,7 +157,7 @@ def test_H04_main_expiring_documents_get_one_notice_per_threshold_by_email_and_i
     assert {r["kind"] for r in rows} == {"document_expiring"}
 
     # Idempotent: the producer again (a retry, or tomorrow's run at the same thresholds) queues nothing new.
-    assert PgStore(w.conn).queue_expiry_reminders("again") == {"queued": 0, "already": 2}
+    assert PgStore(w.conn).queue_expiry_reminders("again") == {"queued": 0, "requeued": 0, "already": 2}
     assert set(w.notices()) == set(notices)
 
 
@@ -166,6 +166,31 @@ def test_H04_only_the_nearest_threshold_is_queued_so_a_missed_notice_is_never_se
     early = w.document(45, requested_by=w.eve)
     late = w.document(6, requested_by=w.eve, doc_type="gmp_certificate")
     store = PgStore(w.conn)
-    assert store.queue_expiry_reminders("r1") == {"queued": 2, "already": 0}
+    assert store.queue_expiry_reminders("r1") == {"queued": 2, "requeued": 0, "already": 0}
     assert set(w.notices()) == {f"doc:{early}:60", f"doc:{late}:7"}          # never 60 or 30 for the late one
-    assert store.queue_expiry_reminders("r2") == {"queued": 0, "already": 2}
+    assert store.queue_expiry_reminders("r2") == {"queued": 0, "requeued": 0, "already": 2}
+
+
+def test_H04_a_failed_notice_never_uses_up_its_key_and_is_sent_once_the_document_has_a_name(world):
+    """The production lookup first: no display name is stored, so the notice fails visibly (docs/04). The next run
+    re-queues that same job; once the document has a name it is sent, once, and later runs leave it alone."""
+    w = world
+    doc = w.document(25, requested_by=w.eve)
+    store = PgStore(w.conn)
+    assert store.queue_expiry_reminders("day-1") == {"queued": 1, "requeued": 0, "already": 0}
+    job = w.notices()[f"doc:{doc}:30"]["id"]
+    outcome, row = w.run("notify", job)                                     # the real PgStore.document_for_notice
+    assert outcome == "failed" and row["last_error"].endswith("has no display name"), row
+    assert w.mailer.sent == []
+
+    assert store.queue_expiry_reminders("day-2") == {"queued": 0, "requeued": 1, "already": 0}
+    assert w.conn.execute("select status, attempts, last_error from app.jobs where id = %s", (job,)).fetchone() == {
+        "status": "queued", "attempts": 0, "last_error": None}
+    assert w.conn.execute("""select count(*) as n from app.audit_events where workspace_id = %s
+                              and kind = 'document.expiry_notice_requeued'""", (w.ws,)).fetchone()["n"] == 1
+    outcome, row = w.run("notify", job, store=NamedDocuments)               # a name is stored by now
+    assert outcome == "succeeded", row
+    assert [e.to.split(".")[0] for e in w.mailer.sent] == ["eve"]
+
+    assert store.queue_expiry_reminders("day-3") == {"queued": 0, "requeued": 0, "already": 1}
+    assert set(w.notices()) == {f"doc:{doc}:30"} and len(w.mailer.sent) == 1
