@@ -77,6 +77,11 @@ test.describe("availability and cost budgets", () => {
       withhold("cost.model_cost_per_check_eur_p95", "EUR", "unpriced: app.model_calls.cost_eur is null until Bedrock EU prices are decided (#17, #83 Q2)", detail);
       return;
     }
+    // No model call means nothing was priced, not that a check costs nothing: withheld until a run makes model calls.
+    if (!detail.model_calls) {
+      withhold("cost.model_cost_per_check_eur_p95", "EUR", "no model call in these checks (claims judgement off, or no claim rule released)", detail);
+      return;
+    }
     const p95 = percentile(all.map((j) => j.eur), 95)!;
     record({
       budget: "cost.model_cost_per_check_eur_p95",
@@ -85,7 +90,6 @@ test.describe("availability and cost budgets", () => {
       n: all.length,
       status: p95 <= budget("cost.model_cost_per_check_eur_p95") ? "met" : "exceeded",
       // Replayed responses (MODELS_MODE=replay) are recorded calls: their cost is what the recording cost.
-      reason: detail.model_calls ? undefined : "no model call in these checks (claims judgement is off or abstained)",
       detail,
     });
   });

@@ -64,5 +64,8 @@ esac
 
 status=0
 PLAYWRIGHT_JUNIT_OUTPUT_NAME="$PWD/reports/load.xml" pnpm --dir apps/web load --reporter=junit,list || status=$?
+if [ "$PROFILE" != staging ]; then
+  echo "the load run leaves its seeded workspaces in the local database: make db-reset before make gates or verify-fast" >&2
+fi
 "${PY[@]}" scripts/load/budgets.py report --profile "$PROFILE" --out reports/LOAD.md ${GITHUB_STEP_SUMMARY:+--summary "$GITHUB_STEP_SUMMARY"} || status=1
 exit "$status"

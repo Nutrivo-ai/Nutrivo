@@ -13,6 +13,8 @@ export default defineConfig({
   use: {
     baseURL: process.env.BASE_URL || "http://localhost:3000",
     trace: "off",
+    // A machine whose Chromium is not the build this Playwright downloads (a preinstalled browser) names it here.
+    launchOptions: { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE || undefined },
   },
   projects: [{ name: "load", use: { ...devices["Desktop Chrome"] } }],
 });

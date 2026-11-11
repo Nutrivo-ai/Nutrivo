@@ -75,9 +75,10 @@ export function record(r: Omit<Result, "limit" | "profile" | "enforced">): Resul
 }
 
 /** A latency budget (lower is better): the p95 of the samples against the budget. No samples is withheld, never met. */
-export function judgeP95(key: string, unit: string, samples: number[], detail?: Record<string, unknown>, reason?: string): Result {
+export function judgeP95(key: string, unit: string, samples: number[], detail?: Record<string, unknown>, reason?: string, comparable = true): Result {
   const p95 = percentile(samples, 95);
-  const status: Status = p95 == null ? "withheld" : p95 <= budget(key) ? "met" : "exceeded";
+  // A run at another scale than the budget's own (the ci profile's 30 recipes) is reported, never judged met.
+  const status: Status = p95 == null || !comparable ? "withheld" : p95 <= budget(key) ? "met" : "exceeded";
   return record({ budget: key, unit, measured: p95, n: samples.length, status, detail, reason: reason ?? (p95 == null ? "no samples" : undefined) });
 }
 

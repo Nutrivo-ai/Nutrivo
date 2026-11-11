@@ -5,7 +5,8 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { chromium, expect, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { PUBLIC_ROUTES, SEGMENTS, segmentHref } from "../../src/lib/public/links";
 import { haveStack, signIn } from "../e2e/support/people";
 import { judgeP95, OUT, outcome, pool, profile, timed, withhold } from "./support/budgets";
 import { finished, issuedReport, loadWorkspace, product, registerArtwork, type LoadWorkspace } from "./support/seed";
@@ -15,7 +16,8 @@ const CHECK_TIMEOUT_MS = 10 * 60_000;
 
 test.describe("performance budgets", () => {
   test.skip(!haveStack(), "needs the stack's variables: run through scripts/load/run.sh (make load)");
-  test.describe.configure({ mode: "serial" });
+  // Not serial: a budget that fails must not skip the others. After a failure Playwright starts a new worker, whose
+  // beforeAll seeds a fresh workspace for the tests left.
 
   let load: LoadWorkspace;
 
@@ -67,7 +69,7 @@ test.describe("performance budgets", () => {
     await context.close();
     const ok = runs.filter((r) => r.ok).map((r) => r.ms);
     const scaled = profile.recipes === 300 ? undefined : `profile ${profile.name} seeds ${profile.recipes} recipes, not 300: reported, not comparable`;
-    judgeP95("performance.board_300_recipes_p95_ms", "ms", ok, { recipes: profile.recipes, failed: runs.length - ok.length }, scaled);
+    judgeP95("performance.board_300_recipes_p95_ms", "ms", ok, { recipes: profile.recipes, failed: runs.length - ok.length }, scaled, !scaled);
     expect(runs.length - ok.length, "every board load rendered the grid").toBe(0);
   });
 
@@ -82,6 +84,7 @@ test.describe("performance budgets", () => {
     const extract: number[] = [];
     const check: number[] = [];
     const failures: string[] = [];
+    const checkJobs: string[] = [];
     // One artwork at a time: each sample is the job's own time from enqueue to done, as the person waits for it.
     for (let i = 0; i < Math.max(profile.extractions, profile.checks); i++) {
       const productId = await product(load.ws, `Load artwork ${i + 1} ${randomUUID().slice(0, 4)}`);
@@ -103,6 +106,9 @@ test.describe("performance budgets", () => {
       else check.push(ck.seconds);
       checkJobs.push(jobId as string);
     }
+    // The check jobs this run made, for the cost budget (2-operations.spec.ts).
+    fs.mkdirSync(OUT, { recursive: true });
+    fs.writeFileSync(path.join(OUT, "check-jobs.json"), JSON.stringify(checkJobs));
     judgeP95("performance.extraction_10_pages_p95_s", "s", extract, { pages: 10, failures });
     judgeP95("performance.check_completion_p95_s", "s", check, { pages: 10, failures });
     expect(failures, "every extraction and check succeeded").toEqual([]);
@@ -148,23 +154,11 @@ test.describe("performance budgets", () => {
     expect(runs.filter((r) => r.ok === false).length, "every verification answered current").toBe(0);
   });
 
-  test("[nfr:performance.public_pages_lcp_s] public pages paint their largest content within the LCP budget", async ({ baseURL }) => {
+  test("[nfr:performance.public_pages_lcp_s] public pages paint their largest content within the LCP budget", async ({ browser, baseURL }) => {
     test.setTimeout(10 * 60_000);
     const ref = await issuedReport(load.ws, load.products[0]);
-    const browser = await chromium.launch();
-    // The public routes (T-603) and a verification page; one /for/ and one /legal/ page, as linked from the home page.
-    const routes = ["/", "/pricing", "/about", "/faq", "/coverage", `/verify/${ref}`];
-    {
-      const ctx = await browser.newContext({ baseURL });
-      const page = await ctx.newPage();
-      await page.goto("/");
-      const links = await page.locator("a[href^='/for/'], a[href^='/legal/']").evaluateAll((as) => as.map((a) => a.getAttribute("href")!));
-      for (const prefix of ["/for/", "/legal/"]) {
-        const first = links.find((h) => h.startsWith(prefix));
-        if (first) routes.push(first);
-      }
-      await ctx.close();
-    }
+    // Every public route (T-603, src/lib/public/links.ts), each "Who it is for" page, and a verification page.
+    const routes = [...Object.values(PUBLIC_ROUTES), ...SEGMENTS.map((seg) => segmentHref(seg.slug)), `/verify/${ref}`];
     const samples: number[] = [];
     const byRoute: Record<string, number[]> = {};
     for (let run = 0; run < profile.lcp_runs; run++) {
@@ -190,16 +184,7 @@ test.describe("performance budgets", () => {
         }
       }
     }
-    await browser.close();
     judgeP95("performance.public_pages_lcp_s", "s", samples, { routes: byRoute, viewport: "1366x768", throttling: "none" });
     expect(samples.length, "every public page painted").toBe(routes.length * profile.lcp_runs);
   });
-
-  test.afterAll(() => {
-    // The check jobs this run made, for the cost budget (2-operations.spec.ts).
-    fs.mkdirSync(OUT, { recursive: true });
-    fs.writeFileSync(path.join(OUT, "check-jobs.json"), JSON.stringify(checkJobs));
-  });
 });
-
-const checkJobs: string[] = [];
