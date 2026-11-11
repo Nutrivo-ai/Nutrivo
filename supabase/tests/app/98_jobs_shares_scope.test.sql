@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(42);
+select plan(51);
 set local client_min_messages = warning;
 
 -- ─── A: Alice (admin), Carl (editor), Vera (viewer), Val (viewer scoped to family A2), Fay (editor scoped to family
@@ -285,6 +285,89 @@ set local role authenticated;
 select is(pg_temp.jobs_seen() || '|' || pg_temp.others_seen(), '|',
           '[T-409] another workspace''s admin reads no job, share or supersession of workspace A');
 reset role;
+-- ─── Review fixes (#229): legacy shares, workspace documents, share writes, rule_changed ───────────────────────
+-- A share and its notify job that exist before the migration: the share has no node_id yet, the job no scope. The
+-- migration's backfill statements, as written in 20261111020651, scope the job to the report's market.
+alter table app.shares disable trigger shares_product;
+insert into app.shares (id, workspace_id, product_id, report_id, token_hash, channel, recipient)
+values ('80000000-0000-4000-8409-0000000000a9', '20000000-0000-4000-8409-00000000000a', '40000000-0000-4000-8409-00000000000a',
+        '60000000-0000-4000-8409-0000000000a1', extensions.digest('t409-legacy-share', 'sha256'), 'email', 'old@shop.test');
+alter table app.shares enable trigger shares_product;
+alter table app.jobs disable trigger jobs_scope;
+insert into app.jobs (id, kind, workspace_id, idempotency_key, payload) values
+  ('70000000-0000-4000-8409-0000000000a9', 'notify', '20000000-0000-4000-8409-00000000000a', 'share:t409-legacy',
+   '{"template":"report","share_id":"80000000-0000-4000-8409-0000000000a9"}');
+alter table app.jobs enable trigger jobs_scope;
+select ok((select node_id is null from app.shares where id = '80000000-0000-4000-8409-0000000000a9')
+          and (select product_id is null from app.jobs where id = '70000000-0000-4000-8409-0000000000a9'),
+          '[T-409] fixture: a share without node_id and its notify job without scope, as before the migration');
+update app.jobs j set (product_id, node_ids, scope_unresolved) = (select s.product_id, s.node_ids, s.unresolved
+                                                                  from private.job_scope(j.workspace_id, j.payload) s)
+where j.id = '70000000-0000-4000-8409-0000000000a9' and j.product_id is null;
+select is((select product_id::text || ' ' || node_ids::text from app.jobs where id = '70000000-0000-4000-8409-0000000000a9'),
+          '40000000-0000-4000-8409-00000000000a {EU-SE}',
+          '[T-409] backfill: a share notify job gets the report''s market even while its share has no node_id');
+select pg_temp.as_user('e2');
+set local role authenticated;
+select is((select count(*)::int from app.jobs where id = '70000000-0000-4000-8409-0000000000a9'), 0,
+          '[T-409] backfill: a member scoped to another market no longer reads a share notify job from before T-409');
+reset role;
+
+-- A workspace document (no product): its supplier email and scan jobs stay readable by every member, as the request
+-- and the document are; a failed supplier email stays visible.
+select pg_temp.as_user('c1');
+set local role authenticated;
+insert into t (name, v) values ('wsdocreq', app.request_document('20000000-0000-4000-8409-00000000000a', 'Company ISO certificate',
+  't409_test_spec', null, 'Aldrich Nutrition', 'specs@aldrich.test', null, null));
+reset role;
+update app.document_requests set token_hash = private.supplier_token_hash('T409supplierLinkToken_bbbbbbbbbbbbbbbbbbbbb')
+where id = (select (v ->> 'request_id')::uuid from t where name = 'wsdocreq');
+select pg_temp.as_service();
+set local role service_role;
+insert into t (name, v) values ('wsupload', app.accept_supplier_upload('T409supplierLinkToken_bbbbbbbbbbbbbbbbbbbbb',
+  '20000000-0000-4000-8409-00000000000a/' || (select v ->> 'request_id' from t where name = 'wsdocreq') || '/iso.pdf',
+  repeat('cd', 32)));
+reset role;
+insert into t (name, id) select 'wjob:docreq', j.id from app.jobs j
+  where j.idempotency_key = 'docreq:' || (select v ->> 'request_id' from t where name = 'wsdocreq');
+insert into t (name, id) select 'wjob:scan', j.id from app.jobs j
+  where j.kind = 'scan' and j.payload ->> 'document_id' = (select d.id::text from app.supplier_documents d
+    where d.request_id = (select (v ->> 'request_id')::uuid from t where name = 'wsdocreq'));
+update app.jobs set status = 'failed', last_error = 'smtp refused' where id = pg_temp.id('wjob:docreq');
+-- #228's daily alert digest: notify {template: rule_changed, rule_diff_id}, many products, so workspace-wide.
+insert into t (name, id) values ('wjob:rule_changed', private.enqueue('notify', '20000000-0000-4000-8409-00000000000a',
+  'rule_changed:t409', '{"template":"rule_changed","rule_diff_id":"90000000-0000-4000-8409-000000000001"}'));
+select ok((select bool_and(product_id is null and not scope_unresolved) from app.jobs
+           where id in (pg_temp.id('wjob:docreq'), pg_temp.id('wjob:scan'), pg_temp.id('wjob:rule_changed')))
+          and (select count(*) from t where name like 'wjob:%' and id is not null) = 3,
+          '[T-409] a workspace document''s supplier email and scan jobs, and a rule_changed digest, are product-less and resolved');
+select pg_temp.as_user('f2');
+set local role authenticated;
+select is((select string_agg(t.name, ',' order by t.name) from t join app.jobs j on j.id = t.id where t.name like 'wjob:%'),
+          'wjob:docreq,wjob:rule_changed,wjob:scan',
+          '[T-409] a family-scoped viewer reads a workspace document''s jobs (the failed email included) and the rule_changed digest');
+reset role;
+select pg_temp.as_user('b1');
+set local role authenticated;
+select is((select count(*)::int from t join app.jobs j on j.id = t.id where t.name like 'wjob:%'), 0,
+          '[T-409] another workspace reads none of them');
+reset role;
+
+-- Share writes follow the read policy: Sid (EU-DE) can neither share nor revoke the Swedish report; Sam (EU-SE) can.
+select pg_temp.as_user('e2');
+set local role authenticated;
+select throws_ok($$select app.create_share('60000000-0000-4000-8409-0000000000a1', 'link', null, 30)$$,
+                 '42501', null, '[T-409] a member scoped to another market cannot share the report');
+select throws_ok($$select app.revoke_share('80000000-0000-4000-8409-0000000000a9')$$,
+                 '42501', null, '[T-409] a member scoped to another market cannot revoke its share');
+reset role;
+select pg_temp.as_user('e3');
+set local role authenticated;
+select ok((app.create_share('60000000-0000-4000-8409-0000000000a1', 'link', null, 30) ->> 'token') is not null
+          and app.revoke_share('80000000-0000-4000-8409-0000000000a9') is not null,
+          '[T-409] a member scoped to the report''s market shares it and revokes its share');
+reset role;
+
 -- Carl requested the report job; once his scope narrows to family A2 he no longer reads it or its reference.
 update app.memberships set scope_family_ids = '{30000000-0000-4000-8409-0000000000a2}'
 where person_id = '10000000-0000-4000-8409-0000000000c1';

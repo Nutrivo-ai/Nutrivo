@@ -655,14 +655,14 @@ isOneToOne: false
                   ]
                 },"jobs": {
                   Row: {
-                    "attempts": number,"created_at": string,"id": string,"idempotency_key": string,"kind": string,"last_error": string | null,"node_ids": (string)[] | null,"payload": NonNullable<Json>,"product_id": string | null,"progress": NonNullable<Json>,"requested_by": string | null,"status": string,"updated_at": string,"workspace_id": string | null
+                    "attempts": number,"created_at": string,"id": string,"idempotency_key": string,"kind": string,"last_error": string | null,"node_ids": (string)[] | null,"payload": NonNullable<Json>,"product_id": string | null,"progress": NonNullable<Json>,"requested_by": string | null,"scope_unresolved": boolean,"status": string,"updated_at": string,"workspace_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "attempts"?: number,"created_at"?: string,"id"?: string,"idempotency_key": string,"kind": string,"last_error"?: string | null,"node_ids"?: (string)[] | null,"payload"?: NonNullable<Json>,"product_id"?: string | null,"progress"?: NonNullable<Json>,"requested_by"?: string | null,"status"?: string,"updated_at"?: string,"workspace_id"?: string | null
+                    "attempts"?: number,"created_at"?: string,"id"?: string,"idempotency_key": string,"kind": string,"last_error"?: string | null,"node_ids"?: (string)[] | null,"payload"?: NonNullable<Json>,"product_id"?: string | null,"progress"?: NonNullable<Json>,"requested_by"?: string | null,"scope_unresolved"?: boolean,"status"?: string,"updated_at"?: string,"workspace_id"?: string | null
                   }
                   Update: {
-                    "attempts"?: number,"created_at"?: string,"id"?: string,"idempotency_key"?: string,"kind"?: string,"last_error"?: string | null,"node_ids"?: (string)[] | null,"payload"?: NonNullable<Json>,"product_id"?: string | null,"progress"?: NonNullable<Json>,"requested_by"?: string | null,"status"?: string,"updated_at"?: string,"workspace_id"?: string | null
+                    "attempts"?: number,"created_at"?: string,"id"?: string,"idempotency_key"?: string,"kind"?: string,"last_error"?: string | null,"node_ids"?: (string)[] | null,"payload"?: NonNullable<Json>,"product_id"?: string | null,"progress"?: NonNullable<Json>,"requested_by"?: string | null,"scope_unresolved"?: boolean,"status"?: string,"updated_at"?: string,"workspace_id"?: string | null
                   }
                   Relationships: [
                     {
