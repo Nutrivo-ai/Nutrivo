@@ -11,7 +11,9 @@ vi.mock("@/lib/briefs/actions", () => ({
   saveClaims: async () => ({ ok: true, count: 0 }),
   findInRegister: async () => ({ ok: true, rows: [] }),
   promoteBrief: async () => ({ ok: false, reason: "error" }),
+  requestEnvelope: async () => ({ ok: false, reason: "error" }),
 }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {}, refresh: () => {} }) }));
 
 const WS = "20000000-0000-4000-8101-00000000000b";
 const brief: Brief = {

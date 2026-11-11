@@ -461,14 +461,14 @@ isOneToOne: false
                   ]
                 },"envelope_items": {
                   Row: {
-                    "envelope_id": string,"gap_id": string | null,"id": string,"kind": string,"payload": NonNullable<Json>,"product_id": string,"provenance": string,"rule_key": string | null,"workspace_id": string
+                    "citation": string | null,"envelope_id": string,"gap_id": string | null,"id": string,"kind": string,"language": string | null,"node_id": string | null,"payload": NonNullable<Json>,"product_id": string,"provenance": string,"reason_code": string | null,"rule_key": string | null,"rule_version": number | null,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "envelope_id": string,"gap_id"?: string | null,"id"?: string,"kind": string,"payload"?: NonNullable<Json>,"product_id": string,"provenance": string,"rule_key"?: string | null,"workspace_id": string
+                    "citation"?: string | null,"envelope_id": string,"gap_id"?: string | null,"id"?: string,"kind": string,"language"?: string | null,"node_id"?: string | null,"payload"?: NonNullable<Json>,"product_id": string,"provenance": string,"reason_code"?: string | null,"rule_key"?: string | null,"rule_version"?: number | null,"workspace_id": string
                   }
                   Update: {
-                    "envelope_id"?: string,"gap_id"?: string | null,"id"?: string,"kind"?: string,"payload"?: NonNullable<Json>,"product_id"?: string,"provenance"?: string,"rule_key"?: string | null,"workspace_id"?: string
+                    "citation"?: string | null,"envelope_id"?: string,"gap_id"?: string | null,"id"?: string,"kind"?: string,"language"?: string | null,"node_id"?: string | null,"payload"?: NonNullable<Json>,"product_id"?: string,"provenance"?: string,"reason_code"?: string | null,"rule_key"?: string | null,"rule_version"?: number | null,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -491,19 +491,57 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"envelopes": {
+                },"envelope_nodes": {
                   Row: {
-                    "created_at": string,"id": string,"inputs_hash": string,"product_id": string,"ruleset_version": string,"workspace_id": string
+                    "created_at": string,"envelope_id": string,"id": string,"node_id": string,"open_items": number,"product_id": string,"state": string,"withheld": number,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"id"?: string,"inputs_hash": string,"product_id": string,"ruleset_version": string,"workspace_id": string
+                    "created_at"?: string,"envelope_id": string,"id"?: string,"node_id": string,"open_items"?: number,"product_id": string,"state": string,"withheld"?: number,"workspace_id": string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"inputs_hash"?: string,"product_id"?: string,"ruleset_version"?: string,"workspace_id"?: string
+                    "created_at"?: string,"envelope_id"?: string,"id"?: string,"node_id"?: string,"open_items"?: number,"product_id"?: string,"state"?: string,"withheld"?: number,"workspace_id"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "envelope_nodes_envelope_id_fkey"
+      columns: ["envelope_id"]
+isOneToOne: false
+      referencedRelation: "envelopes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "envelope_nodes_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "envelope_nodes_workspace_id_fkey"
+      columns: ["workspace_id"]
+isOneToOne: false
+      referencedRelation: "workspaces"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"envelopes": {
+                  Row: {
+                    "created_at": string,"formula_digest": string | null,"id": string,"inputs_hash": string,"job_id": string | null,"node_ids": (string)[],"out_of_scope": (string)[],"product_id": string,"ruleset_version": string,"workspace_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"formula_digest"?: string | null,"id"?: string,"inputs_hash": string,"job_id"?: string | null,"node_ids"?: (string)[],"out_of_scope"?: (string)[],"product_id": string,"ruleset_version": string,"workspace_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"formula_digest"?: string | null,"id"?: string,"inputs_hash"?: string,"job_id"?: string | null,"node_ids"?: (string)[],"out_of_scope"?: (string)[],"product_id"?: string,"ruleset_version"?: string,"workspace_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "envelopes_job_id_fkey"
+      columns: ["job_id"]
+isOneToOne: false
+      referencedRelation: "jobs"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "envelopes_product_id_fkey"
       columns: ["product_id"]
 isOneToOne: false
@@ -1351,6 +1389,9 @@ isOneToOne: false
                            },
 "request_document":
 { Args: { "p_doc_type": string,"p_product"?: string,"p_request_id"?: string,"p_supplier"?: string,"p_supplier_email"?: string,"p_supplier_name"?: string,"p_title": string,"p_ws": string }; Returns: Json
+                           },
+"request_envelope":
+{ Args: { "p_product": string }; Returns: string
                            },
 "request_export":
 { Args: { "p_request_id"?: string,"p_ws": string }; Returns: string

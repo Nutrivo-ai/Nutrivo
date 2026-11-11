@@ -2,7 +2,8 @@
 
 // S-NV2-004 Brief & formula (T-1001, E01), built to design/product/Nutrivo 2.0 "brief" with the decisions on #76:
 // the formula's note column shows only "not matched to the register" (Q2); the person picks each register row, never
-// matched automatically (Q3); the "What we can answer with this" panel waits for the envelope (T-1002) and the
+// matched automatically (Q3); the "What we can answer with this" panel is not built (its lines would be answers the
+// envelope has not given; T-1002 builds "Screen this brief" under the claims and the envelope itself, S-NV2-005) and the
 // formula heading says instead that the formula changes check results (Q4); Paste is the one way in (Q5). The right
 // column holds the intended claims per language (E01 step 3), the customer's own text.
 import { useId, useMemo, useState, useTransition } from "react";
@@ -10,6 +11,7 @@ import { Button, Dialog, EmptyState } from "@/components/kit";
 import { findInRegister, saveClaims, saveFormula, type BriefRefusal } from "@/lib/briefs/actions";
 import type { Brief } from "@/lib/briefs/queries";
 import { PromoteToArtwork } from "./PromoteToArtwork";
+import { ScreenThisBrief } from "./ScreenThisBrief";
 import {
   FORMULA_CHANGES_OUTCOMES,
   NOT_MATCHED_NOTE,
@@ -272,6 +274,7 @@ export function BriefForm({ workspaceId, brief }: { workspaceId: string; brief: 
 
       <div className="min-w-0">
         <IntendedClaims workspaceId={workspaceId} brief={brief} />
+        {brief.stage === "brief" ? <ScreenThisBrief workspaceId={workspaceId} productId={brief.id} /> : null}
         {brief.stage === "brief" ? <PromoteToArtwork workspaceId={workspaceId} productId={brief.id} /> : null}
       </div>
 

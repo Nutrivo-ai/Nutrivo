@@ -75,7 +75,7 @@ test.describe("@local-only Brief & formula (E01)", () => {
     await expect(page.locator("[data-formula-changes-outcomes]")).toContainText("This formula changes check results");
     await expect(page.locator('[data-field="Product class"]')).toHaveText("Not determined");
     await expect(page.locator('[data-field="Target nodes"]')).toHaveText("EU · DE");
-    for (const absent of ["Upload", "Import from spec", "Screen this brief", "What we can answer with this"]) {
+    for (const absent of ["Upload", "Import from spec", "What we can answer with this"]) {
       await expect(page.locator("main").getByText(absent, { exact: true })).toHaveCount(0);
     }
     await axe(page);
@@ -262,7 +262,7 @@ test.describe("@local-only Promote a brief to artwork (E04)", () => {
     await page.waitForLoadState("networkidle");
     const controls = page.locator('main[data-screen="S-NV2-004"]').locator("a, button").filter({ visible: true });
     const names = (await controls.evaluateAll((els) => els.map((e) => e.textContent ?? ""))).map((t) => t.trim()).sort();
-    expect(names).toEqual(["Add a line", "Paste", "Promote to artwork", "Save EN claims"]);
+    expect(names).toEqual(["Add a line", "Paste", "Promote to artwork", "Save EN claims", "Screen this brief"]);
     // Save is disabled, with nothing typed; it enables once a claim is.
     await expect(page.getByRole("button", { name: "Save EN claims" })).toBeDisabled();
     await page.getByLabel("Claims, one per line").fill("For adult cats");
@@ -274,6 +274,10 @@ test.describe("@local-only Promote a brief to artwork (E04)", () => {
     await expect(paste).toBeHidden();
     await page.getByRole("button", { name: "Add a line" }).click();
     await expect(page.locator("tr[data-line]")).toHaveCount(1);
+    // T-1002: Screen this brief opens Design envelope (E02); its own path is tests/e2e/envelope.spec.ts.
+    await page.getByRole("button", { name: "Screen this brief" }).click();
+    await expect(page).toHaveURL(new RegExp(`/w/${ws}/briefs/${productId}/envelope$`));
+    await page.goto(`/w/${ws}/briefs/${productId}`);
     await page.getByRole("button", { name: "Promote to artwork" }).click();
     await expect(page).toHaveURL(new RegExp(`/w/${ws}/products/${productId}/check$`));
     expect(errors).toEqual([]);
