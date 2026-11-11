@@ -39,6 +39,11 @@ DUNNING_MONITOR = "dunning"
 DUNNING_CONFIG = {"schedule": {"type": "crontab", "value": "41 7 * * *"}, "checkin_margin": 60,
                   "max_runtime": 60, "failure_issue_threshold": 1, "timezone": "UTC"}
 
+# T-803: pg_cron queues one expiry_reminders job a day at 06:23 UTC (H04); a missed or failed day alerts (docs/17).
+EXPIRY_REMINDERS_MONITOR = "expiry-reminders"
+EXPIRY_REMINDERS_CONFIG = {"schedule": {"type": "crontab", "value": "23 6 * * *"}, "checkin_margin": 60,
+                           "max_runtime": 60, "failure_issue_threshold": 1, "timezone": "UTC"}
+
 REDACTED = "[redacted]"
 _PATTERNS = [
     re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),                # emails

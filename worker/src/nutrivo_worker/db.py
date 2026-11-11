@@ -327,6 +327,10 @@ class PgStore:
         return self.conn.execute("select app.record_dunning_step(%s, %s, %s, %s, %s) as r",
                                  (workspace_id, invoice_id, day, outcome, ref)).fetchone()["r"]
 
+    # ── expiry_reminders (T-803, H04) ───────────────────────────────────────────────────────────────────────
+    def queue_expiry_reminders(self, ref: str) -> dict[str, int]:
+        return self.conn.execute("select app.queue_expiry_reminders(%s) as r", (ref,)).fetchone()["r"]
+
     # ── session_revoke (A06) ────────────────────────────────────────────────────────────────────────────
     def membership_for_revoke(self, membership_id: str) -> dict[str, Any] | None:
         return self.conn.execute(

@@ -4,5 +4,5 @@ Handlers land with their tasks (plan/tasks.yaml): notify and session_revoke with
 registered artwork through the extraction engine into panels and text objects); export with T-804; check with T-403;
 report with T-405 (I01: a check's label report PDF); billing_sync and billing_reconcile with T-702 (M04: Stripe
 subscriptions onto the mirror); scan with T-802 (H03: a supplier upload is malware-scanned, then promoted as a new
-row)."""
-from . import billing, check, export, extract, notify, report, scan, session_revoke  # noqa: F401
+row); expiry_reminders with T-803 (H04: the daily producer of the document_expiring notices)."""
+from . import billing, check, expiry, export, extract, notify, report, scan, session_revoke  # noqa: F401
