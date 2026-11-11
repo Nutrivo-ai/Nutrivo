@@ -190,9 +190,10 @@ select ok((select s.product_id is null and s.node_ids is null
 reset role;
 
 -- ─── Refusals ──────────────────────────────────────────────────────────────────────────────────────────────────────
-select throws_ok($$select private.enqueue('report', '20000000-0000-4000-8409-00000000000a', 't409-cross',
-                                          '{"check_id":"50000000-0000-4000-8409-0000000000b1"}')$$,
-                 '23514', null, '[T-409] a job naming another workspace''s check is refused');
+insert into t (name, id) values ('job:cross', private.enqueue('report', '20000000-0000-4000-8409-00000000000a', 't409-cross',
+                                          '{"check_id":"50000000-0000-4000-8409-0000000000b1"}'));
+select ok((select product_id is null and node_ids is null from app.jobs where id = pg_temp.id('job:cross')),
+          '[T-409] a job naming another workspace''s check gets no scope (the worker refuses it), never that check''s');
 select throws_ok($$insert into app.jobs (kind, workspace_id, idempotency_key, product_id)
                    values ('check', '20000000-0000-4000-8409-00000000000a', 't409-cross-2', '40000000-0000-4000-8409-00000000000b')$$,
                  '23514', null, '[T-409] a job carrying another workspace''s product is refused');

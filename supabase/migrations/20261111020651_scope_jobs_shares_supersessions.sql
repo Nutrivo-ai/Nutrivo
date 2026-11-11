@@ -28,7 +28,7 @@ create index jobs_product on app.jobs(product_id) where product_id is not null;
 -- ─── 2 · Producers set the scope ────────────────────────────────────────────────────────────────────────────────
 -- A job's scope from its payload. The first id present wins, in this order: product_id (with node_ids or node_id),
 -- check_id (the check's product and market), artwork_version_id, share_id (the share's product and market),
--- document_request_id, document_id. Anything else is product-less. An id of another workspace is refused (23514).
+-- document_request_id, document_id. Anything else is product-less, and so is an id of another workspace.
 create function private.job_scope(p_ws uuid, p_payload jsonb, out product_id uuid, out node_ids text[])
 language plpgsql stable security definer set search_path = '' as $$
 declare v_ws uuid; v_node text; p jsonb := coalesce(p_payload, '{}'::jsonb);
@@ -58,8 +58,11 @@ begin
     select d.product_id, d.workspace_id into product_id, v_ws
     from app.supplier_documents d where d.id = (p ->> 'document_id')::uuid;
   end if;
+  -- An id of another workspace gives no scope. The job is still written: the worker refuses it and the failure stays
+  -- visible (worker/tests/test_report_pg.py), and the policy shows a product-kind job without a product to no member.
   if product_id is not null and v_ws is distinct from p_ws then
-    raise exception 'a job''s product belongs to the job''s workspace' using errcode = '23514';
+    product_id := null;
+    node_ids := null;
   end if;
 end $$;
 
