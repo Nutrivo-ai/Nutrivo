@@ -1,7 +1,7 @@
 // T-1002 · E02 Compute the compliance envelope on Design envelope (S-NV2-005), on the full local stack
 // (scripts/ci/e2e.sh: database, worker, web). The editor's "Screen this brief" calls app.request_envelope and the worker's
-// envelope job writes it. The local stack releases only the empty ruleset (no coverage, no rules), so the honest
-// answer for every market is Not assessed with no coverage recorded (E02.must.1). The richer path (requirements,
+// envelope job writes it. The local stack releases only the empty ruleset (no rules; every domain of EU-DE a named
+// gap), so the honest answer is Not assessed with each gap listed and linked (E02.must.1). The richer path (requirements,
 // wording, limits, gaps) is proven against a seeded ruleset in worker/tests/test_envelope_pg.py; here a second brief
 // gets an envelope written as the worker writes it (service role, synthetic rows), to read the screen's every section.
 // @local-only, never against staging.
@@ -11,8 +11,8 @@ import { admin, haveStack, person, signIn, workspace, type Person } from "./supp
 import { axe, maxDiffPixelRatio, watch } from "./support/public";
 
 // S-NV2-005 at 1600 px: "The envelope" heading row (heading, its mono note and the 1 px ink rule) is the box at x 242,
-// y 258, 948 wide in the baseline. Its text is the design's own; the table beneath carries the design's sample brief.
-const ENVELOPE_HEAD = { x: 242, y: 255, width: 948, height: 30 };
+// y 257.75, 948 × 26.27 in the design. Its text is the design's own; the table beneath carries the design's sample brief.
+const ENVELOPE_HEAD = { x: 242, y: 257, width: 948, height: 27, fractionY: 0.75 };
 
 test.describe("@local-only Design envelope (E02)", () => {
   test.skip(!haveStack(), "needs the local stack (scripts/ci/e2e.sh)");
@@ -60,7 +60,10 @@ test.describe("@local-only Design envelope (E02)", () => {
     // E02.must.1: nothing is encoded for EU-DE in the local ruleset, so it is Not assessed, never Clear, and says why.
     await expect(page.locator('[data-card="not_assessed"]')).toContainText("DE");
     await expect(page.locator('[data-card="clear"]')).toContainText("None");
-    await expect(page.locator("[data-envelope-withheld]")).toContainText("DE · No coverage recorded for this market");
+    // Each domain not encoded is listed with its coverage gap, linked to the coverage node.
+    await expect(page.locator("[data-envelope-withheld] [data-gap-id]").first()).toBeVisible();
+    await expect(page.locator("[data-envelope-withheld]")).toContainText("Not encoded for this market yet");
+    await expect(page.locator('[data-envelope-withheld] a[href*="/library/coverage/EU-DE#"]').first()).toBeVisible();
     // E02.must.2: nutrient adequacy is stated as out of scope.
     await expect(page.locator('[data-scope="nutrient_adequacy"]')).toContainText("out of scope until the FEDIAF guidelines are licensed");
     await axe(page);

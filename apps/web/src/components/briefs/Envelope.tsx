@@ -135,8 +135,8 @@ export function Envelope({ workspaceId, data }: { workspaceId: string; data: Non
                 <div className="flex items-baseline gap-[9px]">
                   <StateGlyph state="not_assessed" size="sm" />
                   <span className="flex-1 text-[13.5px] leading-[1.4]">
-                    {marketLabel(w.nodeId)}
-                    {w.language ? ` · ${w.language.toUpperCase()}` : ""} · {w.what}
+                    {marketLabel(w.nodeId)} · {w.what}
+                    {w.language ? <span className="font-mono text-[10.5px] text-n600"> · {w.language} wording</span> : null}
                   </span>
                 </div>
                 <div className="mt-[5px] pl-[18px] flex flex-wrap gap-y-[4px] gap-x-[12px] font-mono text-[10px] text-n600">

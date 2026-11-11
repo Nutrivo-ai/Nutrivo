@@ -151,6 +151,38 @@ while the questions on #45 are open; each is the conservative option.
   - A rule that does not apply to the input is reported withheld with `not_applicable`.
   - `LABEL_EVALUATOR` stays unset, because synthetic wording is never in the register (#36, #45).
 
+## The envelope (E02, T-1002)
+A brief's compliance envelope (`nutrivo_worker.engine.envelope`): what the product must carry, may say and must stay
+within, per market and language, from the accepted members of the pinned ruleset only. A brief has no artwork, so no
+printed text is judged; the formula is judged deterministically. Requested with `app.request_envelope` (docs/04);
+cached by `inputs_hash`. The choices not written down are the defaults on #77, each the conservative one.
+- **Facts.** The latest classification when a person confirmed it; otherwise the species, life stage and format a
+  person entered for the product (C01). Anything else is missing, so a rule needing it is withheld `data_missing`.
+- **Coverage first.** Every domain of the market that is not complete is a `not_assessed` item with its gap_id and
+  reason. A domain with no coverage row keeps the market not_assessed, with no invented gap.
+- **Applicability** is the check's three-valued predicate, with `panel_language` the item's language; unknown is
+  withheld `data_missing`.
+- **Items by shape** (`app.envelope_items.kind`), each in each of the market's languages unless noted:
+  - mandatory_particular → `requirement` with the register entries of `detect.term_keys` in that language;
+  - prescribed_wording → `permitted` with the entries of `term_key` and `alternative_term_keys`;
+  - threshold → `obligation` (`quantity`, `operator`, `value`, `unit`, `then`, the consequence's wording);
+  - character_height → `requirement` (`height_definition`, `bands`, the target's wording);
+  - additive_condition → once per market, per formula additive line it names: `limit` (`within_max_content`: the
+    register's `max_content` against the brief's amount, `within` or `exceeds`), `permitted` or `prohibited`
+    (`authorised_for_species`), or `not_assessed` `data_missing` when unknown. No formula, or a line matched to
+    neither register, withholds the rule, as in a check;
+  - claim_judgement → withheld `claim_not_evaluated`; no model is called (#209 Q1);
+  - any other shape → withheld `evaluator_missing`; a fault → `evaluator_error`.
+- **No other wording.** A rule without its links or with no register term in the language is withheld
+  `data_missing`. Nothing is translated, and the extraction's source text is never offered as wording.
+- **Market state.** `action` when an additive exceeds its ceiling or is not authorised; else `not_assessed` when anything
+  is withheld, a domain is incomplete or missing, or nothing was answered; else `clear`.
+  `private.envelope_verdict_guard` refuses `clear` unless the market is fully encoded and nothing for it was withheld
+  (P0021).
+- **Out of scope.** Nutrient adequacy is never assessed until FEDIAF is licensed (E02.must.2, D-10): every envelope
+  records `nutrient_adequacy` in `out_of_scope` (a check constraint), and no item reads a formula percentage.
+- **Insert-only.** Envelopes, items and markets are never updated; new inputs are a new envelope.
+
 ## Claims (BE-22)
 Judged on the printed target-language string of that panel, never translated. Each claim rule ships with an
 evaluation set per language (docs/07-ai.md). Below `min_confidence`, or when the model abstains, the result is

@@ -14,7 +14,7 @@ migration.
 ## Table groups (app)
 Tenancy: people, workspaces, memberships, invitations, signing_grants · Products: families, products, product_nodes,
 formula_lines, intended_claims · Artwork: artwork_versions, extraction_runs, artwork_panels, text_objects,
-classifications · Checks: checks, check_findings, envelopes, envelope_items · Artefacts: reports, certificates,
+classifications · Checks: checks, check_findings, envelopes, envelope_items, envelope_nodes · Artefacts: reports, certificates,
 shares, share_access_log, supersessions · Registration and documents: registrations, registration_packs, suppliers,
 supplier_documents, document_requests · Money: subscriptions, allowances, allowance_consumptions, billing_details,
 payment_events, dunning_steps · Ops: jobs, notifications, notification_prefs, alerts, alert_reads, saved_views, model_calls,
@@ -22,7 +22,8 @@ audit_events.
 
 **Insert-only:** checks, check_findings, reports, certificates, supersessions, supplier_documents, audit_events,
 payment_events, dunning_steps, allowance_consumptions, classifications, model_calls, share_access_log, ref.ruleset_versions,
-ref.ruleset_members, ref.term_decisions, ref.fixture_runs, ref.ruleset_seals. Privileges are revoked and a trigger rejects UPDATE, DELETE and TRUNCATE,
+ref.ruleset_members, ref.term_decisions, ref.fixture_runs, ref.ruleset_seals, envelopes, envelope_items,
+envelope_nodes. Privileges are revoked and a trigger rejects UPDATE, DELETE and TRUNCATE,
 including for the table owner (BE-05). Accepted `ref.rule_versions` rows are permanent (BE-08). Products have no
 delete (BE-13).
 

@@ -74,6 +74,24 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
 | Workspace Settings, Plans and Checkout, Billing Settings | Settings and billing routes | T-107, T-108, T-703 |
 | Partner Tier, Partner Upsell | After launch (N01, N03) | — |
 
+### Built in T-1002: the compliance envelope (`apps/web/src/components/briefs/Envelope.tsx`)
+- **S-NV2-005 Design envelope** at `/w/[workspace]/briefs/[product]/envelope`, built to the design:
+  - three cards (Clear as briefed, Action needed, Not assessed) listing the markets in each;
+  - "The envelope": each additive of the brief with its register ceiling per market, or N/A where withheld;
+  - "Wording you can use": the term register's own wording per language, with citation and provenance;
+  - "Not assessed": every withheld item with its reason and its gap, linked to the coverage node, or "no coverage gap
+    recorded";
+  - the out-of-scope statement for nutrient adequacy, and the pinned ruleset.
+- **States.** Loading, empty (never screened), screening (the job over Realtime, `EnvelopeProgress`), error (read or
+  failed job), not found, and a refusal under the button (no permission, no ruleset, no markets).
+- **Not built.** The design's "Next actions" and "What to do" column are proposals (E03, LATER), so "Not assessed" takes
+  their place (#77 default 4). The "What we can answer with this" panel on S-NV2-004 is not built either: its lines
+  would be answers the envelope has not given.
+- **S-NV2-004 Brief & formula** gains **Screen this brief** at stage brief (`ScreenThisBrief.tsx`): `app.request_envelope`,
+  then Design envelope.
+- **Tests** (`tests/e2e/envelope.spec.ts`): E02.main through the worker, E02.must.1 on every section, axe, the
+  no-dead-controls crawl, and "The envelope" heading row against the S-NV2-005 baseline.
+
 ### Built in T-1003: promote a brief to artwork (`apps/web/src/components/briefs/PromoteToArtwork.tsx`)
 - **S-NV2-004 Brief & formula** gains **Promote to artwork**, an outline button under the intended claims, shown only at
   stage brief. It calls C04's `app.set_product_stage` to `in_development` (E04 step 1) and opens Upload & scope (S-NV2-002)
