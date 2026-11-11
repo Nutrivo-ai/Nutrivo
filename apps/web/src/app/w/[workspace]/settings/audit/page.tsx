@@ -3,6 +3,9 @@ import { cursor, filterKey, readAudit } from "@/lib/settings/audit";
 import { roleAllows, routeFor } from "@/lib/shell/routes";
 import { createClient } from "@/lib/supabase/server";
 import { loadShellContext } from "@/lib/workspace/memberships";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Audit log · Nutrivo" };
 
 // S-WSS-005 Audit log (spec/screens.yaml; design: product/Nutrivo Workspace Settings.dc.html, screen "audit"). O02
 // (T-108): app.audit_events read under the person's session (RLS), filtered by ?show= and paged by ?before=. Only a

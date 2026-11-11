@@ -5,6 +5,9 @@ import { Screen } from "@/components/shell";
 import { parseFilters } from "@/lib/board/model";
 import { readBoard } from "@/lib/board/queries";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Board · Nutrivo" };
 
 // S-NV2-006 Board (spec/screens.yaml; design: product/Nutrivo 2.0.dc.html, screen "board"). F01: products × markets
 // grouped by region, region cells from app.rollup_state; F04: the open findings across the portfolio (?view=findings).

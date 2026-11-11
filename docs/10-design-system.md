@@ -64,6 +64,9 @@ Toast · EmptyState and ErrorState (from the Empty and Error States file).
 - **Frames and controls.** `Panel`, `Blueprint` (the ink frame with registration marks), `SectionHeading`, and
   `Button` and `ButtonLink` (primary, secondary, ghost).
 - **Tables.** `DataTable` renders loading, error, no permission and empty in place of its rows, in that order.
+  - Every table sits in a `relative overflow-x-auto` scroller (DataTable has one built in), so a wide table scrolls
+    on its own at 320 px instead of the page (WCAG 1.4.10). `relative` matters: without it an absolutely positioned
+    `sr-only` caption or cell label escapes the scroller and widens the page.
 - **Empty, error and loading.** `EmptyState` (kinds none and action), `ErrorState`, `NoPermissionState` and
   `LoadingState` (neutral, mono).
   - Each is built from the four parts of the Empty and Error States file: a mark, what is true, one action, and a
@@ -72,6 +75,15 @@ Toast · EmptyState and ErrorState (from the Empty and Error States file).
 - **Dialog and Toast.** `Dialog` uses the native `<dialog>`; `Toast` uses `ToastProvider` and `useToast`. No design
   file draws either, so both are built only from the §5 primitives of the Cobalt specification. This is an open
   question on issue #23.
+- **Accessibility (T-1104, WCAG 2.2 AA).** These leave every screen as its design draws it:
+  - Every page is titled `<screen> · Nutrivo` (2.4.2), from its entry in spec/screens.yaml.
+  - The root layout's first element is a **Skip to content** link to `<main id="main">`, hidden until focused (2.4.1).
+    Every route renders exactly one `<main id="main">`.
+  - Focus is the global `:focus-visible` ring (2px `--accent`, offset 2px). A control that is visually hidden (a
+    styled radio card) draws the ring on its label with `has-[:focus-visible]:` (2.4.7); a hidden file input behind a
+    "Choose a file" button is `tabIndex={-1}`, so it is not an invisible stop.
+  - A link inside running text whose colour alone does not set it apart (under 3:1 against the text) is underlined
+    (1.4.1).
 - **Deviations from the design, recorded on #23.**
   - Small text drawn in `--n500` is set in `--n600`, so axe finds no contrast failures (spec/nfr.yaml).
   - Finding rows in Nutrivo 2.0 tint provenance with verdict colours. The kit follows Cobalt §6 rule 3 and keeps

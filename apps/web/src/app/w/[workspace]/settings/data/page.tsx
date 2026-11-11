@@ -1,6 +1,9 @@
 import { exportState, readLatestExport } from "@/lib/exports/exports";
 import { createClient } from "@/lib/supabase/server";
 import { DataAndRetention } from "./DataAndRetention";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Data and retention · Nutrivo" };
 
 // S-WSS-004 Data and retention (spec/screens.yaml; design: product/Nutrivo Workspace Settings.dc.html, screen "data").
 // O03: the full export, free on every plan (BE-44). The latest export job is read under RLS; a read failure goes to

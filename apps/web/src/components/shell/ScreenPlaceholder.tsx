@@ -18,7 +18,7 @@ export function ScreenPlaceholder({ route }: { route: string }) {
   return (
     <>
       <ScreenHeader crumb={screen.crumb} title={screen.title} />
-      <main className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
+      <main id="main" className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
         {allowed ? (
           <section
             data-placeholder={screen.screens[0]}

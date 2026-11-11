@@ -1,6 +1,9 @@
 import { PlanAllowance } from "@/components/billing/PlanAllowance";
 import { billingContext, readUsage } from "@/lib/billing/read";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Plan and allowance · Nutrivo" };
 
 // S-BIL-001 Plan and allowance (spec/screens.yaml; design: product/Nutrivo Billing Settings.dc.html, screen "plan").
 // M02, M05, B02 (T-703). Never cached: the dials are read from app.live_billable_counts on every request (M02.must.1).

@@ -7,7 +7,7 @@ import { ErrorState, LoadingState } from "@/components/kit";
 /** A workspace route while its reads are under way (loading.tsx). Neutral and mono, never the accent. */
 export function ShellLoading() {
   return (
-    <main className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
+    <main id="main" className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
       <div className="max-w-[640px]">
         <LoadingState label="LOADING · WORKSPACE">Reading this workspace.</LoadingState>
       </div>
@@ -25,7 +25,7 @@ export function ShellError({ error, retry }: { error: unknown; retry: () => void
   }, [error]);
   const digest = error instanceof Error && "digest" in error ? String(error.digest) : null;
   return (
-    <main className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
+    <main id="main" className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
       <div className="max-w-[640px]">
         <ErrorState
           where={digest ? `ERROR · ${digest}` : "ERROR · WORKSPACE"}

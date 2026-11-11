@@ -32,7 +32,7 @@ export function AuthPage({ children }: { children: ReactNode }) {
         <Wordmark size="header" />
         <span className="font-mono text-[10.5px] tracking-[0.05em] text-n600">GETTING BACK IN</span>
       </header>
-      <main className="flex-1 pt-[30px] pb-[60px] px-[16px] md:px-[30px]">
+      <main id="main" className="flex-1 pt-[30px] pb-[60px] px-[16px] md:px-[30px]">
         <div className="max-w-[440px] mx-auto">{children}</div>
       </main>
     </div>

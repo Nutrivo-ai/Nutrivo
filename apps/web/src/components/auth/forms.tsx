@@ -42,6 +42,9 @@ export function SignInForm() {
   const returned = signInProblem(params.get("problem")); // a refused Google or Microsoft sign-in (/auth/callback)
   const [passwordState, passwordAction, signingIn] = useActionState(signInWithPassword, IDLE);
   const [linkState, linkAction, sending] = useActionState(sendSignInLink, IDLE);
+  // Controlled, so a refused attempt keeps the address: React resets uncontrolled fields after a form action, and
+  // typing it again would be redundant entry (WCAG 3.3.7). The password is still cleared.
+  const [email, setEmail] = useState("");
   if (linkState.status === "sent") return <LinkSent email={linkState.email} what="a sign-in link" again="/sign-in" testId="auth-sign-in" />;
   const problem =
     passwordState.status === "problem"
@@ -61,7 +64,16 @@ export function SignInForm() {
       <form action={passwordAction}>
         <input type="hidden" name="next" value={next} />
         <Fields>
-          <Field label="Work email" name="email" type="email" autoComplete="email" placeholder="you@company.com" required />
+          <Field
+            label="Work email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@company.com"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
           <Field label="Password" name="password" type="password" autoComplete="current-password" />
         </Fields>
         {problem ? <Problem>{problem}</Problem> : null}

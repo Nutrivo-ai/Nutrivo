@@ -124,7 +124,7 @@ export function LegalPage({ doc: key }: { doc: LegalKey }) {
   return (
     <Page css="min-width: 1080px; background: var(--panel); padding: 0 0 60px">
       <LegalHeader current={key} />
-      <main data-testid="legal-column" style={sx("max-width: 1020px; margin: 0 auto; background: var(--paper); border-left: 1px solid var(--rule); border-right: 1px solid var(--rule)")}>
+      <main id="main" data-testid="legal-column" style={sx("max-width: 1020px; margin: 0 auto; background: var(--paper); border-left: 1px solid var(--rule); border-right: 1px solid var(--rule)")}>
         <div
           data-testid="legal-draft-banner"
           role="note"

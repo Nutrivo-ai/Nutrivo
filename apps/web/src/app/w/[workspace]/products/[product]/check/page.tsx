@@ -12,6 +12,9 @@ import { readClassification } from "@/lib/classification/queries";
 import { readAddProductData, readAllowance, readProductDetail } from "@/lib/products/queries";
 import { allowanceMoment } from "@/lib/products/rules";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Upload & scope · Nutrivo" };
 
 // S-NV2-002 Upload & scope (spec/screens.yaml). T-303: "1 · What you have", the artwork card with its signed upload,
 // app.register_artwork and extraction progress (D01, C02). T-401: "2 · Where it is sold, and its stage" (C01 step 3,
