@@ -39,6 +39,11 @@ DUNNING_MONITOR = "dunning"
 DUNNING_CONFIG = {"schedule": {"type": "crontab", "value": "41 7 * * *"}, "checkin_margin": 60,
                   "max_runtime": 60, "failure_issue_threshold": 1, "timezone": "UTC"}
 
+# T-901: pg_cron queues one diff_fanout sweep a day at 07:23 UTC (J03); a missed or failed day alerts (docs/17).
+ALERT_SWEEP_MONITOR = "alert-sweep"
+ALERT_SWEEP_CONFIG = {"schedule": {"type": "crontab", "value": "23 7 * * *"}, "checkin_margin": 60,
+                      "max_runtime": 60, "failure_issue_threshold": 1, "timezone": "UTC"}
+
 REDACTED = "[redacted]"
 _PATTERNS = [
     re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}"),                # emails
