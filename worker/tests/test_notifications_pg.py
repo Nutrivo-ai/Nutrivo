@@ -109,10 +109,14 @@ class World:
         return pid
 
     def diff(self, effect_type):
-        return self.conn.execute("insert into ref.rule_diffs (ruleset_version, rule_key, effect_type, effective_from) "
+        """A released diff, fanned out as the diff_fanout job does before the sweep queues rule_changed (J03, T-901):
+        the email names the recipes of the alerts written here."""
+        diff = self.conn.execute("insert into ref.rule_diffs (ruleset_version, rule_key, effect_type, effective_from) "
                                  "values (%s, %s, %s, %s) returning id::text",
                                  (self.ruleset, self.rule, effect_type, datetime.now(UTC).date() + timedelta(days=58))
                                  ).fetchone()["id"]
+        self.conn.execute("select app.fan_out_rule_diff(%s)", (diff,))
+        return diff
 
     def enqueue(self, key, payload):
         return self.conn.execute("select private.enqueue('notify', %s, %s, %s)::text as id",

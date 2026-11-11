@@ -1336,6 +1336,9 @@ isOneToOne: false
 "envelope_inputs_hash":
 { Args: { "p_product": string }; Returns: string
                            },
+"fan_out_rule_diff":
+{ Args: { "p_rule_diff": string }; Returns: Json
+                           },
 "invite_member":
 { Args: { "p_access_ends_at"?: string,"p_email": string,"p_is_external"?: boolean,"p_role": string,"p_scope_family_ids"?: (string)[],"p_scope_node_ids"?: (string)[],"p_ws": string }; Returns: string
                            },
@@ -1344,6 +1347,9 @@ isOneToOne: false
                            },
 "live_billable_counts":
 { Args: { "p_ws": string }; Returns: Json
+                           },
+"mark_alerts_read":
+{ Args: { "p_alerts": (string)[] }; Returns: number
                            },
 "my_ended_access":
 { Args: { "p_ws": string }; Returns: Json
@@ -1413,6 +1419,9 @@ isOneToOne: false
                            },
 "rollup_state":
 { Args: { "p_node": string,"p_product": string }; Returns: string
+                           },
+"run_alert_sweep":
+{ Args: { "p_day": string }; Returns: Json
                            },
 "set_default_operator":
 { Args: { "p_operator": Json,"p_ws": string }; Returns: string

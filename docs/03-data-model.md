@@ -34,6 +34,8 @@ with the product, as job payloads are (open decision DB-5 Q2, #8). An envelope b
 equal its items' counts (23514), and `clear` needs the market fully encoded with nothing withheld
 (`private.envelope_verdict_guard`, P0021).
 
+**Alerts (T-901, J03).** `app.alerts` rows are written only by the worker through `app.fan_out_rule_diff` (one per diff × product × market from contract 5, BE-24) and `app.run_alert_sweep` (the `in_force` row when a `coming` alert's date arrives: a new row, never an update; unique per diff × product × market × phase). Read state is `app.alert_reads`, one row per alert and person, written only by `app.mark_alerts_read` for the caller (BE-39); a person reads only their own rows.
+
 **Supplier links (T-802, H02, H03).** `app.document_requests` holds only the SHA-256 of a link (`token_hash`, set by the worker's notify job), the editor's `title`, `consumed_at` (the upload that used the link: single use) and `document_id` (the promoted document). A guard trigger keeps a request's workspace, supplier, product, type, title and expiry fixed, sets `consumed_at`, `fulfilled_at` and `document_id` once from null, and lets `token_hash` change only while the request is open. Promotion is a new row (founder decision, #69): the quarantine row (`storage_path` `quarantine/...`) stays, and the scan result is a new `app.supplier_documents` row with `promoted_from` = the quarantine row and `request_id`; one upload per request and one result per quarantine row (partial unique indexes). Readers list a document by its latest row. The quarantine bucket has no client policy (service role only), a 25 MiB limit and PDF, DOCX and XLSX types.
 
 **Shares (T-601).** `app.shares.product_id` is the report's product, denormalised (filled by a trigger when a
