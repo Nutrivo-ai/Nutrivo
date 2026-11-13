@@ -37,6 +37,8 @@ type Seeded = {
   titles: { fr: string; ethox: string; texas: string; draft: string };
   /** The message of the Texas recipe's finding, which no screen may show while the plan does not hold the US. */
   texasFinding: string;
+  /** The Texas recipe's artwork, whose one panel the Texas check read. */
+  texasArtwork: string;
 };
 
 /**
@@ -109,7 +111,50 @@ async function seed(ws: string): Promise<Seeded> {
   );
   // The Texas recipe's check has a finding, and is its market's latest job, as the check worker leaves it.
   const texasFinding = `E2E ${RUN} Texas finding message`;
-  const tx = await must("texas check", app.from("checks").insert(check("Adult dog complete dry", "US-TX", [keys.texas])).select("id").single());
+  // Its check read a panel of its artwork, so the artwork page folds the Texas state into that panel (D02).
+  const dog = products["Adult dog complete dry"];
+  const sha = randomUUID().replace(/-/g, "").padEnd(64, "0");
+  const av = await must(
+    "artwork",
+    app
+      .from("artwork_versions")
+      .insert({
+        workspace_id: ws, product_id: dog, version: 1, file_sha256: sha, storage_path: `${ws}/${dog}/${sha}.pdf`,
+        file_name: "E2E-DOG-v1.pdf", mime_type: "application/pdf", page_count: 1, is_new_artwork: true,
+      })
+      .select("id")
+      .single(),
+  );
+  const run = await must(
+    "extraction",
+    app
+      .from("extraction_runs")
+      .insert({
+        workspace_id: ws, product_id: dog, artwork_version_id: av.id, engine: "pdfium", engine_version: "e2e",
+        idempotency_key: `e2e-t902:${av.id}`, status: "succeeded", started_at: new Date().toISOString(), finished_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single(),
+  );
+  const panel = await must(
+    "panel",
+    app
+      .from("artwork_panels")
+      .insert({
+        workspace_id: ws, product_id: dog, artwork_version_id: av.id, extraction_run_id: run.id, page: 1, panel_index: 0,
+        bbox_mm: [0, 0, 105, 297], language: "en", language_confidence: 0.99, status: "extracted",
+      })
+      .select("id")
+      .single(),
+  );
+  const tx = await must(
+    "texas check",
+    app
+      .from("checks")
+      .insert({ ...check("Adult dog complete dry", "US-TX", [keys.texas]), panel_id: panel.id, artwork_version_id: av.id, language: "en", artwork_sha: sha })
+      .select("id")
+      .single(),
+  );
   await must(
     "texas finding",
     app
@@ -149,7 +194,7 @@ async function seed(ws: string): Promise<Seeded> {
   };
   for (const id of Object.values(diffs)) await must("fan-out", app.rpc("fan_out_rule_diff", { p_rule_diff: id }));
   await must("horizon item", ref.from("horizon_items").insert({ title: titles.draft, stage: "draft" }).select("id").single());
-  return { products, diffs, titles, texasFinding };
+  return { products, diffs, titles, texasFinding, texasArtwork: av.id };
 }
 
 const card = (page: Page, diff: string) => page.locator(`[data-region="inbox"] [data-alert="${diff}"]`);
@@ -304,6 +349,9 @@ test.describe("horizon and alerts inbox", () => {
     await page.goto(`/w/${ws}/board?view=findings`);
     await expect(page.locator("[data-outside-plan]")).toContainText("Findings in United States are not shown");
     await expect(page.getByText(s.texasFinding)).toHaveCount(0);
+    // The artwork page does not fold the Texas check into its panel: the panel reads as not checked.
+    await page.goto(`/w/${ws}/products/${dog}/artwork/${s.texasArtwork}`);
+    await expect(page.locator('[data-panel="0"]')).toHaveAttribute("data-panel-state", "not_checked");
 
     // Once the plan holds the US, the same alert opens the finding, and the finding shows.
     const app = admin().schema("app");
@@ -321,6 +369,8 @@ test.describe("horizon and alerts inbox", () => {
       await page.goto(`/w/${ws}/board?view=findings`);
       await expect(page.getByText(s.texasFinding)).toBeVisible();
       await expect(page.locator("[data-outside-plan]")).toHaveCount(0);
+      await page.goto(`/w/${ws}/products/${dog}/artwork/${s.texasArtwork}`);
+      await expect(page.locator('[data-panel="0"]')).toHaveAttribute("data-panel-state", "not_assessed");
     } finally {
       await must("plan", app.from("workspaces").update({ entitled_regions: ["EU"] }).eq("id", ws).select("id"));
     }
