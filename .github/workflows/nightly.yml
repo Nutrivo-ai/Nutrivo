@@ -54,3 +54,43 @@ jobs:
           url=$(gh issue create --title "Nightly failed $(date -u +%F)" --label nightly,autopilot \
             --body "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. Find the failing step, reproduce locally, fix the root cause.")
           gh workflow run claude-autopilot.yml -f issue="${url##*/}"
+
+  # T-1105: every budget in spec/nfr.yaml under full load against staging (config/load/profiles.yaml, staging;
+  # docs/21 §3). Seeds its own "Load test staging <time>" workspace through the service role. Runs only here, never from
+  # a session or a laptop (scripts/load/run.sh refuses outside GitHub Actions).
+  staging-load:
+    # Staging exists from T-010 (gate G7). After the acceptance suite, not beside it, and whether or not it passed.
+    if: ${{ !cancelled() && vars.STAGING_DEPLOY_ENABLED == 'true' }}
+    needs: staging-acceptance
+    environment: staging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/infisical
+        with:
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
+          env-slug: staging
+      - run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with: { version: 10 }
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: apps/web/pnpm-lock.yaml }
+      - name: Every budget under load against staging
+        run: |
+          pnpm --dir apps/web install --frozen-lockfile
+          (cd worker && uv sync && uv run python ../fixtures/synth/generate.py --out ../fixtures/synth/out && touch ../fixtures/synth/out/.built)
+          make load PROFILE=staging
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with: { name: nightly-load, path: reports/ }
+      - name: Issue for the autopilot
+        if: failure()
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          gh issue create --title "Nightly load budgets failed $(date -u +%F)" --label nightly \
+            --body "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}. reports/LOAD.md in the nightly-load artifact names each budget that was exceeded or not measured."
