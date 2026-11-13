@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(31);
+select plan(32);
 set local client_min_messages = warning;
 
 -- ─── A: Ed (editor), Max (viewer scoped to EU-DE). B: Bo (admin). Sam: Nutrivo staff, no membership. ────────────
@@ -161,6 +161,8 @@ select is(jsonb_array_length(app.request_scoped_recheck('80000000-0000-4000-8903
           'J05: asking again returns the same jobs');
 reset role;
 select is((select count(*)::int from app.jobs where kind = 'recheck'), 2, 'J05: and queues none');
+select is((select count(*)::int from app.audit_events where kind = 'recheck.requested'
+             and object_id = '80000000-0000-4000-8903-0000000000d1'), 2, 'J05: nor audits a second request');
 
 -- Job readers: the recipe's own members in scope, nobody else.
 select pg_temp.as_user('00000000-0000-4000-8903-0000000000e1');

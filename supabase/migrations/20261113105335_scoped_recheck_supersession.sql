@@ -12,9 +12,10 @@
 --    the markets it names (BE-42: one event per recipe). The worker re-evaluates only the rules whose ruleset member
 --    changed, on those markets' panels, and carries every other outcome forward (BE-25; worker/handlers/recheck.py).
 --
--- Contract 5 (app.affected_objects) is the one definition of "affected" for alerts, re-checks and supersession: a
--- rule no earlier check applied or withheld (a brand-new obligation) names no recipe, so it re-checks and supersedes
--- nothing (default; founder question on #75).
+-- Re-checks use contract 5 (app.affected_objects), as alerts do: the latest check of each product × market, products
+-- not discontinued. Supersession reads every issued report's own pinned checks instead, since a report relied on the
+-- rule when it was issued whatever has been checked since. A rule no earlier check applied or withheld (a brand-new
+-- obligation) names nothing in either, so it re-checks and supersedes nothing (default; founder question on #75).
 
 -- ─── Supersessions: once per artefact × diff, only from a material diff ─────────────────────────────────────────
 create unique index supersessions_once on app.supersessions (artefact_type, artefact_id, rule_diff_id);
@@ -105,11 +106,12 @@ end $$;
 -- Staff only (private.require_staff: 42501). An unknown diff is P0002; an editorial diff queues nothing and says so.
 -- One 'recheck' job per product named by app.affected_objects, payload {product_id, node_ids, rule_diff_id} (ids
 -- only), key recheck:<diff>:<product>, so a repeated request returns the same jobs and queues none. The job's scope
--- (product and markets) is set by the T-409 trigger from the payload. Audited 'recheck.requested' per workspace.
+-- (product and markets) is set by the T-409 trigger from the payload. Audited 'recheck.requested' per workspace
+-- with newly queued jobs (a repeated request writes no audit row).
 -- Returns {rule_diff_id, ruleset_version, effect_type, jobs: [{workspace_id, product_id, node_ids, job_id}]}.
 create function app.request_scoped_recheck(p_rule_diff uuid) returns jsonb
 language plpgsql security definer set search_path = '' as $$
-declare v_person uuid := private.require_staff(); v_d ref.rule_diffs; v_p record; v_job uuid;
+declare v_person uuid := private.require_staff(); v_d ref.rule_diffs; v_p record; v_job uuid; v_key text;
         v_jobs jsonb := '[]'; v_ws uuid; v_n int := 0;
 begin
   select * into v_d from ref.rule_diffs rd where rd.id = p_rule_diff;
@@ -128,22 +130,24 @@ begin
     order by ao.workspace_id, ao.product_id
   loop
     if v_ws is distinct from v_p.workspace_id then
-      if v_ws is not null then
+      if v_ws is not null and v_n > 0 then
         perform private.write_audit(v_ws, 'recheck.requested', 'rule_diff', v_d.id::text, null,
                                     jsonb_build_object('recipes', v_n, 'rule_key', v_d.rule_key), v_d.ruleset_version);
       end if;
       v_ws := v_p.workspace_id;
       v_n := 0;
     end if;
-    v_job := private.enqueue('recheck', v_p.workspace_id,
-                             'recheck:' || v_d.id::text || ':' || v_p.product_id::text,
+    v_key := 'recheck:' || v_d.id::text || ':' || v_p.product_id::text;
+    if not exists (select 1 from app.jobs j where j.idempotency_key = v_key) then
+      v_n := v_n + 1;                 -- audited: newly queued recipes only
+    end if;
+    v_job := private.enqueue('recheck', v_p.workspace_id, v_key,
                              jsonb_build_object('product_id', v_p.product_id, 'node_ids', to_jsonb(v_p.node_ids),
                                                 'rule_diff_id', v_d.id));
-    v_n := v_n + 1;
     v_jobs := v_jobs || jsonb_build_object('workspace_id', v_p.workspace_id, 'product_id', v_p.product_id,
                                            'node_ids', to_jsonb(v_p.node_ids), 'job_id', v_job);
   end loop;
-  if v_ws is not null then
+  if v_ws is not null and v_n > 0 then
     perform private.write_audit(v_ws, 'recheck.requested', 'rule_diff', v_d.id::text, null,
                                 jsonb_build_object('recipes', v_n, 'rule_key', v_d.rule_key), v_d.ruleset_version);
   end if;
