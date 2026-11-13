@@ -82,6 +82,9 @@ Toast · EmptyState and ErrorState (from the Empty and Error States file).
   - Focus is the global `:focus-visible` ring (2px `--accent`, offset 2px). A control that is visually hidden (a
     styled radio card) draws the ring on its label with `has-[:focus-visible]:` (2.4.7); a hidden file input behind a
     "Choose a file" button is `tabIndex={-1}`, so it is not an invisible stop.
+  - A form field's hint (`Field` in `components/auth/AuthCard.tsx`) is its description: the input's `aria-describedby`
+    names it (1.3.1, 3.3.2). A hint that changes as the person types (the reset-password strength read-out) is a
+    polite live region, `hintLive` (4.1.3).
   - A link inside running text whose colour alone does not set it apart (under 3:1 against the text) is underlined
     (1.4.1).
 - **Deviations from the design, recorded on #23.**

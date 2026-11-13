@@ -153,6 +153,7 @@ export function ResetForm({ minutes }: { minutes: number | null }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             hint={hint}
+            hintLive
             hintTone={!typed ? "n600" : typed.ok ? (typed.strength === "strong" ? "clear" : "n600") : "action"}
           />
           <Field label="Type it again" name="again" type="password" autoComplete="new-password" required />

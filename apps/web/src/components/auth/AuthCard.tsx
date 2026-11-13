@@ -88,9 +88,19 @@ export function Field({
   label,
   hint,
   hintTone = "n600",
+  hintLive = false,
   ...input
-}: { label: string; hint?: ReactNode; hintTone?: "n600" | "clear" | "action" } & InputHTMLAttributes<HTMLInputElement>) {
+}: {
+  label: string;
+  hint?: ReactNode;
+  hintTone?: "n600" | "clear" | "action";
+  /** The hint changes as the person types (a strength read-out): announce it politely (WCAG 4.1.3). */
+  hintLive?: boolean;
+} & InputHTMLAttributes<HTMLInputElement>) {
   const id = input.id ?? `f-${input.name}`;
+  // The hint is the field's description (WCAG 1.3.1, 3.3.2): a screen reader reads it with the field.
+  const hintId = `${id}-hint`;
+  const describedBy = [input["aria-describedby"], hint ? hintId : null].filter(Boolean).join(" ") || undefined;
   return (
     <div>
       <label htmlFor={id} className="block text-[12.5px] font-medium mb-[5px]">
@@ -100,9 +110,12 @@ export function Field({
         id={id}
         className="w-full border border-n400 rounded-control py-[11px] px-[12px] text-[14px] leading-[1.55] font-head bg-paper text-ink placeholder:text-n500"
         {...input}
+        aria-describedby={describedBy}
       />
       {hint ? (
         <p
+          id={hintId}
+          aria-live={hintLive ? "polite" : undefined}
           className={cx(
             "mt-[5px] mb-0 font-mono text-[10px] tracking-[0.05em]",
             hintTone === "clear" ? "text-clear" : hintTone === "action" ? "text-action" : "text-n600",

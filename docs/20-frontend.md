@@ -116,11 +116,13 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
   with the current section marked; on fourteen main screens every control in `<main>` is reached by Tab, focus is
   always visible and not hidden behind other content, and never trapped; the stage radio cards move with the arrows
   and show focus; the phone's More dialog keeps focus and returns it to More on Escape; sign-in runs on the keyboard
-  alone and keeps the email after a refused attempt (3.3.7).
+  alone and keeps the email after a refused attempt (3.3.7). On reset, the password requirement is the field's accessible
+  description and the strength read-out is announced as it changes (1.3.1, 3.3.2, 4.1.3).
 - **Fixed.** Page titles on 45 routes (they all read "Nutrivo"); the skip link; an in-text link told apart by colour
   alone (artwork in progress); focus on the hidden stage radios and an invisible file-input stop (Add a product);
   table scrollers that let `sr-only` text widen the page at 320 px (board, people, audit log, coverage, DataTable);
-  the sign-in email cleared after a refused attempt; a header landmark on /admin's staff-only page.
+  the sign-in email cleared after a refused attempt; form-field hints that were never linked to their field (reset
+  password, invitation); a header landmark on /admin's staff-only page.
 - **Open (#82, needs-human).** The public marketing routes are drawn at a fixed 1280 px (design/public), so they
   scroll sideways below that width and do not meet 1.4.10 Reflow; making them reflow needs a narrow-screen design.
   Unknown URLs show Next's default 404, which has no `<main>` and none of the site's chrome; no design draws a 404.

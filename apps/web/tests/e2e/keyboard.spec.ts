@@ -4,6 +4,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
 import { focused, tabThrough } from "./support/a11y";
+import { haveMail, linkFromEmail } from "./support/mail";
 import { admin, haveStack, person, signIn, workspace, type Person } from "./support/people";
 
 test.skip(!haveStack(), "needs the local Supabase stack (scripts/ci/e2e.sh)");
@@ -207,5 +208,44 @@ test.describe("[T-1104] signing in by keyboard", () => {
     await page.keyboard.type(password);
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(new RegExp(`/w/${ws}/board$`));
+  });
+});
+
+test.describe("[T-1104] choosing a new password", () => {
+  test.skip(!haveMail(), "needs Mailpit (scripts/ci/e2e.sh)");
+
+  test("[T-1104] reset: the requirement is the field's description and the strength read-out is announced as it changes", async ({ page }) => {
+    const who = await person("t1104-reset");
+    await workspace(who, "Halden Reset");
+    const { error } = await admin().auth.admin.updateUserById(who.userId, { password: `pass ${randomUUID()}` });
+    if (error) throw error;
+
+    await settle(page, "/auth/forgot");
+    await page.getByLabel("Email address").fill(who.email);
+    await page.getByRole("button", { name: "Send the link" }).click();
+    await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
+    await page.goto(await linkFromEmail(who.email));
+    await expect(page).toHaveURL(/\/auth\/reset$/);
+    await page.waitForLoadState("networkidle"); // typed before hydration, the read-out would not see it
+
+    // WCAG 1.3.1 and 3.3.2: the requirement is read with the field, not only shown under it.
+    const field = page.getByLabel("New password", { exact: true });
+    await expect(field).toHaveAccessibleDescription("12 CHARACTERS OR MORE");
+    const hintId = (await field.getAttribute("aria-describedby"))!.split(" ").pop()!;
+    const hint = page.locator(`[id="${hintId}"]`);
+    // WCAG 4.1.3: the read-out is a polite live region, so its changes are announced without moving focus.
+    await expect(hint).toHaveAttribute("aria-live", "polite");
+
+    await field.focus();
+    await page.keyboard.type("too short");
+    await expect(hint).toHaveText("AT LEAST 12 CHARACTERS");
+    await expect(field).toHaveAccessibleDescription("AT LEAST 12 CHARACTERS");
+    await page.keyboard.press("ControlOrMeta+a");
+    await page.keyboard.type("four plain words here");
+    await expect(field).toHaveAccessibleDescription("STRONG · A PASSPHRASE OF FOUR WORDS");
+    await expect(page.locator("#f-password")).toBeFocused(); // the announcement never takes focus
+
+    // The second field has no hint, so it describes nothing.
+    expect(await page.getByLabel("Type it again").getAttribute("aria-describedby")).toBeNull();
   });
 });
