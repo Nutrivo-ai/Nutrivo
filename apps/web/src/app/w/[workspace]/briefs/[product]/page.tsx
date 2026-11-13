@@ -5,6 +5,9 @@ import { ErrorState } from "@/components/kit";
 import { Screen } from "@/components/shell";
 import { readBrief, type Brief } from "@/lib/briefs/queries";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Brief & formula · Nutrivo" };
 
 // S-NV2-004 Brief & formula (spec/screens.yaml), T-1001 · E01 Create a brief: the product at stage brief (C01), its
 // formula lines and its intended claims per language. Editors and above (the Screen applies the route's role; the

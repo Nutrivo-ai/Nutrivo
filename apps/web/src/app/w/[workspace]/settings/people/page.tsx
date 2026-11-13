@@ -1,6 +1,9 @@
 import { People } from "@/components/settings/People";
 import { readPeople } from "@/lib/settings/people";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "People and roles · Nutrivo" };
 
 // S-WSS-001 People and roles (spec/screens.yaml; design: product/Nutrivo Workspace Settings.dc.html, screen "people").
 // A03, A05, A06 (T-107). Every read is under the person's session; a failed read goes to the workspace error

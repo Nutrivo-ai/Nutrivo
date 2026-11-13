@@ -16,7 +16,7 @@ export function NoAccess({ memberships, pathname }: { memberships: WorkspaceMemb
         <Wordmark />
         <span className="font-mono text-[10px] tracking-[0.1em] uppercase text-n600">Workspace</span>
       </div>
-      <main className="max-w-[560px] mx-auto py-[40px] px-[16px] flex flex-col gap-[28px]">
+      <main id="main" className="max-w-[560px] mx-auto py-[40px] px-[16px] flex flex-col gap-[28px]">
         <h1 className="sr-only">No access to this workspace</h1>
         <NoPermissionState
           where="NO ACCESS · WORKSPACE"

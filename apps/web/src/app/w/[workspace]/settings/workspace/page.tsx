@@ -1,6 +1,9 @@
 import { WorkspaceSettings, type Operator } from "@/components/settings/WorkspaceSettings";
 import { createClient } from "@/lib/supabase/server";
 import { ShellReadError } from "@/lib/workspace/memberships";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Workspace · Nutrivo" };
 
 // S-WSS-003 Workspace (spec/screens.yaml; design: product/Nutrivo Workspace Settings.dc.html, screen "workspace").
 // B01 (T-107). Reads under the person's session; a failed read goes to the workspace error boundary.

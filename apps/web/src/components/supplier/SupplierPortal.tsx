@@ -25,7 +25,7 @@ export function SupplierPage({ children }: { children: ReactNode }) {
           <Wordmark size="header" />
         </Link>
       </header>
-      <main className="flex-1 py-[24px] px-[16px] md:px-[26px]">
+      <main id="main" className="flex-1 py-[24px] px-[16px] md:px-[26px]">
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(240px,320px)] gap-[22px] items-start">
           <div>
             <p className="mt-0 mb-[14px] text-[13px] leading-[1.55] text-n600 max-w-[76ch]">

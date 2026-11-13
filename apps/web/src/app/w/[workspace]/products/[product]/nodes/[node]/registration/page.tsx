@@ -5,6 +5,9 @@ import { readRegistrationGaps, readRegistrationPage } from "@/lib/registration/q
 import { roleAllows, routeFor } from "@/lib/shell/routes";
 import { createClient } from "@/lib/supabase/server";
 import { loadShellContext } from "@/lib/workspace/memberships";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Registration pack · Nutrivo" };
 
 // S-NV2-020 Registration pack (spec/screens.yaml), T-504, G02 and G03: one product in one market, read under the
 // person's session (RLS). A viewer reads it; an editor also gets the G03 record form (app.record_registration decides

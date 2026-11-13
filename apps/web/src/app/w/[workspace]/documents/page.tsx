@@ -4,6 +4,9 @@ import { readLibrary, todayUtc } from "@/lib/documents/library";
 import { roleAllows, routeFor } from "@/lib/shell/routes";
 import { createClient } from "@/lib/supabase/server";
 import { loadShellContext } from "@/lib/workspace/memberships";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Documents · Nutrivo" };
 
 // S-NV2-010 Documents (spec/screens.yaml), T-801, H01: the workspace's documents against ref.document_requirements per
 // market, with expiry, read under the person's session (RLS). Only a role the screen allows reads anything; anybody

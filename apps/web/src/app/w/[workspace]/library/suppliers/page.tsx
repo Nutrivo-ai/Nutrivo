@@ -4,6 +4,9 @@ import { roleAllows, routeFor } from "@/lib/shell/routes";
 import { readSuppliers } from "@/lib/suppliers/requests";
 import { createClient } from "@/lib/supabase/server";
 import { loadShellContext } from "@/lib/workspace/memberships";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Suppliers · Nutrivo" };
 
 // S-NV2-014 Suppliers (spec/screens.yaml), T-802, H02: the workspace's suppliers and their document requests, read
 // under the person's session (RLS), and the request form. Anybody the screen does not allow gets the no-permission

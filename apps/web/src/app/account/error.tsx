@@ -11,7 +11,7 @@ export default function AccountError({ error, retry }: { error: unknown; retry: 
   }, [error]);
   return (
     <div className="min-h-screen bg-panel pt-[26px] px-[16px] md:px-[28px]">
-      <main className="max-w-[640px]">
+      <main id="main" className="max-w-[640px]">
         <ErrorState
           where="ERROR · YOUR ACCOUNT"
           title="Your account could not be read"

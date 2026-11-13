@@ -4,6 +4,9 @@ import { fitFor, isLive, isPaidPlan, isTerm, nextPlan } from "@/lib/billing/plan
 import { billingContext, checkoutItems, previewFirstInvoice, readDetails, readUsage } from "@/lib/billing/read";
 import { StripeConfigError } from "@/lib/billing/stripe";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Checkout · Nutrivo" };
 
 // S-PLN-002 Checkout (spec/screens.yaml; design: product/Nutrivo Plans and Checkout.dc.html, screen "checkout").
 // M01, M03 (T-703). The review step before Stripe-hosted Checkout (decided on #64): the plan and term come from the

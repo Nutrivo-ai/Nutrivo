@@ -2,6 +2,9 @@ import { ScreenHeader } from "@/components/shell";
 import { readDraft, readDrafts, readJurisdictions, releaseBlockers } from "@/lib/admin/reads";
 import { staffReader } from "@/lib/admin/server";
 import { CoverageConsole } from "./CoverageConsole";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Coverage and release · Nutrivo" };
 
 // K04 coverage management and the K05 release, on a ruleset draft (T-204; no design yet, #35 question 1). Coverage is
 // edited on a draft and published only by a release. Complete is refused by the database unless every member rule
