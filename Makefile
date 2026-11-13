@@ -16,7 +16,7 @@ PSQL = $(if $(shell command -v psql),psql -Atq postgresql://postgres:postgres@12
 # Every target is a command, never a file: without this, `make fixtures` sees the fixtures/ directory and does nothing.
 .PHONY: help pr-check pr-update pr-merge bootstrap db-start db-reset db-migrate fixtures typegen env-check doctor design-fetch design-check \
         validate-plan workflows issues-sync next verify-task autopilot status gates db-tap test verify-fast verify e2e \
-        e2e-ci smoke acceptance-staging conformance conformance-update stripe-catalogue
+        e2e-ci smoke acceptance-staging load budgets conformance conformance-update stripe-catalogue
 
 help: ## list targets
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-18s %s\n", $$1, $$2}'
@@ -107,6 +107,7 @@ verify-fast: ## what the Claude Code Stop hook runs
 	python3 -m unittest discover -s scripts/env -p 'test_*.py'
 	python3 -m unittest discover -s scripts/doctor -p 'test_*.py'
 	python3 -m unittest discover -s scripts/deploy -p 'test_*.py'
+	$(PY) -m unittest discover -s scripts/load -p 'test_*.py'
 	node --no-warnings --test scripts/stripe/*.test.ts
 verify: verify-fast e2e ## everything CI runs
 e2e: ## full-stack end-to-end on the local stack
@@ -116,6 +117,11 @@ smoke: ## @smoke suite against a deployed environment (ENV=staging|prod; BASE_UR
 	@if [ -f apps/web/package.json ]; then mkdir -p reports && BASE_URL="$${BASE_URL:-$$APP_BASE_URL}" PLAYWRIGHT_JUNIT_OUTPUT_NAME="$(CURDIR)/reports/smoke-$(ENV).xml" pnpm --dir apps/web e2e --grep @smoke --reporter=junit,list; else echo "apps/web is scaffolded in T-007"; fi
 acceptance-staging: ## the full acceptance suite against staging (nightly)
 	@if [ -f apps/web/package.json ]; then mkdir -p reports && BASE_URL="$$APP_BASE_URL" PLAYWRIGHT_JUNIT_OUTPUT_NAME="$(CURDIR)/reports/acceptance-staging.xml" pnpm --dir apps/web e2e --grep-invert @local-only --reporter=junit,list; fi
+load: ## every budget in spec/nfr.yaml under load: PROFILE=local|ci (staging runs only in GitHub Actions); reports/LOAD.md
+	bash scripts/load/run.sh $(or $(PROFILE),local)
+budgets: ## every budget in spec/nfr.yaml and the tests that name it, and the checks that read the repository
+	$(PY) scripts/load/budgets.py coverage
+	$(PY) scripts/load/budgets.py static
 conformance: ## CONFORMANCE.md from local reports
 	$(PY) scripts/conformance/report.py
 conformance-update: ## add newly passing acceptance IDs to the baseline (it never shrinks)
