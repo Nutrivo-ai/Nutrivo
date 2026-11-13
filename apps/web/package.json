@@ -11,6 +11,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "e2e": "sh -c 'if [ -n \"$CI\" ]; then playwright install --with-deps chromium; fi; exec playwright test \"$@\"' --",
+    "load": "sh -c 'if [ -n \"$CI\" ]; then playwright install --with-deps chromium; fi; exec playwright test -c playwright.load.config.ts \"$@\"' --",
     "baselines": "playwright test -c playwright.baselines.config.ts"
   },
   "dependencies": {
