@@ -2,6 +2,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { inPlan, readPlan, regionName } from "@/lib/plan/regions";
 import { buildVerdict, type Verdict } from "./model";
 
 export class VerdictReadError extends Error {
@@ -14,6 +15,8 @@ export class VerdictReadError extends Error {
 export type VerdictPage =
   | { kind: "not-found" }
   | { kind: "no-market"; product: { id: string; name: string } }
+  /** J04.must.1: the market's region is not in the workspace's plan, so its findings are not read or shown. */
+  | { kind: "outside-plan"; product: { id: string; name: string }; nodeName: string; regionName: string }
   | { kind: "loaded"; product: { id: string; name: string }; verdict: Verdict };
 
 type Client = SupabaseClient<Database>;
@@ -42,6 +45,12 @@ export async function readVerdict(supabase: Client, workspaceId: string, product
   const jurisdictions =
     ok("markets", await ref.from("jurisdictions").select("id, name, parent_id").or(`id.eq.${nodeId},parent_id.eq.${nodeId}`)) ?? [];
   if (!jurisdictions.some((j) => j.id === nodeId)) return { kind: "no-market", product };
+  const plan = await readPlan(supabase, workspaceId);
+  if (!plan) return { kind: "not-found" };
+  if (!inPlan(plan, nodeId)) {
+    const nodeName = jurisdictions.find((j) => j.id === nodeId)!.name;
+    return { kind: "outside-plan", product, nodeName, regionName: regionName(plan, nodeId) };
+  }
   const nodeIds = jurisdictions.map((j) => j.id);
 
   const [nodeRows, rollup, current] = await Promise.all([

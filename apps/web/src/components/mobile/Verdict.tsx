@@ -25,6 +25,18 @@ export function Verdict({ route, workspaceId, page }: { route: string; workspace
             action={{ label: "Open the label report", href: `/w/${workspaceId}/products/${page.product.id}/report` }}
           />
         </div>
+      ) : page.kind === "outside-plan" ? (
+        // J04.must.1 (T-902): the region is not in the plan, so the finding is not read or shown. Nothing here is a
+        // paywall: the alerts inbox still names the change and the recipes it affects.
+        <div className="max-w-[640px]" data-region="outside-plan">
+          <EmptyState
+            where={`NOT IN YOUR PLAN · ${page.regionName.toUpperCase()}`}
+            title={`Your plan does not include ${page.regionName}`}
+            body={`The findings for ${page.product.name} in ${page.nodeName} open once the plan holds ${page.regionName}. Alerts for it still say what changed and which recipes it affects.`}
+            action={{ label: "Open the alerts inbox", href: `/w/${workspaceId}/alerts` }}
+            aside={`An admin of this workspace can add ${page.regionName} to the plan.`}
+          />
+        </div>
       ) : (
         <Blocks verdict={page.verdict} />
       )}

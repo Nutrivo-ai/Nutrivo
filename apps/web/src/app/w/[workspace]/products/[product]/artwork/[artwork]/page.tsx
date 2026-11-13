@@ -17,7 +17,7 @@ export default async function Page({ params }: PageProps<"/w/[workspace]/product
   const product = await readProduct(db, workspace, productId);
   const art = product ? await readArtwork(db, product.id, artworkId) : null;
   const panels = art?.run ? await readPanels(db, art.run.id) : [];
-  const checks = await readPanelChecks(db, panels.map((p) => p.id));
+  const checks = await readPanelChecks(db, workspace, panels.map((p) => p.id));
   const checkHref = `/w/${workspace}/products/${productId}/check`;
   return (
     <Screen

@@ -3,6 +3,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { ShellReadError } from "@/lib/workspace/memberships";
+import { inPlan, readPlan } from "@/lib/plan/regions";
 
 type Db = SupabaseClient<Database>;
 
@@ -159,9 +160,13 @@ export async function readPanels(db: Db, runId: string): Promise<PanelRow[]> {
 /**
  * D02: the latest check of each market × panel for these panels, newest first per market, with the reason codes of
  * that check's Not assessed findings. Reads app.checks and app.check_findings under RLS; none before a check runs.
+ * J04.must.1 (T-902): a market whose region the workspace's plan does not hold is left out before anything of its
+ * checks is used, so its state and reason codes never reach the page.
  */
-export async function readPanelChecks(db: Db, panelIds: string[]): Promise<PanelCheck[]> {
+export async function readPanelChecks(db: Db, workspaceId: string, panelIds: string[]): Promise<PanelCheck[]> {
   if (!panelIds.length) return [];
+  const plan = await readPlan(db, workspaceId);
+  if (!plan) return [];
   const { data: checks, error } = await db
     .schema("app")
     .from("checks")
@@ -171,6 +176,7 @@ export async function readPanelChecks(db: Db, panelIds: string[]): Promise<Panel
   if (error) throw new ShellReadError("panel checks", error);
   const latest = new Map<string, NonNullable<typeof checks>[number]>();
   for (const c of checks ?? []) {
+    if (!inPlan(plan, c.node_id)) continue;
     const key = `${c.panel_id}|${c.node_id}`;
     if (!latest.has(key)) latest.set(key, c);
   }
