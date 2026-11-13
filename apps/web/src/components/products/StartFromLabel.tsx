@@ -96,7 +96,7 @@ export function StartFromLabel({ workspaceId, familyId }: { workspaceId: string;
           A PDF, PNG or JPEG of the printed label. The product is created with the file&apos;s name, which you can change,
           {familyId ? " in the family picked on the left," : ""} and the artwork goes straight to its check.
         </p>
-        <input ref={input} type="file" accept={ACCEPT_ATTR} className="sr-only" aria-label="Label file" onChange={(e) => {
+        <input ref={input} type="file" accept={ACCEPT_ATTR} className="sr-only" tabIndex={-1} aria-label="Label file" onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) void start(file);
         }} />

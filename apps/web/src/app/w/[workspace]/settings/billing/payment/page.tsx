@@ -6,6 +6,9 @@ import { readCards, readUsage } from "@/lib/billing/read";
 import { workspaceCustomer } from "@/lib/billing/context";
 import { StripeConfigError } from "@/lib/billing/stripe";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Payment method · Nutrivo" };
 
 // S-BIL-003 Payment method (spec/screens.yaml; design: product/Nutrivo Billing Settings.dc.html, screen "payment").
 // M04, M05 (T-703). The card is read from Stripe now (decided on #64); when Stripe does not answer the screen says

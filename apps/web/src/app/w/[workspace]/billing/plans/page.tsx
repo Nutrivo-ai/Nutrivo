@@ -2,6 +2,9 @@ import { Plans } from "@/components/billing/Plans";
 import { billingContext, readUsage } from "@/lib/billing/read";
 import { isTerm } from "@/lib/billing/plans";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Plans · Nutrivo" };
 
 // S-PLN-001 Plan picker (spec/screens.yaml; design: product/Nutrivo Plans and Checkout.dc.html, screen "plans").
 // M01, M02 (T-703). The counts are read on every request, never cached (M02.must.1): nothing here is "use cache", so under

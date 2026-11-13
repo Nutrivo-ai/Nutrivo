@@ -204,7 +204,7 @@ export function RuleQueue({ candidates, nodes, terms, rules }: { candidates: Rul
   // Page-level, so the outcome stays on screen after a decided candidate leaves the queue.
   const [outcome, setOutcome] = useState<Outcome>(null);
   return (
-    <main className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
+    <main id="main" className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
       <p role="status" data-said="rules" data-tone={outcome?.tone ?? ""} className={cx("mt-0 mb-[12px] text-[13px] min-h-[20px]", outcome?.tone === "refused" ? "text-blocked" : "text-n700")}>
         {outcome?.text ?? ""}
       </p>

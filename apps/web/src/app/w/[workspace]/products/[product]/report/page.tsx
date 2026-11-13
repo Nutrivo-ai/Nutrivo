@@ -2,6 +2,9 @@ import * as Sentry from "@sentry/nextjs";
 import { LabelReport } from "@/components/report/LabelReport";
 import { readReport } from "@/lib/report/queries";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Label report · Nutrivo" };
 
 // S-NV2-003 Label report (spec/screens.yaml; design: product/Nutrivo 2.0.dc.html, screen "report"). D07: the product's
 // latest check, one result set per market × printed language panel, read under RLS. A read failure goes to the

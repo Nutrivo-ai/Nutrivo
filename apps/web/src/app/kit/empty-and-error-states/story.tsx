@@ -79,7 +79,7 @@ export function EmptyAndErrorStatesStory() {
   const toast = useToast();
   return (
     <div className="min-w-[1180px] bg-panel pb-[60px]">
-      <main className="max-w-[1120px] mx-auto bg-paper border-x border-rule">
+      <main id="main" className="max-w-[1120px] mx-auto bg-paper border-x border-rule">
         <div className="border-b border-ink pt-[32px] px-[40px] pb-[26px]">
           <p className={cx(kicker, "text-[10.5px] tracking-[0.14em]")}>Pattern · 5 September 2026</p>
           <h1 className="mt-[10px] mb-0 text-[34px] font-semibold leading-[1.08] max-w-[30ch]">Empty and error states, as one pattern</h1>

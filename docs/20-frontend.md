@@ -60,7 +60,7 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
   expects a navigation, a dialog, a request or a visible state change, and no console error, failed request or
   unhandled rejection.
 - **Accessibility.** axe-core runs on every route (zero serious or critical findings), with keyboard tests for the
-  main flows.
+  main flows. From T-1104 the bar is WCAG 2.2 AA (below).
 
 ## 5 · Everything else in the designs
 | Design file | Built as | Task |
@@ -105,6 +105,27 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
   set-returning roll-up in the database), S-MIS-003's search and saved views (F02, LATER).
 - **Tests** (`tests/e2e/board.spec.ts`): F01.main, F01.must.1, F04.main, the empty state, axe, the screen's links and
   no buttons, and the legend against the S-NV2-006 baseline.
+
+### Built in T-1104: WCAG 2.2 AA across apps/web (`tests/e2e/a11y.spec.ts`, `tests/e2e/keyboard.spec.ts`)
+- **The sweep.** Every route in `src/app/**/page.tsx` is opened signed out, as a workspace admin with a product in four
+  markets, in a workspace with no products, as a viewer, and from outside the workspace, plus /admin for a person
+  who is not staff. Each passes axe with the WCAG 2.0, 2.1 and 2.2 A and AA rules at any impact (and no serious or
+  critical best-practice finding), has a title of its own and a skip link to its one `<main id="main">`. Workspace
+  routes reflow at 320 px. The checks are in `tests/e2e/support/a11y.ts`.
+- **Keyboard.** The skip link is the first stop and moves the next Tab into `<main>`; the rail is in reading order
+  with the current section marked; on fourteen main screens every control in `<main>` is reached by Tab, focus is
+  always visible and not hidden behind other content, and never trapped; the stage radio cards move with the arrows
+  and show focus; the phone's More dialog keeps focus and returns it to More on Escape; sign-in runs on the keyboard
+  alone and keeps the email after a refused attempt (3.3.7). On reset, the password requirement is the field's accessible
+  description and the strength read-out is announced as it changes (1.3.1, 3.3.2, 4.1.3).
+- **Fixed.** Page titles on 45 routes (they all read "Nutrivo"); the skip link; an in-text link told apart by colour
+  alone (artwork in progress); focus on the hidden stage radios and an invisible file-input stop (Add a product);
+  table scrollers that let `sr-only` text widen the page at 320 px (board, people, audit log, coverage, DataTable);
+  the sign-in email cleared after a refused attempt; form-field hints that were never linked to their field (reset
+  password, invitation); a header landmark on /admin's staff-only page.
+- **Open (#82, needs-human).** The public marketing routes are drawn at a fixed 1280 px (design/public), so they
+  scroll sideways below that width and do not meet 1.4.10 Reflow; making them reflow needs a narrow-screen design.
+  Unknown URLs show Next's default 404, which has no `<main>` and none of the site's chrome; no design draws a 404.
 
 ## 6 · Performance
 Lighthouse budgets on the public pages (LCP under 2.5 s); a 1.5 s budget for the board with 300 recipes

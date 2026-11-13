@@ -93,7 +93,7 @@ export function Onboarding(props: Props) {
 
       <Rail step={step} />
 
-      <main className="flex-1 pt-[34px] pb-[60px] px-[16px] md:px-[32px]">
+      <main id="main" className="flex-1 pt-[34px] pb-[60px] px-[16px] md:px-[32px]">
         <div className="max-w-[1040px] mx-auto">
           {step === 1 ? (
             sent ? (

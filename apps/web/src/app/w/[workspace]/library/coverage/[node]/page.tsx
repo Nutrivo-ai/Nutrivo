@@ -5,6 +5,9 @@ import { EmptyState } from "@/components/kit";
 import { Screen } from "@/components/shell";
 import { readNodeCoverage } from "@/lib/coverage/queries";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Coverage node · Nutrivo" };
 
 // S-NV2-021 Coverage node (spec/screens.yaml; design: product/Nutrivo 2.0.dc.html, screen "cov"). D09 and D07.must.2:
 // every Not assessed finding links here, to the gap by its id. ?ruleset= reads the node at a pinned ruleset (from a

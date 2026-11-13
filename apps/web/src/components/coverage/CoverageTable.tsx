@@ -40,7 +40,7 @@ export function CoverageTable({ workspaceId, page }: { workspaceId: string; page
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full border-collapse min-w-[760px]">
               <thead>
                 <tr>

@@ -2,6 +2,9 @@ import * as Sentry from "@sentry/nextjs";
 import { Verdict } from "@/components/mobile/Verdict";
 import { readVerdict } from "@/lib/verdict/queries";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Product × market · Nutrivo" };
 
 // S-MOB-003 The verdict (spec/screens.yaml; design: product/Nutrivo Mobile.dc.html, "Read a verdict"). One product in
 // one market, read under RLS. The desktop Product × node layout (S-NV2-007) is T-504's. A read failure goes to the

@@ -36,7 +36,7 @@ export function Screen({
         title={allowed ? (title ?? screen.title) : screen.title}
         aside={allowed ? aside : undefined}
       />
-      <main className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]" data-screen={screen.screens[0]}>
+      <main id="main" className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]" data-screen={screen.screens[0]}>
         {allowed ? (
           children
         ) : (

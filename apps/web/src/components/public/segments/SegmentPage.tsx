@@ -88,7 +88,7 @@ export function SegmentPage({ seg }: { seg: Segment }) {
         <SegmentTabs current={seg} />
       </div>
 
-      <main>
+      <main id="main">
         <section data-testid="seg-hero" style={sx("border-bottom: 1px solid var(--ink); padding: 50px 56px 44px")}>
           <div style={sx("display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr); gap: 52px; align-items: end")}>
             <div>

@@ -4,6 +4,9 @@ import { readObligations, readRegistrationGaps } from "@/lib/registration/querie
 import { roleAllows, routeFor } from "@/lib/shell/routes";
 import { createClient } from "@/lib/supabase/server";
 import { loadShellContext } from "@/lib/workspace/memberships";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Obligations · Nutrivo" };
 
 // S-NV2-008 Obligations (spec/screens.yaml), T-504, G01: the workspace's markets and the sourced obligations held for
 // each, read under the person's session (RLS). Only a role the screen allows reads anything; anybody else gets the

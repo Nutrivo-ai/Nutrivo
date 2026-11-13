@@ -2,6 +2,9 @@ import { EmptyState, SectionHeading } from "@/components/kit";
 import { ScreenHeader } from "@/components/shell";
 import { readDrafts, readGlossary } from "@/lib/admin/reads";
 import { staffReader } from "@/lib/admin/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Glossary · Nutrivo" };
 
 // The glossary of the latest release (BE-11: authored definitions, returned verbatim). Read only: no K-workflow edits
 // it, and a release copies the previous release's entries forward unchanged (#34 question 5).
@@ -12,7 +15,7 @@ export default async function GlossaryPage() {
   return (
     <>
       <ScreenHeader crumb="Content operations · glossary" title="Glossary" />
-      <main className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px] max-w-[980px]">
+      <main id="main" className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px] max-w-[980px]">
         <SectionHeading note={latestRelease ? `RULESET ${latestRelease} · read only` : "No release yet"}>Authored definitions</SectionHeading>
         {entries.length === 0 ? (
           <div className="mt-[14px] max-w-[640px]">

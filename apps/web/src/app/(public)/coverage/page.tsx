@@ -74,7 +74,7 @@ export default function CoveragePage({ searchParams }: { searchParams: Promise<P
   return (
     <div style={sx("width: 1280px; margin: 0 auto; background: var(--paper); font-size: 14px")}>
       <SiteHeader items={["Product", "Coverage", "Pricing", "About"]} current="Coverage" />
-      <main>
+      <main id="main">
         <Suspense fallback={<Lead generated={null} />}>
           <LiveLead />
         </Suspense>
