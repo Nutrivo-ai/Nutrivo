@@ -6,6 +6,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { inPlan, readPlan, regionName, type Plan } from "@/lib/plan/regions";
 import type { GapRow } from "@/lib/report/model";
 import {
   buildBoard,
@@ -74,7 +75,12 @@ async function pool<T, R>(xs: T[], n: number, f: (x: T) => Promise<R>): Promise<
 
 export type BoardPage =
   | { kind: "not-found" }
-  | { kind: "loaded"; board: BoardModel; findings: (PortfolioFindings & { capped: boolean }) | null };
+  | {
+      kind: "loaded";
+      board: BoardModel;
+      /** outsidePlan: J04.must.1 (T-902), the regions whose findings are not shown because the plan does not hold them. */
+      findings: (PortfolioFindings & { capped: boolean; outsidePlan: string[] }) | null;
+    };
 
 type BaseRows = {
   products: BoardProductRow[];
@@ -133,9 +139,16 @@ async function readRollups(supabase: Client, base: BaseRows): Promise<RollupRow[
 }
 
 /** F04: the open findings of each market's latest check job, with the coverage gaps they cite. */
-async function readFindings(supabase: Client, base: BaseRows): Promise<{ rows: PortfolioFindingRow[]; gaps: GapRow[]; capped: boolean }> {
+async function readFindings(
+  supabase: Client,
+  base: BaseRows,
+  plan: Plan,
+): Promise<{ rows: PortfolioFindingRow[]; gaps: GapRow[]; capped: boolean; outsidePlan: string[] }> {
   const live = new Set(base.products.map((p) => p.id));
-  const jobs = [...new Set(base.nodes.filter((n) => live.has(n.product_id)).map((n) => n.last_check_job_id).filter((j): j is string => !!j))];
+  // J04.must.1: a market whose region the plan does not hold has its findings neither read nor shown.
+  const held = base.nodes.filter((n) => live.has(n.product_id) && inPlan(plan, n.node_id));
+  const outsidePlan = [...new Set(base.nodes.filter((n) => live.has(n.product_id) && !inPlan(plan, n.node_id)).map((n) => regionName(plan, n.node_id)))].sort();
+  const jobs = [...new Set(held.map((n) => n.last_check_job_id).filter((j): j is string => !!j))];
   const app = supabase.schema("app");
   const rows: PortfolioFindingRow[] = [];
   let capped = false;
@@ -160,8 +173,9 @@ async function readFindings(supabase: Client, base: BaseRows): Promise<{ rows: P
           .range(from, to) as unknown as PromiseLike<Result<PortfolioFindingRow[]>>,
       left + 1,
     );
+    const shown = read.filter((f) => inPlan(plan, f.node_id)); // a job checks several markets at once
     if (read.length > left) capped = true;
-    rows.push(...read.slice(0, left));
+    rows.push(...shown.slice(0, left));
   }
   const gapIds = [...new Set(rows.map((f) => f.gap_id).filter((g): g is string => !!g))];
   const ref = supabase.schema("ref");
@@ -173,7 +187,7 @@ async function readFindings(supabase: Client, base: BaseRows): Promise<{ rows: P
       ),
     )
   ).flat() as GapRow[];
-  return { rows, gaps, capped };
+  return { rows, gaps, capped, outsidePlan };
 }
 
 export async function readBoard(supabase: Client, workspaceId: string, filters: BoardFilters): Promise<BoardPage> {
@@ -181,9 +195,15 @@ export async function readBoard(supabase: Client, workspaceId: string, filters: 
   const base = await readBase(supabase, workspaceId);
   const rows = { workspaceId, ...base, filters };
   if (filters.view === "findings") {
-    const read = await readFindings(supabase, base);
+    const plan = await readPlan(supabase, workspaceId);
+    if (!plan) return { kind: "not-found" };
+    const read = await readFindings(supabase, base, plan);
     const board = buildBoard({ ...rows, rollups: [] });
-    return { kind: "loaded", board, findings: { ...buildFindings(rows, read.rows, read.gaps), capped: read.capped } };
+    return {
+      kind: "loaded",
+      board,
+      findings: { ...buildFindings(rows, read.rows, read.gaps), capped: read.capped, outsidePlan: read.outsidePlan },
+    };
   }
   const rollups = await readRollups(supabase, base);
   return { kind: "loaded", board: buildBoard({ ...rows, rollups }), findings: null };
