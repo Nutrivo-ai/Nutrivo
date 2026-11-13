@@ -1,0 +1,65 @@
+# Load-test profiles (T-1105). One run checks every budget in spec/nfr.yaml: `make load PROFILE=<name>`.
+# - recipes: products seeded into the board workspace (board_300_recipes_p95_ms is defined at 300).
+# - rpc_calls / board_loads / verify_calls / lcp_runs / extractions / checks: samples taken for each budget's p95.
+# - concurrency: requests in flight at once while sampling (sustained load, not one at a time).
+# - enforce: budgets whose test fails when the budget is exceeded or not measured. Every other budget is measured and
+#   reported in reports/LOAD.md, never passed silently. A budget that cannot be measured is "withheld" with a reason.
+# The staging profile runs only in GitHub Actions (nightly.yml, staging-load), never from a session or a laptop.
+local:
+  recipes: 300
+  markets_per_recipe: 3
+  rpc_calls: 400
+  board_loads: 30
+  verify_calls: 300
+  lcp_runs: 3
+  extractions: 5
+  checks: 5
+  concurrency: 8
+  enforce:
+    - performance.rpc_p95_ms
+    - performance.board_300_recipes_p95_ms
+    - performance.extraction_10_pages_p95_s
+    - performance.check_completion_p95_s
+    - performance.verify_endpoint_p95_ms
+    - performance.public_pages_lcp_s
+    - availability.app_monthly_percent
+    - availability.verify_monthly_percent
+
+# Reduced, for every pull request (ci.yml, job load): a shared runner is not staging, so only the budgets that mean
+# the same thing at this scale are enforced; the rest are measured and reported.
+ci:
+  recipes: 30
+  markets_per_recipe: 3
+  rpc_calls: 120
+  board_loads: 8
+  verify_calls: 100
+  lcp_runs: 1
+  extractions: 2
+  checks: 2
+  concurrency: 4
+  enforce:
+    - performance.rpc_p95_ms
+    - performance.verify_endpoint_p95_ms
+    - availability.app_monthly_percent
+    - availability.verify_monthly_percent
+
+# Full size against staging (docs/21 §3: every budget met in the staging load test).
+staging:
+  recipes: 300
+  markets_per_recipe: 3
+  rpc_calls: 1000
+  board_loads: 60
+  verify_calls: 1000
+  lcp_runs: 5
+  extractions: 10
+  checks: 10
+  concurrency: 16
+  enforce:
+    - performance.rpc_p95_ms
+    - performance.board_300_recipes_p95_ms
+    - performance.extraction_10_pages_p95_s
+    - performance.check_completion_p95_s
+    - performance.verify_endpoint_p95_ms
+    - performance.public_pages_lcp_s
+    - availability.app_monthly_percent
+    - availability.verify_monthly_percent
