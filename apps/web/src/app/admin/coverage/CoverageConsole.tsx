@@ -309,7 +309,7 @@ export function CoverageConsole({
   const rows = detail && node ? detail.coverage.filter((c) => c.nodeId === node).sort((a, b) => DOMAINS.indexOf(a.domain as never) - DOMAINS.indexOf(b.domain as never)) : [];
   const name = (id: string) => nodes.find((n) => n.id === id)?.name ?? id;
   return (
-    <main className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
+    <main id="main" className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
       <div className="grid grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)] gap-[22px] items-start">
         <div className="flex flex-col gap-[18px]">
           <Panel title="Drafts" aside={latestRelease ? `LATEST ${latestRelease}` : undefined}>

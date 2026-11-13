@@ -5,6 +5,9 @@ import { billingGate } from "@/lib/billing/page";
 import { readDetails, readInvoices, readUsage } from "@/lib/billing/read";
 import { StripeConfigError } from "@/lib/billing/stripe";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Invoices · Nutrivo" };
 
 // S-BIL-002 Invoices (spec/screens.yaml; design: product/Nutrivo Billing Settings.dc.html, screen "invoices"). M03
 // (T-703). The invoices from the stored Stripe events (admins only, RLS); the finance address from the Stripe

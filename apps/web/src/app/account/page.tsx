@@ -8,6 +8,9 @@ import { browserOf, type Channels } from "@/lib/settings/account";
 import { formatDate } from "@/lib/settings/people";
 import { createClient } from "@/lib/supabase/server";
 import { readMemberships, ShellReadError } from "@/lib/workspace/memberships";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Your account · Nutrivo" };
 
 // S-WSS-006 Your account (spec/screens.yaml: route /account, role authenticated; design: product/Nutrivo Workspace
 // Settings.dc.html, screen "account"). A07 (T-107). The design draws it inside a workspace's settings, so ?w= names

@@ -16,7 +16,7 @@ export default function AboutPage() {
   return (
     <Page css="background: var(--paper)">
       <FaqHeader current="about" />
-      <main data-screen-label="About us">
+      <main id="main" data-screen-label="About us">
         {/* Omitted: the "Draft — the facts about the company are placeholders" banner, and from this section the
             heading and first paragraph (coverage claims; see about.ts). */}
         <section data-testid="about-hero" style={sx("border-bottom: 1px solid var(--ink)")}>

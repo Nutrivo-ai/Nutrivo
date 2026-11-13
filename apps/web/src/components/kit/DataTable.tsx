@@ -49,54 +49,58 @@ export function DataTable<Row>({
 }) {
   const replacement = loading ? <LoadingState /> : (error ?? noPermission ?? (rows.length === 0 ? empty : null));
   return (
-    <table className={cx("w-full border-collapse tabular-nums", className)} aria-busy={loading || undefined}>
-      <caption className="sr-only">{caption}</caption>
-      <thead>
-        <tr>
-          {columns.map((column, i) => (
-            <th
-              key={column.key}
-              scope="col"
-              style={column.width ? { width: column.width } : undefined}
-              className={cx(
-                "font-mono text-[9.5px] tracking-[0.1em] uppercase font-normal text-n600 border-b border-ink py-[9px]",
-                ALIGN[column.align ?? "left"],
-                i === 0 ? "pl-0 pr-[8px]" : "px-[8px]",
-              )}
-            >
-              {column.header}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {replacement ? (
+    // The scroller keeps a wide table from making the whole page scroll sideways at 320 px (WCAG 1.4.10); relative keeps
+    // the sr-only caption inside it. At desktop widths it changes nothing.
+    <div className="relative overflow-x-auto">
+      <table className={cx("w-full border-collapse tabular-nums", className)} aria-busy={loading || undefined}>
+        <caption className="sr-only">{caption}</caption>
+        <thead>
           <tr>
-            <td colSpan={columns.length} className="pt-[18px] pb-[6px] px-[6px]">
-              {replacement}
-            </td>
+            {columns.map((column, i) => (
+              <th
+                key={column.key}
+                scope="col"
+                style={column.width ? { width: column.width } : undefined}
+                className={cx(
+                  "font-mono text-[9.5px] tracking-[0.1em] uppercase font-normal text-n600 border-b border-ink py-[9px]",
+                  ALIGN[column.align ?? "left"],
+                  i === 0 ? "pl-0 pr-[8px]" : "px-[8px]",
+                )}
+              >
+                {column.header}
+              </th>
+            ))}
           </tr>
-        ) : (
-          rows.map((row) => (
-            <tr key={rowKey(row)} className="h-[40px]">
-              {columns.map((column, i) => (
-                <td
-                  key={column.key}
-                  className={cx(
-                    "border-b border-rule text-[13.5px] align-middle",
-                    ALIGN[column.align ?? "left"],
-                    i > 0 && column.flush ? "border-l border-l-n200" : null,
-                    column.flush ? "p-0" : i === 0 ? "py-[10px] pl-0 pr-[8px]" : "py-[10px] px-[8px]",
-                    column.cellClass?.(row),
-                  )}
-                >
-                  {column.cell(row)}
-                </td>
-              ))}
+        </thead>
+        <tbody>
+          {replacement ? (
+            <tr>
+              <td colSpan={columns.length} className="pt-[18px] pb-[6px] px-[6px]">
+                {replacement}
+              </td>
             </tr>
-          ))
-        )}
-      </tbody>
-    </table>
+          ) : (
+            rows.map((row) => (
+              <tr key={rowKey(row)} className="h-[40px]">
+                {columns.map((column, i) => (
+                  <td
+                    key={column.key}
+                    className={cx(
+                      "border-b border-rule text-[13.5px] align-middle",
+                      ALIGN[column.align ?? "left"],
+                      i > 0 && column.flush ? "border-l border-l-n200" : null,
+                      column.flush ? "p-0" : i === 0 ? "py-[10px] pl-0 pr-[8px]" : "py-[10px] px-[8px]",
+                      column.cellClass?.(row),
+                    )}
+                  >
+                    {column.cell(row)}
+                  </td>
+                ))}
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 }

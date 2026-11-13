@@ -14,7 +14,7 @@ export default function FaqPage() {
   return (
     <Page css="background: var(--paper)">
       <FaqHeader current="faq" />
-      <main data-screen-label="FAQ">
+      <main id="main" data-screen-label="FAQ">
         <section data-testid="faq-hero" style={sx("border-bottom: 1px solid var(--ink)")}>
           <div style={sx("max-width: 1120px; margin: 0 auto; padding: 42px 26px 34px")}>
             <p style={sx("margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)")}>Questions</p>

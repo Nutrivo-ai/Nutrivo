@@ -655,17 +655,23 @@ isOneToOne: false
                   ]
                 },"jobs": {
                   Row: {
-                    "attempts": number,"created_at": string,"id": string,"idempotency_key": string,"kind": string,"last_error": string | null,"payload": NonNullable<Json>,"progress": NonNullable<Json>,"requested_by": string | null,"status": string,"updated_at": string,"workspace_id": string | null
+                    "attempts": number,"created_at": string,"id": string,"idempotency_key": string,"kind": string,"last_error": string | null,"node_ids": (string)[] | null,"payload": NonNullable<Json>,"product_id": string | null,"progress": NonNullable<Json>,"requested_by": string | null,"scope_unresolved": boolean,"status": string,"updated_at": string,"workspace_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "attempts"?: number,"created_at"?: string,"id"?: string,"idempotency_key": string,"kind": string,"last_error"?: string | null,"payload"?: NonNullable<Json>,"progress"?: NonNullable<Json>,"requested_by"?: string | null,"status"?: string,"updated_at"?: string,"workspace_id"?: string | null
+                    "attempts"?: number,"created_at"?: string,"id"?: string,"idempotency_key": string,"kind": string,"last_error"?: string | null,"node_ids"?: (string)[] | null,"payload"?: NonNullable<Json>,"product_id"?: string | null,"progress"?: NonNullable<Json>,"requested_by"?: string | null,"scope_unresolved"?: boolean,"status"?: string,"updated_at"?: string,"workspace_id"?: string | null
                   }
                   Update: {
-                    "attempts"?: number,"created_at"?: string,"id"?: string,"idempotency_key"?: string,"kind"?: string,"last_error"?: string | null,"payload"?: NonNullable<Json>,"progress"?: NonNullable<Json>,"requested_by"?: string | null,"status"?: string,"updated_at"?: string,"workspace_id"?: string | null
+                    "attempts"?: number,"created_at"?: string,"id"?: string,"idempotency_key"?: string,"kind"?: string,"last_error"?: string | null,"node_ids"?: (string)[] | null,"payload"?: NonNullable<Json>,"product_id"?: string | null,"progress"?: NonNullable<Json>,"requested_by"?: string | null,"scope_unresolved"?: boolean,"status"?: string,"updated_at"?: string,"workspace_id"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "jobs_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "jobs_requested_by_fkey"
       columns: ["requested_by"]
 isOneToOne: false
@@ -1007,14 +1013,14 @@ isOneToOne: false
                   ]
                 },"shares": {
                   Row: {
-                    "channel": string,"created_at": string,"created_by": string | null,"expires_at": string | null,"id": string,"product_id": string,"recipient": string | null,"report_id": string,"revoked_at": string | null,"token_hash": string,"workspace_id": string
+                    "channel": string,"created_at": string,"created_by": string | null,"expires_at": string | null,"id": string,"node_id": string | null,"product_id": string,"recipient": string | null,"report_id": string,"revoked_at": string | null,"token_hash": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "channel": string,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"product_id": string,"recipient"?: string | null,"report_id": string,"revoked_at"?: string | null,"token_hash": string,"workspace_id": string
+                    "channel": string,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"node_id"?: string | null,"product_id": string,"recipient"?: string | null,"report_id": string,"revoked_at"?: string | null,"token_hash": string,"workspace_id": string
                   }
                   Update: {
-                    "channel"?: string,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"product_id"?: string,"recipient"?: string | null,"report_id"?: string,"revoked_at"?: string | null,"token_hash"?: string,"workspace_id"?: string
+                    "channel"?: string,"created_at"?: string,"created_by"?: string | null,"expires_at"?: string | null,"id"?: string,"node_id"?: string | null,"product_id"?: string,"recipient"?: string | null,"report_id"?: string,"revoked_at"?: string | null,"token_hash"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
@@ -1103,17 +1109,23 @@ isOneToOne: true
                   ]
                 },"supersessions": {
                   Row: {
-                    "artefact_id": string,"artefact_type": string,"id": string,"rule_diff_id": string | null,"rule_key": string,"ruleset_version": string,"superseded_at": string,"workspace_id": string
+                    "artefact_id": string,"artefact_type": string,"id": string,"node_id": string | null,"product_id": string | null,"rule_diff_id": string | null,"rule_key": string,"ruleset_version": string,"superseded_at": string,"workspace_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "artefact_id": string,"artefact_type": string,"id"?: string,"rule_diff_id"?: string | null,"rule_key": string,"ruleset_version": string,"superseded_at"?: string,"workspace_id": string
+                    "artefact_id": string,"artefact_type": string,"id"?: string,"node_id"?: string | null,"product_id"?: string | null,"rule_diff_id"?: string | null,"rule_key": string,"ruleset_version": string,"superseded_at"?: string,"workspace_id": string
                   }
                   Update: {
-                    "artefact_id"?: string,"artefact_type"?: string,"id"?: string,"rule_diff_id"?: string | null,"rule_key"?: string,"ruleset_version"?: string,"superseded_at"?: string,"workspace_id"?: string
+                    "artefact_id"?: string,"artefact_type"?: string,"id"?: string,"node_id"?: string | null,"product_id"?: string | null,"rule_diff_id"?: string | null,"rule_key"?: string,"ruleset_version"?: string,"superseded_at"?: string,"workspace_id"?: string
                   }
                   Relationships: [
                     {
+      foreignKeyName: "supersessions_product_id_fkey"
+      columns: ["product_id"]
+isOneToOne: false
+      referencedRelation: "products"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "supersessions_workspace_id_fkey"
       columns: ["workspace_id"]
 isOneToOne: false

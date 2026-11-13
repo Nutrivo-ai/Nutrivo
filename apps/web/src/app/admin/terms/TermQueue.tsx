@@ -75,7 +75,7 @@ export function TermQueue({ terms, rules, initial }: { terms: TermCandidate[]; r
   }
 
   return (
-    <main className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
+    <main id="main" className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
       {terms.length === 0 ? (
         <div className="max-w-[640px]">
           <EmptyState

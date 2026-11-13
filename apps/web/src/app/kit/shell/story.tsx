@@ -36,7 +36,7 @@ export function ShellStory() {
     <ShellFrame groups={groups} regions={["EU", "UK", "US"]} matchedRoute="/w/[workspace]" workspaceId="kit">
       <ScreenHeader crumb="Start" title="Where do you want to begin?" />
       {/* The design's Home is 1831 px tall; the rail runs the full height of the page. */}
-      <main className="h-[1764px]" aria-label="Kit: the shell's frame" />
+      <main id="main" className="h-[1764px]" aria-label="Kit: the shell's frame" />
     </ShellFrame>
   );
 }

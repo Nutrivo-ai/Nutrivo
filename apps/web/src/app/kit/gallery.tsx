@@ -139,7 +139,7 @@ export function KitGallery() {
   const toast = useToast();
   const [open, setOpen] = useState(false);
   return (
-    <main className="min-w-[1180px] max-w-[1180px] mx-auto bg-paper">
+    <main id="main" className="min-w-[1180px] max-w-[1180px] mx-auto bg-paper">
       <header className="py-[20px] px-[26px] border-b border-ink">
         <p className="m-0 font-mono text-[10px] tracking-[0.1em] uppercase text-n600">Kit · T-101</p>
         <h1 className="mt-[2px] mb-0 text-[22px] font-semibold leading-[1.1]">Cobalt component kit</h1>
