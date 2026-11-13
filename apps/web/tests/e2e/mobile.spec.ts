@@ -139,6 +139,12 @@ test.describe("mobile reading views at 390 px", () => {
     test.setTimeout(CHECK_MS + 60_000);
     [editor, viewer, outsider] = await Promise.all([person("t507-editor"), person("t507-viewer"), person("t507-outsider")]);
     ws = await workspace(editor, "Halden Mobile Test");
+    // Its products are sold in the US, so its plan holds the US (the product RPCs refuse a market outside the plan, private.check_markets;
+    // a finding in a region the plan does not hold cannot be opened, J04.must.1).
+    {
+      const plan = await admin().schema("app").from("workspaces").update({ entitled_regions: ["EU", "US"] }).eq("id", ws).select("id");
+      if (plan.error) throw plan.error;
+    }
     await Promise.all([workspace(viewer, "Viewer's own"), workspace(outsider, "Outsider's own")]);
     const service = admin();
     const { data: v, error } = await service.schema("app").from("people").select("id").eq("user_id", viewer.userId).single();

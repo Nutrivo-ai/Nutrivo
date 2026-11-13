@@ -14,6 +14,7 @@ import { buildCards, buildHorizon, inbox, type AlertRow } from "@/lib/alerts/mod
 import { AlertsReadError, readAlertCards } from "@/lib/alerts/queries";
 import { Horizon } from "./Horizon";
 import { Inbox, UnreadChip } from "./Inbox";
+import { refusalText } from "./MarkAllRead";
 
 const WS = "11111111-1111-4111-8111-111111111111";
 const TODAY = "2026-11-13";
@@ -89,6 +90,28 @@ describe("alerts inbox states (T-902)", () => {
     const html = renderToStaticMarkup(<Inbox workspaceId={WS} inbox={inbox(cards([row({})]), "in_force")} today={TODAY} />);
     expect(html).toContain("Nothing in force needs reading");
     expect(html).toContain("Show every alert");
+  });
+
+  it("phone: the filters, Mark all read, the filtered-empty state, and a count of every unread change", () => {
+    const html = renderToStaticMarkup(<Inbox workspaceId={WS} inbox={inbox(cards([row({})]), "in_force")} today={TODAY} />);
+    const phone = html.slice(html.indexOf('data-region="mobile-alerts"'));
+    expect(phone).toContain('aria-label="Alert filters"');
+    expect(phone).toContain("min-h-[44px]");
+    expect(phone).toContain("MARK ALL READ");
+    expect(phone).toContain('data-region="filtered-empty"');
+    expect(phone).toContain("Nothing in force needs reading");
+    expect(phone).toContain("One thing changed");
+    expect(phone).not.toContain("Nothing new since you last read them");
+    const one = renderToStaticMarkup(<Inbox workspaceId={WS} inbox={inbox(cards(both), "all", "dddddddd-0000-4000-8000-000000000001")} today={TODAY} />);
+    expect(one.slice(one.indexOf('data-region="mobile-alerts"'))).toContain("Showing one change.");
+  });
+
+  it("a Mark all read that fails part way says how many were marked", () => {
+    expect(refusalText({ ok: false, reason: "error", marked: 0 })).toBe("Nothing was marked read: try again, and if it fails twice, tell us.");
+    expect(refusalText({ ok: false, reason: "no-permission", marked: 500 })).toBe(
+      "500 alerts were marked read, then the rest could not be: one of them is no longer in your scope. Reload the page.",
+    );
+    expect(refusalText({ ok: false, reason: "error", marked: 1 })).toContain("1 alert was marked read");
   });
 
   it("[J04.main] coming and in force: each card says which, with its date and glyph, on desktop and phone", () => {

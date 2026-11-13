@@ -37,6 +37,8 @@ const PAGE = 1000; // PostgREST's max_rows (supabase/config.toml)
 const BATCH = 60; // ids per `in` filter, so a URL stays short
 /** The inbox reads at most this many alert rows, newest first: years of changes for a large portfolio. */
 export const ALERT_READ_CAP = 10_000;
+/** The horizon lists at most this many watched items, the earliest first. */
+export const HORIZON_ITEM_CAP = 200;
 
 async function paged<T>(what: string, query: (from: number, to: number) => PromiseLike<Result<T[]>>, cap: number): Promise<T[]> {
   const out: T[] = [];
@@ -86,21 +88,25 @@ export async function readAlertCards(supabase: Client, workspaceId: string, toda
   );
   if (!alerts.length) return { kind: "loaded", cards: [], today };
 
+  const oldest = alerts[alerts.length - 1].created_at;
   const diffIds = [...new Set(alerts.map((a) => a.rule_diff_id))];
   const productIds = [...new Set(alerts.map((a) => a.product_id))];
 
   const [reads, diffs, products, places] = await Promise.all([
-    // The caller's own read rows only (policy read_own), for this workspace's alerts.
+    // The caller's own read rows only (policy read_own), for the alerts read above: the workspace's alerts from the
+    // oldest one loaded on. A person has at most one read row per alert, so this window holds no more rows than the
+    // alerts loaded (ties on the oldest timestamp aside), and older reads never crowd out recent ones.
     paged<{ alert_id: string }>(
       "read state",
       (from, to) =>
         app
           .from("alert_reads")
-          .select("alert_id, alerts!inner(workspace_id)")
+          .select("alert_id, alerts!inner(workspace_id, created_at)")
           .eq("alerts.workspace_id", workspaceId)
+          .gte("alerts.created_at", oldest)
           .order("alert_id")
           .range(from, to) as unknown as PromiseLike<Result<{ alert_id: string }[]>>,
-      ALERT_READ_CAP,
+      2 * ALERT_READ_CAP,
     ),
     inBatches<DiffRow>("rule changes", diffIds, (b) => ref.from("rule_diffs").select("id, rule_key, to_version").in("id", b)),
     inBatches<ProductRow>("recipes", productIds, (b) => app.from("products").select("id, name, stage").in("id", b)),
@@ -142,8 +148,12 @@ export async function readHorizon(supabase: Client, workspaceId: string, today: 
       .from("horizon_items")
       .select("id, title, stage, expected_date, effective_from, celex")
       .neq("stage", "in_force")
-      .order("created_at", { ascending: false })
-      .limit(200),
+      // Not yet in force, earliest first by the date the screen shows; an undated draft after every dated item.
+      .or(`effective_from.is.null,effective_from.gt.${today}`)
+      .order("effective_from", { ascending: true, nullsFirst: false })
+      .order("expected_date", { ascending: true, nullsFirst: false })
+      .order("id")
+      .limit(HORIZON_ITEM_CAP),
   ) ?? []) as HorizonItemRow[];
   return { kind: "loaded", horizon: buildHorizon(workspaceId, alerts.cards, items, today), today };
 }

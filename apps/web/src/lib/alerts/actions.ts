@@ -10,7 +10,8 @@ import { REQUEST_ID_HEADER, resolveRequestId } from "@/lib/observability/request
 import { createClient } from "@/lib/supabase/server";
 import { MARK_READ_BATCH } from "./model";
 
-export type MarkReadResult = { ok: true; marked: number } | { ok: false; reason: "no-permission" | "invalid" | "error" };
+/** `marked` on a refusal: how many earlier batches were recorded before one failed (each batch is its own call). */
+export type MarkReadResult = { ok: true; marked: number } | { ok: false; reason: "no-permission" | "invalid" | "error"; marked: number };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** The most a single press sends: the inbox's read cap. */
@@ -18,7 +19,7 @@ const MAX_IDS = 10_000;
 
 export async function markAlertsRead(workspaceId: string, alertIds: string[]): Promise<MarkReadResult> {
   if (!UUID.test(workspaceId) || !Array.isArray(alertIds) || alertIds.length > MAX_IDS || !alertIds.every((id) => typeof id === "string" && UUID.test(id))) {
-    return { ok: false, reason: "invalid" };
+    return { ok: false, reason: "invalid", marked: 0 };
   }
   const ids = [...new Set(alertIds)];
   const requestId = resolveRequestId((await headers()).get(REQUEST_ID_HEADER));
@@ -37,7 +38,7 @@ export async function markAlertsRead(workspaceId: string, alertIds: string[]): P
         const reason = error.code === "42501" ? "no-permission" : error.code === "22023" ? "invalid" : "error";
         if (reason === "error") Sentry.captureException(new Error(`mark_alerts_read failed: ${error.code ?? "error"}`));
         if (marked) revalidatePath(`/w/${workspaceId}/alerts`);
-        return { ok: false, reason } as const;
+        return { ok: false, reason, marked } as const;
       }
       marked += Number(data ?? 0);
     }

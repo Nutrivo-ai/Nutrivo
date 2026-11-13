@@ -70,7 +70,7 @@ export function Inbox({ workspaceId, inbox, today }: { workspaceId: string; inbo
         <Desktop workspaceId={workspaceId} inbox={inbox} today={today} />
       </div>
       <div className="md:hidden">
-        <Mobile inbox={inbox} today={today} />
+        <Mobile workspaceId={workspaceId} inbox={inbox} today={today} />
       </div>
     </>
   );
@@ -81,46 +81,16 @@ function Desktop({ workspaceId, inbox, today }: { workspaceId: string; inbox: In
     <div className="grid grid-cols-[minmax(0,1fr)_296px] gap-[20px] items-start">
       <Blueprint as="section" className="relative">
         <div className="flex items-center gap-[10px] py-[14px] px-[18px] border-b border-ink flex-wrap" data-region="toolbar">
-          <nav aria-label="Alert filters" className="flex items-center gap-[10px]">
-            {FILTERS.map((f) => {
-              const on = !inbox.diff && inbox.filter === f.key;
-              return (
-                <Link
-                  key={f.key}
-                  href={inboxHref(workspaceId, f.key)}
-                  data-filter={f.key}
-                  aria-current={on ? "true" : undefined}
-                  className={cx(
-                    "inline-flex items-center border rounded-control py-[7px] px-[12px] text-[12px] no-underline kit-transition",
-                    on ? "border-accent bg-accent-100 text-accent-700 font-semibold" : "border-n400 bg-paper text-n700 font-normal hover:border-accent",
-                  )}
-                >
-                  {f.label}
-                </Link>
-              );
-            })}
-          </nav>
+          <FilterNav workspaceId={workspaceId} inbox={inbox} />
           <span className="flex-1" />
           {inbox.unreadIds.length ? <MarkAllRead workspaceId={workspaceId} alertIds={inbox.unreadIds} /> : null}
         </div>
-        {inbox.diff ? (
-          <p className="m-0 py-[10px] px-[18px] border-b border-n200 text-[12.5px] text-n700" data-one-change>
-            Showing one change.{" "}
-            <Link href={inboxHref(workspaceId, "all")} className="text-accent-700">
-              Show every alert
-            </Link>
-          </p>
-        ) : null}
+        {inbox.diff ? <OneChange workspaceId={workspaceId} className="py-[10px] px-[18px]" /> : null}
         {inbox.cards.length ? (
           inbox.cards.map((c, i) => <Card key={c.diffId} card={c} today={today} last={i === inbox.cards.length - 1} />)
         ) : (
           <div className="p-[18px]">
-            <EmptyState
-              where={`ALERTS · ${inbox.filter === "in_force" ? "IN FORCE" : "COMING"}`}
-              title={EMPTY_FILTERED[inbox.filter as Exclude<Filter, "all">].title}
-              body={EMPTY_FILTERED[inbox.filter as Exclude<Filter, "all">].body}
-              action={{ label: "Show every alert", href: inboxHref(workspaceId, "all"), variant: "secondary" }}
-            />
+            <FilteredEmpty workspaceId={workspaceId} filter={inbox.filter} />
           </div>
         )}
       </Blueprint>
@@ -152,6 +122,55 @@ function Desktop({ workspaceId, inbox, today }: { workspaceId: string; inbox: In
         </Blueprint>
       </div>
     </div>
+  );
+}
+
+/** All · In force · Coming, as links so the filter lives in the URL. On the phone each is a 44 px target. */
+function FilterNav({ workspaceId, inbox, phone }: { workspaceId: string; inbox: InboxModel; phone?: boolean }) {
+  return (
+    <nav aria-label="Alert filters" className={cx("flex items-center", phone ? "gap-[6px] flex-1" : "gap-[10px]")}>
+      {FILTERS.map((f) => {
+        const on = !inbox.diff && inbox.filter === f.key;
+        return (
+          <Link
+            key={f.key}
+            href={inboxHref(workspaceId, f.key)}
+            data-filter={f.key}
+            aria-current={on ? "true" : undefined}
+            className={cx(
+              "inline-flex items-center justify-center border rounded-control px-[12px] text-[12px] no-underline kit-transition",
+              phone ? "min-h-[44px] flex-1" : "py-[7px]",
+              on ? "border-accent bg-accent-100 text-accent-700 font-semibold" : "border-n400 bg-paper text-n700 font-normal hover:border-accent",
+            )}
+          >
+            {f.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+function OneChange({ workspaceId, className }: { workspaceId: string; className?: string }) {
+  return (
+    <p className={cx("m-0 border-b border-n200 text-[12.5px] text-n700", className)} data-one-change>
+      Showing one change.{" "}
+      <Link href={inboxHref(workspaceId, "all")} className="inline-flex items-center min-h-[24px] text-accent-700">
+        Show every alert
+      </Link>
+    </p>
+  );
+}
+
+function FilteredEmpty({ workspaceId, filter }: { workspaceId: string; filter: Filter }) {
+  const text = EMPTY_FILTERED[filter as Exclude<Filter, "all">] ?? { title: "Nothing to show", body: "No alert matches this view." };
+  return (
+    <EmptyState
+      where={`ALERTS · ${filter === "in_force" ? "IN FORCE" : filter === "coming" ? "COMING" : "ONE CHANGE"}`}
+      title={text.title}
+      body={text.body}
+      action={{ label: "Show every alert", href: inboxHref(workspaceId, "all"), variant: "secondary" }}
+    />
   );
 }
 
@@ -256,18 +275,28 @@ function mobileSentence(c: AlertCard, today: string): string {
   return `Affects ${names}. ${when}`;
 }
 
-function Mobile({ inbox, today }: { inbox: InboxModel; today: string }) {
+function Mobile({ workspaceId, inbox, today }: { workspaceId: string; inbox: InboxModel; today: string }) {
   const cards = inbox.cards;
-  const unread = cards.filter((c) => c.unread).length;
   const first = firstFinding([...cards.filter((c) => c.unread), ...cards.filter((c) => !c.unread)]);
   return (
-    <section aria-label="Alerts" data-region="mobile-alerts" className="-mx-[16px] -mt-[24px]">
+    <section aria-label="Alerts" data-region="mobile-alerts" data-filter={inbox.filter} className="-mx-[16px] -mt-[24px]">
       <MobileBlock region="summary">
         <MobileKicker>{cards.length ? dayLabel(cards[0].at, today) : "Alerts"}</MobileKicker>
+        {/* The count is every unread change, as the header's chip counts it, whatever the filter shows. */}
         <h2 className="m-0 font-head text-[14.5px] font-semibold leading-[18px] tracking-normal">
-          {unread ? `${capitalise(count(unread, "thing", "things"))} changed` : "Nothing new since you last read them"}
+          {inbox.unread ? `${capitalise(count(inbox.unread, "thing", "things"))} changed` : "Nothing new since you last read them"}
         </h2>
       </MobileBlock>
+      <MobileBlock region="controls" className="flex flex-wrap items-center gap-[10px]">
+        <FilterNav workspaceId={workspaceId} inbox={inbox} phone />
+        {inbox.unreadIds.length ? <MarkAllRead workspaceId={workspaceId} alertIds={inbox.unreadIds} phone /> : null}
+      </MobileBlock>
+      {inbox.diff ? <OneChange workspaceId={workspaceId} className="p-[14px]" /> : null}
+      {cards.length === 0 ? (
+        <MobileBlock region="filtered-empty">
+          <FilteredEmpty workspaceId={workspaceId} filter={inbox.filter} />
+        </MobileBlock>
+      ) : null}
       {cards.map((c) =>
         c.unread ? (
           <MobileBlock key={c.diffId} region="alert" className={cx("border-l-[4px]", SEVERITY_TINT[c.severity])} alert={c}>

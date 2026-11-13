@@ -35,6 +35,8 @@ type Seeded = {
   products: Record<string, string>;
   diffs: { fr: string; ethox: string; texas: string };
   titles: { fr: string; ethox: string; texas: string; draft: string };
+  /** The message of the Texas recipe's finding, which no screen may show while the plan does not hold the US. */
+  texasFinding: string;
 };
 
 /**
@@ -102,9 +104,31 @@ async function seed(ws: string): Promise<Seeded> {
         check("Adult cat wet", "EU-FR", [keys.fr]),
         check("Working dog high energy", "EU-DE", [], [keys.ethox]),
         check("Senior salmon dry", "EU-DE", [keys.ethox]),
-        check("Adult dog complete dry", "US-TX", [keys.texas]),
       ])
       .select("id"),
+  );
+  // The Texas recipe's check has a finding, and is its market's latest job, as the check worker leaves it.
+  const texasFinding = `E2E ${RUN} Texas finding message`;
+  const tx = await must("texas check", app.from("checks").insert(check("Adult dog complete dry", "US-TX", [keys.texas])).select("id").single());
+  await must(
+    "texas finding",
+    app
+      .from("check_findings")
+      .insert({
+        workspace_id: ws, check_id: tx.id, product_id: products["Adult dog complete dry"], node_id: "US-TX", state: "action",
+        provenance: "deterministic_rule", rule_key: keys.texas, citation: "E2E citation", message: texasFinding,
+        recommended_action: "E2E action",
+      })
+      .select("id"),
+  );
+  await must(
+    "texas market",
+    app
+      .from("product_nodes")
+      .update({ label_state: "action", open_actions: 1, ruleset_version: RULESET, last_check_job_id: job.id })
+      .eq("product_id", products["Adult dog complete dry"])
+      .eq("node_id", "US-TX")
+      .select("node_id"),
   );
 
   const diff = async (rule_key: string, effect_type: string, effective_from: string, sell_through_until: string | null = null) =>
@@ -125,7 +149,7 @@ async function seed(ws: string): Promise<Seeded> {
   };
   for (const id of Object.values(diffs)) await must("fan-out", app.rpc("fan_out_rule_diff", { p_rule_diff: id }));
   await must("horizon item", ref.from("horizon_items").insert({ title: titles.draft, stage: "draft" }).select("id").single());
-  return { products, diffs, titles };
+  return { products, diffs, titles, texasFinding };
 }
 
 const card = (page: Page, diff: string) => page.locator(`[data-region="inbox"] [data-alert="${diff}"]`);
@@ -240,7 +264,7 @@ test.describe("horizon and alerts inbox", () => {
     await deadline.getByRole("link", { name: "Open the two recipes" }).click();
     await expect(page).toHaveURL(new RegExp(`/alerts\\?diff=${s.diffs.ethox}$`));
     await expect(page.locator('[data-region="inbox"] article')).toHaveCount(1);
-    await expect(page.locator("[data-one-change]")).toBeVisible();
+    await expect(page.locator(`[data-region="inbox"] [data-one-change]`)).toBeVisible();
     expect(errors).toEqual([]);
 
     // A colleague's read state is their own: the owner still has three unread.
@@ -264,16 +288,39 @@ test.describe("horizon and alerts inbox", () => {
     await expect(card(page, s.diffs.fr).getByRole("link")).toHaveCount(2);
     await axe(page);
 
-    // Once the plan holds the US, the same alert opens the finding.
+    // The finding cannot be opened by direct URL either: the verdict, the label report and the board's findings view
+    // show the not-in-plan state, never the finding.
+    const dog = s.products["Adult dog complete dry"];
+    await page.goto(`/w/${ws}/products/${dog}/nodes/US-TX`);
+    await expect(page.locator('[data-region="outside-plan"]')).toContainText("Your plan does not include United States");
+    await expect(page.locator('[data-region="verdict"]')).toHaveCount(0);
+    await expect(page.getByText(s.texasFinding)).toHaveCount(0);
+    await axe(page);
+    await page.goto(`/w/${ws}/products/${dog}/nodes/US`);
+    await expect(page.locator('[data-region="outside-plan"]')).toBeVisible();
+    await page.goto(`/w/${ws}/products/${dog}/report`);
+    await expect(page.locator("[data-outside-plan]")).toContainText("Not shown: Texas. Your plan does not include United States");
+    await expect(page.getByText(s.texasFinding)).toHaveCount(0);
+    await page.goto(`/w/${ws}/board?view=findings`);
+    await expect(page.locator("[data-outside-plan]")).toContainText("Findings in United States are not shown");
+    await expect(page.getByText(s.texasFinding)).toHaveCount(0);
+
+    // Once the plan holds the US, the same alert opens the finding, and the finding shows.
     const app = admin().schema("app");
     await must("plan", app.from("workspaces").update({ entitled_regions: ["EU", "US"] }).eq("id", ws).select("id"));
     try {
-      await page.reload();
+      await page.goto(`/w/${ws}/alerts`);
       await expect(card(page, s.diffs.texas).getByRole("link", { name: "Adult dog complete dry" })).toHaveAttribute(
         "href",
-        `/w/${ws}/products/${s.products["Adult dog complete dry"]}/nodes/US-TX`,
+        `/w/${ws}/products/${dog}/nodes/US-TX`,
       );
       await expect(card(page, s.diffs.texas).locator("[data-outside-plan]")).toHaveCount(0);
+      await card(page, s.diffs.texas).getByRole("link", { name: "Adult dog complete dry" }).click();
+      await expect(page.locator('[data-region="verdict"]')).toBeVisible();
+      await expect(page.locator('[data-region="outside-plan"]')).toHaveCount(0);
+      await page.goto(`/w/${ws}/board?view=findings`);
+      await expect(page.getByText(s.texasFinding)).toBeVisible();
+      await expect(page.locator("[data-outside-plan]")).toHaveCount(0);
     } finally {
       await must("plan", app.from("workspaces").update({ entitled_regions: ["EU"] }).eq("id", ws).select("id"));
     }
@@ -309,8 +356,28 @@ test.describe("horizon and alerts inbox", () => {
     await expect(title).toBeVisible();
     await expectLikeBaseline(page, title, "S-MOB-006", S_MOB_006.title, maxDiffPixelRatio);
 
-    await page.locator('[data-region="mobile-alerts"]').getByRole("link", { name: "Open the first" }).click();
+    // The phone has the inbox's controls: the filters (44 px targets) and Mark all read. The count is every unread
+    // change, as the header's chip counts them, whatever the filter shows.
+    const mob = page.locator('[data-region="mobile-alerts"]');
+    const inForce = mob.getByRole("navigation", { name: "Alert filters" }).getByRole("link", { name: "In force" });
+    expect((await inForce.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await inForce.click();
+    await expect(page).toHaveURL(/show=in_force/);
+    await expect(mob.locator('[data-region="alert"]')).toHaveCount(1);
+    await expect(mob.locator('[data-region="summary"] h2')).toHaveText("Two things changed");
+    await mob.getByRole("navigation", { name: "Alert filters" }).getByRole("link", { name: "All" }).click();
+    await expect(mob.locator('[data-region="alert"]')).toHaveCount(3);
+
+    await mob.getByRole("link", { name: "Open the first" }).click();
     await expect(page).toHaveURL(/\/products\/[0-9a-f-]+\/nodes\/EU-(FR|DE)$/);
+    await page.goBack();
+
+    const mark = page.locator('[data-region="mobile-alerts"]').getByRole("button", { name: "MARK ALL READ" });
+    expect((await mark.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await mark.click();
+    await expect(page.locator('[data-region="mobile-alerts"] [data-region="summary"] h2')).toHaveText("Nothing new since you last read them");
+    await expect(page.locator('[data-region="mobile-alerts"] [data-region="alert"][data-unread="true"]')).toHaveCount(0);
+    expect(errors).toEqual([]);
   });
 
   test("[T-902] states: empty, nothing in a filter, scoped out, no access", async ({ page, context, baseURL }) => {
@@ -333,9 +400,19 @@ test.describe("horizon and alerts inbox", () => {
     await expect(page.locator('[data-region="inbox"] article')).toHaveCount(2);
     await expect(card(page, s.diffs.texas)).toHaveCount(0);
     await page.goto(`/w/${ws}/alerts?show=in_force`);
-    await expect(page.getByText("Nothing in force needs reading")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Show every alert" })).toHaveAttribute("href", `/w/${ws}/alerts`);
+    const desk = page.locator('[data-region="inbox"]');
+    await expect(desk.getByText("Nothing in force needs reading")).toBeVisible();
+    await expect(desk.getByRole("link", { name: "Show every alert" })).toHaveAttribute("href", `/w/${ws}/alerts`);
     await axe(page);
+    // The same at 390 px: the phone says nothing is in force, and the count still names the two unread changes.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.reload();
+    const phoneView = page.locator('[data-region="mobile-alerts"]');
+    await expect(phoneView.locator('[data-region="filtered-empty"]')).toContainText("Nothing in force needs reading");
+    await expect(phoneView.locator('[data-region="summary"] h2')).toHaveText("Two things changed");
+    await expect(phoneView.getByRole("link", { name: "Show every alert" })).toHaveAttribute("href", `/w/${ws}/alerts`);
+    await axe(page);
+    await page.setViewportSize({ width: 1600, height: 1000 });
 
     // Someone outside the workspace reads nothing: RLS returns no row, and the shell says so.
     await context.clearCookies();
