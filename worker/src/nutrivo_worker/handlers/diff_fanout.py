@@ -4,6 +4,8 @@ Two payloads, ids and dates only (docs/04-contracts.md):
 - {"rule_diff_id"}, key diff_fanout:<rule_diff_id>, queued by app.release_ruleset for each non-editorial diff (BE-09).
   app.fan_out_rule_diff writes one alert per row of contract 5 (app.affected_objects: the latest check's applied and
   withheld rule keys, never a re-evaluation; BE-24), 'coming' before the diff's effective date and 'in_force' from it.
+  Then app.supersede_for_rule_diff marks superseded every report (and its certificates) whose checks applied or
+  withheld the rule under an earlier ruleset (T-903, I05, BE-30): never for an editorial diff, never 'invalid'.
 - {"sweep": "YYYY-MM-DD"}, key diff_fanout:sweep:<day>, queued by pg_cron once a day (07:23 UTC) and run inside the
   Sentry cron check-in 'alert-sweep' (docs/17). app.run_alert_sweep writes the 'in_force' row of each 'coming' alert
   whose date has arrived and queues one notify 'rule_changed' job per diff × workspace: Template 03, batched daily.
@@ -32,6 +34,7 @@ DAY = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 class DiffFanoutStore(Protocol):
     def fan_out_rule_diff(self, rule_diff_id: str) -> dict[str, Any] | None: ...
     def run_alert_sweep(self, day: date) -> dict[str, Any]: ...
+    def supersede_for_rule_diff(self, rule_diff_id: str) -> dict[str, Any] | None: ...
 
 
 def _sweep_day(value: Any, today: date) -> date:
@@ -58,9 +61,14 @@ def run(job: Job, ctx: JobContext, store: DiffFanoutStore, today: date | None = 
         result = store.fan_out_rule_diff(diff_id)
         if result is None:
             raise PermanentJobError(f"rule diff {diff_id} does not exist")
-        progress = {"outcome": "skipped_editorial" if result.get("skipped") == "editorial" else "fanned_out",
+        editorial = result.get("skipped") == "editorial"
+        progress = {"outcome": "skipped_editorial" if editorial else "fanned_out",
                     "rule_diff_id": diff_id, "alerts": int(result.get("alerts") or 0),
                     "workspaces": len(result.get("workspaces") or [])}
+        if not editorial:             # I05.must.1: an editorial diff never supersedes
+            superseded = store.supersede_for_rule_diff(diff_id) or {}
+            progress |= {"superseded_reports": int(superseded.get("reports") or 0),
+                         "superseded_certificates": int(superseded.get("certificates") or 0)}
         ctx.heartbeat(**progress)
         log.info("diff fan-out finished", extra=kv(**progress))
         return progress
