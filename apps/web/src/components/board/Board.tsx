@@ -241,6 +241,12 @@ function Findings({
           filters to see the rest.
         </p>
       ) : null}
+      {findings.outsidePlan.length ? (
+        <p data-outside-plan className="mt-[10px] mb-0 text-[13px] leading-[1.5] text-n700">
+          Findings in {findings.outsidePlan.join(" and ")} are not shown: your plan does not include{" "}
+          {findings.outsidePlan.length === 1 ? "it" : "them"}, so they cannot be opened.
+        </p>
+      ) : null}
       {findings.items.length === 0 ? (
         <div className="mt-[16px] max-w-[640px]">
           <EmptyState

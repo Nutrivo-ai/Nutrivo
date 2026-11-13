@@ -144,6 +144,12 @@ test.describe("portfolio board and findings", () => {
   test.beforeAll(async () => {
     [owner, viewer] = await Promise.all([person("t506-owner"), person("t506-viewer")]);
     ws = await workspace(owner, "Halden Board Test");
+    // Its products are sold in the US, so its plan holds the US (the product RPCs refuse a market outside the plan, private.check_markets;
+    // a finding in a region the plan does not hold cannot be opened, J04.must.1).
+    {
+      const plan = await admin().schema("app").from("workspaces").update({ entitled_regions: ["EU", "US"] }).eq("id", ws).select("id");
+      if (plan.error) throw plan.error;
+    }
     await workspace(viewer, "Viewer's own");
     const service = admin().schema("app");
     const v = await must("viewer", service.from("people").select("id").eq("user_id", viewer.userId).single());

@@ -4,6 +4,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { inPlan, readPlan, regionName } from "@/lib/plan/regions";
 import { buildReport, type ReportModel } from "./model";
 
 export class ReportReadError extends Error {
@@ -15,7 +16,14 @@ export class ReportReadError extends Error {
 
 export type ReportPage =
   | { kind: "not-found" }
-  | { kind: "loaded"; product: { id: string; name: string }; markets: number; report: ReportModel };
+  | {
+      kind: "loaded";
+      product: { id: string; name: string };
+      markets: number;
+      report: ReportModel;
+      /** J04.must.1 (T-902): markets whose region the plan does not hold; their checks and findings are not read. */
+      outsidePlan: { nodeId: string; name: string; regionName: string }[];
+    };
 
 type Client = SupabaseClient<Database>;
 
@@ -37,17 +45,23 @@ export async function readReport(supabase: Client, workspaceId: string, productI
   );
   if (!product) return { kind: "not-found" };
 
-  const [nodes, current] = await Promise.all([
+  const [nodes, current, plan] = await Promise.all([
     app.from("product_nodes").select("node_id, last_check_job_id").eq("product_id", productId),
     ref.from("ruleset_versions").select("id").not("released_at", "is", null).order("released_at", { ascending: false }).limit(1),
+    readPlan(supabase, workspaceId),
   ]);
-  const marketRows = ok("markets", nodes) ?? [];
+  if (!plan) return { kind: "not-found" };
+  const allMarkets = ok("markets", nodes) ?? [];
+  const marketRows = allMarkets.filter((m) => inPlan(plan, m.node_id));
+  const outside = allMarkets.filter((m) => !inPlan(plan, m.node_id)).map((m) => m.node_id);
   const currentRuleset = ok("ruleset", current)?.[0]?.id ?? null;
   const nodeIds = marketRows.map((m) => m.node_id);
   const jobIds = [...new Set(marketRows.map((m) => m.last_check_job_id).filter((j): j is string => !!j))];
 
   const [names, checkRows] = await Promise.all([
-    nodeIds.length ? ref.from("jurisdictions").select("id, name").in("id", nodeIds) : Promise.resolve({ data: [], error: null }),
+    nodeIds.length || outside.length
+      ? ref.from("jurisdictions").select("id, name").in("id", [...nodeIds, ...outside])
+      : Promise.resolve({ data: [], error: null }),
     jobIds.length
       ? app
           .from("checks")
@@ -93,5 +107,6 @@ export async function readReport(supabase: Client, workspaceId: string, productI
     gaps: ok("gaps", gapRows) ?? [],
     currentRuleset,
   });
-  return { kind: "loaded", product, markets: marketRows.length, report };
+  const outsidePlan = outside.map((nodeId) => ({ nodeId, name: nameOf.get(nodeId) ?? nodeId, regionName: regionName(plan, nodeId) }));
+  return { kind: "loaded", product, markets: marketRows.length, report, outsidePlan };
 }
