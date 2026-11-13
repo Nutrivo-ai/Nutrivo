@@ -104,7 +104,8 @@ function Chip({ href, on, filter, children }: { href: string; on: boolean; filte
 function Grid({ workspaceId, board }: { workspaceId: string; board: BoardModel }) {
   return (
     <>
-      <div className="overflow-x-auto">
+      {/* relative: the cells' sr-only text is absolutely positioned, so it stays inside this scroller at 320 px (WCAG 1.4.10) */}
+      <div className="relative overflow-x-auto">
         <table className="w-full border-collapse mt-[4px]" data-region="grid">
           <thead>
             <tr>

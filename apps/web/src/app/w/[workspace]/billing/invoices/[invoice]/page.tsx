@@ -2,6 +2,9 @@ import { InvoiceView } from "@/components/billing/InvoiceView";
 import { billingGate } from "@/lib/billing/page";
 import { readInvoiceById, readUsage } from "@/lib/billing/read";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Invoice and receipt · Nutrivo" };
 
 // S-PLN-003 Invoice and receipt (spec/screens.yaml; design: product/Nutrivo Plans and Checkout.dc.html, screen
 // "invoice"). M03 (T-703). `[invoice]` is a Stripe invoice id, found only among the caller's own workspace's stored

@@ -6,7 +6,7 @@ import { ErrorState } from "@/components/kit";
 export default function OnboardingError({ retry }: { error: unknown; retry: () => void }) {
   return (
     <div className="min-h-screen bg-panel pt-[34px] px-[16px] md:px-[32px]">
-      <main className="max-w-[1040px] mx-auto">
+      <main id="main" className="max-w-[1040px] mx-auto">
         <ErrorState
           where="ONBOARDING"
           title="This step could not be read just now"

@@ -1,9 +1,12 @@
 import * as Sentry from "@sentry/nextjs";
+import type { Metadata } from "next";
 import { Inbox, UnreadChip } from "@/components/alerts/Inbox";
 import { Screen } from "@/components/shell";
 import { inbox, parseFilter } from "@/lib/alerts/model";
 import { readAlertCards } from "@/lib/alerts/queries";
 import { createClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = { title: "Alerts · Nutrivo" };
 
 // S-MIS-001 Alerts inbox at desktop widths and S-MOB-006 Alerts at phone widths (spec/screens.yaml), J04 (T-902). Read
 // under RLS: app.alerts by product and market scope, the person's own app.alert_reads. ?show=in_force|coming filters;

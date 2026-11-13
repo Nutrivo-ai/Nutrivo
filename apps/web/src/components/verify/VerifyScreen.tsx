@@ -48,7 +48,7 @@ export function VerifyPage({ reference, children }: { reference: string; childre
           <Wordmark size="header" />
         </Link>
       </header>
-      <main className="flex-1 py-[24px] px-[16px] md:px-[26px]">
+      <main id="main" className="flex-1 py-[24px] px-[16px] md:px-[26px]">
         <p className="mt-0 mb-[16px] text-[13px] leading-[1.55] text-n600 max-w-[76ch]">
           Public page, no account. It answers one question about one reference and nothing else: never the composition,
           never the findings, never who the customer is.

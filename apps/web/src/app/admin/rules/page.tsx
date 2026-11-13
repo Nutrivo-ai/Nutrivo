@@ -2,6 +2,9 @@ import { ScreenHeader } from "@/components/shell";
 import { readAcceptedRules, readJurisdictions, readLinkableTerms, readRuleQueue } from "@/lib/admin/reads";
 import { staffReader } from "@/lib/admin/server";
 import { RuleQueue } from "./RuleQueue";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Rule review queue · Nutrivo" };
 
 // The rule review queue (no design yet, #35 question 1): each K01/K02 candidate with its two independent extractions
 // side by side, the stored source they came from, and the docs/12 checklist. Accepting is the person's click on

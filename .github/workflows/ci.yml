@@ -127,6 +127,45 @@ jobs:
         if: always()
         with: { name: reports-e2e, path: reports/ }
 
+  # T-1105: the load test's reduced profile (config/load/profiles.yaml, ci) on the full local stack: every budget in
+  # spec/nfr.yaml measured or checked, reports/LOAD.md in the job summary. Not a required check (a ruleset change for
+  # the founders); it fails when a budget the ci profile enforces is exceeded or a budget has no result.
+  load:
+    needs: [database, worker, web]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - id: app
+        run: if [ -f apps/web/package.json ]; then echo "ready=true" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.app.outputs.ready == 'true'
+        run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
+      - if: steps.app.outputs.ready == 'true'
+        uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
+        with: { version: 2.120.0 }
+      - if: steps.app.outputs.ready == 'true'
+        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - if: steps.app.outputs.ready == 'true'
+        uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with: { version: 10 }
+      - if: steps.app.outputs.ready == 'true'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: apps/web/pnpm-lock.yaml }
+      - if: steps.app.outputs.ready == 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('apps/web/pnpm-lock.yaml') }}
+      - if: steps.app.outputs.ready == 'true'
+        run: |
+          pnpm --dir apps/web install --frozen-lockfile
+          (cd worker && uv sync && uv run python ../fixtures/synth/generate.py --out ../fixtures/synth/out && touch ../fixtures/synth/out/.built)
+          bash scripts/ci/supabase-start.sh start -x studio,logflare,vector,supavisor,imgproxy
+          make load PROFILE=ci
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with: { name: load-ci, path: "reports/" }
+
   # Reads every report the jobs above upload (pgTAP TAP, worker and Vitest JUnit, Playwright JUnit). It runs even when
   # they fail: an ID in the baseline with a failing, skipped or missing result fails this check (the ratchet).
   conformance:

@@ -94,7 +94,7 @@ export default function PricingPage() {
         </div>
       </header>
 
-      <main>
+      <main id="main">
         <section data-testid="intro" style={sx("border-bottom: 1px solid var(--ink)")}>
           <div style={sx("max-width: 1180px; margin: 0 auto; padding: 44px 26px 38px")}>
             <p style={sx("margin: 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent)")}>Pricing</p>

@@ -1,8 +1,11 @@
 import * as Sentry from "@sentry/nextjs";
+import type { Metadata } from "next";
 import { DeadlineChip, Horizon } from "@/components/alerts/Horizon";
 import { Screen } from "@/components/shell";
 import { readHorizon } from "@/lib/alerts/queries";
 import { createClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = { title: "Horizon · Nutrivo" };
 
 // S-MIS-002 Horizon (spec/screens.yaml), J04 (T-902): the coming changes from app.alerts with their recipes, the
 // sell-through deadlines, and the ref.horizon_items not yet in force. Read under RLS. A read failure goes to the
