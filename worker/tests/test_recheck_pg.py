@@ -409,8 +409,9 @@ def test_J05_must_1_a_chain_of_rechecks_stays_on_the_formula_the_first_check_pin
     _c, d2 = release_c(conn, w["b"])
     second = recheck_job(conn, w, d2, r0["product"])
     outcome, row = run(conn, "recheck", second, registry())
-    # (Every row of this test transaction shares one now(), so the base is either re-check or check: both pin it.)
-    assert outcome == "succeeded" and BATCH in row["progress"]["evaluated_rule_keys"], row
+    # The base is the first re-check (checks are stamped with clock_timestamp(), so it is the latest), whose only
+    # difference from C is the batch rule.
+    assert outcome == "succeeded" and row["progress"]["evaluated_rule_keys"] == [BATCH], row
     # Judged on the pinned digest, which no longer matches the live formula: additive facts are missing (withheld),
     # never read from the changed formula.
     assert seen[-1] == (pinned, None)
@@ -454,3 +455,42 @@ def test_J05_a_recheck_never_overwrites_a_check_that_landed_while_it_was_judged(
     assert latest_checks(conn, r0["product"]) == []           # nothing written over the newer check
     assert one(conn, "select last_check_job_id from app.product_nodes where product_id = %s",
                r0["product"])["last_check_job_id"] != job
+
+
+def test_J05_a_legacy_base_with_no_formula_digest_withholds_additive_facts(conn, world, monkeypatch):
+    w = world
+    r0 = w["recipes"][0]
+    # A check job from before T-1001: its payload pins no formula, so which formula it read is unknown.
+    legacy = str(one(conn, "insert into app.jobs (kind, workspace_id, idempotency_key, payload, status) values"
+                           " ('check', %s, %s, %s, 'succeeded') returning id", r0["ws"], f"t903-legacy-{uuid.uuid4()}",
+                     Jsonb({"product_id": r0["product"], "node_ids": ["EU-SE"]}))["id"])
+    conn.execute("insert into app.checks (workspace_id, job_id, product_id, node_id, artwork_version_id, panel_id,"
+                 " language, artwork_sha, ruleset_version, classification_id, label_state, applied_rule_keys,"
+                 " passed_rule_keys, withheld_rule_keys, at) select workspace_id, %s, product_id, node_id,"
+                 " artwork_version_id, panel_id, language, artwork_sha, ruleset_version, classification_id, label_state,"
+                 " applied_rule_keys, passed_rule_keys, withheld_rule_keys, now() + interval '1 hour'"
+                 " from app.checks where job_id = %s", (legacy, w["base_jobs"][0]))
+    seen = []
+    real = recheck_handler.PgRecheckStore.facts
+    monkeypatch.setattr(recheck_handler.PgRecheckStore, "facts",
+                        lambda self, p, c, f=None, pf=None: seen.append(f) or real(self, p, c, f, pf))
+    job = recheck_job(conn, w, diff(conn, w["b"]), r0["product"])
+    outcome, row = run(conn, "recheck", job, registry())
+    assert outcome == "succeeded" and row["progress"]["outcome"] == "rechecked", row
+    assert seen == [recheck_handler.UNRESOLVED_FORMULA]        # never None, which would read the live formula
+    recorded = one(conn, "select after from app.audit_events where kind = 'check.completed' and object_id = %s",
+                   job)["after"]
+    assert recorded["formula_digests"] == {"EU-SE": recheck_handler.UNRESOLVED_FORMULA}   # and it stays unresolved
+
+
+def test_J05_checks_are_stamped_in_write_order_so_the_latest_follows_the_lock(conn, world):
+    w = world
+    r0 = w["recipes"][0]
+    job = recheck_job(conn, w, diff(conn, w["b"]), r0["product"])
+    assert run(conn, "recheck", job, registry())[0] == "succeeded"
+    # Same transaction as the base checks (one now()), yet the re-check's checks are strictly later and are the latest.
+    stamps = one(conn, "select (select max(at) from app.checks where job_id = %s) as base,"
+                       " (select min(at) from app.checks where job_id = %s) as recheck", w["base_jobs"][0], job)
+    assert stamps["recheck"] > stamps["base"]
+    latest = recheck_handler.PgRecheckStore(conn).latest_check(r0["product"], "EU-SE")
+    assert str(latest["job_id"]) == job

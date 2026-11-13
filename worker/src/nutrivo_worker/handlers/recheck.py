@@ -67,7 +67,7 @@ class MarketPlan:
     unchanged: set[str]                  # carried forward
     coverage: list[Coverage] = field(default_factory=list)
     base_latest_id: str = ""             # the latest check when planned; re-verified under the write's lock
-    formula_digest: str | None = None    # what the re-evaluated rules read (recorded for the next re-check)
+    formula_digest: str = UNRESOLVED_FORMULA   # what the re-evaluated rules read (recorded for the next re-check)
 
 
 def term_keys(params: Any) -> set[str]:
@@ -156,18 +156,19 @@ class PgRecheckStore(PgCheckStore):
         return [{k: (str(v) if k in ("panel_id", "text_object_id", "model_call_id") and v is not None else v)
                  for k, v in r.items()} for r in rows]
 
-    def formula_digest(self, job_id: Any, node_id: str) -> str | None:
+    def formula_digest(self, job_id: Any, node_id: str) -> str:
         """The formula digest the base check of `node_id` was judged on, so a chain of re-checks stays on one formula.
-        A check job pins it in its payload (None there: a job from before T-1001, which read the formula as it was).
-        A recheck job records the digest it used per market in its own check.completed audit event, written in the
-        same transaction as its checks. Anything else (a check without a job, a recheck with no record) is
-        UNRESOLVED_FORMULA: it matches no formula, so additive facts are missing and those rules are withheld."""
+        A check job pins it in its payload; a recheck job records the digest it used per market in its own
+        check.completed audit event, written in the same transaction as its checks. Anything else is
+        UNRESOLVED_FORMULA: a check without a job, a check job from before T-1001 (no digest: which formula it read is
+        unknown), a recheck with no record. It matches no formula, so additive facts are missing and those rules are
+        withheld, never judged on the live formula."""
         job = self._one("select kind, payload from app.jobs where id = %s", job_id) if job_id else None
         if job is None:
             return UNRESOLVED_FORMULA
         if job["kind"] == "check":
             d = (job["payload"] or {}).get("formula_digest")
-            return d if isinstance(d, str) and d else None
+            return d if isinstance(d, str) and d else UNRESOLVED_FORMULA
         if job["kind"] == "recheck":
             ev = self._one("""select after from app.audit_events where kind = 'check.completed' and object_type = 'job'
                                and object_id = %s order by at desc limit 1""", str(job_id))
@@ -175,7 +176,7 @@ class PgRecheckStore(PgCheckStore):
             digests = digests.get("formula_digests") if isinstance(digests, dict) else None
             if isinstance(digests, dict) and node_id in digests:
                 d = digests[node_id]
-                return d if isinstance(d, str) and d else None
+                return d if isinstance(d, str) and d else UNRESOLVED_FORMULA
         return UNRESOLVED_FORMULA
 
     def panels_of(self, panel_id: str) -> tuple[Panel, ...]:
@@ -249,7 +250,7 @@ def run_recheck(job: Job, ctx: JobContext, store: PgRecheckStore, model_client: 
     target_terms = store.terms(ruleset)
     rows: list[CheckRow] = []
     bases: dict[str, str] = {}
-    digests: dict[str, str | None] = {}
+    digests: dict[str, str] = {}
     skipped: dict[str, str] = {}
     evaluated: set[str] = set()
     judgements: dict[Any, Any] = {}

@@ -214,7 +214,10 @@ class PgCheckStore:
         Every writer locks the product markets it writes first, so two checks of one product × market never
         interleave. `bases` maps a market to the check that was its latest when this job was planned: under the lock,
         a market whose latest check is now another one (a newer check landed meanwhile) is not written and is put in
-        `moved`, so a re-check never overwrites newer work. `audit_extra` goes into the check.completed event."""
+        `moved`, so a re-check never overwrites newer work. `audit_extra` goes into the check.completed event.
+        Checks are stamped with clock_timestamp(), taken after the lock, not now() (the transaction's start): a check
+        whose transaction began earlier but wrote later never sorts older than the one it waited for, so 'latest'
+        (contract 5, the re-check's base) follows lock order."""
         with self.conn.transaction():
             self.conn.execute("select 1 from app.jobs where id = %s for update", (job_id,))
             if self._one("select 1 from app.checks where job_id = %s limit 1", job_id):
@@ -241,8 +244,9 @@ class PgCheckStore:
                     """insert into app.checks (workspace_id, job_id, product_id, node_id, artwork_version_id,
                            panel_id, language, artwork_sha, ruleset_version, classification_id, label_state,
                            applied_rule_keys, passed_rule_keys, withheld_rule_keys, actor_id, actor_is_external,
-                           trigger)
-                       values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
+                           trigger, at)
+                       values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                               clock_timestamp()) returning id""",
                     workspace_id, job_id, product_id, r.node_id, row.artwork_version_id,
                     r.panel.id, r.panel.language, row.artwork_sha, ruleset_version,
                     row.classification_id, r.label_state, r.applied, r.passed, r.withheld, actor_id,
