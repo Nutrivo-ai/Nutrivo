@@ -36,6 +36,10 @@ class Store:
         self.calls.append(("sweep", day))
         return self.swept
 
+    def supersede_for_rule_diff(self, rule_diff_id):
+        self.calls.append(("supersede", rule_diff_id))
+        return {"reports": 1, "certificates": 0}
+
 
 def job(payload, ws=None):
     return Job(id="j1", kind="diff_fanout", workspace_id=ws, payload=payload, attempts=1)
@@ -51,8 +55,9 @@ def checkins(monkeypatch):
 def test_J03_main_a_diff_job_fans_out_and_records_counts(checkins):
     store, ctx = Store(), Ctx()
     out = diff_fanout.run(job({"rule_diff_id": DIFF}), ctx, store, today=TODAY)
-    assert store.calls == [("fan_out", DIFF)]
-    assert out == {"outcome": "fanned_out", "rule_diff_id": DIFF, "alerts": 3, "workspaces": 2}
+    assert store.calls == [("fan_out", DIFF), ("supersede", DIFF)]     # then supersession (T-903, I05)
+    assert out == {"outcome": "fanned_out", "rule_diff_id": DIFF, "alerts": 3, "workspaces": 2,
+                   "superseded_reports": 1, "superseded_certificates": 0}
     assert ctx.beats[-1] == out
     assert checkins == []                       # only the daily sweep is a cron monitor
 

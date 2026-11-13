@@ -258,6 +258,15 @@ class PgStore:
         except psycopg.errors.NoDataFound:
             return None
 
+    def supersede_for_rule_diff(self, rule_diff_id: str) -> dict[str, Any] | None:
+        """app.supersede_for_rule_diff in its own transaction (T-903, I05); None for an unknown diff (P0002)."""
+        try:
+            with self.conn.transaction():
+                return self.conn.execute("select app.supersede_for_rule_diff(%s) as r",
+                                         (rule_diff_id,)).fetchone()["r"]
+        except psycopg.errors.NoDataFound:
+            return None
+
     def run_alert_sweep(self, day: date) -> dict[str, Any]:
         with self.conn.transaction():
             return self.conn.execute("select app.run_alert_sweep(%s) as r", (day,)).fetchone()["r"]

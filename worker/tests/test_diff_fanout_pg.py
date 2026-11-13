@@ -131,7 +131,8 @@ def test_J03_main_a_released_diff_becomes_alerts_then_one_batched_email_per_work
     job = w.enqueue(f"diff_fanout:{diff}", {"rule_diff_id": diff})
     outcome, row = w.run("diff_fanout", job)
     assert outcome == "succeeded", row
-    assert row["progress"] == {"outcome": "fanned_out", "rule_diff_id": diff, "alerts": 2, "workspaces": 2}
+    assert row["progress"] == {"outcome": "fanned_out", "rule_diff_id": diff, "alerts": 2, "workspaces": 2,
+                               "superseded_reports": 0, "superseded_certificates": 0}   # no report (T-903)
     assert w.alerts(diff) == sorted([
         {"workspace_id": w.ws, "product_id": w.salmon, "node_id": "EU-FR", "phase": "coming"},
         {"workspace_id": w.other, "product_id": w.other_product, "node_id": "EU-FR", "phase": "coming"},
