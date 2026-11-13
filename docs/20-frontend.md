@@ -74,6 +74,37 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
 | Workspace Settings, Plans and Checkout, Billing Settings | Settings and billing routes | T-107, T-108, T-703 |
 | Partner Tier, Partner Upsell | After launch (N01, N03) | — |
 
+### Built in T-902: the alerts inbox and the horizon (`apps/web/src/components/alerts`, `apps/web/src/lib/alerts`)
+- **S-MIS-001 Alerts inbox** and **S-MOB-006 Alerts** at `/w/[workspace]/alerts`: the desktop layout from `md` up and
+  the phone's blocks below it. There is one card per rule change, from `app.alerts` (T-901) under RLS. Each card shows:
+  - coming or in force, with its date;
+  - the recipes whose latest check used the rule;
+  - the rule's title and accepted citation;
+  - a sentence composed only from the stored effect type and dates.
+
+  Unread state is the person's own `app.alert_reads`, and **Mark all read** calls `app.mark_alerts_read` in batches of
+  500. Filters (`?show=in_force|coming`) and one change (`?diff=`) live in the URL. A recipe opens its finding (the
+  verdict, S-MOB-003) only in a region the plan holds (J04.must.1). On the phone, **Open the first** goes to the first
+  unread change's first finding.
+- **S-MIS-002 Horizon** at `/w/[workspace]/horizon`. The nearest withdrawn-authorisation deadline leads, with its days
+  left and **Open the two recipes** (the inbox for that change). Below it, in date order:
+  - each coming change and each sell-through end, with its recipe count;
+  - the `ref.horizon_items` not yet in force, with their stage. A draft has no countdown (BE-37).
+- **Not built** (#73, `needs-human`):
+  - the inbox's Draft cards and the horizon items' markets and recipe counts (horizon items are not linked to rules or
+    recipes);
+  - "What we watch ahead of law" (`ref.sources` is staff-only, and its content is not ours to write);
+  - the Documents tab (H04 data);
+  - "See the instrument" (no source link is readable).
+
+  J04.must.1 is enforced in the UI only, pending a decision on adding the plan to the checks' RLS.
+- **Tests:**
+  - `tests/e2e/alerts.spec.ts`: J04.main and J04.must.1 on alerts written by the real fan-out, plus the 390 px phone,
+    the empty, filtered, scoped and no-access states, keyboard, axe, the no-dead-controls crawl, and three baseline
+    regions (the "Coming, and in force" and "A draft is marked as a draft" panels, and the phone's kicker and title);
+  - `src/lib/alerts/model.test.ts` and `src/components/alerts/alerts.test.tsx`: the model and every state, including
+    loading and error.
+
 ### Built in T-1003: promote a brief to artwork (`apps/web/src/components/briefs/PromoteToArtwork.tsx`)
 - **S-NV2-004 Brief & formula** gains **Promote to artwork**, an outline button under the intended claims, shown only at
   stage brief. It calls C04's `app.set_product_stage` to `in_development` (E04 step 1) and opens Upload & scope (S-NV2-002)
