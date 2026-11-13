@@ -43,8 +43,8 @@ def seed_rulesets(conn, person):
                                      (DESIG, "prescribed_wording", "EU-SE", "claims_wording")):
         conn.execute("insert into ref.rules (rule_key, shape, domain, node_id, title) values (%s, %s, %s, %s,"
                      " 'Synthetic test rule') on conflict do nothing", (key, shape, domain, node))
-    for key, version, params in ((BATCH, 1, {"particular": "Test batch", "detect": {"term_keys": ["t903_batch"]}}),
-                                 (DESIG, 1, {"term_key": "t903_desig"}), (DESIG, 2, {"term_key": "t903_desig_v2"})):
+    for key, version, params in ((BATCH, 1, {"particular": "Test batch", "detect": {"term_keys": ["recheckbatch"]}}),
+                                 (DESIG, 1, {"term_key": "recheckdesignation"}), (DESIG, 2, {"term_key": "recheckdesignationnew"})):
         conn.execute("insert into ref.rule_versions (rule_key, version, status, params, applicability, article_ref,"
                      " source_excerpt, accepted_by, accepted_at) values (%s, %s, 'accepted', %s,"
                      " '{\"eq\": [\"species\", \"cat\"]}', 'TEST Art. 1', 'synthetic', %s, now())"
@@ -68,10 +68,10 @@ def seed_members(conn, a, b, which):
         for d in DOMAINS:
             conn.execute("insert into ref.coverage_nodes (ruleset_version, node_id, domain, state, rules_encoded)"
                          " values (%s, 'EU-SE', %s, 'complete', 1)", (rv, d))
-    terms = {a: (("t903_batch", "sv", "Testparti"), ("t903_batch", "en", "Test lot"),
-                 ("t903_desig", "sv", "Testfoder för katter"), ("t903_desig", "en", "Test food for cats")),
-             b: (("t903_batch", "sv", "Testparti"), ("t903_batch", "en", "Test lot"),
-                 ("t903_desig_v2", "sv", "Helfoder för katter"), ("t903_desig_v2", "en", "Test food for cats"))}
+    terms = {a: (("recheckbatch", "sv", "Testparti"), ("recheckbatch", "en", "Test lot"),
+                 ("recheckdesignation", "sv", "Testfoder för katter"), ("recheckdesignation", "en", "Test food for cats")),
+             b: (("recheckbatch", "sv", "Testparti"), ("recheckbatch", "en", "Test lot"),
+                 ("recheckdesignationnew", "sv", "Helfoder för katter"), ("recheckdesignationnew", "en", "Test food for cats"))}
     for rv, entries in terms.items():
         if rv not in which:
             continue
