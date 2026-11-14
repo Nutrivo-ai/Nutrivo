@@ -40,7 +40,7 @@ async function report(where: string, code: string | undefined) {
   });
 }
 
-const EXPECTED = new Set(["P0032", "P0034", "P0036", "42501", "22023"]);
+const EXPECTED = new Set(["P0032", "P0034", "P0036", "42501", "22023", "P0049"]);
 
 /** S-NV2-022 (C01, C03): create the product, its family unless one is picked, and its markets, in one RPC. */
 export async function createProduct(_: ProductFormState, form: FormData): Promise<ProductFormState> {
@@ -147,7 +147,7 @@ export async function addMarkets(_: MarketsFormState, form: FormData): Promise<M
     const refusal =
       error.code === "42501"
         ? { code: error.code, title: "Your role cannot add these markets", body: "Adding a market needs an editor whose scope holds it. An admin of this workspace can change your scope." }
-        : productRefusal(error.code, workspaceId);
+        : productRefusal(error.code, workspaceId, error.hint);
     return { status: "refused", refusal };
   }
   revalidatePath(`/w/${workspaceId}/products/${productId}/check`);

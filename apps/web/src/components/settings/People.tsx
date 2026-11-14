@@ -69,6 +69,7 @@ const REFUSAL: Record<string, string> = {
   accepted: "This invitation was accepted meanwhile. Remove the member instead.",
   invalid: "That was not saved: check the fields and try again.",
   error: "Nothing was changed. Try again.",
+  "rate-limited": "Too many requests; try again in a few minutes. Nothing was changed.",
 };
 
 function noticeOf(result: Result, done: string): Notice {

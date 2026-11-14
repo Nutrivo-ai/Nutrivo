@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { REQUEST_ID_HEADER } from "@/lib/observability/request-id";
+import { asRpcError, isRateLimited, rateLimitMessage, type RpcErrorLike } from "@/lib/rate-limit";
 
 // D01 + C02 (T-303): an artwork reaches the product as
 //   1. a type and size check in the browser, before any byte leaves it (C02.fail.1);
@@ -84,7 +85,12 @@ export function storagePath(workspaceId: string, productId: string, sha256: stri
 export type RegisterFailure = { code: string; title: string; body: string };
 
 /** The database's P-codes for register_artwork (docs/03) as what the person sees. */
-export function registerFailure(code: string | undefined): RegisterFailure {
+export function registerFailure(input: string | RpcErrorLike | null | undefined): RegisterFailure {
+  const error = asRpcError(input);
+  const code = error?.code ?? undefined;
+  if (isRateLimited(error)) {
+    return { code: "P0049", ...rateLimitMessage(error, "The file did not reach the product, and nothing was counted against your allowance.") };
+  }
   switch (code) {
     case "P0032":
       return {
@@ -167,6 +173,6 @@ export async function uploadArtwork(
     p_mime: mime,
   });
   const { data, error } = await (args.requestId ? register.setHeader(REQUEST_ID_HEADER, args.requestId) : register);
-  if (error || !data) return { ok: false, stage: "registering", failure: registerFailure(error?.code) };
+  if (error || !data) return { ok: false, stage: "registering", failure: registerFailure(error) };
   return { ok: true, artworkVersionId: data, sha256, kind: check.kind };
 }
