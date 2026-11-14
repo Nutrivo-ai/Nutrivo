@@ -8,8 +8,12 @@ import { headers } from "next/headers";
 import { REQUEST_ID_HEADER, resolveRequestId } from "@/lib/observability/request-id";
 import { createClient } from "@/lib/supabase/server";
 import { EXPORT_COLUMNS, archivePath, exportState } from "@/lib/exports/exports";
+import { isRateLimited, rateLimitMessage } from "@/lib/rate-limit";
 
-export type ActionResult<T> = { ok: true; value: T } | { ok: false; reason: "no-permission" | "not-ready" | "error" };
+/** `problem` carries the database's own wait for a rate-limited request (T-1103: P0049). */
+export type ActionResult<T> =
+  | { ok: true; value: T }
+  | { ok: false; reason: "no-permission" | "not-ready" | "rate-limited" | "error"; problem?: string };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -24,6 +28,9 @@ export async function requestExport(workspaceId: string): Promise<ActionResult<s
       .rpc("request_export", { p_ws: workspaceId, p_request_id: requestId });
     if (error) {
       if (error.code === "42501") return { ok: false, reason: "no-permission" } as const;
+      if (isRateLimited(error)) {
+        return { ok: false, reason: "rate-limited", problem: rateLimitMessage(error, "The export was not requested.").body } as const;
+      }
       Sentry.captureException(new Error(`request_export failed: ${error.code ?? "error"}`));
       return { ok: false, reason: "error" } as const;
     }

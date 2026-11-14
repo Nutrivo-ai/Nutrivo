@@ -13,33 +13,18 @@ import type { Database } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/server";
 import { isRole } from "@/lib/shell/routes";
 
-/** Why a write did not happen, in the RPCs' own error codes (docs/04). */
-export type Refusal =
-  | "no-permission" // 42501
-  | "no-seat" // P0033: BE-33, then the upsell
-  | "last-admin" // P0043
-  | "ended" // P0044: the membership ended meanwhile
-  | "accepted" // P0040 on revoke: accepted meanwhile
-  | "invalid" // 22023, or refused before the call
-  | "error";
+import { settingsRefusal, type Refusal } from "./refusal";
+
+export type { Refusal };
 
 export type Result<T = string> = { ok: true; value: T } | { ok: false; reason: Refusal; problem?: string };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const CODES: Record<string, Refusal> = {
-  "42501": "no-permission",
-  P0033: "no-seat",
-  P0043: "last-admin",
-  P0044: "ended",
-  P0040: "accepted",
-  "22023": "invalid",
-};
-
 const appClient = async () => (await createClient()).schema("app");
 type App = Awaited<ReturnType<typeof appClient>>;
-type Answer = { data: unknown; error: { code?: string; message: string } | null };
+type Answer = { data: unknown; error: { code?: string; message: string; hint?: string | null } | null };
 
 /** Runs one RPC under the person's session with the request id on the Sentry scope; unexpected codes are reported. */
 async function rpc(name: string, call: (app: App) => PromiseLike<Answer>): Promise<Result> {
@@ -49,9 +34,9 @@ async function rpc(name: string, call: (app: App) => PromiseLike<Answer>): Promi
     scope.setTag("area", "settings");
     const { data, error } = await call(await appClient());
     if (error) {
-      const reason = (error.code && CODES[error.code]) || "error";
-      if (reason === "error") Sentry.captureException(new Error(`${name} failed: ${error.code ?? "error"}`));
-      return { ok: false, reason } as const;
+      const refusal = settingsRefusal(error);
+      if (refusal.reason === "error") Sentry.captureException(new Error(`${name} failed: ${error.code ?? "error"}`));
+      return { ok: false, ...refusal } as const;
     }
     return { ok: true, value: String(data) } as const;
   });
