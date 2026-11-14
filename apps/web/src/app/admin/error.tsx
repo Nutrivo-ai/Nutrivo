@@ -10,7 +10,7 @@ export default function AdminError({ error, reset }: { error: Error & { digest?:
     Sentry.captureException(error);
   }, [error]);
   return (
-    <main className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
+    <main id="main" className="flex-1 min-w-0 pt-[24px] px-[16px] md:px-[26px] pb-[48px]">
       <h1 className="sr-only">This page could not be read</h1>
       <div className="max-w-[640px]">
         <ErrorState

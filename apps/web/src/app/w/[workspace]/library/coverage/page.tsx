@@ -5,6 +5,9 @@ import { RulesetChip } from "@/components/coverage/RulesetChip";
 import { Screen } from "@/components/shell";
 import { readLibraryCoverage } from "@/lib/coverage/queries";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Coverage & confidence · Nutrivo" };
 
 // S-NV2-013 Coverage & confidence (spec/screens.yaml; design: product/Nutrivo 2.0.dc.html, screen "coverage"). D09:
 // with ?product=, that product's markets at the ruleset each was last checked against; without, every node at the

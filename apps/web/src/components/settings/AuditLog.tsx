@@ -118,7 +118,7 @@ function AuditScreen({ workspaceId, page }: { workspaceId: string; page: AuditPa
       </div>
 
       <Blueprint className="mt-[16px]">
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
         <table className="w-full min-w-[720px] border-collapse" aria-label={`Audit events · ${filter.label}`}>
           <thead>
             <tr className={cx(GRID, "bg-panel border-b border-ink")}>

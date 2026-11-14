@@ -196,5 +196,5 @@ export function SettingsHeader({
 
 /** The page under the header: the design's 26 / 28 px padding on --panel. */
 export function SettingsMain({ children }: { children: ReactNode }) {
-  return <main className="flex-1 min-w-0 bg-panel pt-[26px] px-[16px] md:px-[28px] pb-[60px]">{children}</main>;
+  return <main id="main" className="flex-1 min-w-0 bg-panel pt-[26px] px-[16px] md:px-[28px] pb-[60px]">{children}</main>;
 }

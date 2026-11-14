@@ -89,16 +89,17 @@ class PgEnvelopeStore:
                               "max_content": r["max_content"], "expiry": r["expiry"]} if r["id"] else None}
                 for r in rows if r["additive_ref"] is not None]
 
-    def write(self, job_id: str, inputs: EnvelopeInputs, nodes: list[NodeEnvelope]) -> str | None:
-        """The envelope id, or None when it was already written (by this job, or for the same inputs)."""
+    def write(self, job_id: str, inputs: EnvelopeInputs, nodes: list[NodeEnvelope]) -> str:
+        """`computed` when written; `already_computed` when it already was (by this job, or for the same inputs);
+        `superseded` when the brief's inputs changed after they were read. Nothing is written in the last two."""
         with self.conn.transaction():
             self.conn.execute("select 1 from app.jobs where id = %s for update", (job_id,))
             if self._one("""select 1 from app.envelopes where job_id = %s
                              or (product_id = %s and ruleset_version = %s and inputs_hash = %s) limit 1""",
                          job_id, inputs.product_id, inputs.ruleset_version, inputs.inputs_hash):
-                return None
+                return "already_computed"
             if self.current_hash(inputs.product_id, inputs.node_ids) != inputs.inputs_hash:
-                return None
+                return "superseded"
             env_id = str(self._one(
                 """insert into app.envelopes (workspace_id, product_id, ruleset_version, inputs_hash, job_id,
                        formula_digest, node_ids, out_of_scope)
@@ -124,4 +125,4 @@ class PgEnvelopeStore:
                 (inputs.workspace_id, inputs.product_id,
                  Jsonb({"envelope_id": env_id, "job_id": job_id, "states": {n.node_id: n.state for n in nodes}}),
                  inputs.ruleset_version))
-        return env_id
+        return "computed"

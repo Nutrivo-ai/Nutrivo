@@ -104,7 +104,7 @@ export default function LandingPage() {
         </nav>
       </header>
 
-      <main>
+      <main id="main">
         <section style={sx("border-bottom: 1px solid var(--ink)")}>
           <div data-testid="hero" style={sx("width: 560px; padding: 60px 44px 56px 56px")}>
             <div data-testid="hero-text">

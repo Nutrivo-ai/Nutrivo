@@ -147,7 +147,7 @@ function PeopleScreen({ workspaceId, data, at, line }: { workspaceId: string; da
           </Button>
         </div>
         <div aria-live="polite">{notice && !dialog ? <NoticeLine notice={notice} workspaceId={workspaceId} /> : null}</div>
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="w-full min-w-[900px] border-collapse table-fixed">
             <caption className="sr-only">People and pending invitations in {current.name}</caption>
             <colgroup>

@@ -266,7 +266,9 @@ test.describe("workspace shell", () => {
     // The switcher keeps the rail section, so the page is the last rail link's screen; its own controls are that
     // screen's (Discontinued's empty state links to Add a product, covered in products.spec.ts).
     const own = await page.locator("main a, main button").filter({ visible: true }).count();
-    await expect(page.locator("a, button").filter({ visible: true })).toHaveCount(hrefs.length + 1 + own);
+    // + the switcher, + the skip link (T-1104: sr-only until focused, which Playwright still counts as visible).
+    await expect(page.getByRole("link", { name: "Skip to content" })).toHaveAttribute("href", "#main");
+    await expect(page.locator("a, button").filter({ visible: true })).toHaveCount(hrefs.length + 1 + 1 + own);
     expect(errors).toEqual([]);
   });
 

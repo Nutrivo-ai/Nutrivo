@@ -4,6 +4,9 @@ import { LoadingState } from "@/components/kit";
 import { Screen } from "@/components/shell";
 import { readArtwork, readPanelChecks, readPanels, readProduct } from "@/lib/artwork/queries";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Artwork · Nutrivo" };
 
 // S-NV2-025 Artwork we cannot read (spec/screens.yaml), T-303: what the extraction read, per printed panel (D01, D02),
 // for any outcome: complete, partial with named failures, or nothing readable. T-304 (D02): each panel's state over
@@ -36,7 +39,7 @@ export default async function Page({ params }: PageProps<"/w/[workspace]/product
       ) : (
         <div className="max-w-[640px]">
           <LoadingState label={`Extraction in progress · ${art.fileName ?? `version ${art.version}`}`}>
-            Panels, languages and text appear here when it finishes. <a href={checkHref}>Follow its progress</a>.
+            Panels, languages and text appear here when it finishes. <a href={checkHref} className="underline">Follow its progress</a>.
           </LoadingState>
         </div>
       )}

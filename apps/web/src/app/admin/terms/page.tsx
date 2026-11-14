@@ -2,6 +2,9 @@ import { ScreenHeader } from "@/components/shell";
 import { readRuleQueue, readTermQueue } from "@/lib/admin/reads";
 import { staffReader } from "@/lib/admin/server";
 import { TermQueue } from "./TermQueue";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Acceptance queue · Nutrivo" };
 
 // S-NV2-029 Term acceptance queue (spec/screens.yaml; design: product/Nutrivo 2.0.dc.html, screen "term"). K03: a
 // person accepts or rejects each language's prescribed term, read from that language's stored official text, never

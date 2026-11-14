@@ -7,6 +7,9 @@ import { EmptyState, ErrorState } from "@/components/kit";
 import { Screen } from "@/components/shell";
 import { readEnvelope, type EnvelopeRead } from "@/lib/briefs/queries";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Design envelope · Nutrivo" };
 
 // S-NV2-005 Design envelope (spec/screens.yaml), T-1002 · E02 Compute the compliance envelope: the latest envelope of
 // the brief from accepted rules only, per market and language, with every withheld item and its gap. Viewers read it;

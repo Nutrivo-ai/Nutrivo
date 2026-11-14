@@ -2,6 +2,9 @@ import * as Sentry from "@sentry/nextjs";
 import { SendReport } from "@/components/report/SendReport";
 import { readSendPage } from "@/lib/share/queries";
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = { title: "Export, send, share · Nutrivo" };
 
 // S-NV2-026 Export, send, share (spec/screens.yaml; design: product/Nutrivo 2.0.dc.html, screen "send"), I01 and I02.
 // The product's issued reports and the chosen one's shares, read under RLS. A read failure goes to the workspace error

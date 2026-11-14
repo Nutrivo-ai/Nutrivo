@@ -243,3 +243,17 @@ def test_E02_main_a_job_whose_inputs_changed_writes_nothing(conn):
     conn.execute("update app.formula_lines set amount = 10 where product_id = %s and position = 2", (s["product"],))
     assert request(conn, s) == job_id
     assert run_job(conn, job_id) == "succeeded" and envelope_of(conn, job_id) is not None
+
+
+def test_E02_main_inputs_changed_between_reading_and_writing_are_superseded(conn):
+    """[E02.main] The formula changes after the job read it: nothing is written, and the outcome says superseded."""
+    s = seed(conn, "T1002-RACE")
+    job_id = request(conn, s)
+    payload = one(conn, "select payload from app.jobs where id = %s", job_id)["payload"]
+    store = PgEnvelopeStore(conn)
+    inputs = store.load(s["ws"], s["product"], payload["ruleset_version"], payload["inputs_hash"],
+                        payload["node_ids"], payload["formula_digest"])
+    assert inputs is not None
+    conn.execute("update app.formula_lines set amount = 11 where product_id = %s and position = 2", (s["product"],))
+    assert store.write(job_id, inputs, []) == "superseded"
+    assert envelope_of(conn, job_id) is None

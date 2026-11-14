@@ -49,9 +49,8 @@ def run_envelope(job: Job, ctx: JobContext, store: PgEnvelopeStore) -> list[Node
     for n in inputs.nodes:
         with sentry_sdk.start_span(op="envelope.node", name=n.node.id):
             results.append(build_node(n.node, n.rules, n.coverage, inputs.terms, inputs.facts))
-    written = store.write(job.id, inputs, results)
+    outcome = store.write(job.id, inputs, results)
     counts = {s: sum(1 for r in results if r.state == s) for s in ("clear", "action", "not_assessed")}
-    outcome = "computed" if written else "already_computed"
     ctx.heartbeat(outcome=outcome, markets=len(results), withheld=sum(r.withheld for r in results), **counts)
     log.info("envelope finished", extra=kv(outcome=outcome, markets=len(results), ruleset_version=ruleset, **counts))
     return results

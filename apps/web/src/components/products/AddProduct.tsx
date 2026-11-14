@@ -165,6 +165,7 @@ export function AddProduct({
         <div className="mt-[22px] border-b border-ink pb-[6px]">
           <h2 className="m-0 font-head text-[17px] font-semibold">Lifecycle stage</h2>
         </div>
+        {/* The radios are visually hidden, so each card draws the keyboard focus (WCAG 2.4.7). */}
         <div role="radiogroup" aria-label="Lifecycle stage" className="mt-[12px] grid gap-[10px] md:grid-cols-2">
           {STAGES.map((s) => {
             const allowed = CREATE_STAGES.includes(s);
@@ -173,7 +174,7 @@ export function AddProduct({
               <label
                 key={s}
                 className={cx(
-                  "block py-[14px] px-[15px] border border-t-[3px]",
+                  "block py-[14px] px-[15px] border border-t-[3px] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent has-[:focus-visible]:outline-offset-2",
                   on ? "border-accent bg-accent-100" : "border-rule border-t-rule",
                   allowed ? "cursor-pointer" : "cursor-not-allowed opacity-70",
                 )}
