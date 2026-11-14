@@ -7,6 +7,7 @@
   nutrivo sources watch   new documents linked to those acts, triaged by the model into a report for a person (J01)
   nutrivo horizon record  a person records a horizon item from a watch report, with the stage and dates they give
   nutrivo content extract  K01/K02: candidates from content/candidates/eu-core.yaml over the stored sources
+  nutrivo content terms    K01/K02 for terms: candidate term entries from content/candidates/eu-core-terms.yaml
   nutrivo evals claims --rule-key <key> | --synthetic --lang xx
                    the claims evaluation harness as a Langfuse dataset run (exit 0 threshold met, 1 not, 2 error)
   nutrivo report rerender <ref> [--out file.pdf]
@@ -312,6 +313,45 @@ def cmd_content_extract(settings: Settings, args: argparse.Namespace) -> int:
     return 1 if counts.get("failed") else 0
 
 
+def cmd_content_terms(settings: Settings, args: argparse.Namespace) -> int:
+    """Exit 0 when every term is stored, unchanged, extracted (dry run), skipped or withheld; 1 when any failed.
+    Writes candidate ref.term_entries only; a person accepts each language in /admin/terms (K03)."""
+    import sentry_sdk
+
+    from .content import terms
+    from .content.store import PgSourceReader, PgTermStore
+    from .db import connect
+    from .logs import log_context
+    from .sources import fetch
+    from .sources.store import StorageClient
+
+    acts, languages, _ = fetch.load_sources(Path(args.sources))
+    chosen = terms.load_groups(Path(args.groups), {a.celex for a in acts})
+    if args.group:
+        chosen = [g for g in chosen if g.group in set(args.group)]
+        if len(chosen) != len(set(args.group)):
+            print("nutrivo: --group names a group that is not in the term groups file", file=sys.stderr)
+            return 2
+    if args.lang:
+        languages = [lang for lang in languages if lang in set(args.lang)]
+    conn = connect(settings.require_database())
+    try:
+        reader = PgSourceReader(conn, StorageClient(*settings.require_storage()))
+        store = None if args.dry_run else PgTermStore(conn)
+        with log_context(request_id=str(uuid.uuid4())), \
+                sentry_sdk.start_transaction(op="content", name="content:terms"):
+            results = terms.run(chosen, reader, store, models.configure(settings), languages=languages)
+    finally:
+        conn.close()
+    counts: dict[str, int] = {}
+    for r in results:
+        print(json.dumps(r.as_dict(), ensure_ascii=False))
+        counts[r.status] = counts.get(r.status, 0) + 1
+    print(json.dumps({"summary": counts}))
+    observability.flush()
+    return 1 if counts.get("failed") else 0
+
+
 def cmd_evals_claims(settings: Settings, args: argparse.Namespace) -> int:
     """Read only. Exit 0 when every language meets the threshold (a synthetic run: when every case ran and was
     recorded), 1 when not, 2 when the set or the rule cannot be read. stdout carries the report alone."""
@@ -472,6 +512,12 @@ def main(argv: list[str] | None = None) -> int:
     x.add_argument("--target", action="append", help="only this rule key (repeatable)")
     x.add_argument("--lang", action="append", help="only this language (repeatable)")
     x.add_argument("--dry-run", action="store_true", help="extract and compare; write no candidate")
+    tm = content_sub.add_parser("terms", help="K01/K02 for terms: candidate term entries, per language, verbatim")
+    tm.add_argument("--groups", default=str(WORKER_ROOT.parent / "content" / "candidates" / "eu-core-terms.yaml"))
+    tm.add_argument("--sources", default=str(WORKER_ROOT.parent / "content" / "sources.yaml"))
+    tm.add_argument("--group", action="append", help="only this term group (repeatable)")
+    tm.add_argument("--lang", action="append", help="only this language (repeatable)")
+    tm.add_argument("--dry-run", action="store_true", help="extract and compare; write no term entry")
     evals = sub.add_parser("evals", help="model evaluation harnesses (docs/07)")
     evals_sub = evals.add_subparsers(dest="evals_command", metavar="command", required=True)
     ev = evals_sub.add_parser("claims", help="judge a claim rule's evaluation sets; a Langfuse dataset run")
@@ -523,6 +569,8 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "horizon":
             return cmd_horizon_record(settings, args)
         if args.command == "content":
+            if args.content_command == "terms":
+                return cmd_content_terms(settings, args)
             return cmd_content_extract(settings, args)
         if args.command == "report":
             return cmd_report_rerender(settings, args)

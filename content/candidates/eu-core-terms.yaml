@@ -1,0 +1,50 @@
+# Term targets for the EU core term register (K01/K02 for terms, docs/12). NOT accepted content.
+# Written on 14 Nov 2026 by reading the stored consolidated English text 02009R0767-20181226 (Art. 15, Art. 17,
+# Annex VII): each entry names a term that text prints, where it prints it, and a term key for the register. The
+# English words in `find` are pointers for the model, never values: every term is extracted from each language's own
+# stored text, verbatim, by two independent keys, and a person accepts it per language in /admin/terms (BE-11, D-31).
+# Term keys follow the register's naming (docs/03: 'complete_feed', 'heading_composition').
+groups:
+  - group: EU.767.TERMS.TYPE_OF_FEED
+    kind: prescribed_designation
+    candidate_source: Reg. 767/2009, Art. 15(a) (the type of feed and the designations that may be used instead)
+    terms:
+      - {key: feed_material, find: "the type-of-feed designation for a feed material"}
+      - {key: complete_feed, find: "the type-of-feed designation for complete feed"}
+      - {key: complementary_feed, find: "the type-of-feed designation for complementary feed"}
+      - {key: complete_milk_replacer_feed, find: "the designation that may be used for complete feed (milk replacer)"}
+      - {key: mineral_feed, find: "the mineral designation that may be used for complementary feed"}
+      - {key: complementary_milk_replacer_feed, find: "the milk replacer designation that may be used for complementary feed"}
+      - {key: compound_feed, find: "the designation that may replace complete or complementary feed for pets other than cats and dogs"}
+  - group: EU.767.TERMS.HEADING_ADDITIVES
+    kind: heading
+    candidate_source: Reg. 767/2009, Art. 15(f) (the heading preceding the list of feed additives)
+    terms:
+      - {key: heading_additives, find: "the heading that precedes the list of feed additives"}
+  - group: EU.767.TERMS.MINIMUM_STORAGE_LIFE
+    kind: prescribed_designation
+    candidate_source: Reg. 767/2009, Art. 17(1)(d) (the wordings that introduce the minimum storage life date)
+    terms:
+      - {key: use_before, find: "the wording followed by a date for highly perishable feed, without the ellipsis"}
+      - {key: best_before, find: "the wording followed by a date for other feed, without the ellipsis"}
+  - group: EU.767.TERMS.HEADING_COMPOSITION
+    kind: heading
+    candidate_source: Reg. 767/2009, Art. 17(1)(e) (the heading of the list of feed materials)
+    terms:
+      - {key: heading_composition, find: "the heading the list of feed materials bears"}
+  - group: EU.767.TERMS.ANALYTICAL_CONSTITUENTS
+    kind: analytical_constituent
+    candidate_source: Reg. 767/2009, Annex VII (Chapter II, point 1, compound feed for non-food producing animals)
+    terms:
+      - {key: crude_protein, find: "the analytical constituent protein listed for cats, dogs and fur animals"}
+      - {key: crude_fibres, find: "the analytical constituent fibres listed for cats, dogs and fur animals"}
+      - {key: crude_fat, find: "the analytical constituent fat listed for cats, dogs and fur animals"}
+      - {key: crude_ash, find: "the analytical constituent ash listed for cats, dogs and fur animals"}
+      - {key: calcium, find: "the analytical constituent calcium listed for mineral complementary feed"}
+      - {key: sodium, find: "the analytical constituent sodium listed for mineral complementary feed"}
+      - {key: phosphorus, find: "the analytical constituent phosphorus listed for mineral complementary feed"}
+  - group: EU.767.TERMS.HEADING_ANALYTICAL_CONSTITUENTS
+    kind: heading
+    candidate_source: Reg. 767/2009, Annex VII (Chapter II, point 1, the heading of the analytical constituents)
+    terms:
+      - {key: heading_analytical_constituents, find: "the heading under which analytical constituents are listed"}

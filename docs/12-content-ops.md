@@ -165,6 +165,37 @@ target × source. It never writes a rule.
   `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and model configuration. `--target KEY` and `--lang xx` narrow the run.
   `--dry-run` extracts and compares, but writes nothing to the database. Langfuse still traces the calls.
 
+## Extracting candidate terms (K01/K02 for terms)
+D-31 links a rule to term keys, and a key counts only through an accepted `ref.term_entries` row in each node
+language (P0048). `nutrivo content terms` (worker) writes those rows as candidates for `/admin/terms`, from each
+language's own stored text (BE-11). It never accepts, rejects or updates an entry.
+- **Targets.** `content/candidates/eu-core-terms.yaml` lists groups: a kind (`prescribed_designation`, `heading`,
+  `analytical_constituent`, ...), the act and units (`candidate_source`, resolved like a rule target), and per term a
+  key and `find`, an English pointer to which printed term is meant. The pointers were written from the stored English
+  text; they are never values.
+- **Sources and units.** As for rules: a stored `eurlex` text of the group's act whose body matches its sha256, cut to
+  the units the group names. Anything else fails before any model is called.
+- **Two keys.** `term_extraction_primary.v1` (extraction class) and `term_extraction_secondary.v1` (judgement class,
+  its own prompt, never the first answer) each return, per term key, the printed term, its article reference and an
+  excerpt. A candidate entry is written only when both found it, each key's term is printed verbatim (up to
+  whitespace) in the units, the two are the same string, and at least one excerpt locates it there. The excerpt is a
+  locator matched up to the style of quotation marks and dashes (`articles.locate`): models return `'` for `‘ ’` or
+  `„ “` unreliably, and the Swedish primary key truncated excerpts at `”`. The term itself is never matched loosely,
+  and only the printed term is stored. A trailing ellipsis (‘best before …’, the act's placeholder for the date) is
+  dropped. Otherwise the term is withheld (`not_found`, `keys_disagree` with both strings shown,
+  `excerpt_not_in_source`, `second_not_verbatim`, `units_not_in_source`).
+- **What a row holds.** `term_key`, `language`, `term`, `kind`, `article_ref` (the first key's), `source_id`; status
+  `candidate` and `ruleset_version` null. The model calls are in `app.model_calls` and one Langfuse trace per group ×
+  source (`content:terms:<group>:<source_id>`).
+- **Idempotent.** An entry already read from the same source, in any status, is `unchanged`; a group whose entries
+  all exist calls no model; a rejected entry is not proposed again from the same text. A new consolidated text gives
+  new candidates.
+- **Running it.** `scripts/env/run.sh dev -- uv run nutrivo content terms`, with the settings `content extract`
+  needs. `--group`, `--lang` and `--dry-run` narrow it. On 14 Nov 2026 against the local stack: 19 terms × 5
+  languages, 95 stored, 60 model calls, about 2 minutes.
+- **The reviewer checks** the term against the stored text in its language. The Finnish 767/2009 prints `juottorehu`
+  for both milk replacer designations, so two keys carry the same Finnish string.
+
 ## Accepting and releasing (K03–K05, J02, T-204)
 Staff (`app_metadata.nutrivo_staff`) act through RPCs; each needs the caller's person record and is audited.
 - **Accept a candidate** with `app.accept_candidate`, choosing the key checked against the text. The version takes
@@ -176,7 +207,7 @@ Staff (`app_metadata.nutrivo_staff`) act through RPCs; each needs the caller's p
   without links is withheld until then. The new version needs its own passed, failed and withheld fixtures, and it
   reaches checks only through the next release.
 - **Terms** are accepted or rejected with `app.decide_term`, only from the stored official text in the term's own
-  language.
+  language. The candidates come from `nutrivo content terms` (above).
 - **Coverage** is edited on a draft (`app.create_ruleset_draft`, `app.set_draft_member`, `app.set_draft_coverage`,
   gaps with `app.open_coverage_gap`). Complete needs every member rule of that node and domain tested (P0010), and
   every term they link accepted in each of the node's languages (P0048).
