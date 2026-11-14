@@ -5,8 +5,9 @@
 --    - the product in the signer's scope (else the same P0002 as an unknown report) and the node in their market scope
 --      (else P0291, as with no grant);
 --    - after the grant: the report names this market (22023);
---    - after aal2: the report is the market's latest check, the same artwork_sha and ruleset_version (P0294), so an old
---      report is never certified because a later check made the market Clear; the report has no Not assessed items, and
+--    - after aal2: the report cites the market's latest check, on the same artwork_sha and ruleset_version (P0294), so
+--      an old report is never certified because a later check (new artwork, ruleset, classification or formula) made the
+--      market Clear; the report has no Not assessed items, and
 --      every check it cites for the market is clear with no action finding (P0293); the market displays Clear, so
 --      unknown or blocked registration is never certified (P0293, non-negotiables 3 and 8).
 -- 2. app.certificates read policy had product scope only; it now also applies node_in_scope, as
@@ -44,9 +45,9 @@ begin
     raise exception 'BE-29: signing requires two-factor authentication' using errcode = 'P0292';
   end if;
   -- The report must be what the market's latest check judged: same artwork, same ruleset.
-  select c.artwork_sha, c.ruleset_version into v_latest from app.checks c
+  select c.id, c.artwork_sha, c.ruleset_version into v_latest from app.checks c
   where c.product_id = v_r.product_id and c.node_id = p_node order by c.at desc, c.id desc limit 1;
-  if v_latest is null or v_latest.artwork_sha is distinct from v_r.artwork_sha
+  if v_latest is null or not (v_latest.id = any(v_r.check_ids)) or v_latest.artwork_sha is distinct from v_r.artwork_sha
      or v_latest.ruleset_version is distinct from v_r.ruleset_version then
     raise exception 'BE-29: this report is not the latest check of %: issue a new report first', p_node
       using errcode = 'P0294';
@@ -143,6 +144,22 @@ create table private.rate_counters (
 revoke all on private.rate_limits, private.rate_counters from public, anon, authenticated;
 grant all on private.rate_limits, private.rate_counters to service_role;
 
+-- Seconds until a request refused at p_elapsed_s into the current window would be allowed. Allowed means
+-- (hits before it) + 1 + floor(previous window's hits × the part of the previous window still inside the hour) ≤ limit.
+-- p_cur counts the refused request. When the current window alone is full, the earliest is just after it ends (every
+-- accepted request was within the limit, so the next window then allows one); otherwise it is when the previous
+-- window's weight has fallen far enough.
+create function private.rate_retry_after(p_cur int, p_prev int, p_limit int, p_window_s int, p_elapsed_s numeric)
+returns int
+language sql immutable set search_path = '' as $$
+  select greatest(1, ceil(case
+    when p_limit - p_cur < 0 or coalesce(p_prev, 0) = 0 then p_window_s - p_elapsed_s + 1
+    else p_window_s * (1 - (p_limit - p_cur + 1)::numeric / p_prev) - p_elapsed_s + 1
+  end))::int
+$$;
+revoke all on function private.rate_retry_after(int, int, int, int, numeric) from public, anon;
+grant execute on function private.rate_retry_after(int, int, int, int, numeric) to authenticated, service_role;
+
 create function private.take_rate(p_kind text, p_subject uuid, p_limit int, p_window_s int) returns void
 language plpgsql security definer set search_path = '' as $$
 declare v_now timestamptz := clock_timestamp(); v_win interval := make_interval(secs => p_window_s);
@@ -158,8 +175,9 @@ begin
   if v_cur + floor(coalesce(v_prev, 0) * v_weight) > p_limit then
     raise exception 'too many % requests: try again later', p_kind
       using errcode = 'P0049',
-            hint = json_build_object('kind', p_kind,
-                                     'retry_after_s', ceil(extract(epoch from (v_start + v_win - v_now))))::text;
+            hint = json_build_object('kind', p_kind, 'retry_after_s',
+                     private.rate_retry_after(v_cur, coalesce(v_prev, 0), p_limit, p_window_s,
+                                              extract(epoch from (v_now - v_start))))::text;
   end if;
 end $$;
 revoke all on function private.take_rate(text, uuid, int, int) from public, anon, authenticated;
@@ -221,19 +239,49 @@ create trigger rate_limit_requeue after update of status on app.jobs
   for each row when (old.status in ('failed', 'cancelled', 'succeeded') and new.status = 'queued')
   execute function private.rate_limit_requeue();
 
-create function private.purge_rate_counters() returns void
-language sql security definer set search_path = '' as $$
-  delete from private.rate_counters where window_start < now() - interval '2 days'
-$$;
-revoke all on function private.purge_rate_counters() from public, anon, authenticated;
-grant execute on function private.purge_rate_counters() to service_role;
+-- Counters older than two days are purged once a day by a worker job, which runs inside the Sentry cron check-in
+-- 'rate-counter-purge' (docs/17): pg_cron queues the job (02:53 UTC, keyed by the UTC date), the worker calls
+-- app.purge_rate_counters.
+alter table app.jobs drop constraint jobs_kind_check;
+alter table app.jobs add constraint jobs_kind_check
+  check (kind in ('extract','check','recheck','bulk_recheck','report','export','notify','session_revoke','diff_fanout',
+                  'billing_sync','billing_reconcile','recipe_overage','dunning','scan','expiry_reminders',
+                  'envelope','rate_purge')) not valid;
+alter table app.jobs validate constraint jobs_kind_check;
+do $$
+begin
+  if to_regnamespace('pgmq') is not null then
+    perform pgmq.create('rate_purge');
+  end if;
+end $$;
+
+create function app.purge_rate_counters(p_ref text) returns jsonb
+language plpgsql security definer set search_path = '' as $$
+declare v_n int;
+begin
+  perform private.require_service();
+  delete from private.rate_counters where window_start < now() - interval '2 days';
+  get diagnostics v_n = row_count;
+  return jsonb_build_object('deleted', v_n);
+end $$;
+revoke all on function app.purge_rate_counters(text) from public, anon, authenticated;
+grant execute on function app.purge_rate_counters(text) to service_role;
+
+create function private.enqueue_rate_purge() returns uuid
+language plpgsql security definer set search_path = '' as $$
+begin
+  perform private.require_service();
+  return private.enqueue('rate_purge', null, 'rate_purge:' || to_char(now() at time zone 'UTC', 'YYYY-MM-DD'), '{}'::jsonb);
+end $$;
+revoke all on function private.enqueue_rate_purge() from public, anon, authenticated;
+grant execute on function private.enqueue_rate_purge() to service_role;
 
 do $$
 begin
   if exists (select 1 from pg_available_extensions where name = 'pg_cron') then
     create extension if not exists pg_cron;
-    perform cron.schedule('rate-counter-purge', '53 2 * * *', 'select private.purge_rate_counters()');
+    perform cron.schedule('rate-counter-purge', '53 2 * * *', 'select private.enqueue_rate_purge()');
   else
-    raise notice 'pg_cron is not available: rate counters are not purged';
+    raise notice 'pg_cron is not available: the daily rate-counter purge is not scheduled';
   end if;
 end $$;

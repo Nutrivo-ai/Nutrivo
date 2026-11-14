@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(37);
+select plan(47);
 set local client_min_messages = warning;
 
 -- ─── A: Sam (admin, everything), Fay (editor scoped to family A1), Max (editor scoped to EU-DK). B: Bo (admin). ───
@@ -52,13 +52,15 @@ insert into app.product_nodes (product_id, node_id, workspace_id, label_state, r
   ('40000000-0000-4000-8110-0000000000a1','EU-SE','20000000-0000-4000-8110-00000000000a','clear','unknown','T1103-V'),
   ('40000000-0000-4000-8110-0000000000a2','EU-DK','20000000-0000-4000-8110-00000000000a','clear','registered','T1103-V');
 -- Checks, oldest first: Cat EU-DK on old artwork (action), then on the current artwork once with an action and then
--- clear (the latest); Dog EU-DK clear; Cat EU-SE clear.
+-- clear (the latest); Dog EU-DK clear, then clear again on the same artwork and ruleset (a new classification or
+-- formula: the report citing the first is stale); Cat EU-SE clear.
 insert into app.checks (id, workspace_id, product_id, node_id, ruleset_version, label_state, artwork_sha, at,
                         applied_rule_keys, passed_rule_keys) values
   ('70000000-0000-4000-8110-0000000000c0','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-DK','T1103-V','action','old-sha', now() - interval '2 days', '{T1103.R}', '{}'),
   ('70000000-0000-4000-8110-0000000000c9','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-DK','T1103-V','action','sha',     now() - interval '2 hours', '{T1103.R}', '{}'),
   ('70000000-0000-4000-8110-0000000000c1','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-DK','T1103-V','clear', 'sha',     now() - interval '1 hour', '{T1103.R}', '{T1103.R}'),
   ('70000000-0000-4000-8110-0000000000c2','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a2','EU-DK','T1103-V','clear', 'sha',     now() - interval '1 hour', '{T1103.R}', '{T1103.R}'),
+  ('70000000-0000-4000-8110-0000000000c3','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a2','EU-DK','T1103-V','clear', 'sha',     now() - interval '30 minutes', '{T1103.R}', '{T1103.R}'),
   ('70000000-0000-4000-8110-0000000000c5','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-SE','T1103-V','clear', 'sha',     now() - interval '1 hour', '{T1103.R}', '{T1103.R}');
 insert into app.reports (id, workspace_id, product_id, node_id, ref, check_ids, ruleset_version, artwork_sha, has_not_assessed) values
   ('60000000-0000-4000-8110-0000000000a1','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-DK','T1103REFAAAAAAAAAAAAAAAAA1',
@@ -74,7 +76,7 @@ insert into app.reports (id, workspace_id, product_id, node_id, ref, check_ids, 
   ('60000000-0000-4000-8110-0000000000a6','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-DK','T1103REFAAAAAAAAAAAAAAAAA6',
    '{70000000-0000-4000-8110-0000000000c1}','T1103-V','sha',true),
   ('60000000-0000-4000-8110-0000000000a7','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-DK','T1103REFAAAAAAAAAAAAAAAAA7',
-   '{70000000-0000-4000-8110-0000000000c9}','T1103-V','sha',false),
+   '{70000000-0000-4000-8110-0000000000c1,70000000-0000-4000-8110-0000000000c9}','T1103-V','sha',false),
   ('60000000-0000-4000-8110-0000000000a8','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-FR','T1103REFAAAAAAAAAAAAAAAAA8',
    '{}','T1103-V','sha',false);
 
@@ -105,6 +107,9 @@ select throws_ok($$select app.issue_certificate('60000000-0000-4000-8110-0000000
 select throws_ok($$select app.issue_certificate('60000000-0000-4000-8110-0000000000a5', 'EU-DK')$$,
                  'P0294', null,
                  '[T-1103] an old report on old artwork is never certified because a later check made the market Clear');
+select throws_ok($$select app.issue_certificate('60000000-0000-4000-8110-0000000000a2', 'EU-DK')$$,
+                 'P0294', null,
+                 '[T-1103] a report whose check is no longer the market''s latest is stale, even on the same artwork and ruleset');
 select throws_ok($$select app.issue_certificate('60000000-0000-4000-8110-0000000000a6', 'EU-DK')$$,
                  'P0293', null, '[T-1103] a report with Not assessed items is never certified');
 select throws_ok($$select app.issue_certificate('60000000-0000-4000-8110-0000000000a7', 'EU-DK')$$,
@@ -229,6 +234,40 @@ select ok(private.enqueue('notify', '20000000-0000-4000-8110-00000000000a', 't11
 select is((select array_agg(kind order by kind) from private.rate_limits),
           array['check','envelope','export','extract','notify','report'],
           '[T-1103] every kind a member can queue at will has a limit: checks, extractions, reports, envelopes, exports, email');
+-- retry_after_s follows the sliding window, not the fixed one.
+select is(private.rate_retry_after(1, 20, 10, 3600, 0), 1801,
+          '[T-1103] refused by the previous window''s weight: retry when that weight has fallen to the limit (half an hour)');
+select is(private.rate_retry_after(1, 20, 10, 3600, 1000), 801,
+          '[T-1103] the same, later in the window: less to wait');
+select is(private.rate_retry_after(11, 0, 10, 3600, 600), 3001,
+          '[T-1103] the current window alone is full: retry just after it ends');
+create function pg_temp.refusal_hint(p_sql text) returns jsonb language plpgsql as $$
+declare v_hint text;
+begin
+  execute p_sql;
+  return null;
+exception when sqlstate 'P0049' then
+  get stacked diagnostics v_hint = pg_exception_hint;
+  return v_hint::jsonb;
+end $$;
+select pg_temp.as_user('00000000-0000-4000-8110-0000000000d1');
+update private.rate_limits set per_person = 1, per_workspace = 100 where kind = 'report';
+select ok(private.enqueue('report', '20000000-0000-4000-8110-00000000000a', 't1103:r1', '{}') is not null,
+          '[T-1103] a first report request within a limit of one');
+select is(pg_temp.refusal_hint($$select private.enqueue('report', '20000000-0000-4000-8110-00000000000a', 't1103:r2', '{}')$$)
+          -> 'kind', '"report"'::jsonb, '[T-1103] the P0049 hint names the kind');
+select ok((pg_temp.refusal_hint($$select private.enqueue('report', '20000000-0000-4000-8110-00000000000a', 't1103:r3', '{}')$$)
+           ->> 'retry_after_s')::int between 1 and 3601,
+          '[T-1103] the P0049 hint gives the seconds to wait');
+reset role;
+select ok(not has_function_privilege('authenticated', 'app.purge_rate_counters(text)', 'execute')
+          and not has_function_privilege('authenticated', 'private.enqueue_rate_purge()', 'execute'),
+          '[T-1103] only the worker purges the counters');
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+insert into private.rate_counters (kind, subject, window_start, hits)
+values ('report', '20000000-0000-4000-8110-00000000000a', now() - interval '3 days', 5);
+select is(app.purge_rate_counters('t1103') ->> 'deleted', '1', '[T-1103] the purge deletes counters older than two days only');
+select ok(private.enqueue_rate_purge() is not null, '[T-1103] the daily rate_purge job can be queued (a known job kind)');
 select ok(not has_table_privilege('authenticated', 'private.rate_counters', 'select')
           and not has_function_privilege('authenticated', 'private.take_rate(text,uuid,int,int)', 'execute'),
           '[T-1103] members can neither read nor reset the counters');

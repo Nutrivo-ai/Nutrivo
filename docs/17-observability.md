@@ -23,6 +23,7 @@ Every failure is seen within minutes, every model call can be explained later, a
     reported for a run nothing makes;
   - `stripe-reconcile`, `dunning` and `alert-sweep` (J03, T-901), daily;
   - `expiry-reminders`, daily (pg_cron 06:23 UTC, T-803);
+  - `rate-counter-purge`, daily (pg_cron 02:53 UTC queues a `rate_purge` job that deletes RPC rate counters older than two days, T-1103);
   - `synthetic-smoke-prod`, every 15 min after launch.
   A missed check-in alerts.
 - **Alerts:**
