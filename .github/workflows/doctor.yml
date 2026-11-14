@@ -38,7 +38,10 @@ jobs:
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - name: Names present in Infisical
         run: uv run --no-project --with pyyaml python scripts/env/check-secrets.py --env "${{ inputs.env }}" ${{ inputs.all && '--all' || '' }}
+      # Runs even when a name is missing, so one run reports every missing name AND every service that does not answer;
+      # the job still fails if either step did.
       - name: Services answer with the stored keys
+        if: ${{ !cancelled() }}
         run: >
           uv run --no-project --with boto3 python scripts/doctor/doctor.py --env "${{ inputs.env }}"
           ${{ inputs.env == 'prod' && '--readonly' || '' }} ${{ inputs.strict && '--strict' || '' }}
