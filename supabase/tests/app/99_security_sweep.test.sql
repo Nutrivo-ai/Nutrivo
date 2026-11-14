@@ -1,10 +1,10 @@
--- T-1103 · security sweep (#81), migration 20261114125818: certificates are issued only inside the signer's scope,
+-- T-1103 · security sweep (#81), migration 20261114142050: certificates are issued only inside the signer's scope,
 -- for the report's own market, and only for a market that displays Clear; certificates are read with market scope;
 -- artwork uploads follow family scope. Synthetic rows only, rolled back.
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(19);
+select plan(37);
 set local client_min_messages = warning;
 
 -- ─── A: Sam (admin, everything), Fay (editor scoped to family A1), Max (editor scoped to EU-DK). B: Bo (admin). ───
@@ -51,21 +51,38 @@ insert into app.product_nodes (product_id, node_id, workspace_id, label_state, r
   ('40000000-0000-4000-8110-0000000000a1','EU-DK','20000000-0000-4000-8110-00000000000a','clear','registered','T1103-V'),
   ('40000000-0000-4000-8110-0000000000a1','EU-SE','20000000-0000-4000-8110-00000000000a','clear','unknown','T1103-V'),
   ('40000000-0000-4000-8110-0000000000a2','EU-DK','20000000-0000-4000-8110-00000000000a','clear','registered','T1103-V');
+-- Checks, oldest first: Cat EU-DK on old artwork (action), then on the current artwork once with an action and then
+-- clear (the latest); Dog EU-DK clear; Cat EU-SE clear.
+insert into app.checks (id, workspace_id, product_id, node_id, ruleset_version, label_state, artwork_sha, at,
+                        applied_rule_keys, passed_rule_keys) values
+  ('70000000-0000-4000-8110-0000000000c0','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-DK','T1103-V','action','old-sha', now() - interval '2 days', '{T1103.R}', '{}'),
+  ('70000000-0000-4000-8110-0000000000c9','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-DK','T1103-V','action','sha',     now() - interval '2 hours', '{T1103.R}', '{}'),
+  ('70000000-0000-4000-8110-0000000000c1','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-DK','T1103-V','clear', 'sha',     now() - interval '1 hour', '{T1103.R}', '{T1103.R}'),
+  ('70000000-0000-4000-8110-0000000000c2','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a2','EU-DK','T1103-V','clear', 'sha',     now() - interval '1 hour', '{T1103.R}', '{T1103.R}'),
+  ('70000000-0000-4000-8110-0000000000c5','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-SE','T1103-V','clear', 'sha',     now() - interval '1 hour', '{T1103.R}', '{T1103.R}');
 insert into app.reports (id, workspace_id, product_id, node_id, ref, check_ids, ruleset_version, artwork_sha, has_not_assessed) values
-  ('60000000-0000-4000-8110-0000000000a1','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-DK',
-   'T1103REFAAAAAAAAAAAAAAAAA1','{}','T1103-V','sha',false),
-  ('60000000-0000-4000-8110-0000000000a2','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a2','EU-DK',
-   'T1103REFAAAAAAAAAAAAAAAAA2','{}','T1103-V','sha',false),
-  ('60000000-0000-4000-8110-0000000000a3','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1',null,
-   'T1103REFAAAAAAAAAAAAAAAAA3','{}','T1103-V','sha',true),
-  ('60000000-0000-4000-8110-0000000000a4','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-SE',
-   'T1103REFAAAAAAAAAAAAAAAAA4','{}','T1103-V','sha',true);
+  ('60000000-0000-4000-8110-0000000000a1','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-DK','T1103REFAAAAAAAAAAAAAAAAA1',
+   '{70000000-0000-4000-8110-0000000000c1}','T1103-V','sha',false),
+  ('60000000-0000-4000-8110-0000000000a2','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a2','EU-DK','T1103REFAAAAAAAAAAAAAAAAA2',
+   '{70000000-0000-4000-8110-0000000000c2}','T1103-V','sha',false),
+  ('60000000-0000-4000-8110-0000000000a3','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1',null,'T1103REFAAAAAAAAAAAAAAAAA3',
+   '{70000000-0000-4000-8110-0000000000c1}','T1103-V','sha',false),
+  ('60000000-0000-4000-8110-0000000000a4','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-SE','T1103REFAAAAAAAAAAAAAAAAA4',
+   '{70000000-0000-4000-8110-0000000000c5}','T1103-V','sha',false),
+  ('60000000-0000-4000-8110-0000000000a5','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-DK','T1103REFAAAAAAAAAAAAAAAAA5',
+   '{70000000-0000-4000-8110-0000000000c0}','T1103-V','old-sha',true),
+  ('60000000-0000-4000-8110-0000000000a6','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-DK','T1103REFAAAAAAAAAAAAAAAAA6',
+   '{70000000-0000-4000-8110-0000000000c1}','T1103-V','sha',true),
+  ('60000000-0000-4000-8110-0000000000a7','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-DK','T1103REFAAAAAAAAAAAAAAAAA7',
+   '{70000000-0000-4000-8110-0000000000c9}','T1103-V','sha',false),
+  ('60000000-0000-4000-8110-0000000000a8','20000000-0000-4000-8110-00000000000a','40000000-0000-4000-8110-0000000000a1','EU-FR','T1103REFAAAAAAAAAAAAAAAAA8',
+   '{}','T1103-V','sha',false);
 
 create function pg_temp.as_user(uid text, aal text default 'aal2') returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', uid, 'role', 'authenticated', 'aal', aal)::text, true);
 $$;
 
--- ─── 1 · issue_certificate: scope, the report's market, and only a market that displays Clear ────────────────────
+-- ─── 1 · issue_certificate: scope, the report's own market, the latest check, and only a clear report ─────────────
 select pg_temp.as_user('00000000-0000-4000-8110-0000000000f1');
 set local role authenticated;
 select throws_ok($$select app.issue_certificate('60000000-0000-4000-8110-0000000000a2', 'EU-DK')$$,
@@ -83,23 +100,30 @@ select pg_temp.as_user('00000000-0000-4000-8110-0000000000a1');
 set local role authenticated;
 select throws_ok($$select app.issue_certificate('60000000-0000-4000-8110-0000000000a1', 'EU-SE')$$,
                  '22023', null, '[T-1103] a report for EU-DK is never certified for another market');
+select throws_ok($$select app.issue_certificate('60000000-0000-4000-8110-0000000000a3', 'EU-DK')$$,
+                 '22023', null, '[T-1103] a report that names no market is never certified for one');
+select throws_ok($$select app.issue_certificate('60000000-0000-4000-8110-0000000000a5', 'EU-DK')$$,
+                 'P0294', null,
+                 '[T-1103] an old report on old artwork is never certified because a later check made the market Clear');
+select throws_ok($$select app.issue_certificate('60000000-0000-4000-8110-0000000000a6', 'EU-DK')$$,
+                 'P0293', null, '[T-1103] a report with Not assessed items is never certified');
+select throws_ok($$select app.issue_certificate('60000000-0000-4000-8110-0000000000a7', 'EU-DK')$$,
+                 'P0293', null, '[T-1103] a report citing a check with an open action is never certified');
 select throws_ok($$select app.issue_certificate('60000000-0000-4000-8110-0000000000a4', 'EU-SE')$$,
                  'P0293', null,
                  '[T-1103] a market whose registration is unknown displays not assessed and is never certified (non-negotiable 8)');
-select throws_ok($$select app.issue_certificate('60000000-0000-4000-8110-0000000000a3', 'EU-FR')$$,
-                 'P0293', null, '[T-1103] a market with no state at all is not assessed and is never certified (non-negotiable 3)');
+select throws_ok($$select app.issue_certificate('60000000-0000-4000-8110-0000000000a8', 'EU-FR')$$,
+                 'P0294', null, '[T-1103] a market never checked is never certified (non-negotiable 3)');
 reset role;
 select pg_temp.as_user('00000000-0000-4000-8110-0000000000a1', 'aal1');
 set local role authenticated;
 select throws_ok($$select app.issue_certificate('60000000-0000-4000-8110-0000000000a1', 'EU-DK')$$,
-                 'P0292', null, '[T-1103] two-factor is still required before the market state is looked at');
+                 'P0292', null, '[T-1103] two-factor is still required before the report''s state is looked at');
 reset role;
 select pg_temp.as_user('00000000-0000-4000-8110-0000000000a1');
 set local role authenticated;
 select ok(app.issue_certificate('60000000-0000-4000-8110-0000000000a1', 'EU-DK') is not null,
-          '[T-1103] a signer in scope certifies the report''s own Clear market');
-select ok(app.issue_certificate('60000000-0000-4000-8110-0000000000a3', 'EU-DK') is not null,
-          '[T-1103] a report with no market of its own is certified for a Clear market of its product');
+          '[T-1103] a signer in scope certifies a clear report of the market''s latest check');
 reset role;
 select pg_temp.as_user('00000000-0000-4000-8110-0000000000f1');
 set local role authenticated;
@@ -114,7 +138,7 @@ insert into app.certificates (workspace_id, report_id, product_id, node_id, sign
    'EU-SE','10000000-0000-4000-8110-0000000000a1','50000000-0000-4000-8110-0000000000a2', null, 'legacy-hash');
 select pg_temp.as_user('00000000-0000-4000-8110-0000000000a1');
 set local role authenticated;
-select is((select count(*)::int from app.certificates), 4, '[T-1103] an unscoped member reads every certificate of the workspace');
+select is((select count(*)::int from app.certificates), 3, '[T-1103] an unscoped member reads every certificate of the workspace');
 reset role;
 select pg_temp.as_user('00000000-0000-4000-8110-0000000000d1');
 set local role authenticated;
@@ -155,6 +179,59 @@ reset role;
 select ok(not has_function_privilege('anon', 'private.can_upload_artwork(text)', 'execute')
           and not has_function_privilege('anon', 'app.issue_certificate(uuid,text)', 'execute'),
           '[T-1103] anon executes neither the upload check nor issue_certificate');
+
+-- ─── 4 · rate limits on RPCs: per job kind, per person and per workspace, signed-in callers only ─────────────────
+update private.rate_limits set per_person = 2, per_workspace = 3 where kind = 'export';
+select pg_temp.as_user('00000000-0000-4000-8110-0000000000a1');
+select ok(private.enqueue('export', '20000000-0000-4000-8110-00000000000a', 't1103:e1', '{}') is not null
+          and private.enqueue('export', '20000000-0000-4000-8110-00000000000a', 't1103:e2', '{}') is not null,
+          '[T-1103] a person''s requests within the limit are queued');
+select ok(private.enqueue('export', '20000000-0000-4000-8110-00000000000a', 't1103:e1', '{}') is not null,
+          '[T-1103] a request answered by the existing job is not counted');
+select throws_ok($$select private.enqueue('export', '20000000-0000-4000-8110-00000000000a', 't1103:e3', '{}')$$,
+                 'P0049', null, '[T-1103] past the per-person limit the request is refused with P0049');
+select is((select count(*)::int from app.jobs where idempotency_key = 't1103:e3'), 0,
+          '[T-1103] a refused request queues nothing');
+select pg_temp.as_user('00000000-0000-4000-8110-0000000000f1');
+select ok(private.enqueue('export', '20000000-0000-4000-8110-00000000000a', 't1103:e4', '{}') is not null,
+          '[T-1103] another person in the workspace still has their own allowance');
+select throws_ok($$select private.enqueue('export', '20000000-0000-4000-8110-00000000000a', 't1103:e5', '{}')$$,
+                 'P0049', null, '[T-1103] past the per-workspace limit every member is refused');
+select pg_temp.as_user('00000000-0000-4000-8110-0000000000b1');
+select ok(private.enqueue('export', '20000000-0000-4000-8110-00000000000b', 't1103:e6', '{}') is not null,
+          '[T-1103] another workspace is not affected');
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select ok(private.enqueue('export', '20000000-0000-4000-8110-00000000000a', 't1103:e7', '{}') is not null,
+          '[T-1103] the worker and the service role are never limited');
+select set_config('request.jwt.claims', '', true);
+select ok(private.enqueue('export', '20000000-0000-4000-8110-00000000000a', 't1103:e8', '{}') is not null,
+          '[T-1103] pg_cron and other callers without a JWT are never limited');
+-- The earlier exports finished, so request_export would queue a new one.
+update app.jobs set status = 'succeeded' where idempotency_key like 't1103:e%';
+select pg_temp.as_user('00000000-0000-4000-8110-0000000000a1');
+set local role authenticated;
+select throws_ok($$select app.request_export('20000000-0000-4000-8110-00000000000a')$$,
+                 'P0049', null, '[T-1103] the limit reaches the RPC itself: request_export rolls back with P0049');
+reset role;
+-- A requeue of a finished job counts too (retry_extraction, request_envelope): Sam's allowance is spent.
+reset role;
+select pg_temp.as_user('00000000-0000-4000-8110-0000000000a1');
+select throws_ok($$update app.jobs set status = 'queued' where idempotency_key = 't1103:e1'$$,
+                 'P0049', null, '[T-1103] requeueing a finished job past the limit is refused like a new request');
+select set_config('request.jwt.claims', '{"role":"service_role"}', true);
+select lives_ok($$update app.jobs set status = 'queued' where idempotency_key = 't1103:e1'$$,
+                '[T-1103] the worker requeues without a limit');
+update private.rate_limits set per_person = 1, per_workspace = 1 where kind = 'notify';
+select pg_temp.as_user('00000000-0000-4000-8110-0000000000a1');
+select ok(private.enqueue('notify', '20000000-0000-4000-8110-00000000000a', 't1103:n1', '{}') is not null
+          and private.enqueue('notify', '20000000-0000-4000-8110-00000000000a', 'allowance:t1103', '{}') is not null,
+          '[T-1103] the system''s allowance-used email never counts against the person who triggered it');
+select is((select array_agg(kind order by kind) from private.rate_limits),
+          array['check','envelope','export','extract','notify','report'],
+          '[T-1103] every kind a member can queue at will has a limit: checks, extractions, reports, envelopes, exports, email');
+select ok(not has_table_privilege('authenticated', 'private.rate_counters', 'select')
+          and not has_function_privilege('authenticated', 'private.take_rate(text,uuid,int,int)', 'execute'),
+          '[T-1103] members can neither read nor reset the counters');
 
 select * from finish();
 rollback;

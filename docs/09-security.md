@@ -30,6 +30,7 @@ carries a reference. Rate limits are best-effort and per instance (below, Rate l
 | `supplier-upload` Edge Function | 30 a minute per client, 600 per instance; 25 MiB per file | `supabase/functions/supplier-upload/upload.js` |
 | `stripe-webhook` Edge Function | No rate limit: only a request with Stripe's signature over the exact payload, at most 300 s old and 1 MiB, reaches the database | `supabase/functions/stripe-webhook/webhook.js` |
 | `share` Edge Function (D-30) | Not built yet; it must copy `verify`'s limiter, and `worker/tests/test_security_sweep.py` fails a public function without one | — |
+| RPCs that queue work or email (T-1103) | Per signed-in person and per workspace, per job kind, over a sliding hour: check and extract 300 / 1,500, report 120 / 600, envelope 60 / 300, export 10 / 30, notify (invitations, document requests, shares) 60 / 200. Refused with P0049 and `{kind, retry_after_s}`; the RPC rolls back, so nothing is queued or sent. The worker, pg_cron and the service role are never limited; a request answered by an existing job is not counted | `private.enqueue` → `private.rate_limit_job`, limits in `private.rate_limits` (defaults pending #81) |
 | Supabase Auth | Per IP: 30 sign-ins and sign-ups and 30 code verifications per 5 minutes, 150 token refreshes per 5 minutes; minimum password length 12, as the web requires | `supabase/config.toml` `[auth]`, `[auth.rate_limit]`; the hosted projects set the same in the dashboard |
 
 The Edge Function limits are best-effort and held per instance. A shared, durable limiter and the question of which
@@ -40,8 +41,9 @@ caller can set, so only the per-instance cap is a hard bound) are open on #81 (Q
 `rls_enabled_no_policy` on `app.model_calls`, which is deliberate (service role only, gate BE-02). Performance: INFO
 only (unindexed foreign keys, and unused indexes on a fresh database), left to a measured follow-up (#81 Q5).
 `supabase db lint`: warnings only (untyped literals assigned to jsonb, unused variables). The full-tree rls-reviewer
-pass found certificates issued and read outside the signer's scope and artwork uploads outside family scope; migration
-`20261114125818_security_sweep.sql` fixes all three. **Scans:** gitleaks clean on history and tree; `pip-audit` clean
+pass found certificates issued and read outside the signer's scope and artwork uploads outside family scope, and review
+found certificates issued for a report other than the market's latest clear check; migration
+`20261114142050_security_sweep.sql` fixes them and adds the RPC rate limits. **Scans:** gitleaks clean on history and tree; `pip-audit` clean
 after the T-1103 lock bumps (pillow 13, certifi, opentelemetry, pypdf); `pnpm audit --prod` clean, with one moderate,
 dev-only advisory (`minimatch` under `eslint-config-next`). The nightly audit keeps both, at high and above.
 
