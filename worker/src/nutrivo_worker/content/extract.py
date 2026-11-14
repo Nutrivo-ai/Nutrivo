@@ -5,7 +5,9 @@ For each target × stored source (one per language):
    AAFCO, and a body whose sha256 matches the row. Otherwise it is refused before any model is called.
 2. The units the target names (articles, annexes) are cut from that body; the model sees those units only.
 3. K01: `extraction_primary` (extraction model class). Every verbatim field must be printed in the units; otherwise
-   the result is withheld (`excerpt_not_in_source`) and no candidate is written.
+   the result is withheld (`excerpt_not_in_source`) and no candidate is written. Where the model's copy differs from
+   the print only in the style of quotation marks or dashes, the printed text is what the candidate keeps
+   (`as_printed`, listed in `printed_fields`).
 4. K02: `extraction_secondary` (judgement model class, its own prompt), with the same inputs and never the first
    result. `agree` holds only when both found the target, both are verbatim, and every field matches.
 5. The candidate is `pending`, or `needs_review` on any disagreement and for every threshold and prescribed wording
@@ -143,6 +145,54 @@ def printed_numbers(text: str) -> set[float]:
     return out
 
 
+def _printed(value: Any, path: str, passage: str, field: str, recovered: list[str]) -> Any:
+    """`value` with every string at `path` replaced by the passage of `passage` it copies (articles.locate), where the
+    copy differs from the print only in the style of its quotation marks or dashes."""
+    head, _, rest = path.partition(".")
+    if isinstance(value, list):
+        return [_printed(v, path, passage, field, recovered) for v in value]
+    if not isinstance(value, dict) or head not in value:
+        return value
+    out = dict(value)
+    if rest:
+        out[head] = _printed(value[head], rest, passage, field, recovered)
+        return out
+    items = value[head]
+    new = []
+    for v in items if isinstance(items, list) else [items]:
+        found = articles.locate(passage, v) if isinstance(v, str) and not articles.contains(passage, v) else None
+        if found is not None and articles.normalise(found) != articles.normalise(v):
+            new.append(found)
+            if field not in recovered:
+                recovered.append(field)
+        else:
+            new.append(v)
+    out[head] = new if isinstance(items, list) else new[0]
+    return out
+
+
+def as_printed(shape: str, output: dict[str, Any], text: str) -> tuple[dict[str, Any], list[str]]:
+    """The answer with its excerpt, and each verbatim param inside it, taken from the stored text where the model's
+    copy differs from the print only in the style of quotation marks or dashes (it returns ' for ‘ ’ unreliably).
+    What a candidate keeps is then the printed text, never the model's copy; the model's own output stays in
+    app.model_calls. Returns the answer and the fields replaced; anything else is left for unverified_fields."""
+    excerpt = output.get("excerpt") or ""
+    if not output.get("found") or not excerpt or articles.contains(text, excerpt):
+        passage = excerpt
+        out, recovered = dict(output), []
+    else:
+        found = articles.locate(text, excerpt)
+        if found is None:
+            return output, []
+        passage, out, recovered = found, {**output, "excerpt": found}, ["excerpt"]
+    params = out.get("params")
+    if isinstance(params, dict):
+        for path in VERBATIM[shape]:
+            params = _printed(params, path, passage, f"params.{path}", recovered)
+        out["params"] = params
+    return out, recovered
+
+
 def unverified_fields(shape: str, output: dict[str, Any], text: str) -> list[str]:
     """The fields the stored text does not bear out: empty means every value was read from it. The excerpt must be
     printed in the units, every verbatim param inside the excerpt, and every number among the numbers printed in its
@@ -221,10 +271,11 @@ def _extract(models: Models, purpose: str, target: Target, row: SourceRow, units
              store: CandidateStore | None) -> Extracted:
     res: ModelResult = models.call_full(purpose, PROMPT_VERSION, _inputs(target, row, units),
                                         OUTPUT_SCHEMAS[target.shape], store=store)
-    output = res.raw_output
     text = "\n".join(u.text for u in units.values())
+    output, recovered = as_printed(target.shape, res.raw_output, text)
     missing = unverified_fields(target.shape, output, text) if output.get("found") else []
     value = {"extraction": output, "verified": not missing, "unverified_fields": missing,
+             "printed_fields": recovered,
              "prompt_version": f"{purpose}.{PROMPT_VERSION}", "model_id": res.model_id, "provider": res.provider,
              "input_hash": res.input_hash, "source_sha256": row.sha256, "units": list(units)}
     return Extracted(value, output, not missing)

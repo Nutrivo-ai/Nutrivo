@@ -134,7 +134,11 @@ target × source. It never writes a rule.
   the article reference to the paragraph and a verbatim excerpt. The excerpt must be printed in the units, up to
   whitespace. Every field the schema calls verbatim (`content/schemas.py`) must be printed inside the excerpt. Every
   number (a threshold's value, a band's heights and quantities) must be one of the numbers printed in its own
-  verbatim field. If any check fails, the result is withheld as `excerpt_not_in_source` and nothing is written. This
+  verbatim field. Where the model's copy differs from the print only in the style of quotation marks or dashes (it
+  returns `'` for `‘ ’` unreliably), the excerpt and those params are taken from the stored text (`articles.locate`),
+  so the candidate holds the printed text, never the model's copy; `printed_fields` lists them and the model's own
+  output stays in `app.model_calls`. If any check fails, the result is withheld as `excerpt_not_in_source` and
+  nothing is written. This
   is also what keeps a term from being translated. The comparison operator is worded differently in every language,
   so it is not checked here: the second key compares it, and thresholds always go to a person. When the
   model abstains, the result is withheld as `not_found`.
