@@ -129,6 +129,12 @@ test.describe("[T-1104] WCAG 2.2 AA, every workspace route", () => {
   test.beforeAll(async () => {
     [owner, viewer, outsider] = await Promise.all([person("t1104-owner"), person("t1104-viewer"), person("t1104-outsider")]);
     ws = await workspace(owner, "Halden A11y");
+    // Its products are sold in the US, so its plan holds the US (the product RPCs refuse a market outside the plan, private.check_markets;
+    // a finding in a region the plan does not hold cannot be opened, J04.must.1).
+    {
+      const plan = await admin().schema("app").from("workspaces").update({ entitled_regions: ["EU", "US"] }).eq("id", ws).select("id");
+      if (plan.error) throw plan.error;
+    }
     empty = await workspace(owner, "Halden A11y Empty");
     await workspace(outsider, "Somewhere else");
     await workspace(viewer, "Viewer's own"); // makes their app.people row, as board.spec does
