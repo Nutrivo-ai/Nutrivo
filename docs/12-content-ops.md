@@ -128,8 +128,12 @@ target × source. It never writes a rule.
   reason (`source_refused`, `source_kind_refused`, `source_not_stored`, `source_act_mismatch`,
   `source_hash_mismatch`) before any model is called.
 - **Units.** The body is split into articles and annexes on the headings every language version shares
-  (`title-article-norm`, `title-annex-1`). The model sees only the units the target names (for example `Art. 15`
-  and `Annex I`), never the whole act and never anything from memory.
+  (`title-article-norm`, `title-annex-1`). An annex is labelled by its Roman numeral whatever the language prints,
+  so Swedish `BILAGA 1` and Danish `BILAG I` are both `Annex I`. An act whose only annex heading is unnumbered
+  (`ANNEX`, `BILAGA`, `LIITE`) labels it `Annex`; an unnumbered heading among several annex headings gets no unit,
+  and a target naming it is withheld as `units_not_in_source`. A label printed twice keeps the first. The model sees
+  only the units the target names (for example `Art. 15` and `Annex I`), never the whole act and never anything
+  from memory.
 - **First key (K01).** `extraction_primary.v1` runs on the extraction model class. The answer is the shape's params,
   the article reference to the paragraph and a verbatim excerpt. The excerpt must be printed in the units, up to
   whitespace. Every field the schema calls verbatim (`content/schemas.py`) must be printed inside the excerpt. Every
