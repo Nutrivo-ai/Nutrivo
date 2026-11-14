@@ -22,7 +22,7 @@ Every failure is seen within minutes, every model call can be explained later, a
     scheduler exists (a db or infra task); that task adds the schedule (Monday, docs/12) so no missed run is
     reported for a run nothing makes;
   - `stripe-reconcile`, `dunning` and `alert-sweep` (J03, T-901), daily;
-  - `expiry-reminders`, daily;
+  - `expiry-reminders`, daily (pg_cron 06:23 UTC, T-803);
   - `synthetic-smoke-prod`, every 15 min after launch.
   A missed check-in alerts.
 - **Alerts:**
