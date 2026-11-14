@@ -58,9 +58,10 @@ export const DPA: LegalDoc = {
       { n: "5.3", v: "Every sub-processor is bound by obligations no less protective than those in this agreement." },
     ], {
       head: ["Sub-processor", "What it does", "Where it processes"],
-      // Each row compared with docs/09-security.md "Sub-processors as deployed" (lines 58-62) and docs/02-decisions.md
-      // D-02 (line 9), D-16 (line 23). No vendor is added: docs/09 also lists Vercel, Render, Sentry, PostHog and
-      // Langfuse, which the design does not draw (a question for a founder, not a decision made here).
+      // Each row compared with docs/09-security.md "Sub-processors as deployed" and docs/02-decisions.md D-02, D-16,
+      // D-17. Vercel, Render, Sentry, PostHog and Langfuse are deployed (docs/09) but the design does not draw them;
+      // abnutrivo decided on 10 Nov 2026 that the DPA lists every sub-processor as deployed (#9, D-02). Counsel
+      // reviews the whole text before signature (D-20).
       rows: [
         // Design: "Supabase (Supabase Inc., on Amazon Web Services infrastructure)" · "Ireland · eu-west-1".
         // docs/09 line 59: "Supabase (AWS eu-central-1)"; D-02: "Supabase eu-central-1 (Frankfurt)". The legal entity
@@ -78,6 +79,16 @@ export const DPA: LegalDoc = {
         // Design: "A model provider for the assistant and for extraction" · "European Union where the provider offers
         // EU processing". D-02 (line 9): "The DPA names "AWS Bedrock, EU Regions""; docs/09 line 59 the same.
         ["AWS Bedrock", "Model inference on the text you submit, under a no-training commitment", "EU Regions"],
+        // docs/09: "Vercel (functions in Frankfurt)".
+        ["Vercel", "Hosting the web application and its server functions", "Frankfurt"],
+        // docs/09: "Render (Frankfurt)".
+        ["Render", "Running the background worker that reads artwork, runs checks and produces reports", "Frankfurt"],
+        // docs/09: "Sentry (EU, Frankfurt)".
+        ["Sentry", "Error and performance monitoring", "EU (Frankfurt)"],
+        // docs/09: "PostHog (EU, Frankfurt)"; D-25: only the explicit events, no automatic capture.
+        ["PostHog", "Product analytics on a fixed list of events", "EU (Frankfurt)"],
+        // docs/09 and D-17: "Langfuse (EU, Ireland)".
+        ["Langfuse", "Tracing of model calls, for quality and audit", "EU (Ireland)"],
       ],
     }),
     sec("06", "Transfers outside the EEA", null, [
