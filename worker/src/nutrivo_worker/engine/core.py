@@ -224,10 +224,9 @@ def evaluate_check(node: Node, panel: Panel, panels: tuple[Panel, ...], rules: l
     """One node × panel. `rules` are the ruleset's members held on the node or its region."""
     result = CheckResult(node.id, panel, "not_assessed")
     common = {"panel_id": panel.id, "language": panel.language}
-    incomplete = False
+    incomplete = coverage_incomplete(coverage)
     for c in coverage:
         if c.state != "complete":
-            incomplete = True
             # D06: a registration-domain gap is a finding of kind registration, as the demo seed and the report read it;
             # it still withholds the label verdict, as verdict_guard requires (#54)
             result.findings.append({**common, "rule_key": None, "rule_version": None, "gap_id": c.gap_id,
@@ -238,9 +237,7 @@ def evaluate_check(node: Node, panel: Panel, panels: tuple[Panel, ...], rules: l
                                     "message": _withheld_message(c.domain), "citation": None})
     # A domain with no coverage row is not encoded (no rule, no verdict). It gets no finding of its own: a withheld
     # finding needs a gap_id from ref.coverage_gaps, which a missing row does not give, and none is invented here.
-    # The check is not_assessed, as private.verdict_guard requires.
-    if not {c.domain for c in coverage}.issuperset(COVERAGE_DOMAINS):
-        incomplete = True
+    # The check is not_assessed, as private.verdict_guard requires (coverage_incomplete).
     facts = facts_for(base_facts, node, panel)
     failed = False
     for rule in sorted(rules, key=lambda r: r.rule_key):
@@ -268,13 +265,24 @@ def evaluate_check(node: Node, panel: Panel, panels: tuple[Panel, ...], rules: l
                                 "confidence": r.confidence, "model_call_id": r.model_call_id,
                                 "measured_mm": r.measured_mm, "required_mm": r.required_mm,
                                 "height_definition": r.height_definition})
-    if failed:
-        result.label_state = "action"
-    elif result.withheld or incomplete or not result.applied:
-        result.label_state = "not_assessed"
-    else:
-        result.label_state = "clear"
+    result.label_state = label_state(failed, bool(result.withheld), incomplete, bool(result.applied))
     return result
+
+
+def coverage_incomplete(coverage: list[Coverage]) -> bool:
+    """Any of the six domains not complete, or without a coverage row (no rule, no verdict)."""
+    return (any(c.state != "complete" for c in coverage)
+            or not {c.domain for c in coverage}.issuperset(COVERAGE_DOMAINS))
+
+
+def label_state(failed: bool, withheld: bool, incomplete: bool, applied: bool) -> LabelState:
+    """Step 5: action if anything failed; else not_assessed if anything was withheld, coverage is incomplete or
+    nothing applied; else clear."""
+    if failed:
+        return "action"
+    if withheld or incomplete or not applied:
+        return "not_assessed"
+    return "clear"
 
 
 def worst(states: list[LabelState]) -> LabelState:

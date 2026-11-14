@@ -1,5 +1,5 @@
 -- T-1002 · E02 Compute the compliance envelope: app.request_envelope, app.envelope_nodes, the envelope guards and
--- insert-only enforcement (migration 20261111020715). Synthetic rows only, rolled back; never regulatory content.
+-- insert-only enforcement (migration 20261114132715). Synthetic rows only, rolled back; never regulatory content.
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;

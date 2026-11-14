@@ -258,6 +258,15 @@ class PgStore:
         except psycopg.errors.NoDataFound:
             return None
 
+    def supersede_for_rule_diff(self, rule_diff_id: str) -> dict[str, Any] | None:
+        """app.supersede_for_rule_diff in its own transaction (T-903, I05); None for an unknown diff (P0002)."""
+        try:
+            with self.conn.transaction():
+                return self.conn.execute("select app.supersede_for_rule_diff(%s) as r",
+                                         (rule_diff_id,)).fetchone()["r"]
+        except psycopg.errors.NoDataFound:
+            return None
+
     def run_alert_sweep(self, day: date) -> dict[str, Any]:
         with self.conn.transaction():
             return self.conn.execute("select app.run_alert_sweep(%s) as r", (day,)).fetchone()["r"]
@@ -341,6 +350,10 @@ class PgStore:
     def record_dunning_step(self, workspace_id: str, invoice_id: str, day: int, outcome: str, ref: str) -> str:
         return self.conn.execute("select app.record_dunning_step(%s, %s, %s, %s, %s) as r",
                                  (workspace_id, invoice_id, day, outcome, ref)).fetchone()["r"]
+
+    # ── expiry_reminders (T-803, H04) ───────────────────────────────────────────────────────────────────────
+    def queue_expiry_reminders(self, ref: str) -> dict[str, int]:
+        return self.conn.execute("select app.queue_expiry_reminders(%s) as r", (ref,)).fetchone()["r"]
 
     # ── session_revoke (A06) ────────────────────────────────────────────────────────────────────────────
     def membership_for_revoke(self, membership_id: str) -> dict[str, Any] | None:

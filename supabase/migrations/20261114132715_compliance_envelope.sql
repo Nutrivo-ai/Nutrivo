@@ -159,7 +159,8 @@ end $$;
 alter table app.jobs drop constraint jobs_kind_check;
 alter table app.jobs add constraint jobs_kind_check
   check (kind in ('extract','check','recheck','bulk_recheck','report','export','notify','session_revoke','diff_fanout',
-                  'billing_sync','billing_reconcile','recipe_overage','dunning','scan','envelope')) not valid;
+                  'billing_sync','billing_reconcile','recipe_overage','dunning','scan','expiry_reminders',
+                  'envelope')) not valid;
 alter table app.jobs validate constraint jobs_kind_check;
 do $$
 begin
