@@ -6,9 +6,9 @@ migration.
 ## Schemas
 | Schema | Holds | Access |
 |---|---|---|
-| `app` | Tenant data (42 tables) | RLS on every table; authenticated may SELECT under policy; writes only through RPCs or the worker (service role); anon has nothing |
+| `app` | Tenant data (43 tables) | RLS on every table; authenticated may SELECT under policy; writes only through RPCs or the worker (service role); anon has nothing |
 | `ref` | Jurisdictions, rules and versions, rulesets, coverage and gaps, terms, glossary, obligations, document requirements, horizon, candidates, fixtures, additive register, feed-material catalogue | Authenticated read (unaccepted rule versions and terms visible to staff only); staff tables (`rule_candidates`, `sources`, `term_decisions`, `ruleset_drafts`, `ruleset_draft_members`, `ruleset_draft_coverage`, `fixture_runs`) service-role only; staff write through the T-204 RPCs |
-| `private` | Helpers and guard triggers; `consumer_email_domains` and `before_user_created_hook` (D-27, T-109) | Executable by authenticated and service_role; never exposed through the API. The free-mail list and its hook are for `supabase_auth_admin` only (service_role may read the list), versioned by `list_version` and extended only by a new migration |
+| `private` | Helpers and guard triggers; `consumer_email_domains` and `before_user_created_hook` (D-27, T-109) | The read helpers RLS and storage policies call (`is_member`, `has_role`, `can_see_product`, `node_in_scope`, `can_edit_product`, `can_upload_artwork` and the like) are executable by authenticated; the write helpers (`enqueue`, `write_audit`, `consume_allowance`) and `require_*` by service_role only (#179 X2); never exposed through the API. The free-mail list and its hook are for `supabase_auth_admin` only (service_role may read the list), versioned by `list_version` and extended only by a new migration |
 | `public` | `verify_reference(ref)`, `coverage_snapshot()` | anon may execute these two functions only |
 
 ## Table groups (app)
@@ -103,7 +103,7 @@ deterministic_rule or model_judgement needs a rule_key (23514); a clear check ta
 | P0046 | A finding whose workspace, product or node differ from its check's (#179 DB-6) |
 | P0047 | #197: a sealed (released) ruleset's coverage, members, pinned rule metadata or named gap changed after its release; change it in the next draft |
 | P0048 | D-31: a draft's node × domain set complete, or a member set under complete coverage, while a held member's linked term has no accepted entry in one of the node's languages (T-209) |
-| P0291 / P0292 / P0293 | Certificate: no signing grant / two-factor required / open findings |
+| P0291 / P0292 / P0293 | Certificate: no signing grant, or the node is outside the signer's market scope / two-factor required / open findings, or the market does not display Clear (not assessed, unknown or blocked registration, or no state at all; T-1103). A product outside the signer's scope answers P0002 like an unknown report; a node other than the report's own market answers 22023 |
 
 ## Naming reconciliation
 | Handoff and BE register (5 Sep) | Workflow Register (25 Sep) | This repository |

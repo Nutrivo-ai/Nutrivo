@@ -20,8 +20,30 @@ owner) only: clients reach them through the security definer RPCs (#179 X2). Eve
 it can execute `verify_reference` and nothing else. It answers status, issue date, ruleset version and whether Not
 assessed items existed; a missing and a malformed reference get the identical `unknown` answer, so a caller learns
 nothing about near misses. The page `/verify/[ref]` is `noindex` and `Referrer-Policy: no-referrer`, and no log line
-carries a reference. Rate limits are best-effort and per instance: 30 a minute per visitor in the web app, 60 per client
-and 1,200 per instance in the function. A shared limiter would need storage and is left to T-1103 (question on #48).
+carries a reference. Rate limits are best-effort and per instance (below, Rate limits).
+
+## Rate limits, advisors and scans (T-1103)
+| Surface | Limit | Where |
+|---|---|---|
+| `verify` Edge Function | 60 a minute per client, 1,200 per instance, 429 with Retry-After | `supabase/functions/verify/verify.js` |
+| `/verify/[ref]` in the web app | 30 a minute per visitor | `apps/web/src/lib/public/verify.ts` |
+| `supplier-upload` Edge Function | 30 a minute per client, 600 per instance; 25 MiB per file | `supabase/functions/supplier-upload/upload.js` |
+| `stripe-webhook` Edge Function | No rate limit: only a request with Stripe's signature over the exact payload, at most 300 s old and 1 MiB, reaches the database | `supabase/functions/stripe-webhook/webhook.js` |
+| `share` Edge Function (D-30) | Not built yet; it must copy `verify`'s limiter, and `worker/tests/test_security_sweep.py` fails a public function without one | — |
+| Supabase Auth | Per IP: 30 sign-ins and sign-ups and 30 code verifications per 5 minutes, 150 token refreshes per 5 minutes; minimum password length 12, as the web requires | `supabase/config.toml` `[auth]`, `[auth.rate_limit]`; the hosted projects set the same in the dashboard |
+
+The Edge Function limits are best-effort and held per instance. A shared, durable limiter and the question of which
+client-IP header the hosted gateway overwrites (the functions key on the first `X-Forwarded-For` entry, which a
+caller can set, so only the per-instance cap is a hard bound) are open on #81 (Q1, Q2).
+
+**Advisors (local, 14 Nov 2026).** `supabase db advisors --local --type security`: clean apart from INFO
+`rls_enabled_no_policy` on `app.model_calls`, which is deliberate (service role only, gate BE-02). Performance: INFO
+only (unindexed foreign keys, and unused indexes on a fresh database), left to a measured follow-up (#81 Q5).
+`supabase db lint`: warnings only (untyped literals assigned to jsonb, unused variables). The full-tree rls-reviewer
+pass found certificates issued and read outside the signer's scope and artwork uploads outside family scope; migration
+`20261114125818_security_sweep.sql` fixes all three. **Scans:** gitleaks clean on history and tree; `pip-audit` clean
+after the T-1103 lock bumps (pillow 13, certifi, opentelemetry, pypdf); `pnpm audit --prod` clean, with one moderate,
+dev-only advisory (`minimatch` under `eslint-config-next`). The nightly audit keeps both, at high and above.
 
 ## The record
 Insert-only tables (docs/03-data-model.md) have privileges revoked and a rejecting trigger, so even the service key
