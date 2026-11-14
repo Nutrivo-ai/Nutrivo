@@ -10,7 +10,9 @@ vi.mock("@/lib/briefs/actions", () => ({
   saveClaims: async () => ({ ok: true, count: 0 }),
   findInRegister: async () => ({ ok: true, rows: [] }),
   promoteBrief: async () => ({ ok: false, reason: "error" }),
+  requestEnvelope: async () => ({ ok: false, reason: "error" }),
 }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {}, refresh: () => {} }) }));
 
 const WS = "20000000-0000-4000-8101-00000000000a";
 const brief: Brief = {
@@ -56,9 +58,11 @@ describe("BriefForm", () => {
     expect(html.match(/Not matched to the register/g)).toHaveLength(1);
     expect(html).toContain(">Paste<");
     // ">Upload<" is the formula's Upload control; T-1003's promote note names the Upload & scope screen.
-    for (const absent of [">Upload<", "Import from spec", "Screen this brief", "What we can answer with this"]) {
+    for (const absent of [">Upload<", "Import from spec", "What we can answer with this"]) {
       expect(html).not.toContain(absent);
     }
+    // T-1002: "Screen this brief" asks for the envelope (E02).
+    expect(html).toContain("Screen this brief");
   });
 
   it("the empty state says that with no formula additive rules are withheld, and offers one way in", () => {

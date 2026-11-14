@@ -90,3 +90,27 @@ export async function findInRegister(q: string): Promise<RegisterSearch> {
     return { ok: false };
   }
 }
+
+export type EnvelopeRequest = { ok: true; jobId: string } | { ok: false; reason: BriefRefusal | "no-ruleset" | "no-markets" };
+
+/**
+ * T-1002 · E02: "Screen this brief". app.request_envelope decides who may (an editor, 42501 otherwise) and returns the
+ * job; the same inputs return the same job, so the cached envelope. The envelope screen then follows the job.
+ */
+export async function requestEnvelope(workspaceId: string, productId: string): Promise<EnvelopeRequest> {
+  if (!UUID.test(productId) || !UUID.test(workspaceId)) return { ok: false, reason: "invalid" };
+  const db = await createClient();
+  const requestId = resolveRequestId((await headers()).get(REQUEST_ID_HEADER));
+  const { data, error } = await db.schema("app").rpc("request_envelope", { p_product: productId }).setHeader(REQUEST_ID_HEADER, requestId);
+  if (error) {
+    const reason = error.code === "P0003" ? "no-ruleset" : error.code === "22023" ? "no-markets" : (error.code && CODES[error.code]) || "error";
+    if (reason === "error") {
+      Sentry.captureException(new Error(`request_envelope failed: ${error.code ?? "error"}`), {
+        tags: { area: "briefs", briefs_step: "request_envelope", request_id: requestId },
+      });
+    }
+    return { ok: false, reason };
+  }
+  revalidatePath(`/w/${workspaceId}/briefs/${productId}/envelope`);
+  return { ok: true, jobId: String(data) };
+}

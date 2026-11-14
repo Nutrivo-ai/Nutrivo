@@ -6,5 +6,19 @@ report with T-405 (I01: a check's label report PDF); billing_sync and billing_re
 subscriptions onto the mirror); scan with T-802 (H03: a supplier upload is malware-scanned, then promoted as a new
 row); diff_fanout with T-901 (J03: a released rule diff onto alerts, and the daily alert sweep; T-903 adds supersession);
 recheck with T-903 (J05: the scoped re-check of one recipe after a material rule diff); expiry_reminders with T-803
-(H04: the daily producer of the document_expiring notices)."""
-from . import billing, check, diff_fanout, expiry, export, extract, notify, recheck, report, scan, session_revoke  # noqa: F401
+(H04: the daily producer of the document_expiring notices); envelope with T-1002 (E02: a brief's compliance envelope
+from accepted rules only)."""
+from . import (  # noqa: F401
+    billing,
+    check,
+    diff_fanout,
+    envelope,
+    expiry,
+    export,
+    extract,
+    notify,
+    recheck,
+    report,
+    scan,
+    session_revoke,
+)

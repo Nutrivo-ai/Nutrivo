@@ -14,7 +14,7 @@ migration.
 ## Table groups (app)
 Tenancy: people, workspaces, memberships, invitations, signing_grants · Products: families, products, product_nodes,
 formula_lines, intended_claims · Artwork: artwork_versions, extraction_runs, artwork_panels, text_objects,
-classifications · Checks: checks, check_findings, envelopes, envelope_items · Artefacts: reports, certificates,
+classifications · Checks: checks, check_findings, envelopes, envelope_items, envelope_nodes · Artefacts: reports, certificates,
 shares, share_access_log, supersessions · Registration and documents: registrations, registration_packs, suppliers,
 supplier_documents, document_requests · Money: subscriptions, allowances, allowance_consumptions, billing_details,
 payment_events, dunning_steps · Ops: jobs, notifications, notification_prefs, alerts, alert_reads, saved_views, model_calls,
@@ -22,9 +22,17 @@ audit_events.
 
 **Insert-only:** checks, check_findings, reports, certificates, supersessions, supplier_documents, audit_events,
 payment_events, dunning_steps, allowance_consumptions, classifications, model_calls, share_access_log, ref.ruleset_versions,
-ref.ruleset_members, ref.term_decisions, ref.fixture_runs, ref.ruleset_seals. Privileges are revoked and a trigger rejects UPDATE, DELETE and TRUNCATE,
+ref.ruleset_members, ref.term_decisions, ref.fixture_runs, ref.ruleset_seals, envelopes, envelope_items,
+envelope_nodes. Privileges are revoked and a trigger rejects UPDATE, DELETE and TRUNCATE,
 including for the table owner (BE-05). Accepted `ref.rule_versions` rows are permanent (BE-08). Products have no
 delete (BE-13).
+
+**Envelopes (T-1002, E02).** `app.envelope_items` and `app.envelope_nodes` name their market and are read by product
+and market scope (`can_see_product` and `node_in_scope`). `app.envelopes.node_ids`, the product's markets, is readable
+with the product, as job payloads are (open decision DB-5 Q2, #8). An envelope belongs to its product's workspace. A market's
+`envelope_nodes` row seals it: no item is added for that market afterwards (P0021). Its `withheld` and `open_items`
+equal its items' counts (23514), and `clear` needs the market fully encoded with nothing withheld
+(`private.envelope_verdict_guard`, P0021).
 
 **Alerts (T-901, J03).** `app.alerts` rows are written only by the worker through `app.fan_out_rule_diff` (one per diff × product × market from contract 5, BE-24) and `app.run_alert_sweep` (the `in_force` row when a `coming` alert's date arrives: a new row, never an update; unique per diff × product × market × phase). Read state is `app.alert_reads`, one row per alert and person, written only by `app.mark_alerts_read` for the caller (BE-39); a person reads only their own rows.
 
