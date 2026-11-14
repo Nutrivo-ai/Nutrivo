@@ -23,7 +23,11 @@
     stores its own identity's client id and secret as `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`, which is
     where `scripts/bootstrap/github-setup.sh` copies them from. `INFISICAL_PROJECT_ID` is a repository variable (the
     dev project); the GitHub environments `staging` and `production` override it with their own project's id.
-  - Infisical's secret syncs to Vercel and Render, so nothing is copied by hand.
+  - Infisical's secret syncs to Vercel and Render, so nothing is copied by hand. The staging project syncs to the
+    Vercel project's **Preview** environment (deploy-staging builds with `vercel pull --environment=preview`) and to the
+    Render service `nutrivo-worker-staging`; the prod project to Vercel **Production** and `nutrivo-worker-prod`. The
+    syncs carry the canonical names: the web build maps `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `POSTHOG_KEY`,
+    `POSTHOG_HOST` and `SENTRY_DSN_WEB` onto the browser's `NEXT_PUBLIC_*` names itself (apps/web/next.config.ts).
 - **Switches.** Repository variables turn deployments on at their gates: `STAGING_DEPLOY_ENABLED` (T-010, G7),
   `PRODUCTION_DEPLOY_ENABLED` (T-1101, G7) and `SYNTHETIC_ENABLED` (T-1102). Until an organisation owner sets one to `true`, the
   matching workflow does nothing. docs/22-github-and-team.md has the click path.

@@ -10,7 +10,8 @@ issue (T-1107).
    - Every screen in spec/screens.yaml is built and within its visual threshold.
    - The no-dead-controls crawl is clean.
    - axe reports zero serious or critical findings.
-3. **Performance.** Every budget in spec/nfr.yaml is met in the staging load test.
+3. **Performance.** Every budget in spec/nfr.yaml is met in the staging load test (`staging-load` in nightly.yml,
+   reports/LOAD.md; docs/13 §Load test). A budget reported `withheld` is not met.
 4. **Reliability.**
    - Synthetic monitoring has been green for 7 days and every Sentry cron monitor is configured.
    - The error budget is healthy.

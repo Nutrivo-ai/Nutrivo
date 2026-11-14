@@ -51,6 +51,7 @@ export function LabelReport({
       }
       aside={set ? <RulesetChip set={set} href={`/w/${workspaceId}/library/coverage?product=${productId}`} /> : null}
     >
+      {loaded?.outsidePlan.length ? <OutsidePlan markets={loaded.outsidePlan} /> : null}
       {!loaded ? (
         <ProductNotFound workspaceId={workspaceId} />
       ) : !set ? (
@@ -73,6 +74,20 @@ export function LabelReport({
         />
       )}
     </Screen>
+  );
+}
+
+/**
+ * J04.must.1 (T-902): markets in a region the plan does not hold are named, and their findings are not shown. Nothing
+ * here is a paywall: the alerts inbox still names any change that affects them.
+ */
+function OutsidePlan({ markets }: { markets: { nodeId: string; name: string; regionName: string }[] }) {
+  const regions = [...new Set(markets.map((m) => m.regionName))];
+  return (
+    <p data-outside-plan className="mt-0 mb-[14px] max-w-[948px] text-[12.5px] leading-[1.5] text-n700">
+      Not shown: {markets.map((m) => m.name).join(", ")}. Your plan does not include {regions.join(" or ")}, so these
+      findings cannot be opened.
+    </p>
   );
 }
 
