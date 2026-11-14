@@ -41,6 +41,26 @@ export function scrubEvent(event: ErrorEvent): ErrorEvent {
   return user?.id ? { ...scrubbed, user: { id: String(user.id) } } : scrubbed;
 }
 
+// T-1103: P0049 is the database's rate limit on RPCs that queue work. It is an expected refusal the person is told
+// about, never an error; the call sites skip it, and this drops any event that still carries the code as its error
+// code (a tag or extra named code/error_code) or as a whole word in its message or exception values. Nothing else
+// is dropped.
+const RATE_LIMITED = /\bP0049\b/;
+const CODE_KEYS = ["code", "error_code"] as const;
+
+export function isRateLimitEvent(event: ErrorEvent): boolean {
+  for (const bag of [event.tags, event.extra] as (Record<string, unknown> | undefined)[]) {
+    if (bag && CODE_KEYS.some((k) => bag[k] === "P0049")) return true;
+  }
+  if (typeof event.message === "string" && RATE_LIMITED.test(event.message)) return true;
+  return (event.exception?.values ?? []).some((v) => typeof v.value === "string" && RATE_LIMITED.test(v.value));
+}
+
+/** beforeSend: drop a rate-limit refusal, scrub everything else. */
+export function beforeSend(event: ErrorEvent): ErrorEvent | null {
+  return isRateLimitEvent(event) ? null : scrubEvent(event);
+}
+
 // Transactions and breadcrumbs carry URLs too (the request URL, span descriptions, navigation from/to), so they get
 // the same scrubber as errors.
 export function scrubTransaction(event: TransactionEvent): TransactionEvent {
@@ -64,7 +84,7 @@ export function sentryOptions(dsn: string | undefined, environment: string | und
     release: release || undefined,
     sendDefaultPii: false,
     tracesSampleRate: tracesSampleRate(env),
-    beforeSend: scrubEvent,
+    beforeSend,
     beforeSendTransaction: scrubTransaction,
     beforeBreadcrumb: scrubBreadcrumb,
   };

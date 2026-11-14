@@ -1,5 +1,6 @@
 // T-401 (C01–C04, B02): what the product screens decide without the database. The database decides everything that
 // matters (permissions, the recipe cap, the allowance); this turns its answers into what a person reads.
+import { isRateLimited, rateLimitMessage } from "@/lib/rate-limit";
 
 export const STAGES = ["brief", "in_development", "active", "discontinued"] as const;
 export type Stage = (typeof STAGES)[number];
@@ -30,6 +31,7 @@ export type Refusal = { code: string; title: string; body: string; offer?: { lab
  */
 export function productRefusal(code: string | undefined, workspaceId: string, hint?: string | null): Refusal {
   const plans = `/w/${workspaceId}/billing/plans`;
+  if (isRateLimited({ code, hint })) return { code: "P0049", ...rateLimitMessage({ code, hint }, "Nothing was created.") };
   switch (code) {
     case "P0034": {
       let plan = "the next plan";

@@ -16,6 +16,20 @@ enabled = false   # reference data is seeded by migrations so production gets it
 site_url = "http://localhost:3000"
 additional_redirect_urls = ["http://localhost:3000/auth/callback"]
 enable_signup = true
+# T-1103: the web's MIN_PASSWORD (apps/web/src/lib/auth/rules.ts). Without it a direct Auth API call takes 6.
+# Hosted projects must match: Authentication → Providers → Email → Minimum password length.
+minimum_password_length = 12
+
+# T-1103: written out so the hosted projects have something to match (Authentication → Rate Limits). These are
+# Supabase's defaults: sign-in, sign-up and verification per IP per 5 minutes; emails per hour.
+[auth.rate_limit]
+email_sent = 2
+sms_sent = 30
+anonymous_users = 30
+token_refresh = 150
+sign_in_sign_ups = 30
+token_verifications = 30
+web3 = 30
 
 [auth.email]
 enable_confirmations = true

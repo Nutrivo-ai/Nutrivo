@@ -8,13 +8,17 @@ import type { Database } from "@/lib/database.types";
 import type { JobRow } from "@/lib/artwork/progress";
 import { REQUEST_ID_HEADER } from "@/lib/observability/request-id";
 import type { RunSummary } from "@/lib/artwork/queries";
+import { asRpcError, isRateLimited, rateLimitMessage, type RpcErrorLike } from "@/lib/rate-limit";
 
 type Db = SupabaseClient<Database>;
 
 export type CheckRefusal = { code: string; title: string; body: string };
 
 /** request_check's refusals (docs/03 error codes) as what the person sees. */
-export function checkRefusal(code: string | undefined): CheckRefusal {
+export function checkRefusal(input: string | RpcErrorLike | null | undefined): CheckRefusal {
+  const error = asRpcError(input);
+  const code = error?.code ?? undefined;
+  if (isRateLimited(error)) return { code: "P0049", ...rateLimitMessage(error, "Nothing was run and nothing was counted.") };
   switch (code) {
     case "42501":
       return {
@@ -48,7 +52,7 @@ export type RequestResult = { ok: true; jobId: string } | { ok: false; refusal: 
 export async function requestCheck(db: Db, productId: string, requestId?: string): Promise<RequestResult> {
   const call = db.schema("app").rpc("request_check", { p_product: productId });
   const { data, error } = await (requestId ? call.setHeader(REQUEST_ID_HEADER, requestId) : call);
-  if (error || !data) return { ok: false, refusal: checkRefusal(error?.code) };
+  if (error || !data) return { ok: false, refusal: checkRefusal(error) };
   return { ok: true, jobId: data };
 }
 

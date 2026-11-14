@@ -44,6 +44,11 @@ EXPIRY_REMINDERS_MONITOR = "expiry-reminders"
 EXPIRY_REMINDERS_CONFIG = {"schedule": {"type": "crontab", "value": "23 6 * * *"}, "checkin_margin": 60,
                            "max_runtime": 60, "failure_issue_threshold": 1, "timezone": "UTC"}
 
+# T-1103: pg_cron queues one rate_purge job a day at 02:53 UTC (the RPC rate counters); a missed or failed day alerts.
+RATE_PURGE_MONITOR = "rate-counter-purge"
+RATE_PURGE_CONFIG = {"schedule": {"type": "crontab", "value": "53 2 * * *"}, "checkin_margin": 60,
+                     "max_runtime": 60, "failure_issue_threshold": 1, "timezone": "UTC"}
+
 # T-901: pg_cron queues one diff_fanout sweep a day at 07:23 UTC (J03); a missed or failed day alerts (docs/17).
 ALERT_SWEEP_MONITOR = "alert-sweep"
 ALERT_SWEEP_CONFIG = {"schedule": {"type": "crontab", "value": "23 7 * * *"}, "checkin_margin": 60,

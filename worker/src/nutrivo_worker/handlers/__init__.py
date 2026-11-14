@@ -7,7 +7,7 @@ subscriptions onto the mirror); scan with T-802 (H03: a supplier upload is malwa
 row); diff_fanout with T-901 (J03: a released rule diff onto alerts, and the daily alert sweep; T-903 adds supersession);
 recheck with T-903 (J05: the scoped re-check of one recipe after a material rule diff); expiry_reminders with T-803
 (H04: the daily producer of the document_expiring notices); envelope with T-1002 (E02: a brief's compliance envelope
-from accepted rules only)."""
+from accepted rules only); rate_purge with T-1103 (the daily purge of the RPC rate counters)."""
 from . import (  # noqa: F401
     billing,
     check,
@@ -16,6 +16,7 @@ from . import (  # noqa: F401
     expiry,
     export,
     extract,
+    maintenance,
     notify,
     recheck,
     report,

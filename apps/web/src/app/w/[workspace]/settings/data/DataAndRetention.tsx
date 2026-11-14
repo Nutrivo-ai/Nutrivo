@@ -163,9 +163,10 @@ export function FullExport({ workspaceId, initial }: { workspaceId: string; init
       const result = await requestExport(workspaceId);
       if (!result.ok) {
         setProblem(
-          result.reason === "no-permission"
+          result.problem ??
+          (result.reason === "no-permission"
             ? "Only an internal admin with access to the whole workspace can request a full export."
-            : "The export was not requested. Nothing changed; try again.",
+            : "The export was not requested. Nothing changed; try again."),
         );
         return;
       }

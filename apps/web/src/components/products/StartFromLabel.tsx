@@ -53,7 +53,7 @@ export function StartFromLabel({ workspaceId, familyId }: { workspaceId: string;
       .rpc("create_product_from_artwork", { p_ws: workspaceId, p_file_name: file.name, p_family: familyId ?? undefined })
       .setHeader(REQUEST_ID_HEADER, requestId);
     if (created.error || !created.data) {
-      if (!["P0032", "P0034", "P0036", "42501"].includes(created.error?.code ?? "")) {
+      if (!["P0032", "P0034", "P0036", "42501", "P0049"].includes(created.error?.code ?? "")) {
         Sentry.captureMessage("create_product_from_artwork failed", { tags: { error_code: created.error?.code ?? "none", request_id: requestId } });
       }
       setState({ step: "refused", refusal: productRefusal(created.error?.code, workspaceId, created.error?.hint) });

@@ -1,6 +1,7 @@
 // T-1001 · E01 Create a brief (S-NV2-004): the formula and intended claims a person enters, as plain values. Pure, so
 // the screen and its unit tests share one reading. The database decides what is valid (app.set_formula_lines,
 // app.set_intended_claims); these only shape input and say what the screen shows.
+import { isRateLimited, rateLimitMessage, type RpcErrorLike } from "@/lib/rate-limit";
 
 /** One formula line as app.set_formula_lines takes it. The register row is the person's pick, never inferred. */
 export type FormulaLineInput = {
@@ -157,4 +158,19 @@ export function targetNodes(nodes: string[]): string {
     groups.set(region, list);
   }
   return [...groups.entries()].map(([r, l]) => (l.length ? `${r} · ${l.join(", ")}` : r)).join("  ·  ");
+}
+
+export type EnvelopeRefusalReason = "no-permission" | "invalid" | "error" | "no-ruleset" | "no-markets" | "rate-limited";
+
+/**
+ * app.request_envelope's error as the refusal the button shows. T-1103: P0049 is the database's rate limit, an
+ * expected refusal with its own wait, never an error for Sentry.
+ */
+export function envelopeRefusal(error: RpcErrorLike | null | undefined): { reason: EnvelopeRefusalReason; message?: string } {
+  if (isRateLimited(error)) return { reason: "rate-limited", message: rateLimitMessage(error, "Nothing was screened.").body };
+  const code = error?.code ?? "";
+  if (code === "P0003") return { reason: "no-ruleset" };
+  if (code === "22023") return { reason: "no-markets" };
+  if (code === "42501") return { reason: "no-permission" };
+  return { reason: "error" };
 }

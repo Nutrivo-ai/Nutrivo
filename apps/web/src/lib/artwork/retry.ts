@@ -4,13 +4,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { REQUEST_ID_HEADER } from "@/lib/observability/request-id";
+import { asRpcError, isRateLimited, rateLimitMessage, type RpcErrorLike } from "@/lib/rate-limit";
 
 type Db = SupabaseClient<Database>;
 
 export type RetryRefusal = { code: string; title: string; body: string };
 
 /** retry_extraction's refusals (docs/03 error codes) as what the person sees. */
-export function retryRefusal(code: string | undefined): RetryRefusal {
+export function retryRefusal(input: string | RpcErrorLike | null | undefined): RetryRefusal {
+  const error = asRpcError(input);
+  const code = error?.code ?? undefined;
+  if (isRateLimited(error)) return { code: "P0049", ...rateLimitMessage(error, "Nothing changed and nothing was counted.") };
   switch (code) {
     case "42501":
       return {
@@ -38,6 +42,6 @@ export type RetryResult = { ok: true; jobId: string } | { ok: false; refusal: Re
 export async function retryExtraction(db: Db, artworkVersionId: string, requestId?: string): Promise<RetryResult> {
   const call = db.schema("app").rpc("retry_extraction", { p_artwork: artworkVersionId });
   const { data, error } = await (requestId ? call.setHeader(REQUEST_ID_HEADER, requestId) : call);
-  if (error || !data) return { ok: false, refusal: retryRefusal(error?.code) };
+  if (error || !data) return { ok: false, refusal: retryRefusal(error) };
   return { ok: true, jobId: data };
 }

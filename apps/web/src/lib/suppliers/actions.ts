@@ -9,6 +9,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { REQUEST_ID_HEADER } from "@/lib/observability/request-id";
 import { createClient } from "@/lib/supabase/server";
+import { isRateLimited, rateLimitMessage } from "@/lib/rate-limit";
 
 export type RequestFormState =
   | { status: "idle" }
@@ -61,6 +62,7 @@ export async function requestDocument(_: RequestFormState, form: FormData): Prom
   if (error) {
     if (error.code === "42501") return { status: "problem", problem: "Only an editor of this product can ask for its documents." };
     if (error.code === "22023") return { status: "problem", problem: "Check the request: " + plain(error.message) };
+    if (isRateLimited(error)) return { status: "problem", problem: rateLimitMessage(error, "Nothing was sent.").body };
     Sentry.captureMessage(`request_document failed: ${error.code ?? "error"}`, {
       level: "error",
       tags: { area: "suppliers", request_id: requestId ?? "" },

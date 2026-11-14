@@ -16,6 +16,7 @@ export const ENVELOPE_REFUSAL: Record<Refusal, string> = {
   "no-ruleset": "No ruleset has been released yet, so there is nothing to screen against.",
   "no-markets": "This brief has no markets yet. Add a market, then screen it.",
   error: "The brief was not screened. Try again, and if it fails twice, tell us.",
+  "rate-limited": "Too many requests; try again in a few minutes. Nothing was screened.",
 };
 
 export const SCREEN_NOTE =
@@ -33,14 +34,14 @@ export function ScreenThisBrief({
   note?: boolean;
 }) {
   const router = useRouter();
-  const [refusal, setRefusal] = useState<Refusal | null>(null);
+  const [refusal, setRefusal] = useState<{ reason: Refusal; message?: string } | null>(null);
   const [pending, start] = useTransition();
   const screen = () =>
     start(async () => {
       setRefusal(null);
       const result = await requestEnvelope(workspaceId, productId);
       if (!result.ok) {
-        setRefusal(result.reason);
+        setRefusal({ reason: result.reason, message: result.message });
         return;
       }
       router.push(`/w/${workspaceId}/briefs/${productId}/envelope`);
@@ -57,8 +58,8 @@ export function ScreenThisBrief({
         </p>
       ) : null}
       {refusal ? (
-        <p role="alert" className="mt-[8px] mb-0 text-[12.5px] font-medium text-ink" data-screen-refused={refusal}>
-          {ENVELOPE_REFUSAL[refusal]}
+        <p role="alert" className="mt-[8px] mb-0 text-[12.5px] font-medium text-ink" data-screen-refused={refusal.reason}>
+          {refusal.message ?? ENVELOPE_REFUSAL[refusal.reason]}
         </p>
       ) : null}
     </div>
