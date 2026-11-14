@@ -1,0 +1,75 @@
+name: content-staging
+# Fills staging's content review queue (docs/12 §Running the pipeline on staging). Claude Code sessions hold only the dev
+# Infisical identity, and staging's secrets live in the GitHub environment `staging`, which only jobs on main can read
+# (docs/16, docs/22 §3). So a founder runs this from Actions → content-staging → Run workflow. It runs the same commands
+# as the local stack, in order: fetch the official texts, import the additive register and the feed-material
+# catalogue, extract candidate rules (K01/K02), extract candidate terms. Every step writes reference data or
+# candidates only: nothing accepts, rejects or releases (non-negotiable 7); a person does that in /admin.
+on:
+  workflow_dispatch:
+    inputs:
+      steps:
+        description: What to run
+        type: choice
+        options: [all, fetch, import, extract, terms]
+        default: all
+        required: true
+      dry_run:
+        description: Fetch, extract and compare only; write nothing (extract and terms still call the model)
+        type: boolean
+        default: false
+concurrency: { group: content-staging, cancel-in-progress: false }
+permissions: { contents: read }
+
+jobs:
+  content:
+    if: github.ref == 'refs/heads/main'
+    environment: staging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      NUTRIVO_ENV: staging
+      DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
+      STEPS: ${{ inputs.steps }}
+    defaults:
+      run: { working-directory: worker }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/infisical
+        with:
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
+          env-slug: staging
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Install the worker
+        run: uv sync --frozen
+      - name: Fetch the official texts (T-201)
+        if: env.STEPS == 'all' || env.STEPS == 'fetch'
+        run: uv run nutrivo sources fetch $DRY | tee -a ../content-staging.jsonl
+      - name: Import the additive register and the feed-material catalogue (T-202)
+        if: env.STEPS == 'all' || env.STEPS == 'import'
+        run: |
+          uv run nutrivo sources import additives $DRY | tee -a ../content-staging.jsonl
+          uv run nutrivo sources import materials $DRY | tee -a ../content-staging.jsonl
+      - name: Extract candidate rules (K01/K02, T-203)
+        if: env.STEPS == 'all' || env.STEPS == 'extract'
+        # A second pass resumes any second key that failed on the first (`updated`); a completed pair is `unchanged`
+        # and calls no model.
+        run: |
+          uv run nutrivo content extract $DRY | tee -a ../content-staging.jsonl || first=$?
+          if [ -z "$DRY" ] && [ -n "${first:-}" ]; then uv run nutrivo content extract | tee -a ../content-staging.jsonl; fi
+      - name: Extract candidate terms (K01/K02 for terms)
+        if: env.STEPS == 'all' || env.STEPS == 'terms'
+        run: uv run nutrivo content terms $DRY | tee -a ../content-staging.jsonl
+      - name: Summary
+        if: ${{ !cancelled() }}
+        working-directory: .
+        run: |
+          [ -f content-staging.jsonl ] || exit 0
+          { echo '### content-staging'; echo; echo '```'; grep '"summary"' content-staging.jsonl || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+      # One JSON line per document, entry, candidate and term: ids, states, reasons and official-text terms, no secrets.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: ${{ !cancelled() }}
+        with: { name: content-staging, path: content-staging.jsonl, retention-days: 30, if-no-files-found: ignore }

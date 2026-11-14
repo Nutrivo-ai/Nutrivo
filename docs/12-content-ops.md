@@ -165,6 +165,18 @@ target × source. It never writes a rule.
   `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and model configuration. `--target KEY` and `--lang xx` narrow the run.
   `--dry-run` extracts and compares, but writes nothing to the database. Langfuse still traces the calls.
 
+## Running the pipeline on staging
+Sessions hold only the dev identity, and staging's secrets are in the GitHub environment `staging` (docs/16), so the
+pipeline runs there as the `content-staging` workflow: a founder starts it from Actions → content-staging → Run
+workflow, on `main`. With `steps: all` it runs, in order, `nutrivo sources fetch`, `sources import additives` and
+`materials`, `content extract` (a second pass resumes any failed second key) and `content terms`; one step can be run
+alone, and `dry_run` writes nothing. Each command's JSON lines are kept as the run's `content-staging` artifact for
+30 days, and the summaries appear on the run page. Every step is idempotent, so a rerun only adds what is missing.
+Nothing in it accepts, rejects or releases: that stays a person's click in /admin. Before the first run: staging is
+deployed with the migrations, and its Infisical project holds `DATABASE_URL`, `SUPABASE_URL`,
+`SUPABASE_SERVICE_ROLE_KEY` and the `BEDROCK_MODEL_*` values of docs/07 (`make doctor` from the `doctor` workflow).
+On the local stack on 14 Nov 2026 the whole sequence took about 11 minutes.
+
 ## Accepting and releasing (K03–K05, J02, T-204)
 Staff (`app_metadata.nutrivo_staff`) act through RPCs; each needs the caller's person record and is audited.
 - **Accept a candidate** with `app.accept_candidate`, choosing the key checked against the text. The version takes
