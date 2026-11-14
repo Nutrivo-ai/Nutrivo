@@ -2,6 +2,8 @@
 
 Every language version CELLAR serves marks headings with the same classes, whatever its other markup:
 `p.title-article-norm` ("Article 15", "Artikel 15", "15 artikla") and `p.title-annex-1` ("ANNEX VII", "BILAG VII").
+An annex is labelled by its Roman numeral whichever numerals the language version prints (the Swedish 76/211 prints
+"BILAGA 1"), and an act's only annex, printed without a number ("ANNEX", "BILAGA"), is labelled "Annex".
 A unit runs from its heading to the next heading. Text is kept as printed; only whitespace is collapsed, one line per
 block element, so a verbatim excerpt can be checked with `contains`."""
 from __future__ import annotations
@@ -14,6 +16,8 @@ _BLOCKS = {"p", "div", "tr", "td", "th", "li", "br", "h1", "h2", "h3", "h4", "ta
 _SKIP = {"script", "style", "head"}
 _ARTICLE = re.compile(r"(\d+\s?[a-z]?)\b")
 _ROMAN = re.compile(r"\b([IVXLC]+)\b\s*$")
+_ARABIC = re.compile(r"\b(\d{1,2})\s*$")
+_NUMERALS = ((50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"))
 _ART, _ANX = "\x00art\x00", "\x00anx\x00"
 
 
@@ -66,8 +70,20 @@ def _label(kind: str, heading: str) -> str | None:
     if kind == _ART:
         m = _ARTICLE.search(heading)
         return f"Art. {m.group(1).replace(' ', '')}" if m else None
-    m = _ROMAN.search(heading.strip())
-    return f"Annex {m.group(1)}" if m else None
+    heading = heading.strip()
+    if m := _ROMAN.search(heading):
+        return f"Annex {m.group(1)}"
+    if m := _ARABIC.search(heading):
+        return f"Annex {_roman(int(m.group(1)))}" if int(m.group(1)) > 0 else None
+    return "Annex" if heading and not any(ch.isdigit() for ch in heading) and len(heading.split()) == 1 else None
+
+
+def _roman(n: int) -> str:
+    out = ""
+    for value, numeral in _NUMERALS:
+        while n >= value:
+            out, n = out + numeral, n - value
+    return out
 
 
 def split_units(body: bytes) -> dict[str, Unit]:
