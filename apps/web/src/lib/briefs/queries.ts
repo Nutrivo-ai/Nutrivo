@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { isUuid } from "@/lib/artwork/queries";
 import { ShellReadError } from "@/lib/workspace/memberships";
+import type { EnvelopeItemRow, EnvelopeNodeRow } from "./envelope";
 import type { FormulaLineInput, RegisterRow } from "./rules";
 
 type Db = SupabaseClient<Database>;
@@ -130,4 +131,96 @@ export async function searchRegister(db: Db, q: string): Promise<RegisterRow[]> 
     ...(fm.data ?? []).map((m) => ({ kind: "feed_material" as const, ref: m.number, name: materialName(m.names) ?? m.number })),
     ...(fa.data ?? []).map((a) => ({ kind: "additive" as const, ref: a.id, name: a.name })),
   ];
+}
+
+/** T-1002 · E02: the brief's envelope for its current inputs (app.envelope_inputs_hash) and that envelope's job, under RLS (S-NV2-005). */
+export type EnvelopeRead = {
+  product: { id: string; name: string; stage: string; nodes: string[] };
+  envelope: {
+    id: string;
+    rulesetVersion: string;
+    createdAt: string;
+    outOfScope: string[];
+    nodes: EnvelopeNodeRow[];
+    items: EnvelopeItemRow[];
+  } | null;
+  /** The latest envelope job for the brief's current inputs, unless it is the one that wrote the envelope shown. */
+  job: { id: string; status: string; outcome: string | null; createdAt: string } | null;
+};
+
+export async function readEnvelope(db: Db, workspaceId: string, productId: string): Promise<EnvelopeRead | null> {
+  if (!isUuid(productId)) return null;
+  const app = db.schema("app");
+  const { data: product, error } = await app
+    .from("products")
+    .select("id, name, stage, product_nodes(node_id)")
+    .eq("id", productId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+  if (error) throw new ShellReadError("envelope", error);
+  if (!product) return null;
+
+  // Only the envelope and the job for the brief as it is now: an envelope of earlier inputs is never shown as current.
+  const current = await db.schema("app").rpc("envelope_inputs_hash", { p_product: productId });
+  if (current.error) throw new ShellReadError("envelope inputs", current.error);
+  const hash = current.data ?? "-";
+  const [env, job] = await Promise.all([
+    app
+      .from("envelopes")
+      .select("id, ruleset_version, created_at, out_of_scope, job_id")
+      .eq("product_id", productId)
+      .eq("inputs_hash", hash)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    app
+      .from("jobs")
+      .select("id, status, progress, created_at")
+      .eq("kind", "envelope")
+      .eq("payload->>product_id", productId)
+      .eq("payload->>inputs_hash", hash)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  if (env.error) throw new ShellReadError("envelope", env.error);
+  if (job.error) throw new ShellReadError("envelope job", job.error);
+
+  let envelope: EnvelopeRead["envelope"] = null;
+  if (env.data) {
+    const [nodes, items] = await Promise.all([
+      app.from("envelope_nodes").select("node_id, state, open_items, withheld").eq("envelope_id", env.data.id),
+      app
+        .from("envelope_items")
+        .select("id, node_id, language, kind, rule_key, rule_version, gap_id, provenance, reason_code, citation, payload")
+        .eq("envelope_id", env.data.id),
+    ]);
+    if (nodes.error) throw new ShellReadError("envelope", nodes.error);
+    if (items.error) throw new ShellReadError("envelope", items.error);
+    envelope = {
+      id: env.data.id,
+      rulesetVersion: env.data.ruleset_version,
+      createdAt: env.data.created_at,
+      outOfScope: env.data.out_of_scope,
+      nodes: nodes.data ?? [],
+      items: (items.data ?? []) as EnvelopeItemRow[],
+    };
+  }
+  const j = job.data;
+  const outcome = j && j.progress && typeof j.progress === "object" && !Array.isArray(j.progress)
+    ? ((j.progress as Record<string, unknown>).outcome as string | undefined) ?? null
+    : null;
+  const shownJob = j && j.id !== env.data?.job_id && !(j.status === "succeeded" && outcome !== "superseded")
+    ? { id: j.id, status: j.status, outcome, createdAt: j.created_at }
+    : null;
+  return {
+    product: {
+      id: product.id,
+      name: product.name,
+      stage: product.stage,
+      nodes: (product.product_nodes ?? []).map((n) => n.node_id).sort(),
+    },
+    envelope,
+    job: shownJob,
+  };
 }
