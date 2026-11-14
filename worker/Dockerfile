@@ -1,7 +1,7 @@
 # Worker image (D-13): Python 3.12, PDF and font tooling, WeasyPrint system libraries, and ClamAV for the malware scan
 # of supplier uploads (T-802, H03, docs/09: clamscan in this container, no outside scanning service). Built from the
 # repository root (render.yaml: dockerContext .). Only the worker's source and prompts go in: no tests, cassettes or local venv.
-FROM python:3.15-slim
+FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=never UV_PYTHON=/usr/local/bin/python3.12 UV_PROJECT_ENVIRONMENT=/app/worker/.venv
 RUN apt-get update && apt-get install -y --no-install-recommends \
