@@ -6,8 +6,8 @@
 --    for a market other than its own, and a market that is not_assessed, has unknown or blocked registration, or has
 --    no product_nodes row at all summed to zero open findings and could be certified (non-negotiables 3 and 8).
 --    Now, before anything is written: the product must be in the signer's scope (else the same P0002 as an unknown
---    report), the node in their market scope (else P0291, as with no grant), the node the report's own market when
---    the report names one (22023), and after the grant and aal2, the market must exist and display Clear (P0293).
+--    report), the node in their market scope (else P0291, as with no grant), after the grant, the node the report's own
+--    market when the report names one (22023), and after aal2, the market must exist and display Clear (P0293).
 -- 2. app.certificates read policy had product scope only: a market-scoped member read every market's certificates.
 --    It now also applies node_in_scope, as private.supersession_visible already does.
 -- 3. storage policy member_upload_artwork checked the role on the workspace folder only, so an editor scoped to some
@@ -27,12 +27,12 @@ begin
   if p_node is null or not private.node_in_scope(v_r.workspace_id, p_node) then
     raise exception 'BE-29: no signing grant for %', p_node using errcode = 'P0291';
   end if;
-  if v_r.node_id is not null and p_node <> v_r.node_id then
-    raise exception 'BE-29: this report is for %, not %', v_r.node_id, p_node using errcode = '22023';
-  end if;
   select g.id into v_grant from app.signing_grants g
   where g.workspace_id = v_r.workspace_id and g.person_id = v_person and g.node_id = p_node and g.revoked_at is null;
   if v_grant is null then raise exception 'BE-29: no signing grant for %', p_node using errcode = 'P0291'; end if;
+  if v_r.node_id is not null and p_node <> v_r.node_id then
+    raise exception 'BE-29: this report is for %, not %', v_r.node_id, p_node using errcode = '22023';
+  end if;
   if not private.aal2() then
     raise exception 'BE-29: signing requires two-factor authentication' using errcode = 'P0292';
   end if;
