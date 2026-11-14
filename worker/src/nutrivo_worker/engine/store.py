@@ -32,6 +32,15 @@ class NodeInputs:
     coverage: list[Coverage]
 
 
+@dataclass(frozen=True)
+class CheckRow:
+    """One app.checks row to write: the evaluated result and the artwork and classification it was judged on."""
+    result: CheckResult
+    artwork_version_id: str
+    artwork_sha: str
+    classification_id: str | None
+
+
 @dataclass
 class CheckInputs:
     workspace_id: str
@@ -83,19 +92,7 @@ class PgCheckStore:
         if not panels:
             raise PermanentJobError(f"extraction run {run['id']} has no panels")
 
-        facts: dict[str, Any] = {f: None for f in CLASSIFICATION_FIELDS}
-        if classification_id:
-            c = self._one(f"""select {', '.join(CLASSIFICATION_FIELDS)} from app.classifications
-                              where id = %s and product_id = %s and confirmed_at is not null""",
-                          classification_id, product_id)
-            if c:                     # an unconfirmed classification is missing data, never a guess (#45)
-                facts.update(c)
-        facts["format"] = product["format"]
-        facts["additives"] = self._additives(product_id, formula_digest)
-        # No stored source gives the product's quantity (character_height bands) or declared quantities
-        # (threshold) yet (#52): both stay missing, so those rules are withheld data_missing, never guessed.
-        facts["quantity"] = None
-        facts["quantities"] = {}
+        facts = self.facts(product_id, classification_id, formula_digest, product["format"])
 
         nodes = [self._node(product_id, ruleset_version, n) for n in node_ids]
         terms = {k: tuple(v) for k, v in accepted_terms(self.conn, ruleset_version).items()}
@@ -108,6 +105,27 @@ class PgCheckStore:
                            classification_id, facts, panels, nodes, terms,
                            str(actor["requested_by"]) if actor.get("requested_by") else None,
                            bool(actor.get("is_external")))
+
+    def facts(self, product_id: str, classification_id: str | None, formula_digest: str | None = None,
+              product_format: Any = None) -> dict[str, Any]:
+        """The product facts rules read: the confirmed classification, the format and the formula's additives."""
+        if product_format is None:
+            row = self._one("select format from app.products where id = %s", product_id)
+            product_format = row["format"] if row else None
+        facts: dict[str, Any] = {f: None for f in CLASSIFICATION_FIELDS}
+        if classification_id:
+            c = self._one(f"""select {', '.join(CLASSIFICATION_FIELDS)} from app.classifications
+                              where id = %s and product_id = %s and confirmed_at is not null""",
+                          classification_id, product_id)
+            if c:                     # an unconfirmed classification is missing data, never a guess (#45)
+                facts.update(c)
+        facts["format"] = product_format
+        facts["additives"] = self._additives(product_id, formula_digest)
+        # No stored source gives the product's quantity (character_height bands) or declared quantities
+        # (threshold) yet (#52): both stay missing, so those rules are withheld data_missing, never guessed.
+        facts["quantity"] = None
+        facts["quantities"] = {}
+        return facts
 
     def _panels(self, run_id: str) -> tuple[Panel, ...]:
         rows = self.conn.execute(
@@ -183,53 +201,89 @@ class PgCheckStore:
     def write(self, job_id: str, inputs: CheckInputs, results: list[CheckResult], trigger: str = "user") -> bool:
         """All checks and findings of the job, the product markets and the audit event, in one transaction.
         False when the job's checks were already written (a retry or a duplicate delivery): nothing is written."""
+        rows = [CheckRow(r, inputs.artwork_version_id, inputs.artwork_sha, inputs.classification_id) for r in results]
+        return self.write_rows(job_id, inputs.workspace_id, inputs.product_id, inputs.ruleset_version, rows,
+                               inputs.actor_id, inputs.actor_is_external, trigger)
+
+    def write_rows(self, job_id: str, workspace_id: str, product_id: str, ruleset_version: str,
+                   rows: list[CheckRow], actor_id: str | None, actor_is_external: bool, trigger: str, *,
+                   bases: dict[str, str] | None = None, moved: dict[str, str] | None = None,
+                   audit_extra: dict[str, Any] | None = None) -> bool:
+        """write() for checks that may pin different artwork versions per market (the scoped re-check, T-903).
+
+        Every writer locks the product markets it writes first, so two checks of one product × market never
+        interleave. `bases` maps a market to the check that was its latest when this job was planned: under the lock,
+        a market whose latest check is now another one (a newer check landed meanwhile) is not written and is put in
+        `moved`, so a re-check never overwrites newer work. `audit_extra` goes into the check.completed event.
+        Checks are stamped with clock_timestamp(), taken after the lock, not now() (the transaction's start): a check
+        whose transaction began earlier but wrote later never sorts older than the one it waited for, so 'latest'
+        (contract 5, the re-check's base) follows lock order."""
         with self.conn.transaction():
             self.conn.execute("select 1 from app.jobs where id = %s for update", (job_id,))
             if self._one("select 1 from app.checks where job_id = %s limit 1", job_id):
                 return False
+            nodes = sorted({r.result.node_id for r in rows})
+            self.conn.execute("""select 1 from app.product_nodes where product_id = %s and node_id = any(%s)
+                                  order by node_id for update""", (product_id, nodes))
+            if bases:
+                gone: dict[str, str] = {}
+                for node_id, expected in bases.items():
+                    latest = self._one("""select id from app.checks where product_id = %s and node_id = %s
+                                           order by at desc, id limit 1""", product_id, node_id)
+                    if latest is None or str(latest["id"]) != expected:
+                        gone[node_id] = str(latest["id"]) if latest else ""
+                if moved is not None:
+                    moved.update(gone)
+                rows = [r for r in rows if r.result.node_id not in gone]
+                if not rows:
+                    return False
             ids = []
-            for r in results:
+            for row in rows:
+                r = row.result
                 check_id = self._one(
                     """insert into app.checks (workspace_id, job_id, product_id, node_id, artwork_version_id,
                            panel_id, language, artwork_sha, ruleset_version, classification_id, label_state,
                            applied_rule_keys, passed_rule_keys, withheld_rule_keys, actor_id, actor_is_external,
-                           trigger)
-                       values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) returning id""",
-                    inputs.workspace_id, job_id, inputs.product_id, r.node_id, inputs.artwork_version_id,
-                    r.panel.id, r.panel.language, inputs.artwork_sha, inputs.ruleset_version,
-                    inputs.classification_id, r.label_state, r.applied, r.passed, r.withheld, inputs.actor_id,
-                    inputs.actor_is_external, trigger)["id"]
+                           trigger, at)
+                       values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                               clock_timestamp()) returning id""",
+                    workspace_id, job_id, product_id, r.node_id, row.artwork_version_id,
+                    r.panel.id, r.panel.language, row.artwork_sha, ruleset_version,
+                    row.classification_id, r.label_state, r.applied, r.passed, r.withheld, actor_id,
+                    actor_is_external, trigger)["id"]
                 ids.append(str(check_id))
                 for f in r.findings:
                     self.conn.execute(
                         """insert into app.check_findings (workspace_id, check_id, product_id, node_id, rule_key,
                                rule_version, gap_id, state, provenance, citation, message, panel_id, language,
                                text_object_id, bbox_mm, reason_code, confidence, model_call_id, measured_mm,
-                               required_mm, height_definition, kind)
+                               required_mm, height_definition, kind, recommended_action)
                            values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                                   %s, %s)""",
-                        (inputs.workspace_id, check_id, inputs.product_id, r.node_id, f.get("rule_key"),
+                                   %s, %s, %s)""",
+                        (workspace_id, check_id, product_id, r.node_id, f.get("rule_key"),
                          f.get("rule_version"), f.get("gap_id"), f["state"], f["provenance"], f.get("citation"),
                          f["message"], f.get("panel_id"), f.get("language"), f.get("text_object_id"),
                          f.get("bbox_mm"), f.get("reason_code"), f.get("confidence"), f.get("model_call_id"),
                          f.get("measured_mm"), f.get("required_mm"), f.get("height_definition"),
-                         f.get("kind", "label")))
+                         f.get("kind", "label"), f.get("recommended_action")))
             states: dict[str, dict[str, Any]] = {}
-            for r in results:
-                s = states.setdefault(r.node_id, {"states": [], "open": 0})
-                s["states"].append(r.label_state)
-                s["open"] += r.open_actions
+            for row in rows:
+                s = states.setdefault(row.result.node_id, {"states": [], "open": 0})
+                s["states"].append(row.result.label_state)
+                s["open"] += row.result.open_actions
             for node_id, s in states.items():
                 self.conn.execute(
                     """update app.product_nodes set label_state = %s, ruleset_version = %s, open_actions = %s,
                               last_check_job_id = %s, updated_at = now()
                         where product_id = %s and node_id = %s""",
-                    (worst(s["states"]), inputs.ruleset_version, s["open"], job_id, inputs.product_id, node_id))
+                    (worst(s["states"]), ruleset_version, s["open"], job_id, product_id, node_id))
                 # D06: registration state is derived in the database, separately from the label (non-negotiable 8)
-                self.conn.execute("select private.refresh_registration_state(%s, %s)", (inputs.product_id, node_id))
+                self.conn.execute("select private.refresh_registration_state(%s, %s)", (product_id, node_id))
             self.conn.execute(
                 "select private.write_audit(%s, 'check.completed', 'job', %s, null, %s, %s)",
-                (inputs.workspace_id, job_id,
-                 Jsonb({"check_ids": ids, "label_states": {n: worst(s["states"]) for n, s in states.items()}}),
-                 inputs.ruleset_version))
+                (workspace_id, job_id,
+                 Jsonb({"check_ids": ids, "label_states": {n: worst(s["states"]) for n, s in states.items()},
+                        "trigger": trigger, **{k: v for k, v in (audit_extra or {}).items()
+                                               if k not in ("check_ids", "label_states", "trigger")}}),
+                 ruleset_version))
         return True
