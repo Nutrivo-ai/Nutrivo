@@ -1379,6 +1379,9 @@ isOneToOne: false
 "request_report":
 { Args: { "p_check": string,"p_request_id"?: string }; Returns: string
                            },
+"request_scoped_recheck":
+{ Args: { "p_rule_diff": string }; Returns: Json
+                           },
 "retry_extraction":
 { Args: { "p_artwork": string }; Returns: string
                            },
@@ -1411,6 +1414,9 @@ isOneToOne: false
                            },
 "set_product_stage":
 { Args: { "p_product": string,"p_reason"?: string,"p_stage": string }; Returns: string
+                           },
+"supersede_for_rule_diff":
+{ Args: { "p_rule_diff": string }; Returns: Json
                            },
 "supplier_request_for_token":
 { Args: { "p_token": string }; Returns: Json
