@@ -96,8 +96,17 @@ def test_an_annex_numbered_in_arabic_figures_gets_the_same_label_as_in_roman_one
                                                                                                     "Annex II"]
     assert sv["Annex I"].heading == "BILAGA 1" and "text of BILAGA 1" in sv["Annex I"].text
     assert "text of BILAGA 2" not in sv["Annex I"].text
-    assert list(articles.split_units(_body("ANNEX 9", "ANNEX 14", "ANNEX 40"))) == [
-        "Art. 1", "Annex IX", "Annex XIV", "Annex XL"]
+    assert list(articles.split_units(_body("ANNEX 9", "ANNEX 14", "ANNEX 40", "ANNEX 90"))) == [
+        "Art. 1", "Annex IX", "Annex XIV", "Annex XL", "Annex XC"]
+
+
+def test_a_heading_that_is_not_one_word_and_a_numeral_gives_no_unit_rather_than_a_guessed_one():
+    # A trailing number elsewhere in a heading is not the annex number: the real ANNEX V must keep its label.
+    units = articles.split_units(_body("ANNEX referred to in Article 5", "ANNEX V"))
+    assert [u for u in units if u.startswith("Annex")] == ["Annex V"] and units["Annex V"].heading == "ANNEX V"
+    assert [u for u in articles.split_units(_body("ANNEX referred to in 2017/1"))] == ["Art. 1"]
+    # One word without a number is "Annex" only when it is the act's only annex heading.
+    assert [u for u in articles.split_units(_body("ANNEX I", "APPENDIX"))] == ["Art. 1", "Annex I"]
 
 
 def test_an_acts_only_annex_printed_without_a_number_is_labelled_annex():
