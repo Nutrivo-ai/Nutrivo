@@ -8,8 +8,8 @@ For each term group in content/candidates/eu-core-terms.yaml × stored source (o
 3. Two independent keys: `term_extraction_primary` (extraction class) and `term_extraction_secondary` (judgement
    class, its own prompt, never the first answer). Each returns, per requested term key, the term as printed, its
    article reference and an excerpt.
-4. A candidate entry is written only when both keys found the term, each key's term is printed verbatim (up to
-   whitespace) in the units, the two terms are the same string, and at least one key's excerpt locates it there.
+4. A candidate entry is written only when both keys found the term, each key's term is printed as whole words (up
+   to whitespace) on one printed line of the units, the two terms are the same string, and at least one key's excerpt locates it there.
    The excerpt is a locator, matched up to the style of quotation marks and dashes, which models do not reliably
    copy; the term never is, and only the printed term is stored. Anything else is withheld with a reason and
    writes nothing: a person never sees a term only one key read, or one not printed in that language's own text.
@@ -129,16 +129,25 @@ class KeyRead:
     located: bool       # and inside the passage this key's excerpt locates
 
 
-def verify(answer: TermAnswer, text: str) -> KeyRead:
-    """A key's read of one term. The term must be printed in the units verbatim, up to whitespace, with an article
-    reference for the person to check it against. The excerpt is a locator only: it is found up to the style of its
-    quotation marks and dashes (`articles.locate`), which models do not reliably copy; the term never is, and only the
-    printed term is ever stored. A trailing ellipsis (the act's placeholder for a date) is dropped first."""
+def verify(answer: TermAnswer, units: list[str]) -> KeyRead:
+    """A key's read of one term, against the text of each unit. The term must be printed as whole words, up to
+    whitespace, on one printed line of a unit ('Crude fibre' is not printed in 'Crude fibres'), with an article
+    reference for the person to check it against. The excerpt is a locator only: it is found within one unit up to
+    the style of its quotation marks and dashes (`articles.locate`), which models do not reliably copy; the term never
+    is, and only the printed term is ever stored. A trailing ellipsis (the act's placeholder for a date) is dropped
+    first."""
     term = _ELLIPSIS.sub("", articles.normalise(answer.term))
     found = bool(answer.found and term)
-    printed = bool(found and answer.article_ref.strip() and articles.contains(text, term))
-    passage = articles.locate(text, answer.excerpt) if printed else None
-    return KeyRead(found, term, answer.article_ref.strip(), printed, bool(passage and articles.contains(passage, term)))
+    printed = bool(found and answer.article_ref.strip()
+                   and any(articles.printed_as_words(line, term) for u in units for line in u.split("\n")))
+    located = False
+    if printed:
+        for u in units:
+            passage = articles.locate(u, answer.excerpt)
+            if passage and articles.printed_as_words(passage, term):
+                located = True
+                break
+    return KeyRead(found, term, answer.article_ref.strip(), printed, located)
 
 
 # ── persistence ─────────────────────────────────────────────────────────────────────────────────────
@@ -174,12 +183,13 @@ def _inputs(group: TermGroup, row: SourceRow, units: dict[str, articles.Unit], s
             "units": "\n\n".join(f"[{u.label}]\n{u.text}" for u in units.values())}
 
 
-def _read(models: Models, purpose: str, inputs: dict, store: TermStore | None, text: str) -> dict[str, KeyRead]:
+def _read(models: Models, purpose: str, inputs: dict, store: TermStore | None,
+          texts: list[str]) -> dict[str, KeyRead]:
     res = models.call_full(purpose, PROMPT_VERSION, inputs, TermsExtraction, store=store)
     out: dict[str, KeyRead] = {}
     for a in TermsExtraction.model_validate(res.raw_output).answers:
         if a.key not in out:                     # the first answer for a key counts; unknown keys are ignored
-            out[a.key] = verify(a, text)
+            out[a.key] = verify(a, texts)
     return out
 
 
@@ -232,11 +242,11 @@ def extract_group(group: TermGroup, row: SourceRow, reader: SourceReader, store:
         if not units:
             return results + [Result(**base, status="withheld", term_key=s.key,  # type: ignore[arg-type]
                                      reason="units_not_in_source") for s in todo]
-        text = "\n".join(u.text for u in units.values())
+        texts = [u.text for u in units.values()]
         inputs = _inputs(group, row, units, todo)
         with _trace(group, row):
-            first = _read(models, PRIMARY, inputs, store, text)
-            second = _read(models, SECONDARY, inputs, store, text)
+            first = _read(models, PRIMARY, inputs, store, texts)
+            second = _read(models, SECONDARY, inputs, store, texts)
         for spec in todo:
             a, b = first.get(spec.key), second.get(spec.key)
             reason = decide(a, b)

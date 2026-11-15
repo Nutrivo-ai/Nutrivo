@@ -177,9 +177,9 @@ language's own stored text (BE-11). It never accepts, rejects or updates an entr
   the units the group names. Anything else fails before any model is called.
 - **Two keys.** `term_extraction_primary.v1` (extraction class) and `term_extraction_secondary.v1` (judgement class,
   its own prompt, never the first answer) each return, per term key, the printed term, its article reference and an
-  excerpt. A candidate entry is written only when both found it, each key's term is printed verbatim (up to
-  whitespace) in the units, the two are the same string, and at least one excerpt locates it there. The excerpt is a
-  locator matched up to the style of quotation marks and dashes (`articles.locate`): models return `'` for `‘ ’` or
+  excerpt. A candidate entry is written only when both found it, each key's term is printed as whole words (up to
+  whitespace) on one printed line of the units ('Crude fibre' is not printed in 'Crude fibres'), the two are the same string, and at least one excerpt locates it there. The excerpt is a
+  locator matched within one unit up to the style of quotation marks and dashes (`articles.locate`): models return `'` for `‘ ’` or
   `„ “` unreliably, and the Swedish primary key truncated excerpts at `”`. The term itself is never matched loosely,
   and only the printed term is stored. A trailing ellipsis (‘best before …’, the act's placeholder for the date) is
   dropped. Otherwise the term is withheld (`not_found`, `keys_disagree` with both strings shown,

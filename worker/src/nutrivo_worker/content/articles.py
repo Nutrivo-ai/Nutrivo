@@ -98,7 +98,7 @@ def contains(haystack: str, needle: str) -> bool:
     return bool(n) and n in normalise(haystack)
 
 
-_QUOTES = "'\"‘’‚‛“”„‟«»‹›`´"
+_QUOTES = "'\"‘’‚‛“”„‟«»‹›"
 _DASHES = "-‐‑‒–—―"
 
 
@@ -122,3 +122,13 @@ def locate(haystack: str, needle: str) -> str | None:
             parts.append(re.escape(ch))
     m = re.search("".join(parts), normalise(haystack))
     return m.group(0) if m else None
+
+
+def printed_as_words(haystack: str, needle: str) -> bool:
+    """`needle` printed in `haystack` as whole words, up to whitespace: 'Crude fibre' is not printed in 'Crude
+    fibres'. What a term must satisfy, line by line, so a term never spans two printed lines or table cells."""
+    n = normalise(needle)
+    if not n:
+        return False
+    pattern = r"(?<!\w)" + r"\s+".join(re.escape(w) for w in n.split(" ")) + r"(?!\w)"
+    return re.search(pattern, normalise(haystack)) is not None

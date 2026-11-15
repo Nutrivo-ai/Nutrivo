@@ -108,6 +108,11 @@ def test_terms_main_two_keys_reading_the_same_printed_term_write_a_candidate_ent
     ([ans("complete_feed", "Alleinfuttermittel")], BOTH, "excerpt_not_in_source"),
     (BOTH, [ans("complete_feed", "complete fodder")], "second_not_verbatim"),
     ([ans("complete_feed", "complete feed", ref="")], BOTH, "excerpt_not_in_source"),
+    # A part of a printed word is not the printed term, even when both keys read it ('fee' in 'feed').
+    ([ans("complete_feed", "complete fee")], [ans("complete_feed", "complete fee")], "excerpt_not_in_source"),
+    # Nor is a string running across two printed lines (here the end of point (a) and the dash below it).
+    ([ans("complete_feed", "as appropriate; —", excerpt=LINE + " —")],
+     [ans("complete_feed", "as appropriate; —", excerpt=LINE + " —")], "excerpt_not_in_source"),
     (BOTH, [ans("complete_feed", "feed material")], "keys_disagree"),
     (BOTH, [ans("complete_feed", "", found=False)], "keys_disagree"),
     ([ans("complete_feed", "", found=False)], [ans("complete_feed", "", found=False)], "not_found"),
@@ -263,6 +268,13 @@ def test_locate_returns_the_printed_passage_up_to_whitespace_quote_and_dash_styl
     assert articles.locate(printed, "Futtermittelart: Einzelfuttermittel") is None   # a missing quote is a change
     assert articles.locate(printed, "futtermittelart") is None                       # case is never folded
     assert articles.locate(printed, "  ") is None and articles.locate(printed, "a.b") is None
+    assert articles.locate("café", "caf`e") is None                                 # an accent is not a quote
+
+
+def test_printed_as_words_needs_whole_words():
+    assert articles.printed_as_words("— Crude fibres", "Crude fibres")
+    assert not articles.printed_as_words("— Crude fibres", "Crude fibre")
+    assert not articles.printed_as_words("— Crude fibres", "rude fibres") and not articles.printed_as_words("x", " ")
 
 
 def test_terms_one_keys_excerpt_locating_the_term_is_enough_when_both_read_the_same_printed_term(tmp_path):
