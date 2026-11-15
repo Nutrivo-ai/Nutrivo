@@ -153,8 +153,9 @@ in place and says so: roll it back by hand in Vercel.
 **The Vercel project.** The web app deploys from one Vercel project, `nutrivo` in the **Nutrivoai** team
 (vercel.com/nutrivoai/nutrivo; Pro plan, because the Hobby plan does not allow commercial use). It is connected to
 `Nutrivo-ai/Nutrivo` with Root Directory `apps/web`, so `apps/web/vercel.json` applies: the Next.js preset, the pnpm
-install and build commands, and region `fra1` (D-02). `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` in Infisical (staging
-and prod) are that team's and that project's IDs. Only that project should be connected to the repository: a second
+install and build commands, and region `fra1` (D-02). The deploy scripts therefore run the Vercel CLI from the
+repository root, never inside `apps/web`, which the CLI would resolve as `apps/web/apps/web`. `VERCEL_ORG_ID` and
+`VERCEL_PROJECT_ID` in Infisical (staging and prod) are that team's and that project's IDs. Only that project should be connected to the repository: a second
 one builds every push and posts its own status, and both report as "Vercel – nutrivo", so they overwrite each other on
 pull requests. As of 10 Nov 2026 an older project is still connected, `nutrivo` in the `nutrivo` team
 (vercel.com/nutrivo/nutrivo). It is not under abnutrivo's Vercel logins, and ar835 has been asked to check theirs.
