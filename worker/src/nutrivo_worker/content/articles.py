@@ -2,6 +2,9 @@
 
 Every language version CELLAR serves marks headings with the same classes, whatever its other markup:
 `p.title-article-norm` ("Article 15", "Artikel 15", "15 artikla") and `p.title-annex-1` ("ANNEX VII", "BILAG VII").
+An annex heading is one word and its numeral, labelled by the Roman numeral whichever numerals the language version
+prints (the Swedish 76/211 prints "BILAGA 1"); an act's only annex heading, one word without a number ("ANNEX",
+"BILAGA"), is labelled "Annex". Any other heading gives no unit rather than a guessed one.
 A unit runs from its heading to the next heading. Text is kept as printed; only whitespace is collapsed, one line per
 block element, so a verbatim excerpt can be checked with `contains`."""
 from __future__ import annotations
@@ -13,7 +16,9 @@ from html.parser import HTMLParser
 _BLOCKS = {"p", "div", "tr", "td", "th", "li", "br", "h1", "h2", "h3", "h4", "table"}
 _SKIP = {"script", "style", "head"}
 _ARTICLE = re.compile(r"(\d+\s?[a-z]?)\b")
-_ROMAN = re.compile(r"\b([IVXLC]+)\b\s*$")
+# An annex heading is one word and its numeral ("ANNEX VII", "BILAGA 1"), or one word alone for an act's only annex.
+_ANNEX_NUMBERED = re.compile(r"^\S+\s+(?:([IVXLC]+)|(\d{1,2}))$")
+_NUMERALS = ((90, "XC"), (50, "L"), (40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I"))
 _ART, _ANX = "\x00art\x00", "\x00anx\x00"
 
 
@@ -62,12 +67,25 @@ class _Flatten(HTMLParser):
             self.parts.append(data)
 
 
-def _label(kind: str, heading: str) -> str | None:
+def _label(kind: str, heading: str, only_annex: bool = False) -> str | None:
     if kind == _ART:
         m = _ARTICLE.search(heading)
         return f"Art. {m.group(1).replace(' ', '')}" if m else None
-    m = _ROMAN.search(heading.strip())
-    return f"Annex {m.group(1)}" if m else None
+    heading = heading.strip()
+    if m := _ANNEX_NUMBERED.match(heading):
+        if m.group(1):
+            return f"Annex {m.group(1)}"
+        return f"Annex {_roman(int(m.group(2)))}" if 0 < int(m.group(2)) < 100 else None
+    alone = len(heading.split()) == 1 and not any(ch.isdigit() for ch in heading)
+    return "Annex" if alone and only_annex else None
+
+
+def _roman(n: int) -> str:
+    out = ""
+    for value, numeral in _NUMERALS:
+        while n >= value:
+            out, n = out + numeral, n - value
+    return out
 
 
 def split_units(body: bytes) -> dict[str, Unit]:
@@ -78,15 +96,15 @@ def split_units(body: bytes) -> dict[str, Unit]:
     parser.close()
     flat = "".join(parser.parts)
     units: dict[str, Unit] = {}
+    chunks = []
     for chunk in re.split(f"(?={_ART}|{_ANX})", flat):
         kind = chunk[:len(_ART)]
-        if kind not in (_ART, _ANX):
-            continue
-        lines = [normalise(line) for line in chunk[len(_ART):].split("\n")]
-        lines = [line for line in lines if line]
-        if not lines:
-            continue
-        label = _label(kind, lines[0])
+        lines = [line for line in (normalise(x) for x in chunk[len(_ART):].split("\n")) if line]
+        if kind in (_ART, _ANX) and lines:
+            chunks.append((kind, lines))
+    only_annex = sum(1 for kind, _ in chunks if kind == _ANX) == 1
+    for kind, lines in chunks:
+        label = _label(kind, lines[0], only_annex)
         if label and label not in units:
             units[label] = Unit(label, lines[0], "\n".join(lines))
     return units
@@ -96,3 +114,39 @@ def contains(haystack: str, needle: str) -> bool:
     """Verbatim, up to whitespace: what an excerpt or a printed term must satisfy against the stored text."""
     n = normalise(needle)
     return bool(n) and n in normalise(haystack)
+
+
+_QUOTES = "'\"‘’‚‛“”„‟«»‹›"
+_DASHES = "-‐‑‒–—―"
+
+
+def locate(haystack: str, needle: str) -> str | None:
+    """The passage of `haystack` that `needle` copies, up to whitespace and the style of its quotation marks and
+    dashes, returned exactly as printed (whitespace collapsed); None when it is not there. A model asked to copy a
+    passage sometimes returns straight quotes for ‘ ’ or „ “: the passage is still found, and what is kept is the
+    printed text, never the model's copy."""
+    n = normalise(needle)
+    if not n:
+        return None
+    parts = []
+    for ch in n:
+        if ch == " ":
+            parts.append(r"\s+")
+        elif ch in _QUOTES:
+            parts.append(f"[{re.escape(_QUOTES)}]")
+        elif ch in _DASHES:
+            parts.append(f"[{re.escape(_DASHES)}]")
+        else:
+            parts.append(re.escape(ch))
+    m = re.search("".join(parts), normalise(haystack))
+    return m.group(0) if m else None
+
+
+def printed_as_words(haystack: str, needle: str) -> bool:
+    """`needle` printed in `haystack` as whole words, up to whitespace: 'Crude fibre' is not printed in 'Crude
+    fibres'. What a term must satisfy, line by line, so a term never spans two printed lines or table cells."""
+    n = normalise(needle)
+    if not n:
+        return False
+    pattern = r"(?<!\w)" + r"\s+".join(re.escape(w) for w in n.split(" ")) + r"(?!\w)"
+    return re.search(pattern, normalise(haystack)) is not None

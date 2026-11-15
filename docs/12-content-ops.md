@@ -128,19 +128,26 @@ target × source. It never writes a rule.
   reason (`source_refused`, `source_kind_refused`, `source_not_stored`, `source_act_mismatch`,
   `source_hash_mismatch`) before any model is called.
 - **Units.** The body is split into articles and annexes on the headings every language version shares
-  (`title-article-norm`, `title-annex-1`). The model sees only the units the target names (for example `Art. 15`
-  and `Annex I`), never the whole act and never anything from memory.
+  (`title-article-norm`, `title-annex-1`). An annex takes its Roman label whichever numerals the language version
+  prints (the Swedish 01976L0211-20190726 prints `BILAGA 1`), and an act's only annex, printed without a number, is
+  `Annex`. The model sees only the units the target names (for example `Art. 15` and `Annex I`), never the whole act
+  and never anything from memory.
 - **First key (K01).** `extraction_primary.v1` runs on the extraction model class. The answer is the shape's params,
   the article reference to the paragraph and a verbatim excerpt. The excerpt must be printed in the units, up to
   whitespace. Every field the schema calls verbatim (`content/schemas.py`) must be printed inside the excerpt. Every
   number (a threshold's value, a band's heights and quantities) must be one of the numbers printed in its own
-  verbatim field. If any check fails, the result is withheld as `excerpt_not_in_source` and nothing is written. This
+  verbatim field. Where the model's copy differs from the print only in the style of quotation marks or dashes (it
+  returns `'` for `‘ ’` unreliably), the excerpt and those params are taken from the stored text (`articles.locate`),
+  so the candidate holds the printed text, never the model's copy; `printed_fields` lists them and the model's own
+  output stays in `app.model_calls`. If any check fails, the result is withheld as `excerpt_not_in_source` and
+  nothing is written. This
   is also what keeps a term from being translated. The comparison operator is worded differently in every language,
   so it is not checked here: the second key compares it, and thresholds always go to a person. When the
   model abstains, the result is withheld as `not_found`.
 - **Second key (K02).** `extraction_secondary.v1` runs on the judgement model class with its own prompt and the same
   inputs. It never sees the first answer. `agree` is computed field by field: `found`, the article reference and
-  every param, with case, whitespace and list order ignored. Excerpts are not compared. The per-field map is in
+  every param, with case, whitespace and list order ignored. Excerpts are not compared. The second key's answer gets
+  the same printed-text recovery as the first (quotation-mark and dash style only) before it is checked and compared. The per-field map is in
   `second_value.fields`.
 - **Decision.** A candidate stays `pending`. It becomes `needs_review` when the keys disagree, when the second key is
   not verbatim, and always for `threshold` and `prescribed_wording`. Nothing here sets `accepted`, writes
@@ -165,6 +172,37 @@ target × source. It never writes a rule.
   `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and model configuration. `--target KEY` and `--lang xx` narrow the run.
   `--dry-run` extracts and compares, but writes nothing to the database. Langfuse still traces the calls.
 
+## Extracting candidate terms (K01/K02 for terms)
+D-31 links a rule to term keys, and a key counts only through an accepted `ref.term_entries` row in each node
+language (P0048). `nutrivo content terms` (worker) writes those rows as candidates for `/admin/terms`, from each
+language's own stored text (BE-11). It never accepts, rejects or updates an entry.
+- **Targets.** `content/candidates/eu-core-terms.yaml` lists groups: a kind (`prescribed_designation`, `heading`,
+  `analytical_constituent`, ...), the act and units (`candidate_source`, resolved like a rule target), and per term a
+  key and `find`, an English pointer to which printed term is meant. The pointers were written from the stored English
+  text; they are never values.
+- **Sources and units.** As for rules: a stored `eurlex` text of the group's act whose body matches its sha256, cut to
+  the units the group names. Anything else fails before any model is called.
+- **Two keys.** `term_extraction_primary.v1` (extraction class) and `term_extraction_secondary.v1` (judgement class,
+  its own prompt, never the first answer) each return, per term key, the printed term, its article reference and an
+  excerpt. A candidate entry is written only when both found it, each key's term is printed as whole words (up to
+  whitespace) on one printed line of the units ('Crude fibre' is not printed in 'Crude fibres'), the two are the same string, and at least one excerpt locates it there. The excerpt is a
+  locator matched within one unit up to the style of quotation marks and dashes (`articles.locate`): models return `'` for `‘ ’` or
+  `„ “` unreliably, and the Swedish primary key truncated excerpts at `”`. The term itself is never matched loosely,
+  and only the printed term is stored. A trailing ellipsis (‘best before …’, the act's placeholder for the date) is
+  dropped. Otherwise the term is withheld (`not_found`, `keys_disagree` with both strings shown,
+  `excerpt_not_in_source`, `second_not_verbatim`, `units_not_in_source`).
+- **What a row holds.** `term_key`, `language`, `term`, `kind`, `article_ref` (the first key's), `source_id`; status
+  `candidate` and `ruleset_version` null. The model calls are in `app.model_calls` and one Langfuse trace per group ×
+  source (`content:terms:<group>:<source_id>`).
+- **Idempotent.** An entry already read from the same source, in any status, is `unchanged`; a group whose entries
+  all exist calls no model; a rejected entry is not proposed again from the same text. A new consolidated text gives
+  new candidates.
+- **Running it.** `scripts/env/run.sh dev -- uv run nutrivo content terms`, with the settings `content extract`
+  needs. `--group`, `--lang` and `--dry-run` narrow it. On 14 Nov 2026 against the local stack: 19 terms × 5
+  languages, 95 stored, 60 model calls, about 2 minutes.
+- **The reviewer checks** the term against the stored text in its language. The Finnish 767/2009 prints `juottorehu`
+  for both milk replacer designations, so two keys carry the same Finnish string.
+
 ## Accepting and releasing (K03–K05, J02, T-204)
 Staff (`app_metadata.nutrivo_staff`) act through RPCs; each needs the caller's person record and is audited.
 - **Accept a candidate** with `app.accept_candidate`, choosing the key checked against the text. The version takes
@@ -176,7 +214,7 @@ Staff (`app_metadata.nutrivo_staff`) act through RPCs; each needs the caller's p
   without links is withheld until then. The new version needs its own passed, failed and withheld fixtures, and it
   reaches checks only through the next release.
 - **Terms** are accepted or rejected with `app.decide_term`, only from the stored official text in the term's own
-  language.
+  language. The candidates come from `nutrivo content terms` (above).
 - **Coverage** is edited on a draft (`app.create_ruleset_draft`, `app.set_draft_member`, `app.set_draft_coverage`,
   gaps with `app.open_coverage_gap`). Complete needs every member rule of that node and domain tested (P0010), and
   every term they link accepted in each of the node's languages (P0048).
