@@ -42,12 +42,21 @@ targets:
   - key: EU.767.COMPOSITION
     shape: mandatory_particular
     domain: composition
-    candidate_source: Reg. 767/2009, Art. 17(1)(e) (composition list, descending order by weight) and 17(2)(c) (designation by category for non-food producing animals)
+    candidate_source: Reg. 767/2009, Art. 17(1)(e) (composition list, descending order by weight)
+    note: >-
+      Art. 17(2)(c) (feed materials may be designated by category for non-food producing animals except fur animals) is
+      a permission, not a particular, and is printed in another paragraph, so one excerpt cannot carry both (G6
+      rehearsal, 14 Nov 2026). It reaches the engine through category terms once the list of categories (Art. 17(4))
+      is a stored source; until then a person decides how to treat category names.
   - key: EU.767.ANALYTICAL_CONSTITUENTS
     shape: mandatory_particular
     domain: composition
-    candidate_source: Reg. 767/2009, Art. 17(1)(f) with Annex VII Chapter II, as amended by Reg. 2017/2279
-    extract: The analytical constituents pet food must declare, by product type, with the heading per language
+    candidate_source: Reg. 767/2009, Art. 17(1)(f) (the compulsory declarations of Chapter II of Annex VI or VII)
+    extract: The obligation to make the compulsory declarations of Chapter II of Annex VI or VII
+    note: >-
+      Annex VII Chapter II (as amended by Reg. 2017/2279) prints the constituents as a table, which no single verbatim
+      excerpt carries (G6 rehearsal, 14 Nov 2026). The heading and each constituent are term candidates
+      (eu-core-terms.yaml, EU.767.TERMS.ANALYTICAL_CONSTITUENTS), which the accepting person links (D-31).
   - key: EU.767.MINIMUM_STORAGE_LIFE
     shape: mandatory_particular
     domain: mandatory_particulars
@@ -57,9 +66,12 @@ targets:
     domain: mandatory_particulars
     candidate_source: Reg. 767/2009, Art. 19 (free telephone number or other appropriate means of communication, for information on additives and on feed materials designated by category)
   - key: EU.767.EMPHASIS_PERCENTAGE
-    shape: threshold
+    shape: mandatory_particular
     domain: claims_wording
     candidate_source: Reg. 767/2009, Art. 17(2)(a) (name and percentage when labelling emphasises a feed material)
+    note: >-
+      Was a threshold; the provision prints no number to compare against, so every extraction was withheld (G6
+      rehearsal, 14 Nov 2026). It is a particular with a condition: the percentage itself is the label's.
   - key: EU.767.LANGUAGE
     shape: mandatory_particular
     domain: language
