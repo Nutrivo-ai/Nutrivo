@@ -16,7 +16,7 @@ for part in "$@"; do
       if [ "$TARGET" = prod ]; then
         # shellcheck source=scripts/deploy/vercel-cli.sh
         . "$ROOT/scripts/deploy/vercel-cli.sh"
-        if ( cd "$ROOT/apps/web" && vercel_cli rollback --yes --token="$VERCEL_TOKEN" ); then echo "web rolled back"
+        if ( cd "$ROOT" && vercel_cli rollback --yes --token="$VERCEL_TOKEN" ); then echo "web rolled back"
         else echo "web rollback FAILED" >&2; failed=1; fi
       else
         # Staging is a Vercel preview (docs/01): `vercel rollback` acts on the production deployment, so it must not run

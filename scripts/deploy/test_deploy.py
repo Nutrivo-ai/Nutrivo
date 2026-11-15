@@ -30,6 +30,7 @@ esac
 # An npx that stands in for the pinned Vercel CLI: it records its arguments and prints a deployment URL.
 FAKE_NPX = r"""#!/usr/bin/env bash
 echo "$*" >> "$FAKE_DIR/npx.log"
+echo "$PWD" >> "$FAKE_DIR/npx.cwd"
 case "$*" in *" deploy "*) echo "https://nutrivo-abc123.vercel.app";; *" rollback "*) [ -f "$FAKE_DIR/vercel-fails" ] && exit 1;; esac
 exit 0
 """
@@ -172,6 +173,7 @@ class Rollback(unittest.TestCase):
         log = f.read("npx.log")
         self.assertIn("vercel@64.1.0 rollback --yes", log)
         self.assertNotIn("@latest", log)
+        self.assertEqual(set(f.read("npx.cwd").split()), {ROOT})
 
     def test_one_failed_part_fails_the_script_but_the_others_still_run(self):
         f = Fake()
@@ -197,6 +199,8 @@ class VercelDeploy(unittest.TestCase):
             self.assertNotIn("@latest", log)
             self.assertNotIn("alias", log)  # no STAGING_DOMAIN set
             self.assertEqual(open(url_file).read().strip(), "https://nutrivo-abc123.vercel.app")
+            # The project's Root Directory is apps/web: the CLI runs from the repository root, never inside apps/web.
+            self.assertEqual(set(f.read("npx.cwd").split()), {ROOT})
         finally:
             if before is None:
                 os.path.exists(url_file) and os.remove(url_file)
