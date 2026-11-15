@@ -207,12 +207,14 @@ def test_K02_must_1_nothing_reaches_the_rules_on_extraction_alone(tmp_path):
     assert all(r["decision"] in ("pending", "needs_review") for r in store.rows.values())
     with pytest.raises(ValueError):
         PgCandidateStore(conn=None).set_second("cand-1", {}, True, "accepted")
-    # The extraction code writes candidates only: its one insert and one update are on ref.rule_candidates (never
-    # ref.rules, ref.rule_versions or a ruleset), and nothing sets a person's decision.
+    # The extraction code writes candidates only: one insert and one update on ref.rule_candidates and one insert of
+    # a candidate term entry (never ref.rules, ref.rule_versions, a ruleset or a term decision, and no term is ever
+    # updated), and nothing sets a person's decision.
     src = WORKER_ROOT / "src" / "nutrivo_worker" / "content"
-    code = "\n".join(p.read_text() for p in src.glob("*.py"))
-    assert re.findall(r"(?i)(?:insert\s+into|update|delete\s+from|truncate)\s+(ref\.\w+|app\.\w+)", code) == [
-        "ref.rule_candidates", "ref.rule_candidates"]
+    code = "\n".join(p.read_text() for p in sorted(src.glob("*.py")))
+    writes = re.findall(r"(?i)(insert\s+into|update|delete\s+from|truncate)\s+(ref\.\w+|app\.\w+)", code)
+    assert sorted((verb.split()[0].lower(), table) for verb, table in writes) == [
+        ("insert", "ref.rule_candidates"), ("insert", "ref.term_entries"), ("update", "ref.rule_candidates")]
     for forbidden in ("decided_by", "decided_at", "'accepted'", '"accepted"'):
         assert forbidden not in code, forbidden
 

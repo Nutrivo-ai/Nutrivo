@@ -114,3 +114,39 @@ def contains(haystack: str, needle: str) -> bool:
     """Verbatim, up to whitespace: what an excerpt or a printed term must satisfy against the stored text."""
     n = normalise(needle)
     return bool(n) and n in normalise(haystack)
+
+
+_QUOTES = "'\"‘’‚‛“”„‟«»‹›"
+_DASHES = "-‐‑‒–—―"
+
+
+def locate(haystack: str, needle: str) -> str | None:
+    """The passage of `haystack` that `needle` copies, up to whitespace and the style of its quotation marks and
+    dashes, returned exactly as printed (whitespace collapsed); None when it is not there. A model asked to copy a
+    passage sometimes returns straight quotes for ‘ ’ or „ “: the passage is still found, and what is kept is the
+    printed text, never the model's copy."""
+    n = normalise(needle)
+    if not n:
+        return None
+    parts = []
+    for ch in n:
+        if ch == " ":
+            parts.append(r"\s+")
+        elif ch in _QUOTES:
+            parts.append(f"[{re.escape(_QUOTES)}]")
+        elif ch in _DASHES:
+            parts.append(f"[{re.escape(_DASHES)}]")
+        else:
+            parts.append(re.escape(ch))
+    m = re.search("".join(parts), normalise(haystack))
+    return m.group(0) if m else None
+
+
+def printed_as_words(haystack: str, needle: str) -> bool:
+    """`needle` printed in `haystack` as whole words, up to whitespace: 'Crude fibre' is not printed in 'Crude
+    fibres'. What a term must satisfy, line by line, so a term never spans two printed lines or table cells."""
+    n = normalise(needle)
+    if not n:
+        return False
+    pattern = r"(?<!\w)" + r"\s+".join(re.escape(w) for w in n.split(" ")) + r"(?!\w)"
+    return re.search(pattern, normalise(haystack)) is not None
