@@ -23,7 +23,6 @@ permissions: { contents: read }
 
 jobs:
   content:
-    if: github.ref == 'refs/heads/main'
     environment: staging
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -32,9 +31,19 @@ jobs:
       DRY: ${{ inputs.dry_run && '--dry-run' || '' }}
       STEPS: ${{ inputs.steps }}
     defaults:
-      run: { working-directory: worker }
+      # shell: bash runs `bash -eo pipefail`, so a failing command fails its step even when piped into tee (without it
+      # GitHub runs `bash -e`, and the pipe would report tee's success).
+      run: { working-directory: worker, shell: bash }
     steps:
+      - name: Only from main
+        if: github.ref != 'refs/heads/main'
+        working-directory: .
+        run: { echo "::error::content-staging runs only from main (staging's secrets are for main only)"; exit 1; }
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      # Installed before the secrets are loaded, so no package build or install hook runs with staging's keys.
+      - name: Install the worker
+        run: uv sync --frozen
       - uses: ./.github/actions/infisical
         with:
           client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
@@ -42,27 +51,31 @@ jobs:
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
           domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
           env-slug: staging
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
-      - name: Install the worker
-        run: uv sync --frozen
       - name: Fetch the official texts (T-201)
         if: env.STEPS == 'all' || env.STEPS == 'fetch'
-        run: uv run nutrivo sources fetch $DRY | tee -a ../content-staging.jsonl
+        run: uv run --frozen nutrivo sources fetch $DRY | tee -a ../content-staging.jsonl
       - name: Import the additive register and the feed-material catalogue (T-202)
         if: env.STEPS == 'all' || env.STEPS == 'import'
         run: |
-          uv run nutrivo sources import additives $DRY | tee -a ../content-staging.jsonl
-          uv run nutrivo sources import materials $DRY | tee -a ../content-staging.jsonl
+          uv run --frozen nutrivo sources import additives $DRY | tee -a ../content-staging.jsonl
+          uv run --frozen nutrivo sources import materials $DRY | tee -a ../content-staging.jsonl
       - name: Extract candidate rules (K01/K02, T-203)
         if: env.STEPS == 'all' || env.STEPS == 'extract'
         # A second pass resumes any second key that failed on the first (`updated`); a completed pair is `unchanged`
         # and calls no model.
         run: |
-          uv run nutrivo content extract $DRY | tee -a ../content-staging.jsonl || first=$?
-          if [ -z "$DRY" ] && [ -n "${first:-}" ]; then uv run nutrivo content extract | tee -a ../content-staging.jsonl; fi
+          set +e
+          uv run --frozen nutrivo content extract $DRY | tee -a ../content-staging.jsonl
+          first=$?
+          set -e
+          if [ "$first" -ne 0 ] && [ -z "$DRY" ]; then
+            uv run --frozen nutrivo content extract | tee -a ../content-staging.jsonl
+          else
+            exit "$first"
+          fi
       - name: Extract candidate terms (K01/K02 for terms)
         if: env.STEPS == 'all' || env.STEPS == 'terms'
-        run: uv run nutrivo content terms $DRY | tee -a ../content-staging.jsonl
+        run: uv run --frozen nutrivo content terms $DRY | tee -a ../content-staging.jsonl
       - name: Summary
         if: ${{ !cancelled() }}
         working-directory: .
