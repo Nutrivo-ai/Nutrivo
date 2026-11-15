@@ -6,7 +6,11 @@ TARGET="${1:?staging | prod}"
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 # shellcheck source=scripts/deploy/vercel-cli.sh
 . "$ROOT/scripts/deploy/vercel-cli.sh"
-cd "$ROOT/apps/web"
+# From the repository root: the Vercel project's Root Directory is apps/web, so the CLI resolves it itself (run inside
+# apps/web it looked for apps/web/apps/web). The build reads the job's own environment (the staging or prod Infisical
+# project); variables the sync marks sensitive come back from `vercel pull` only as placeholders, which never override
+# it.
+cd "$ROOT"
 if [ "$TARGET" = prod ]; then env=production; flag=--prod; else env=preview; flag=; fi
 vercel_cli pull --yes --environment="$env" --token="$VERCEL_TOKEN" >/dev/null
 vercel_cli build $flag --token="$VERCEL_TOKEN" >/dev/null

@@ -80,3 +80,38 @@ def test_stored_bodies_are_read_back_with_bounded_retries():
     with pytest.raises(StorageError, match="HTTP 404"):
         StorageClient("https://x", "k", gone).get("sources", "p", sleep=lambda s: None)
     assert len(gone.sent) == 1                       # a 4xx is not retried
+
+
+def _body(*headings: str) -> bytes:
+    blocks = "".join(f'<p class="title-annex-1">{h}</p><p>text of {h}</p>' for h in headings)
+    return f'<html><body><p class="title-article-norm">Artikel 1</p><p>a</p>{blocks}</body></html>'.encode()
+
+
+def test_an_annex_numbered_in_arabic_figures_gets_the_same_label_as_in_roman_ones():
+    # The Swedish consolidated Dir. 76/211 (01976L0211-20190726) prints BILAGA 1 and BILAGA 2 where the other
+    # language versions print ANNEX I and BILAG I: a target naming Annex I must find it in every language.
+    sv = articles.split_units(_body("BILAGA 1", "BILAGA 2"))
+    da = articles.split_units(_body("BILAG I", "BILAG II"))
+    assert [u for u in sv if u.startswith("Annex")] == [u for u in da if u.startswith("Annex")] == ["Annex I",
+                                                                                                    "Annex II"]
+    assert sv["Annex I"].heading == "BILAGA 1" and "text of BILAGA 1" in sv["Annex I"].text
+    assert "text of BILAGA 2" not in sv["Annex I"].text
+    assert list(articles.split_units(_body("ANNEX 9", "ANNEX 14", "ANNEX 40", "ANNEX 90"))) == [
+        "Art. 1", "Annex IX", "Annex XIV", "Annex XL", "Annex XC"]
+
+
+def test_a_heading_that_is_not_one_word_and_a_numeral_gives_no_unit_rather_than_a_guessed_one():
+    # A trailing number elsewhere in a heading is not the annex number: the real ANNEX V must keep its label.
+    units = articles.split_units(_body("ANNEX referred to in Article 5", "ANNEX V"))
+    assert [u for u in units if u.startswith("Annex")] == ["Annex V"] and units["Annex V"].heading == "ANNEX V"
+    assert [u for u in articles.split_units(_body("ANNEX referred to in 2017/1"))] == ["Art. 1"]
+    # One word without a number is "Annex" only when it is the act's only annex heading.
+    assert [u for u in articles.split_units(_body("ANNEX I", "APPENDIX"))] == ["Art. 1", "Annex I"]
+
+
+def test_an_acts_only_annex_printed_without_a_number_is_labelled_annex():
+    # Reg. 68/2013 and Reg. 2020/354 print a single unnumbered ANNEX / BILAGA / LIITE.
+    for heading in ("ANNEX", "BILAGA", "LIITE", "ANHANG"):
+        units = articles.split_units(_body(heading))
+        assert list(units) == ["Art. 1", "Annex"] and units["Annex"].heading == heading
+    assert "Annex" not in articles.split_units(_body("ANNEX 0"))
