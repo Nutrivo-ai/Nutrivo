@@ -144,7 +144,8 @@ target × source. It never writes a rule.
   model abstains, the result is withheld as `not_found`.
 - **Second key (K02).** `extraction_secondary.v1` runs on the judgement model class with its own prompt and the same
   inputs. It never sees the first answer. `agree` is computed field by field: `found`, the article reference and
-  every param, with case, whitespace and list order ignored. Excerpts are not compared. The per-field map is in
+  every param, with case, whitespace and list order ignored. Excerpts are not compared. The second key's answer gets
+  the same printed-text recovery as the first (quotation-mark and dash style only) before it is checked and compared. The per-field map is in
   `second_value.fields`.
 - **Decision.** A candidate stays `pending`. It becomes `needs_review` when the keys disagree, when the second key is
   not verbatim, and always for `threshold` and `prescribed_wording`. Nothing here sets `accepted`, writes
