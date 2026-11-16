@@ -1,0 +1,68 @@
+name: restore-drill
+# T-1101, gate G7 (docs/18 Backups, docs/runbooks/restore-drill.md). Monthly, by hand: a founder restores nutrivo-prod
+# into a new project from the Supabase dashboard (the Management API cannot restore into a new project), then runs this
+# with that project's ref. scripts/drill/restore_drill.py refuses any project that is not a fresh drill copy, compares
+# the copy with prod using aggregates only, deletes the copy when the drill passes, and this job records the drill in
+# an issue labelled restore-drill. Nothing leaves Supabase's EU region: counts and timestamps only, never rows.
+on:
+  workflow_dispatch:
+    inputs:
+      drill_ref:
+        description: Ref of the project "Restore to a New Project" created (never nutrivo-prod's)
+        type: string
+        required: true
+      restore_point:
+        description: The point in time chosen in the dashboard, ISO 8601 UTC (e.g. 2026-12-01T06:00:00Z)
+        type: string
+        required: true
+      keep:
+        description: Keep the copy after a passing drill (it is always kept after a failing one)
+        type: boolean
+        default: false
+concurrency: { group: restore-drill, cancel-in-progress: false }
+permissions: { contents: read, issues: write }
+
+jobs:
+  drill:
+    environment: production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      # The production identity can delete a project: only a repository admin (a founder) may start this.
+      - name: Started by a founder
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          perm=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$GITHUB_ACTOR/permission" --jq .permission)
+          [ "$perm" = admin ] || { echo "::error::only a repository admin may run the restore drill ($GITHUB_ACTOR is $perm)"; exit 1; }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/infisical
+        with:
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
+          env-slug: prod
+      - name: Drill
+        id: drill
+        env:
+          DRILL_REF: ${{ inputs.drill_ref }}
+          RESTORE_POINT: ${{ inputs.restore_point }}
+        run: >
+          python3 scripts/drill/restore_drill.py --drill-ref "$DRILL_REF" --restore-point "$RESTORE_POINT"
+          ${{ inputs.keep && ' ' || '--delete' }} --json drill.json
+      - name: Record the drill
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          OUTCOME: ${{ steps.drill.outcome }}
+        run: |
+          gh label create restore-drill --repo "$GITHUB_REPOSITORY" --color 0e8a16 --force >/dev/null
+          result=$([ "$OUTCOME" = success ] && echo passed || echo FAILED)
+          body="Run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID by @$GITHUB_ACTOR."
+          if [ -f drill.json ]; then body="$body"$'\n\n'"$(PYTHONPATH=scripts/drill python3 -c 'import json, restore_drill as r; print(r.markdown(json.load(open("drill.json"))))')"; fi
+          labels=restore-drill; [ "$result" = passed ] || labels="restore-drill,needs-human"
+          url=$(gh issue create --repo "$GITHUB_REPOSITORY" --title "Restore drill $(date -u +%Y-%m-%d): $result" \
+            --label "$labels" --body "$body")
+          # a passing drill is a record, not work: close it at once
+          if [ "$result" = passed ]; then gh issue close "$url" --repo "$GITHUB_REPOSITORY" --reason completed >/dev/null; fi
+          echo "$url"
