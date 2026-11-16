@@ -87,7 +87,15 @@ for (const r of ROUTES) {
 
     test(`${r.screen} ${r.url} names no invented figure and never Ireland as the hosting location`, async ({ page }) => {
       await open(page, r.url);
-      const text = await page.locator("body").innerText();
+      let text = await page.locator("body").innerText();
+      if (r.url === "/legal/dpa") {
+        // D-02 and D-17: hosting is Frankfurt, and the DPA names "Langfuse, Ireland" as a sub-processor. Ireland may
+        // appear there, as Langfuse's processing location, and nowhere else on the page.
+        const langfuse = page.getByRole("row").filter({ hasText: "Langfuse" });
+        await expect(langfuse).toHaveCount(1);
+        await expect(langfuse).toContainText("EU (Ireland)");
+        text = text.replace(await langfuse.innerText(), "");
+      }
       for (const phrase of [...INVENTED, "Ireland", "eu-west-1"]) expect(text, phrase).not.toContain(phrase);
     });
   });
