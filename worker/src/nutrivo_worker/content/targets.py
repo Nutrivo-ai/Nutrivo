@@ -3,8 +3,11 @@
 `candidate_source` reads like "Reg. 767/2009, Art. 15(f) with Annex VII Chapter I, as amended by Reg. 2017/2279".
 The first act named is the one extracted from, and it must be listed in content/sources.yaml (EU primary law only,
 D-10): anything else is refused, never guessed. Parenthesised descriptions are dropped before units are read, so an
-aside such as "(with Reg. 183/2005 Art. 10)" does not add another act's article. A target names a unit; its values
-always come from the extraction, never from this file."""
+aside such as "(with Reg. 183/2005 Art. 10)" does not add another act's article. "Annex" with no numeral after it
+("Reg. 68/2013, Annex Part C") names the unit `Annex`, the label articles.py gives an act's only, unnumbered annex;
+after a determiner ("the Annex to Reg. 68/2013") it is prose and names nothing, and an Arabic figure ("Annex 1") is
+never read as that bare unit. A target names a unit; its values always come from the extraction, never from this
+file."""
 from __future__ import annotations
 
 import re
@@ -23,7 +26,10 @@ NOT_EXTRACTED = {"claim_judgement": "needs_claims_harness", "additive_condition"
 REFUSED_SOURCES = re.compile(r"\b(fediaf|aafco)\b", re.IGNORECASE)
 
 _ACT = re.compile(r"\b(Reg|Dir)\.\s*(?:\((?:EC|EU|EEC)\)\s*No\s*)?(\d+)/(\d+)(?:/(?:EEC|EC|EU))?")
-_UNIT = re.compile(r"(?:\bArt\.\s*|\band\s+)(\d+[a-z]?)(?=\(|\b)|\bAnnex\s+([IVXLC]+)\b")
+_UNIT = re.compile(r"(?:\bArt\.\s*|\band\s+)(\d+[a-z]?)(?=\(|\b)|\bAnnex\s+([IVXLC]+)\b"
+                   r"|\b(Annex)\b(?!\s+[IVXLC]+\b|\s*\d)")
+# "the Annex to …", "that Annex": prose about an annex, not a unit this target names.
+_DETERMINER = re.compile(r"\b(?:the|an|a|this|that|these|those|its|each|any|every|same|such)\s+$", re.IGNORECASE)
 _PARENS = re.compile(r"\([^()]*\s[^()]*\)")
 
 
@@ -82,7 +88,9 @@ def resolve(candidate_source: str) -> tuple[str | None, tuple[str, ...]]:
     rest = rest[:nxt.start()] if nxt else rest
     units: list[str] = []
     for u in _UNIT.finditer(rest):
-        label = f"Art. {u.group(1)}" if u.group(1) else f"Annex {u.group(2)}"
+        if u.group(3) and _DETERMINER.search(rest[:u.start()]):
+            continue
+        label = f"Art. {u.group(1)}" if u.group(1) else f"Annex {u.group(2)}" if u.group(2) else "Annex"
         if label not in units:
             units.append(label)
     return act, tuple(units)

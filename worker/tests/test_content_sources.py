@@ -49,6 +49,28 @@ def test_targets_resolve_to_their_first_act_and_its_units():
     assert all(t.skip_reason is None for t in by_key.values() if t.shape in targets.EXTRACTED_SHAPES)
 
 
+@pytest.mark.parametrize("source,act,units", [
+    # An act's only annex, printed without a number, is the unit "Annex" (articles.py); a target can name it.
+    ("Reg. 68/2013, Annex Part C", "32013R0068", ("Annex",)),
+    ("Reg. (EU) No 68/2013, Annex Part C, as amended by Reg. 2022/1104", "32013R0068", ("Annex",)),
+    ("Reg. 2020/354, Art. 1 and Annex", "32020R0354", ("Art. 1", "Annex")),
+    ("Reg. 68/2013, Annex Part C and Annex", "32013R0068", ("Annex",)),
+    # A numbered annex keeps its numeral and never also yields the bare unit.
+    ("Reg. 767/2009, Art. 15(g) with Annex I point 6", "32009R0767", ("Art. 15", "Annex I")),
+    ("Reg. 767/2009, Annex VII Chapter I", "32009R0767", ("Annex VII",)),
+    # Prose is not a unit: an annex after a determiner, an Arabic figure, the plural, or a parenthesised aside.
+    ("Reg. 767/2009, Art. 17 as read with the Annex to the catalogue", "32009R0767", ("Art. 17",)),
+    ("Reg. 767/2009, Art. 17, each Annex point applying", "32009R0767", ("Art. 17",)),
+    ("Reg. 767/2009, Art. 17 with Annex 1", "32009R0767", ("Art. 17",)),
+    ("Reg. 767/2009, Art. 17 and the Annexes", "32009R0767", ("Art. 17",)),
+    ("Reg. 767/2009, Art. 17 (with Annex Part C where applicable)", "32009R0767", ("Art. 17",)),
+    # The bare unit belongs to the first act only.
+    ("Reg. 767/2009, Art. 16 as amended by Reg. 2017/2279, Annex", "32009R0767", ("Art. 16",)),
+])
+def test_a_target_names_the_unnumbered_annex_but_prose_names_no_unit(source, act, units):
+    assert targets.resolve(source) == (act, units)
+
+
 @pytest.mark.parametrize("kind,a,b,celex", [
     ("Reg", "767", "2009", "32009R0767"), ("Reg", "1831", "2003", "32003R1831"), ("Reg", "68", "2013", "32013R0068"),
     ("Reg", "2017", "2279", "32017R2279"), ("Reg", "2020", "354", "32020R0354"), ("Dir", "76", "211", "31976L0211"),

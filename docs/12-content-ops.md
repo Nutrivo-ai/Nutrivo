@@ -131,7 +131,10 @@ target × source. It never writes a rule.
   (`title-article-norm`, `title-annex-1`). An annex takes its Roman label whichever numerals the language version
   prints (the Swedish 01976L0211-20190726 prints `BILAGA 1`), and an act's only annex, printed without a number, is
   `Annex`. The model sees only the units the target names (for example `Art. 15` and `Annex I`), never the whole act
-  and never anything from memory.
+  and never anything from memory. A target names that unnumbered annex as `Annex` with no numeral after it
+  (`Reg. 68/2013, Annex Part C`). After a determiner (`the Annex to …`), followed by an Arabic figure (`Annex 1`) or in
+  a parenthesised aside it names no unit, and a target naming `Annex` of an act whose annexes are numbered is withheld
+  as `units_not_in_source`.
 - **First key (K01).** `extraction_primary.v1` runs on the extraction model class. The answer is the shape's params,
   the article reference to the paragraph and a verbatim excerpt. The excerpt must be printed in the units, up to
   whitespace. Every field the schema calls verbatim (`content/schemas.py`) must be printed inside the excerpt. Every
