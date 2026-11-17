@@ -4,7 +4,10 @@ name: restore-drill
 # with that project's ref. scripts/drill/restore_drill.py refuses any project that is not a fresh drill copy, compares
 # the copy with prod using aggregates only, deletes the copy when the drill passes, and this job records the drill in
 # an issue labelled restore-drill. Nothing leaves Supabase's EU region: counts and timestamps only, never rows.
+# Two things keep it monthly (docs/17): the drill checks in to the Sentry monitor restore-drill-prod, which expects one
+# by the 15th of each month, and on the 2nd a scheduled run opens a reminder issue if no drill has passed for 31 days.
 on:
+  schedule: [{ cron: "37 8 2 * *" }]
   workflow_dispatch:
     inputs:
       drill_ref:
@@ -23,13 +26,34 @@ concurrency: { group: restore-drill, cancel-in-progress: false }
 permissions: { contents: read, issues: write }
 
 jobs:
+  remind:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Remind when no drill passed in the last 31 days
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          since=$(date -u -d '31 days ago' +%Y-%m-%d)
+          passed=$(gh issue list --repo "$GITHUB_REPOSITORY" --state all --label restore-drill \
+            --search "in:title passed created:>=$since" --json number --jq length)
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --label restore-drill \
+            --search 'in:title "Restore drill due"' --json number --jq length)
+          if [ "$passed" -gt 0 ] || [ "$open" -gt 0 ]; then echo "drill passed since $since, or a reminder is open"; exit 0; fi
+          gh label create restore-drill --repo "$GITHUB_REPOSITORY" --color 0e8a16 --force >/dev/null
+          gh issue create --repo "$GITHUB_REPOSITORY" --label restore-drill,needs-human \
+            --title "Restore drill due ($(date -u +%B\ %Y))" \
+            --body "No restore drill has passed since $since. Follow docs/runbooks/restore-drill.md: restore nutrivo-prod into a new project from the dashboard, then run Actions → restore-drill. Close this issue when the drill has passed."
+
   drill:
+    if: github.event_name == 'workflow_dispatch'
     environment: production
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       # The production identity can delete a project: only a repository admin (a founder) may start this.
       - name: Started by a founder
+        id: founder
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           perm=$(gh api "repos/$GITHUB_REPOSITORY/collaborators/$GITHUB_ACTOR/permission" --jq .permission)
@@ -42,16 +66,23 @@ jobs:
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
           domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
           env-slug: prod
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: 22 }
       - name: Drill
         id: drill
         env:
           DRILL_REF: ${{ inputs.drill_ref }}
           RESTORE_POINT: ${{ inputs.restore_point }}
+        # Wrapped in a check-in to the Sentry monitor (DSN-authorised, like synthetic.yml): a failed drill is an error
+        # check-in, and a month without one is a missed check-in (schedule the 1st, margin 14 days, runtime 60 min).
         run: >
+          SENTRY_DSN="$SENTRY_DSN_WEB" npx --yes @sentry/cli@3.8.0 monitors run -e prod
+          -s "0 9 1 * *" --check-in-margin 20160 --max-runtime 60 restore-drill-prod --
           python3 scripts/drill/restore_drill.py --drill-ref "$DRILL_REF" --restore-point "$RESTORE_POINT"
           ${{ inputs.keep && ' ' || '--delete' }} --json drill.json
+      # Only a drill that ran is recorded: a refused start (not a founder) or a failed setup records nothing.
       - name: Record the drill
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && steps.founder.outcome == 'success' && steps.drill.outcome != 'skipped' }}
         env:
           GH_TOKEN: ${{ github.token }}
           OUTCOME: ${{ steps.drill.outcome }}

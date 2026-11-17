@@ -30,14 +30,22 @@ class FakeApi:
             (COPY, "counts"): [{"t": "audit_events", "n": 900}, {"t": "workspaces", "n": 3}],
             (PROD, "counts"): [{"t": "audit_events", "n": 950}, {"t": "workspaces", "n": 3}, {"t": "newer", "n": 0}],
             (COPY, "newest_audit"): [{"at": (POINT - timedelta(minutes=4)).isoformat()}],
-            (COPY, "verify"): [{"ok": True}],
+            (COPY, "verify"): [{"reports": 40, "unresolved": 0, "wrong_date": 0, "superseded": 3,
+                                 "anon_can_execute": True}],
+            (PROD, "reports_by_point"): [{"reports": 40}],
             (COPY, "unschedule"): [{"n": 5}],
         }
         self.rows.update(over.pop("rows", {}))
         self.delete_status = over.pop("delete_status", 200)
+        self.flaky = over.pop("flaky", [])  # statuses or exceptions answered before the real answer
 
     def __call__(self, method, url, token, data=None, timeout=60):
         self.calls.append((method, url, data))
+        if self.flaky:
+            f = self.flaky.pop(0)
+            if isinstance(f, Exception):
+                raise f
+            return f, b"{}"
         ref = url.split("/projects/")[1].split("/")[0]
         if method == "GET":
             if ref not in self.projects:
@@ -48,15 +56,20 @@ class FakeApi:
             return 200, json.dumps(p).encode()
         if method == "DELETE":
             return self.delete_status, b"{}"
-        key = next(k for k, sql in rd.SQL.items() if sql == data["query"])
-        return 201, json.dumps(self.rows[(ref, key)]).encode()
+        return 201, json.dumps(self.rows[(ref, key_of(data["query"]))]).encode()
 
     def queries(self, ref):
-        return [(next(k for k, s in rd.SQL.items() if s == d["query"]), d["read_only"])
+        return [(key_of(d["query"]), d["read_only"])
                 for m, u, d in self.calls if m == "POST" and f"/projects/{ref}/" in u]
 
     def deletes(self):
         return [u for m, u, _ in self.calls if m == "DELETE"]
+
+
+def key_of(sql):
+    """The SQL template a query was made from: the one whose text before {point} it starts with, longest first."""
+    heads = sorted(((t.split("{point}")[0], k) for k, t in rd.SQL.items()), key=lambda h: -len(h[0]))
+    return next(k for head, k in heads if sql.startswith(head))
 
 
 def run(fake, delete=True, **kw):
@@ -84,7 +97,7 @@ class Passes(unittest.TestCase):
     def test_prod_is_only_read(self):
         fake = FakeApi()
         run(fake)
-        self.assertEqual(fake.queries(PROD), [("migrations", True), ("counts", True)])
+        self.assertEqual(fake.queries(PROD), [("migrations", True), ("counts", True), ("reports_by_point", True)])
         self.assertNotIn(f"{rd.API}/projects/{PROD}", fake.deletes())
 
     def test_cron_is_unscheduled_first_and_is_the_only_write(self):
@@ -167,8 +180,69 @@ class Fails(unittest.TestCase):
     def test_audit_after_restore_point(self):
         self.fails("after the restore point", newest_audit=[{"at": (POINT + timedelta(hours=1)).isoformat()}])
 
-    def test_verify_reference_silent(self):
-        self.fails("verify_reference", verify=[{"ok": False}])
+    def verify(self, **over):
+        return [{"reports": 40, "unresolved": 0, "wrong_date": 0, "superseded": 3, "anon_can_execute": True, **over}]
+
+    def test_a_report_does_not_resolve(self):
+        self.fails("does not resolve 2 of the copy's reports", verify=self.verify(unresolved=2))
+
+    def test_a_report_has_the_wrong_issued_at(self):
+        self.fails("wrong issued_at for 1 reports", verify=self.verify(wrong_date=1))
+
+    def test_anon_lost_its_grant(self):
+        self.fails("anon cannot execute", verify=self.verify(anon_can_execute=False))
+
+    def test_reports_missing_from_the_copy(self):
+        self.fails("the copy has 39 reports issued by the restore point, prod has 40", verify=self.verify(reports=39))
+
+
+class VerifyReference(unittest.TestCase):
+    def test_resolves_real_reports_inside_the_database(self):
+        """Review on #265: a made-up 19-character ref always answered 'unknown', so the old probe never failed."""
+        fake = FakeApi()
+        r = run(fake)
+        self.assertEqual(r["verify_reference"], "40 reports resolve (3 superseded)")
+        sql = next(d["query"] for m, u, d in fake.calls if m == "POST" and d["query"].startswith("with r as"))
+        self.assertIn("public.verify_reference(r.ref)", sql)
+        self.assertIn("'2026-11-16T07:55:00+00:00'::timestamptz", sql, "5 minutes before the restore point")
+        self.assertNotIn("{point}", sql)
+        self.assertNotIn("restore-drill-probe", sql)
+
+    def test_skipped_with_a_reason_when_no_report_exists_yet(self):
+        none = [{"reports": 0, "unresolved": 0, "wrong_date": 0, "superseded": 0, "anon_can_execute": True}]
+        fake = FakeApi(rows={(COPY, "verify"): none, (PROD, "reports_by_point"): [{"reports": 0}]})
+        r = run(fake)
+        self.assertTrue(r["passed"], r["failures"])
+        self.assertIn("skipped: no report was issued by the restore point", r["verify_reference"])
+        self.assertIn("skipped: no report", rd.markdown(r))
+
+
+class Retries(unittest.TestCase):
+    def test_a_transient_answer_is_retried(self):
+        fake = FakeApi(flaky=[503, 429])
+        self.assertTrue(run(fake)["passed"])
+
+    def test_a_dropped_connection_is_retried(self):
+        import urllib.error
+        fake = FakeApi(flaky=[urllib.error.URLError("reset")])
+        self.assertTrue(run(fake)["passed"])
+
+    def test_retries_are_bounded(self):
+        import urllib.error
+        fake = FakeApi(flaky=[urllib.error.URLError("down")] * rd.RETRIES)
+        with self.assertRaisesRegex(rd.DrillError, f"did not answer after {rd.RETRIES} attempts"):
+            run(fake)
+        self.assertEqual(len(fake.calls), rd.RETRIES)
+
+    def test_a_refusal_is_not_retried(self):
+        fake = FakeApi(flaky=[403])
+        with self.assertRaisesRegex(rd.DrillError, "returned 403"):
+            run(fake)
+        self.assertEqual(len(fake.calls), 1)
+
+    def test_a_retried_delete_that_already_went_through_counts(self):
+        fake = FakeApi(delete_status=404)
+        self.assertTrue(run(fake)["deleted"])
 
 
 class Cli(unittest.TestCase):

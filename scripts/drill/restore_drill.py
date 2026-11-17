@@ -9,12 +9,14 @@ is usable and records the drill. It:
      the copy's queues, but they stop anyway);
   3. compares the copy with prod using aggregates only, in read-only transactions: migrations, RLS on every `app`
      table, row counts per `app` table, the newest audit event against the chosen restore point, and
-     public.verify_reference answering on the copy;
+     public.verify_reference resolving every report issued before the restore point, run inside the copy so no
+     reference leaves the database, with anon still allowed to execute it (non-negotiable 9);
   4. deletes the copy when the drill passes and --delete is given.
 It prints counts and timestamps, never row data or a secret. Everything goes through the Management API with
 SUPABASE_ACCESS_TOKEN from the production environment; the copy and prod stay in Supabase's EU region.
 """
 import argparse, json, os, sys, time, urllib.error, urllib.request
+from functools import partial
 from datetime import datetime, timedelta, timezone
 
 API = "https://api.supabase.com/v1"
@@ -35,13 +37,25 @@ SQL = {
                "join pg_namespace s on s.oid = c.relnamespace where s.nspname = 'app' and c.relkind in ('r', 'p') "
                "order by 1"),
     "newest_audit": "select max(at) as at from app.audit_events",
-    "verify": "select public.verify_reference('restore-drill-probe') is not null as ok",
+    # Every report issued by the restore point resolves through the public function on the copy, with the issued_at
+    # it was stored with; refs never leave the database. {point} is a validated timestamp, never user text.
+    "verify": ("with r as (select r.created_at, public.verify_reference(r.ref) as v from app.reports r "
+               "where r.created_at <= '{point}'::timestamptz) select count(*)::int as reports, "
+               "count(*) filter (where v->>'status' not in ('current', 'superseded'))::int as unresolved, "
+               "count(*) filter (where (v->>'issued_at')::timestamptz is distinct from created_at)::int as wrong_date, "
+               "count(*) filter (where v->>'status' = 'superseded')::int as superseded, "
+               "has_function_privilege('anon', 'public.verify_reference(text)', 'execute') as anon_can_execute "
+               "from r"),
+    "reports_by_point": ("select count(*)::int as reports from app.reports where created_at <= '{point}'::timestamptz"),
     "unschedule": "select count(cron.unschedule(jobid))::int as n from cron.job",
 }
 
 
 class DrillError(Exception):
     pass
+
+
+RETRIES, RETRY_STATUSES = 3, {429, 500, 502, 503, 504}  # docs/18: bounded retries on transient answers only
 
 
 def http(method, url, token, data=None, timeout=60):
@@ -60,15 +74,28 @@ class Api:
     def __init__(self, token, http_fn=http, sleep=time.sleep, now=lambda: datetime.now(timezone.utc)):
         self.token, self.http, self.sleep, self.now = token, http_fn, sleep, now
 
+    def call(self, method, url, data=None):
+        """One Management API call, retried up to RETRIES times on 429, 5xx or a dropped connection. Every call the
+        drill makes is safe to repeat: reads, read-only queries, cron.unschedule over what is left, and a delete."""
+        for attempt in range(1, RETRIES + 1):
+            try:
+                s, b = self.http(method, url, self.token, data)
+            except (urllib.error.URLError, TimeoutError, ConnectionError):
+                if attempt == RETRIES:
+                    raise DrillError(f"{method} {url.removeprefix(API)} did not answer after {RETRIES} attempts")
+            else:
+                if s not in RETRY_STATUSES or attempt == RETRIES:
+                    return s, b
+            self.sleep(2 ** attempt)
+
     def project(self, ref):
-        s, b = self.http("GET", f"{API}/projects/{ref}", self.token)
+        s, b = self.call("GET", f"{API}/projects/{ref}")
         if s != 200:
             raise DrillError(f"management API returned {s} for project {ref}")
         return json.loads(b)
 
     def query(self, ref, sql, read_only=True):
-        s, b = self.http("POST", f"{API}/projects/{ref}/database/query", self.token,
-                         {"query": sql, "read_only": read_only})
+        s, b = self.call("POST", f"{API}/projects/{ref}/database/query", {"query": sql, "read_only": read_only})
         if not 200 <= s < 300:
             raise DrillError(f"query on {ref} returned {s}")
         rows = json.loads(b)
@@ -77,8 +104,9 @@ class Api:
         return rows
 
     def delete(self, ref):
-        s, _ = self.http("DELETE", f"{API}/projects/{ref}", self.token)
-        if s != 200:
+        s, _ = self.call("DELETE", f"{API}/projects/{ref}")
+        # 404: a retried delete whose first attempt went through (the guard saw the project just before)
+        if s not in (200, 404):
             raise DrillError(f"deleting {ref} returned {s}")
 
 
@@ -124,8 +152,12 @@ def drill(api, drill_ref, prod_ref, restore_point, wait_minutes=30, delete=False
     healthy_at = wait_healthy(api, drill_ref, wait_minutes)
     unscheduled = api.query(drill_ref, SQL["unschedule"], read_only=False)[0]["n"]
 
-    d = {k: api.query(drill_ref, SQL[k]) for k in ("migrations", "rls_off", "counts", "newest_audit", "verify")}
-    p = {k: api.query(prod_ref, SQL[k]) for k in ("migrations", "counts")}
+    # Reports up to 5 minutes before the restore point: one whose transaction was still open at that point is in prod
+    # but not the copy. Formatted from a datetime, never from the raw input.
+    point = (restore_point - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%S+00:00")
+    d = {k: api.query(drill_ref, SQL[k].replace("{point}", point))
+         for k in ("migrations", "rls_off", "counts", "newest_audit", "verify")}
+    p = {k: api.query(prod_ref, SQL[k].replace("{point}", point)) for k in ("migrations", "counts", "reports_by_point")}
     dm, pm = d["migrations"][0], p["migrations"][0]
     dc, pc = counts(d["counts"]), counts(p["counts"])
     newest = parse_ts(d["newest_audit"][0]["at"])
@@ -146,8 +178,17 @@ def drill(api, drill_ref, prod_ref, restore_point, wait_minutes=30, delete=False
         failures.append("the copy has more audit events than prod (app.audit_events is insert-only)")
     if newest and newest > restore_point + AUDIT_SLACK:
         failures.append(f"the copy's newest audit event ({newest.isoformat()}) is after the restore point")
-    if not d["verify"][0]["ok"]:
-        failures.append("public.verify_reference did not answer on the copy")
+    v, prod_reports = d["verify"][0], p["reports_by_point"][0]["reports"]
+    if not v["anon_can_execute"]:
+        failures.append("anon cannot execute public.verify_reference on the copy (non-negotiable 9)")
+    if v["reports"] != prod_reports:
+        failures.append(f"the copy has {v['reports']} reports issued by the restore point, prod has {prod_reports}")
+    if v["unresolved"]:
+        failures.append(f"public.verify_reference does not resolve {v['unresolved']} of the copy's reports")
+    if v["wrong_date"]:
+        failures.append(f"public.verify_reference gives the wrong issued_at for {v['wrong_date']} reports")
+    verify = (f"{v['reports']} reports resolve ({v['superseded']} superseded)" if v["reports"]
+              else "skipped: no report was issued by the restore point, so there is no reference to resolve")
 
     result = {
         "passed": not failures, "failures": failures,
@@ -157,6 +198,7 @@ def drill(api, drill_ref, prod_ref, restore_point, wait_minutes=30, delete=False
         "migrations": {"copy": dm, "prod": pm},
         "newest_audit_event": newest.isoformat() if newest else None,
         "restore_point_lag_minutes": round((restore_point - newest).total_seconds() / 60) if newest else None,
+        "verify_reference": verify,
         "tables": {t: {"copy": dc.get(t), "prod": pc.get(t)} for t in sorted(set(dc) | set(pc))},
         "deleted": False,
     }
@@ -179,6 +221,7 @@ def markdown(r):
              f"- Migrations: copy {r['migrations']['copy']['n']} (latest {r['migrations']['copy']['latest']}), "
              f"prod {r['migrations']['prod']['n']} (latest {r['migrations']['prod']['latest']})",
              f"- pg_cron jobs unscheduled in the copy: {r['cron_jobs_unscheduled']}",
+             f"- public.verify_reference: {r['verify_reference']}",
              f"- Copy deleted: {'yes' if r['deleted'] else 'no'}", ""]
     lines += [f"- ✗ {f}" for f in r["failures"]]
     lines += ["", "| app table | copy | prod |", "|---|---:|---:|"]

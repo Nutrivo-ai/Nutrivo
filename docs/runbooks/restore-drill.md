@@ -16,6 +16,11 @@ dashboard. The checks after the restore are scripted: `.github/workflows/restore
    deploy, and a release fails it while PITR is off.
 
 ## Each month
+Do the drill in the first two weeks of the month. The drill checks in to the Sentry cron monitor `restore-drill-prod`
+(expected on the 1st, 14 days' margin, 60 minutes' runtime): a failed drill is an error check-in, and a month without
+a drill is a missed one. On the 2nd, a scheduled run of the same workflow also opens a "Restore drill due" issue
+(labels `restore-drill` and `needs-human`) if no drill has passed for 31 days.
+
 1. Supabase → `nutrivo-prod` → Database → Backups → **Restore to a New Project**. Choose a point in time a few hours
    back and note it in UTC. The copy stays in eu-central-1 and is billed while it exists.
 2. Wait until the new project is up, then copy its ref from the project URL.
@@ -28,10 +33,15 @@ dashboard. The checks after the restore are scripted: `.github/workflows/restore
      no worker consumes the copy, and the migrations make no `pg_net` calls.
    - It compares the copy with prod using aggregates only, in read-only transactions: the migration count and the
      latest migration, RLS on every `app` table, row counts per `app` table, the newest `app.audit_events` row against
-     the point in time, and `public.verify_reference` answering on the copy.
+     the point in time, and `public.verify_reference` on the copy: every report issued up to 5 minutes before the
+     point in time resolves as current or superseded with its stored `issued_at`, the copy holds as many of those
+     reports as prod, and `anon` may still execute the function (non-negotiable 9). The references are resolved
+     inside the database and never leave it. With no report issued yet, this check is skipped and the record says so.
+   - It retries a Management API call at most three times, on 429, 5xx or a dropped connection.
    - When the drill passes it deletes the copy, unless `keep` is ticked, and records the drill in a closed issue
      labelled `restore-drill`.
    - When the drill fails it keeps the copy and opens an issue labelled `restore-drill` and `needs-human`.
+   - When the start is refused (not a repository admin), nothing is recorded.
 5. After a failed drill, read the failures, fix the cause, and delete the copy by hand (Supabase → project →
    Settings → Delete project).
 
