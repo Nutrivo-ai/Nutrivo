@@ -207,12 +207,14 @@ def test_K02_must_1_nothing_reaches_the_rules_on_extraction_alone(tmp_path):
     assert all(r["decision"] in ("pending", "needs_review") for r in store.rows.values())
     with pytest.raises(ValueError):
         PgCandidateStore(conn=None).set_second("cand-1", {}, True, "accepted")
-    # The extraction code writes candidates only: its one insert and one update are on ref.rule_candidates (never
-    # ref.rules, ref.rule_versions or a ruleset), and nothing sets a person's decision.
+    # The extraction code writes candidates only: one insert and one update on ref.rule_candidates and one insert of
+    # a candidate term entry (never ref.rules, ref.rule_versions, a ruleset or a term decision, and no term is ever
+    # updated), and nothing sets a person's decision.
     src = WORKER_ROOT / "src" / "nutrivo_worker" / "content"
-    code = "\n".join(p.read_text() for p in src.glob("*.py"))
-    assert re.findall(r"(?i)(?:insert\s+into|update|delete\s+from|truncate)\s+(ref\.\w+|app\.\w+)", code) == [
-        "ref.rule_candidates", "ref.rule_candidates"]
+    code = "\n".join(p.read_text() for p in sorted(src.glob("*.py")))
+    writes = re.findall(r"(?i)(insert\s+into|update|delete\s+from|truncate)\s+(ref\.\w+|app\.\w+)", code)
+    assert sorted((verb.split()[0].lower(), table) for verb, table in writes) == [
+        ("insert", "ref.rule_candidates"), ("insert", "ref.term_entries"), ("update", "ref.rule_candidates")]
     for forbidden in ("decided_by", "decided_at", "'accepted'", '"accepted"'):
         assert forbidden not in code, forbidden
 
@@ -304,3 +306,39 @@ def test_K01_must_1_threshold_params_are_read_from_the_excerpt_in_the_texts_own_
     elsewhere = {**MOISTURE_14, "excerpt": "14 % in the case of other feed."}
     assert extract.unverified_fields("threshold", elsewhere, ANNEX_I) == ["params.quantity", "params.then"]
     assert extract.printed_numbers("2,2 % · 1 000 kg · 2.5") >= {2.2, 1000.0, 2.5}
+
+
+COMPOSITION = targets.Target("EU.767.COMPOSITION", "mandatory_particular", "composition",
+                             "Reg. 767/2009, Art. 17(1)(e)", None, ACT, ("Art. 17",))
+PRINTED_E = ("a list of the feed materials of which the feed is composed, bearing the heading ‘composition’ and "
+             "indicating the name of each feed material")
+
+
+def test_K01_must_1_a_copy_differing_only_in_quote_style_keeps_the_printed_text_never_the_models(tmp_path):
+    straight = PRINTED_E.replace("‘", "'").replace("’", "'")
+    copy = answer(ref="Art. 17(1)(e)", excerpt=straight, params={"particular": straight, "conditions": []})
+    m, _ = models(tmp_path, {("eu.extract", COMPOSITION.key): copy, ("eu.judge", COMPOSITION.key): copy})
+    store = Store()
+    (res,) = extract.run([COMPOSITION], Reader(), store, m)
+    assert res.status == "stored" and res.agree is True
+    cand = store.rows[("src-en", COMPOSITION.key)]
+    for value in (cand["first_value"], cand["second_value"]):
+        assert value["extraction"]["excerpt"] == PRINTED_E and value["extraction"]["params"]["particular"] == PRINTED_E
+        assert value["printed_fields"] == ["excerpt", "params.particular"] and value["verified"] is True
+    # Any other difference is not a copy: withheld, nothing written.
+    reworded = answer(ref="Art. 17(1)(e)", excerpt=straight.replace("composed", "made"),
+                      params={"particular": "the heading 'composition'", "conditions": []})
+    m, _ = models(tmp_path, {("eu.extract", COMPOSITION.key): reworded, ("eu.judge", COMPOSITION.key): copy})
+    store = Store()
+    (res,) = extract.run([COMPOSITION], Reader(), store, m)
+    assert (res.status, res.reason) == ("withheld", "excerpt_not_in_source") and store.rows == {}
+
+
+def test_as_printed_replaces_only_quote_and_dash_style_inside_the_printed_excerpt():
+    text = articles.split_units(EN_767)["Art. 17"].text
+    out, recovered = extract.as_printed("mandatory_particular", answer(excerpt=PRINTED_E, params={
+        "particular": "bearing the heading 'composition'", "conditions": ["the name of each feed material"]}), text)
+    assert out["params"]["particular"] == "bearing the heading ‘composition’" and recovered == ["params.particular"]
+    assert out["params"]["conditions"] == ["the name of each feed material"]
+    untouched = answer(excerpt="nowhere in the text 'x'")
+    assert extract.as_printed("mandatory_particular", untouched, text) == (untouched, [])

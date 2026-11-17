@@ -37,12 +37,15 @@ from .logs import get_logger, kv
 log = get_logger(__name__)
 T = TypeVar("T", bound=BaseModel)
 
-# Purpose → model class (docs/07). The second extraction key uses the judgement class with its own prompt.
+# Purpose → model class (docs/07). The second extraction key (of a rule or of terms) uses the judgement class with its
+# own prompt.
 PURPOSES: dict[str, ModelClass] = {
     "classification": "judgement",
     "claim_judgement": "judgement",
     "extraction_primary": "extraction",
     "extraction_secondary": "judgement",
+    "term_extraction_primary": "extraction",
+    "term_extraction_secondary": "judgement",
     "triage": "triage",
     "smoke": "triage",
 }

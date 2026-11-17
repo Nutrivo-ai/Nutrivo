@@ -81,3 +81,40 @@ class PgCandidateStore:
 
     def insert_model_call(self, row: dict[str, Any]) -> None:
         PgStore(self.conn).insert_model_call(row)
+
+
+class PgTermStore:
+    """ref.term_entries over DATABASE_URL (service role). Inserts candidate entries only: status is the column default
+    ('candidate'), ruleset_version stays null, and nothing here updates an entry or writes ref.term_decisions; a
+    person accepts or rejects through app.decide_term (K03)."""
+
+    def __init__(self, conn):  # type: ignore[no-untyped-def]
+        self.conn = conn
+
+    @contextlib.contextmanager
+    def locked(self, source_id: str, group: str) -> Iterator[None]:
+        key = f"ref.term_entries:{source_id}:{group}"
+        self.conn.execute("select pg_advisory_lock(hashtextextended(%s, 0))", (key,))
+        try:
+            yield
+        finally:
+            self.conn.execute("select pg_advisory_unlock(hashtextextended(%s, 0))", (key,))
+
+    def existing(self, source_id: str, language: str, term_keys: list[str]) -> dict[str, tuple[str, str]]:
+        """Entries already read from this source, in any status: term key → (id, status)."""
+        with self.conn.cursor(row_factory=dict_row) as cur:
+            rows = cur.execute("""select distinct on (term_key) term_key, id, status from ref.term_entries
+                                   where source_id = %s and language = %s and term_key = any(%s)
+                                     and ruleset_version is null
+                                   order by term_key, created_at""", (source_id, language, term_keys)).fetchall()
+        return {r["term_key"]: (str(r["id"]), r["status"]) for r in rows}
+
+    def insert(self, term_key: str, language: str, term: str, kind: str, article_ref: str, source_id: str) -> str:
+        with self.conn.cursor(row_factory=dict_row) as cur:
+            r = cur.execute("""insert into ref.term_entries (term_key, language, term, kind, article_ref, source_id)
+                               values (%s, %s, %s, %s, %s, %s) returning id""",
+                            (term_key, language, term, kind, article_ref, source_id)).fetchone()
+        return str(r["id"])
+
+    def insert_model_call(self, row: dict[str, Any]) -> None:
+        PgStore(self.conn).insert_model_call(row)

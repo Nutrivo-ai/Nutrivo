@@ -4,12 +4,16 @@ writes (denied in .claude/settings.json).
   make pr-check  PR=123   say whether PR 123 may merge, and why not
   make pr-update PR=123   bring PR 123 up to date with its base (GitHub's "Update branch": a merge, never a rebase)
   make pr-merge  PR=123   squash-merge PR 123, only if every rule below holds on its current head
+  make pr-comment PR=123 BODY=file.md   comment on PR or issue 123 (the body from a file, never a secret)
+  make pr-open TITLE="…" BODY=file.md   open a PR from the current branch into main; the body must name its task
+                                        ('Task: T-123' and 'Closes #N', or 'Incident: #N', or 'Task: none')
 
 A PR may merge only when (CLAUDE.md 11, docs/15 step 9, D-24): it is open and not a draft; its head is up to date with
 the base; every required check of the main ruleset has succeeded on the head; no reviewer's latest review requests
 changes; and every review thread is resolved. The merge is pinned to the head SHA that was checked, so a push in
 between makes GitHub refuse it rather than merge unchecked code."""
-import json, sys
+import json, os, re, sys
+from pathlib import Path
 from lib import api, repo, sh, ROOT
 
 RULESET = ROOT / ".github/rulesets/main.json"
@@ -21,11 +25,31 @@ def required_checks():
             for c in r["parameters"]["required_status_checks"]]
 
 
-def write(method, path, *fields):
+def write(method, path, *fields, files=()):
+    """fields: key=value strings; files: key=path pairs read by gh (-F key=@path), for long markdown bodies."""
     args = ["api", "-X", method, f"repos/{repo()}/{path}"]
     for f in fields:
         args += ["-f", f]
+    for key, path in files:
+        args += ["-F", f"{key}=@{path}"]
     return json.loads(sh("gh", *args) or "null")
+
+
+def body_file(path):
+    if not path or not Path(path).is_file():
+        sys.exit("BODY=<file> must name an existing markdown file")
+    return str(Path(path).resolve())
+
+
+def open_pr(title, body):
+    text = Path(body).read_text(encoding="utf-8")
+    if not re.search(r"Task:\s*(T-\d+|none)\b|Incident:\s*#\d+", text):
+        sys.exit("the body must name its task: 'Task: T-123' + 'Closes #N', 'Incident: #N', or 'Task: none' (docs/15)")
+    head = sh("git", "rev-parse", "--abbrev-ref", "HEAD").strip()
+    if head in ("main", "HEAD"):
+        sys.exit("open a PR from a branch, not from main")
+    out = write("POST", "pulls", f"title={title}", f"head={head}", "base=main", files=[("body", body)])
+    print(f"PR #{out['number']} opened: {out['html_url']}")
 
 
 def blockers(n):
@@ -82,11 +106,20 @@ def main(cmd, n):
         out = write("PUT", f"pulls/{n}/merge", "merge_method=squash", f"sha={head}", f"commit_title={title} (#{n})")
         print(f"PR #{n} merged as {out['sha'][:7]}" if out.get("merged") else out)
         return 0 if out.get("merged") else 1
+    if cmd == "comment":
+        out = write("POST", f"issues/{n}/comments", files=[("body", body_file(os.environ.get("BODY")))])
+        print(out["html_url"])
+        return 0
     print(__doc__, file=sys.stderr)
     return 2
 
 
 if __name__ == "__main__":
+    if len(sys.argv) == 2 and sys.argv[1] == "open":
+        if not os.environ.get("TITLE"):
+            sys.exit("TITLE=\"…\" is required")
+        open_pr(os.environ["TITLE"], body_file(os.environ.get("BODY")))
+        sys.exit(0)
     if len(sys.argv) != 3 or not sys.argv[2].isdigit():
         print(__doc__, file=sys.stderr)
         sys.exit(2)
