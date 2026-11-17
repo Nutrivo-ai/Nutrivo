@@ -171,6 +171,11 @@ def test_terms_never_from_memory_FEDIAF_and_AAFCO_are_never_sources_and_a_change
     group = terms.TermGroup("G", "heading", "Reg. 767/2009, Annex XX", ACT, ("Annex XX",), TYPE_OF_FEED.terms)
     assert {(r.status, r.reason) for r in terms.run([group], Reader(), Store(), m)} == {
         ("withheld", "units_not_in_source")}
+    # A group with any named unit missing is withheld whole, never read from the units that are there.
+    mixed = terms.TermGroup("G", "heading", "Reg. 767/2009, Art. 15 and Annex XX", ACT, ("Art. 15", "Annex XX"),
+                            TYPE_OF_FEED.terms)
+    assert {(r.status, r.reason, tuple(r.missing_units or ())) for r in terms.run([mixed], Reader(), Store(), m)} == {
+        ("withheld", "units_not_in_source", ("Annex XX",))}
     fediaf = terms.TermGroup("G", "heading", "FEDIAF guidelines", None, (), TYPE_OF_FEED.terms)
     assert [(r.status, r.reason) for r in terms.run([fediaf], Reader(), Store(), m)] == [("skipped", "source_refused")]
 
