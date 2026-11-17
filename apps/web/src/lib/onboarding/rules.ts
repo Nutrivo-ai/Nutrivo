@@ -62,6 +62,35 @@ export const ACCOUNT_PROBLEM: Record<AccountProblem, string> = {
 };
 
 /** The regulatory regions of S-ONB-002. Free is the EU only (docs/08-billing, A01 steps 2 and 3); the UK and the US come with a paid plan. */
+/** A Supabase Auth error as onboarding reads it: its HTTP status and code, never its message. */
+export type AuthFailure = { status?: number; code?: string };
+
+/** Supabase Auth could not act just now: a rate limit (one email a minute per address, or the project's) or an outage. */
+export const isAuthBusy = (error: AuthFailure) =>
+  !error.status || error.status >= 500 || error.status === 429 || Boolean(error.code?.startsWith("over_"));
+
+/** The one answer to a busy Supabase Auth, on the new-account and the existing-account path alike (A01.fail.1). */
+export const AUTH_BUSY_PROBLEM = "Your account could not be created just now, and nothing was saved. Try again in a minute.";
+
+/**
+ * The one answer when Supabase Auth refuses the address for good, on the new-account and the existing-account path
+ * alike (issue 266). For `email_address_invalid` a new signup gets this same answer, so it never says that an address has
+ * an account.
+ */
+export const EMAIL_REFUSED_PROBLEM = "That email cannot be used to create a workspace. Check it and try again.";
+
+/**
+ * A01.fail.1, issue 266: what step 01 shows after the sign-in link for an existing account was requested. Only a link that
+ * was sent reads "Check your email"; a failed send is never shown as sent (docs/18).
+ */
+export function signInPathAnswer(
+  error: AuthFailure | null,
+  email: string,
+): { status: "sent"; email: string } | { status: "problem"; problem: string } {
+  if (!error) return { status: "sent", email };
+  return { status: "problem", problem: isAuthBusy(error) ? AUTH_BUSY_PROBLEM : EMAIL_REFUSED_PROBLEM };
+}
+
 export const FREE_REGION = "EU";
 
 export type Operator = { name: string; address: string; country: string; approval_number?: string };
