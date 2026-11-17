@@ -134,6 +134,66 @@ test.describe("@local-only Design envelope (E02)", () => {
     expect(errors).toEqual([]);
   });
 
+  test("[J04.must.1] the envelope shows no item of a market whose region the plan does not hold, and says so", async ({ page, context, baseURL }) => {
+    // A brief sold in Germany and Texas while the plan held the US; then the plan drops the US (a downgrade). The
+    // envelope written before stays in the database; Texas's items must not be shown, as on the verdict and the report.
+    const app = admin().schema("app");
+    const widen = await app.from("workspaces").update({ entitled_regions: ["EU", "US"] }).eq("id", ws).select("id");
+    if (widen.error) throw widen.error;
+    try {
+      const created = await editor.db.schema("app").rpc("create_product", {
+        p_ws: ws, p_name: "Outside Plan Wet", p_family_name: "Outside Plan Wet", p_stage: "brief", p_species: "dog", p_nodes: ["EU-DE", "US-TX"],
+      });
+      if (created.error) throw created.error;
+      const productId = created.data as string;
+      const current = await editor.db.schema("app").rpc("envelope_inputs_hash", { p_product: productId });
+      if (current.error || !current.data) throw current.error ?? new Error("no inputs hash");
+      const { data: env, error } = await app
+        .from("envelopes")
+        .insert({ workspace_id: ws, product_id: productId, ruleset_version: "0000.00-empty", inputs_hash: current.data, node_ids: ["EU-DE", "US-TX"] })
+        .select("id")
+        .single();
+      if (error) throw error;
+      const base = { workspace_id: ws, product_id: productId, envelope_id: env.id };
+      // Each market is Action needed with one open item (an additive above its ceiling), as private.envelope_child_guard
+      // requires the node's counts to match its items.
+      const limit = (node: string, key: string) => ({
+        ...base, node_id: node, kind: "limit", rule_key: key, rule_version: 1, provenance: "deterministic_rule", citation: `${key} Art. 2`,
+        payload: { check: "within_max_content", additive_ref: "TEST-J04", ingredient: "Test zinc", amount: 180, unit: "mg/kg", max_content: { value: 150, unit: "mg/kg" }, outcome: "exceeds" },
+      });
+      const items = await app.from("envelope_items").insert([
+        { ...base, node_id: "EU-DE", language: "de", kind: "permitted", rule_key: "TEST.J04.DE", rule_version: 1, provenance: "deterministic_rule", citation: "TEST DE Art. 1", payload: { title: "Test DE", wordings: ["Hundefutter"] } },
+        limit("EU-DE", "TEST.J04.DEMAX"),
+        { ...base, node_id: "US-TX", language: "en", kind: "permitted", rule_key: "TEST.J04.TX", rule_version: 1, provenance: "deterministic_rule", citation: "TEST TX Sec. 9", payload: { title: "Test TX", wordings: ["Texas-only wording"] } },
+        limit("US-TX", "TEST.J04.TXMAX"),
+      ]);
+      if (items.error) throw items.error;
+      const nodes = await app.from("envelope_nodes").insert([
+        { ...base, node_id: "EU-DE", state: "action", open_items: 1, withheld: 0 },
+        { ...base, node_id: "US-TX", state: "action", open_items: 1, withheld: 0 },
+      ]);
+      if (nodes.error) throw nodes.error;
+      const narrow = await app.from("workspaces").update({ entitled_regions: ["EU"] }).eq("id", ws).select("id");
+      if (narrow.error) throw narrow.error;
+
+      const errors = watch(page);
+      await signIn(context, viewer, baseURL!);
+      await page.goto(`/w/${ws}/briefs/${productId}/envelope`);
+      await expect(page.locator("[data-envelope-wording]")).toContainText("Hundefutter");
+      await expect(page.locator("[data-envelope]")).not.toContainText("Texas-only wording");
+      await expect(page.locator("[data-envelope]")).not.toContainText("TEST TX Sec. 9");
+      await expect(page.locator('[data-card="action"]')).toContainText("DE");
+      await expect(page.locator('[data-card="action"]')).not.toContainText("TX");
+      await expect(page.locator('[data-cell="TEST-J04:US-TX"]')).toHaveCount(0);
+      await expect(page.locator("[data-outside-plan]")).toContainText("United States");
+      await axe(page);
+      expect(errors).toEqual([]);
+    } finally {
+      const reset = await app.from("workspaces").update({ entitled_regions: ["EU"] }).eq("id", ws).select("id");
+      if (reset.error) throw reset.error;
+    }
+  });
+
   test("no dead controls on Design envelope: every button and link in the screen does something", async ({ page, context, baseURL }) => {
     const productId = await brief("Puppy Starter Wet");
     await signIn(context, editor, baseURL!);
