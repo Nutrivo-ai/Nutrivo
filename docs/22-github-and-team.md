@@ -109,6 +109,11 @@ variable is `true`:
 | `PRODUCTION_DEPLOY_ENABLED` | T-1101, gate G7 | `release-production` on a `v*` tag |
 | `SYNTHETIC_ENABLED` | T-1102 | the 15-minute production smoke test |
 
+Before setting `PRODUCTION_DEPLOY_ENABLED` (T-1101): point-in-time recovery is on for `nutrivo-prod` and the `doctor`
+workflow for prod is green, including its `pitr` check; then the first restore drill has passed (Actions →
+`restore-drill`, docs/runbooks/restore-drill.md). The drill uses the `production` environment and only a repository
+admin can start it.
+
 **What `deploy-staging` does (T-010).** It runs after `ci` is green on a merge to `main`, or by hand (Run workflow):
 1. After a merge, refuses to start while an issue labelled `incident` titled "Staging deploy failed …" is open
    (docs/19).
