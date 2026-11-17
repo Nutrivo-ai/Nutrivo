@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { ISO_COUNTRIES, checkAccount, countryLabel, countryOf, readOperator, regionCards, workspaceNameFromEmail, type JurisdictionRow } from "./rules";
+import {
+  AUTH_BUSY_PROBLEM,
+  EMAIL_REFUSED_PROBLEM,
+  ISO_COUNTRIES,
+  checkAccount, countryLabel, countryOf,
+  isAuthBusy,
+  readOperator,
+  regionCards,
+  signInPathAnswer,
+  workspaceNameFromEmail,
+  type JurisdictionRow,
+} from "./rules";
 
 const long = (n: number) => "w".repeat(n);
 
@@ -98,5 +109,35 @@ describe("regionCards (S-ONB-002)", () => {
 
   it("leaves out a region that is not in the reference data", () => {
     expect(regionCards(rows.filter((r) => !r.id.startsWith("US"))).map((r) => r.id)).toEqual(["EU", "UK"]);
+  });
+});
+
+describe("signInPathAnswer (S-ONB-001, A01.fail.1, issue 266)", () => {
+  it("[A01.fail.1] a sign-in link that was sent reads as sent", () => {
+    expect(signInPathAnswer(null, "owner@acme.example")).toEqual({ status: "sent", email: "owner@acme.example" });
+  });
+
+  it("[A01.fail.1] issue 266: a failed send is a problem, never sent", () => {
+    const answer = signInPathAnswer({ status: 400, code: "email_address_invalid" }, "owner@acme.example");
+    expect(answer.status).toBe("problem");
+    expect(answer).toEqual({ status: "problem", problem: EMAIL_REFUSED_PROBLEM });
+  });
+
+  it("[A01.fail.1] issue 266: any non-busy refusal gets the new-account path's generic refusal", () => {
+    for (const code of ["email_address_invalid", "email_address_not_authorized", "validation_failed", "unexpected"]) {
+      expect(signInPathAnswer({ status: 422, code }, "a@acme.example")).toEqual({ status: "problem", problem: EMAIL_REFUSED_PROBLEM });
+    }
+  });
+
+  it("[A01.fail.1] a busy Supabase Auth gets AUTH_BUSY, as on the new-account path", () => {
+    for (const error of [{ status: 429 }, { status: 503 }, { status: 400, code: "over_email_send_rate_limit" }, {}]) {
+      expect(isAuthBusy(error)).toBe(true);
+      expect(signInPathAnswer(error, "a@acme.example")).toEqual({ status: "problem", problem: AUTH_BUSY_PROBLEM });
+    }
+  });
+
+  it("the refusal never names the account or the address", () => {
+    expect(EMAIL_REFUSED_PROBLEM).not.toMatch(/already|exists|registered|account/i);
+    expect(EMAIL_REFUSED_PROBLEM).not.toContain("@");
   });
 });
