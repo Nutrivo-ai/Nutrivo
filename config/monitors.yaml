@@ -1,0 +1,77 @@
+# Every scheduled job and the one Sentry cron monitor that watches it (T-1102, docs/17 "Cron monitors").
+# scripts/monitors/test_monitors.py fails when a pg_cron schedule, a worker check-in or a scheduled GitHub workflow
+# exists without an entry here, when an entry's schedule differs from what the job declares, or when docs/17 does not
+# name the slug. One slug per job; a slug is never reused.
+#
+# source:   pg_cron (a cron.schedule in supabase/migrations; the worker's handler checks in, so `worker_config` names
+#           the observability.py constant whose monitor_config carries the same schedule), worker (a loop inside the
+#           worker process), github (a scheduled workflow; it checks in with `sentry-cli monitors run <slug>`).
+# job:      the pg_cron job name, the observability.py *_MONITOR constant, or the workflow file.
+# schedule: crontab in UTC, or null when nothing schedules the job yet (check-ins only, no missed-run alerts).
+#           For a workflow it is the schedule its check-in declares, and must equal the workflow's own `on.schedule`
+#           cron unless `workflow_schedule` says otherwise (restore-drill: the cron only opens a reminder).
+# project:  the Sentry project that receives the check-ins (worker = SENTRY_PROJECT_WORKER, web = SENTRY_PROJECT_WEB).
+monitors:
+  - slug: worker-heartbeat
+    source: worker
+    job: HEARTBEAT_MONITOR
+    schedule: "* * * * *"
+    project: worker
+  - slug: job-reaper
+    source: worker
+    job: REAPER_MONITOR
+    schedule: "*/5 * * * *"
+    project: worker
+  - slug: source-watch
+    source: worker
+    job: SOURCE_WATCH_MONITOR
+    schedule: null              # J01: no weekly scheduler yet; the task that adds one adds the schedule (docs/12)
+    project: worker
+  - slug: stripe-reconcile
+    source: pg_cron
+    job: stripe-reconcile
+    worker_config: BILLING_RECONCILE_CONFIG
+    schedule: "17 3 * * *"
+    project: worker
+  - slug: dunning
+    source: pg_cron
+    job: dunning
+    worker_config: DUNNING_CONFIG
+    schedule: "41 7 * * *"
+    project: worker
+  - slug: expiry-reminders
+    source: pg_cron
+    job: expiry-reminders
+    worker_config: EXPIRY_REMINDERS_CONFIG
+    schedule: "23 6 * * *"
+    project: worker
+  - slug: rate-counter-purge
+    source: pg_cron
+    job: rate-counter-purge
+    worker_config: RATE_PURGE_CONFIG
+    schedule: "53 2 * * *"
+    project: worker
+  - slug: alert-sweep
+    source: pg_cron
+    job: alert-sweep
+    worker_config: ALERT_SWEEP_CONFIG
+    schedule: "23 7 * * *"
+    project: worker
+  - slug: synthetic-smoke-prod
+    source: github
+    job: synthetic.yml
+    schedule: "*/15 * * * *"
+    project: web
+  - slug: nightly-staging
+    source: github
+    job: nightly.yml
+    schedule: "0 2 * * *"
+    project: web
+  # The workflow's schedule (the 2nd) only opens a reminder issue; the monitor watches the drill itself, which a
+  # founder starts by hand: one check-in a month, expected on the 1st with a 14-day margin (T-1101).
+  - slug: restore-drill-prod
+    source: github
+    job: restore-drill.yml
+    schedule: "0 9 1 * *"
+    workflow_schedule: "37 8 2 * *"
+    project: web

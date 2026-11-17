@@ -15,22 +15,55 @@ Every failure is seen within minutes, every model call can be explained later, a
 - **Privacy.** `send_default_pii` is off, and a `before_send` scrubber removes label text, emails and tokens.
 - **Tags on every event:** release, environment, `workspace` (a hash, never the name), `job_kind`, `job_id`,
   `ruleset_version`, `request_id`.
-- **Cron monitors (check-ins):**
-  - `worker-heartbeat`, every minute;
-  - `job-reaper`, every 5 min;
-  - `source-watch` (J01, `nutrivo sources watch`): check-ins only, with no schedule declared, until a weekly
-    scheduler exists (a db or infra task); that task adds the schedule (Monday, docs/12) so no missed run is
-    reported for a run nothing makes;
-  - `stripe-reconcile`, `dunning` and `alert-sweep` (J03, T-901), daily;
-  - `expiry-reminders`, daily (pg_cron 06:23 UTC, T-803);
-  - `rate-counter-purge`, daily (pg_cron 02:53 UTC queues a `rate_purge` job that deletes RPC rate counters older than two days, T-1103);
-  - `synthetic-smoke-prod`, every 15 min after launch.
-  A missed check-in alerts.
-- **Alerts:**
-  - a new issue in production goes to email or Slack, and to a GitHub issue through Sentry's GitHub integration;
-  - an error-rate spike;
-  - a missed cron;
-  - p95 latency over the budgets in spec/nfr.yaml.
+- **Cron monitors (check-ins).** Every scheduled job has exactly one monitor, named in `config/monitors.yaml`
+  (T-1102). `scripts/monitors/test_monitors.py` (the protocol check) fails when a pg_cron schedule, a worker
+  `*_MONITOR` or a scheduled workflow has no entry, when a schedule differs between pg_cron, the worker's
+  `monitor_config` and the registry, when a workflow's own cron or its check-in schedule differs from the registry, when a
+  workflow does not check in to its slug, or when this list does not name it.
+
+  | Monitor | Job | Schedule (UTC) | Project |
+  |---|---|---|---|
+  | `worker-heartbeat` | worker job loop | every minute; an issue after 5 missed | worker |
+  | `job-reaper` | worker reaper pass | every 5 min | worker |
+  | `source-watch` | `nutrivo sources watch` (J01) | none yet: check-ins only until a weekly scheduler exists (a db or infra task), which adds the schedule (Monday, docs/12) so no missed run is reported for a run nothing makes | worker |
+  | `stripe-reconcile` | pg_cron `stripe-reconcile` → `billing_reconcile` job (T-702) | 03:17 daily | worker |
+  | `dunning` | pg_cron `dunning` (T-704) | 07:41 daily | worker |
+  | `expiry-reminders` | pg_cron `expiry-reminders` (T-803) | 06:23 daily | worker |
+  | `rate-counter-purge` | pg_cron `rate-counter-purge` → `rate_purge` job, deletes RPC rate counters older than two days (T-1103) | 02:53 daily | worker |
+  | `alert-sweep` | pg_cron `alert-sweep` → `diff_fanout` sweep (J03, T-901) | 07:23 daily | worker |
+  | `synthetic-smoke-prod` | workflow `synthetic.yml`, once `SYNTHETIC_ENABLED` (docs/22 §4) | every 15 min, margin 30 min; an issue after 2 missed or failed runs in a row, because GitHub often starts a `*/15` schedule 10–30 minutes late or drops a run | web |
+  | `nightly-staging` | workflow `nightly.yml`, its last job: ok only when the acceptance and load jobs passed; once `STAGING_DEPLOY_ENABLED` | 02:00 daily, margin 5 h | web |
+  | `restore-drill-prod` | the restore drill (`restore-drill.yml`, T-1101), started by a founder; the workflow's own schedule (the 2nd) only opens a reminder issue | the 1st monthly, margin 14 days | web |
+
+  A missed or error check-in opens an issue (category Cron), which the "Missed or failed cron" alert routes. Workflows
+  check in with `sentry-cli monitors run <slug>`, authorised by the web project's DSN, and declare their schedule on
+  every run, so the monitor exists from the first run and never before.
+- **Synthetic check (T-1102).** `scripts/synthetic/check.py`, every 15 minutes in the `production` environment, only
+  when the repository variable `SYNTHETIC_ENABLED` is `true` (otherwise the schedule skips the job and nothing runs).
+  Run workflow always runs the check, so a founder can see it pass before the switch; while the switch is off that run
+  does not check in, so the monitor is created by the first scheduled run, never before. It
+  reads production's critical paths, each tried twice before it fails:
+  - `GET /api/health`: 200, `{"status":"ok"}` and an `x-request-id`;
+  - `GET /sign-in`: 200 and an HTML page;
+  - the `verify` Edge Function with the anon key, as the `/verify/[ref]` page calls it: a well-formed reference that
+    was never issued must answer exactly `{"status":"unknown"}`, which needs the function and
+    `public.verify_reference` to answer (503 means the database did not). With the optional prod secret
+    `SYNTHETIC_VERIFY_REF` (a report of the synthetic workspace), that reference must answer `current` or `superseded`.
+  It prints one line per path (ok or FAILED, status, time), never a key, reference, URL or body.
+- **Alerts (T-1102).** Routing is code: `config/sentry-alerts.yaml`, applied by `scripts/sentry/alerts.py` from the
+  dispatch-only workflow `sentry-alerts.yml` (production environment; `check` is read-only, `apply` creates or updates
+  the rules it names by name). The Sentry token needs alerts:write. Recipients are the members of one Sentry team, by
+  email; its slug is the repository variable `SENTRY_ALERT_TEAM` (default `nutrivo`). No Slack until a founder names a
+  workspace and channel (#80).
+  - a new issue in production (web, worker, functions) goes to the team by email, and to a GitHub issue through
+    Sentry's GitHub integration;
+  - an error-rate spike: more than 5% of production transactions failing over 15 minutes (web and worker);
+  - a missed or failed cron, in any environment, by email;
+  - p95 latency over the budgets in spec/nfr.yaml: the `/verify/[ref]` page (`verify_endpoint_p95_ms`), the board
+    (`board_300_recipes_p95_ms`) and the `job:check` transaction (`check_completion_p95_s`), each over 60 minutes in
+    production. Budgets with no production metric are listed under `not_alerted` with the reason and are measured by
+    the nightly load run; `scripts/sentry/test_alerts.py` fails when a performance budget has neither, or when a
+    threshold differs from its budget.
 
 ## Langfuse: every model call, explainable
 - **Transport.** The worker uses the Langfuse Python SDK v4, which exports OpenTelemetry spans to
