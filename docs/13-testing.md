@@ -67,3 +67,17 @@ job (not required). `staging` is full size, in nightly.yml's `staging-load`, and
 Actions. Each profile names the budgets it enforces. The others are reported in reports/LOAD.md and the job summary
 as met, exceeded, withheld (with a reason, never counted as met) or staging_only. A budget with no result fails every
 profile.
+
+## End-to-end tests that hold on a loaded runner (#279)
+- **Axe after a state change.** Every axe helper calls `settled(page)` (apps/web/tests/e2e/support/settled.ts) first: it
+  waits for the page's finite CSS transitions and animations to finish. A colour transition measured half-way reads as a
+  contrast failure (the demo path's report tab, `kit-transition`, 120 ms).
+- **Never race a Supabase Auth window.** Auth refuses a second email to one address within `max_frequency` (1 s locally,
+  60 s hosted), counted from `confirmation_sent_at` or `recovery_sent_at`. A test that needs an address inside the window
+  sets that stamp ahead with `sql()` (support/sql.ts) instead of sending an email just before the click.
+- **Assert the screen's answer, not just a wait.** Step 01's "Check your email" is asserted through `checkEmail()`, which
+  fails with the problem the screen showed instead of a bare timeout.
+- **Local Auth limits.** With no custom SMTP the CLI runs Auth with `GOTRUE_RATE_LIMIT_EMAIL_SENT=360000` whatever
+  `[auth.rate_limit] email_sent` says, and applies no per-IP limit: neither is a cause of local or CI e2e failures.
+- **Evidence.** Every e2e job uploads `apps/web/test-results` as the `e2e-test-results` artifact: the error context
+  (with the page snapshot) and trace of each failed attempt, including one that passed on its retry.

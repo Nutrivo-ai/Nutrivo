@@ -3,6 +3,7 @@
 // keep the nfr budget (no serious or critical finding, spec/nfr.yaml). What axe cannot see (page titles, the skip link,
 // focus that is visible, not obscured and never trapped, reflow at 320 px) is checked here directly.
 import AxeBuilder from "@axe-core/playwright";
+import { settled } from "./settled";
 import { expect, type Page } from "@playwright/test";
 import { nfr } from "./public";
 
@@ -10,6 +11,7 @@ export const WCAG_22_AA = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa
 
 /** Zero WCAG 2.2 A/AA violations of any impact, and no serious or critical best-practice finding. */
 export async function wcag(page: Page, where = page.url()) {
+  await settled(page);
   const results = await new AxeBuilder({ page }).withTags([...WCAG_22_AA, "best-practice"]).analyze();
   const describe = (v: (typeof results.violations)[number]) => `${v.id} (${v.impact}): ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`;
   const wcagViolations = results.violations.filter((v) => v.tags.some((t) => WCAG_22_AA.includes(t)));

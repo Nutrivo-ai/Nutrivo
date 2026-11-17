@@ -6,6 +6,7 @@
 // (orchestrator decision on the T-601 pull request), so the tests make shares through app.create_share as the editor.
 import { createHash, randomBytes } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
+import { settled } from "./support/settled";
 import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../src/lib/database.types";
@@ -27,6 +28,7 @@ function watch(page: Page) {
 }
 
 async function axe(page: Page) {
+  await settled(page);
   const results = await new AxeBuilder({ page }).analyze();
   const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
