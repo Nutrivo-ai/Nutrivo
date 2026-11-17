@@ -46,7 +46,9 @@
   it.
 - **Fail visibly.** No silent failures: every terminal job state is shown to the user and recorded in Sentry.
 - **Withhold rather than guess.** An unavailable dependency produces Not assessed with a reason, never Clear.
-- **Backups.** Point-in-time recovery on production, with a scripted restore drill monthly.
+- **Backups.** Point-in-time recovery on production, with a restore drill monthly (T-1101): the prod doctor's `pitr`
+  check fails while PITR is off, and a founder restores into a new project from the dashboard, then the `restore-drill`
+  workflow checks the copy and records the drill (docs/runbooks/restore-drill.md).
 
 ## Service levels (spec/nfr.yaml)
 - **Availability:** app 99.5% monthly; public verification 99.9%.
