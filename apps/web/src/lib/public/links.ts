@@ -6,7 +6,8 @@ export const START = "/onboarding";
 // rule (founder decision, 17 Nov 2026), so every start button reads "Join the pilot". At launch (the first tagged
 // release, T-1101) set NEXT_PUBLIC_SIGNUPS_OPEN=true in Vercel's production environment and remove that rule.
 export const SIGNUPS_OPEN = process.env.NEXT_PUBLIC_SIGNUPS_OPEN === "true";
-export const START_LABEL = SIGNUPS_OPEN ? "Check a label free" : "Join the pilot";
+export const startLabel = (signupsOpen: boolean) => (signupsOpen ? "Check a label free" : "Join the pilot");
+export const START_LABEL = startLabel(SIGNUPS_OPEN);
 export const CONTACT = "mailto:hello@nutrivo.ai";
 
 export const PUBLIC_ROUTES = {
