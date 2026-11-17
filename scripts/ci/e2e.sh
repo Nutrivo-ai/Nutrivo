@@ -44,4 +44,11 @@ if ! kill -0 "${pids[0]}" 2>/dev/null; then
   tail -n 50 reports/worker.log >&2
   exit 1
 fi
-PLAYWRIGHT_JUNIT_OUTPUT_NAME="$PWD/reports/e2e.xml" pnpm --dir apps/web e2e --reporter=junit,list
+PLAYWRIGHT_JUNIT_OUTPUT_NAME="$PWD/reports/e2e.xml" pnpm --dir apps/web e2e --reporter=junit,list && suite=0 || suite=$?
+# TEMPORARY (#279 diagnosis, removed before review): A01.fail.1's sign-in path 20 more times on the same stack, after
+# the suite, keeping every failure's error context in apps/web/test-results for the artifact.
+set +e
+pnpm --dir apps/web exec playwright test tests/e2e/onboarding.spec.ts -g "already registered" --repeat-each 20 --retries 0 --workers 2 --reporter=list --output test-results/diag
+diag=$?
+echo "::notice::#279 diagnosis: suite exit $suite, A01.fail.1 x20 exit $diag"
+exit $(( suite || diag ))
