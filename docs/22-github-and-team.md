@@ -109,6 +109,14 @@ variable is `true`:
 | `PRODUCTION_DEPLOY_ENABLED` | T-1101, gate G7 | `release-production` on a `v*` tag |
 | `SYNTHETIC_ENABLED` | T-1102 | the 15-minute production smoke test |
 
+Before setting `SYNTHETIC_ENABLED` (T-1102): production is deployed (a `v*` release has passed its smoke test),
+`APP_BASE_URL`, `SUPABASE_URL` and `SUPABASE_ANON_KEY` are in the prod Infisical environment (optionally
+`SYNTHETIC_VERIFY_REF`, a report reference of the synthetic workspace), and Actions → `synthetic` → Run workflow has
+passed once by hand. From then on it runs every 15 minutes and checks in to the Sentry monitor `synthetic-smoke-prod`
+(docs/17). Alert routing is applied by hand: set the variable `SENTRY_ALERT_TEAM` to the Sentry team whose members
+receive alerts (default `nutrivo`), give the prod `SENTRY_AUTH_TOKEN` the alerts:write scope, install Sentry's GitHub
+integration for this repository, then run Actions → `sentry-alerts` with `check`, then `apply`.
+
 Before setting `PRODUCTION_DEPLOY_ENABLED` (T-1101): point-in-time recovery is on for `nutrivo-prod` and the `doctor`
 workflow for prod is green, including its `pitr` check; then the first restore drill has passed (Actions →
 `restore-drill`, docs/runbooks/restore-drill.md). The drill uses the `production` environment and only a repository
