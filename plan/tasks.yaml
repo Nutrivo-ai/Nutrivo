@@ -95,6 +95,7 @@ tasks:
   - {id: T-901, ms: M9, lanes: [worker], deps: [T-204, T-403], wf: [J03], title: "Diff fan-out and alerts"}
   - {id: T-902, ms: M9, lanes: [web], deps: [T-901], wf: [J04], title: "Horizon and alerts inbox, desktop and mobile"}
   - {id: T-903, ms: M9, lanes: [worker], deps: [T-901], wf: [J05, I05], title: "Scoped re-check and supersession"}
+  - {id: T-904, ms: M9, lanes: [db], deps: [T-901], title: "Alert sweep evaluates only diffs whose effective date newly arrived (#232)"}
   # ── M10 · Product briefs ───────────────────────────────────────────────────────────────────────────
   - {id: T-1001, ms: M10, lanes: [web, db], deps: [T-401], wf: [E01], title: "Briefs: formula lines and intended claims"}
   - {id: T-1002, ms: M10, lanes: [worker], deps: [T-1001, T-502], wf: [E02], title: "Compliance envelope"}
