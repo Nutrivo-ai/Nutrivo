@@ -79,5 +79,5 @@ profile.
   fails with the problem the screen showed instead of a bare timeout.
 - **Local Auth limits.** With no custom SMTP the CLI runs Auth with `GOTRUE_RATE_LIMIT_EMAIL_SENT=360000` whatever
   `[auth.rate_limit] email_sent` says, and applies no per-IP limit: neither is a cause of local or CI e2e failures.
-- **Evidence.** A failed e2e job uploads `apps/web/test-results` (error context with the page snapshot, and traces) as the
-  `e2e-test-results` artifact.
+- **Evidence.** Every e2e job uploads `apps/web/test-results` as the `e2e-test-results` artifact: the error context
+  (with the page snapshot) and trace of each failed attempt, including one that passed on its retry.

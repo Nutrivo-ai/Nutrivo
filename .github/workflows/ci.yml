@@ -127,9 +127,10 @@ jobs:
         if: always()
         with: { name: reports-e2e, path: reports/ }
       # #279: a failed or retried test's error context (the page as it was) and trace, so a flake can be read from the
-      # run instead of guessed at. Local-stack data only: random test identities and the CLI's well-known local keys.
+      # run instead of guessed at. Always: a test that fails and then passes on its retry leaves the job green, and its
+      # first attempt's trace is the evidence. Local-stack data only: random test identities and the CLI's local keys.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: failure()
+        if: always()
         with: { name: e2e-test-results, path: apps/web/test-results/, retention-days: 14, if-no-files-found: ignore }
 
   # T-1105: the load test's reduced profile (config/load/profiles.yaml, ci) on the full local stack: every budget in
