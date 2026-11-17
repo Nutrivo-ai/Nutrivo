@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { ErrorState, LoadingState } from "@/components/kit";
 import { Plans } from "@/components/public/landing/Plans";
 import { DOMAIN_LABEL, readCoverage, type DomainState } from "@/lib/public/coverage";
-import { PUBLIC_ROUTES, START } from "@/lib/public/links";
+import { PUBLIC_ROUTES, START, START_LABEL } from "@/lib/public/links";
 import { sx } from "@/lib/public/sx";
 import { REQUEST_ID_HEADER } from "@/lib/observability/request-id";
 
@@ -100,7 +100,7 @@ export default function LandingPage() {
           <a href="#report">The report</a>
           <a href="#coverage">Coverage</a>
           <a href="#pricing">Pricing</a>
-          <Link href={START} className="pub-ink" style={sx("border: 1px solid var(--ink); padding: 9px 17px; color: var(--ink); font-weight: 500")}>Check a label free</Link>
+          <Link href={START} className="pub-ink" style={sx("border: 1px solid var(--ink); padding: 9px 17px; color: var(--ink); font-weight: 500")}>{START_LABEL}</Link>
         </nav>
       </header>
 
@@ -113,7 +113,7 @@ export default function LandingPage() {
             </div>
             <div style={sx("margin-top: 30px; display: flex; align-items: center; gap: 12px")}>
               <Link href={START} className="pub-primary" style={sx("position: relative; background: var(--accent); color: var(--paper); font-size: 16px; font-weight: 500; padding: 15px 26px; border-radius: 3px")}>
-                Check a label free
+                {START_LABEL}
                 {[["top", "left"], ["top", "right"], ["bottom", "left"], ["bottom", "right"]].map(([v, h]) => (
                   <span key={v + h} aria-hidden="true" style={{ ...sx("position: absolute; font-family: var(--mono); font-size: 11px; line-height: 1; color: var(--accent-200)"), [v]: -7, [h]: -5 }}>+</span>
                 ))}
@@ -253,7 +253,7 @@ export default function LandingPage() {
               <p style={sx("margin: 18px 0 0; font-size: 17px; line-height: 1.55; color: var(--n400); max-width: 58ch")}>The whole product on your first three labels, sending included, with no card and no clock — you keep everything you check in one region for as long as you want it. No card, no questions about your company, no sales call.</p>
             </div>
             <div style={sx("display: flex; flex-direction: column; gap: 12px")}>
-              <Link href={START} className="pub-primary" style={sx("background: var(--accent); color: var(--paper); font-size: 17px; font-weight: 500; padding: 17px 24px; text-align: center; border-radius: 3px")}>Check a label free</Link>
+              <Link href={START} className="pub-primary" style={sx("background: var(--accent); color: var(--paper); font-size: 17px; font-weight: 500; padding: 17px 24px; text-align: center; border-radius: 3px")}>{START_LABEL}</Link>
               <Link href={PUBLIC_ROUTES.pricing} style={sx("border: 1px solid var(--n600); color: var(--paper); font-size: 16px; font-weight: 500; padding: 15px 24px; text-align: center; border-radius: 3px")}>See what a plan includes</Link>
               <p style={sx("margin: 6px 0 0; font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-align: center; color: var(--n500)")}>EU · UK · US</p>
             </div>
