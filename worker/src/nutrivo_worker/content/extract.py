@@ -99,6 +99,7 @@ class Result:
     decision: str | None = None
     disagreements: list[str] | None = None
     reason: str | None = None
+    missing_units: list[str] | None = None   # with units_not_in_source: the named units the stored text lacks
 
     def as_dict(self) -> dict[str, Any]:
         return {k: v for k, v in asdict(self).items() if v is not None}
@@ -305,9 +306,11 @@ def extract_pair(target: Target, row: SourceRow, reader: SourceReader, store: Ca
         body = reader.body(row)
         check_body(row, body)
         all_units = articles.split_units(body)
-        units = {label: all_units[label] for label in target.units if label in all_units}
-        if not units:
-            return Result(**base, status="withheld", reason="units_not_in_source")  # type: ignore[arg-type]
+        # Every unit the target names, or none: a target is never extracted from part of what it names.
+        if missing := [label for label in target.units if label not in all_units]:
+            return Result(**base, status="withheld", reason="units_not_in_source",  # type: ignore[arg-type]
+                          missing_units=missing)
+        units = {label: all_units[label] for label in target.units}
         with _trace(target, row):
             candidate_id: str | None = existing.id if existing else None
             if existing:
