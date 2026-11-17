@@ -3,6 +3,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import AxeBuilder from "@axe-core/playwright";
+import { settled } from "./support/settled";
 import { expect, test, type Page } from "@playwright/test";
 import { parse } from "yaml";
 import { loadScreens, REPO_ROOT } from "../visual/screens";
@@ -63,6 +64,7 @@ test.describe("kit", () => {
   for (const url of ["/kit", "/kit/empty-and-error-states"]) {
     test(`axe finds nothing serious or critical on ${url}`, async ({ page }) => {
       const errors = await open(page, url);
+      await settled(page);
       const results = await new AxeBuilder({ page }).analyze();
       const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
       expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);

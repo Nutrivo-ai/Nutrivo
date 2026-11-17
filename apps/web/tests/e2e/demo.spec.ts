@@ -13,13 +13,14 @@
 //
 // DEMO_SLOWMO=<ms> slows every browser action, for a driven stage demo run headed (docs/demo.md).
 import { createHash, randomUUID } from "node:crypto";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { REPO_ROOT } from "../visual/screens";
 import { RENDER_ARGS } from "../visual/render";
 import { admin, haveStack, person, signIn, workspace, type Person } from "./support/people";
+import { sql } from "./support/sql";
 import { axe, watch } from "./support/public";
 
 const STEP_MS = 90_000; // each worker step's budget, as upload.spec and report.spec use
@@ -42,20 +43,6 @@ function synthetic(name: string) {
     });
   }
   return file;
-}
-
-/**
- * Runs SQL on the local database as postgres: psql on DATABASE_URL (scripts/ci/e2e.sh exports it), or inside the
- * stack's container, as supabase/seed/demo/load.sh does. Test setup only; the app never reaches the database this way.
- */
-function sql(query: string) {
-  const local = "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
-  const viaPsql = spawnSync("psql", [process.env.DATABASE_URL || local, "-v", "ON_ERROR_STOP=1", "-Atq", "-c", query], { encoding: "utf8" });
-  const run = viaPsql.error
-    ? spawnSync("docker", ["exec", "-i", "supabase_db_nutrivo", "psql", "-U", "postgres", "-v", "ON_ERROR_STOP=1", "-Atq", "-c", query], { encoding: "utf8" })
-    : viaPsql;
-  if (run.error || run.status !== 0) throw new Error(`sql failed: ${run.error?.message ?? run.stderr}`);
-  return run.stdout.trim();
 }
 
 /** Waits for a job to reach `succeeded` and returns its progress. */
