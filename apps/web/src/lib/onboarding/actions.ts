@@ -65,6 +65,16 @@ const AUTH_BUSY: OnboardingState = {
 };
 
 /**
+ * Any other refusal, on the new-account and the existing-account path alike (issue 266, option 1). For a refused address
+ * (email_address_invalid) both paths give this same answer, so it still never says whether the address has an account,
+ * and no path ever shows "Check your email" for a link that was not sent (docs/18).
+ */
+const EMAIL_REFUSED: OnboardingState = {
+  status: "problem",
+  problem: "That email cannot be used to create a workspace. Check it and try again.",
+};
+
+/**
  * S-ONB-001 (A01 step 1). Supabase Auth creates the user with confirmation on, so nobody has a session until the
  * emailed link comes back through /auth/callback, which returns to /onboarding (A01.fail.2).
  *
@@ -100,7 +110,7 @@ export async function signUp(_: OnboardingState, form: FormData): Promise<Onboar
     if (error.code === "weak_password") return { status: "problem", problem: ACCOUNT_PROBLEM.password_short };
     // D-27 (T-109): the before-user-created hook refuses a consumer or free-mail address.
     if (isBusinessEmailRefusal(error)) return { status: "problem", problem: SIGN_IN_PROBLEM.business_email };
-    return { status: "problem", problem: "That email cannot be used to create a workspace. Check it and try again." };
+    return EMAIL_REFUSED;
   }
   if (data.user && (data.user.identities?.length ?? 0) === 0) return signInPath(email);
   return { status: "sent", email };
@@ -109,6 +119,7 @@ export async function signUp(_: OnboardingState, form: FormData): Promise<Onboar
 /**
  * A01.fail.1: the existing account's owner is emailed a sign-in link; no second user is ever created. The link returns
  * to /onboarding, so an owner who confirmed but has no workspace yet picks up at step 02; anyone past it goes on.
+ * "sent" only when Supabase Auth accepted the link; any refusal is a visible problem, never a silent "Check your email".
  */
 async function signInPath(email: string): Promise<OnboardingState> {
   const supabase = await createClient();
@@ -118,7 +129,7 @@ async function signInPath(email: string): Promise<OnboardingState> {
   });
   if (error) {
     await report("sign_in_path", error);
-    if (busy(error)) return AUTH_BUSY;
+    return busy(error) ? AUTH_BUSY : EMAIL_REFUSED;
   }
   return { status: "sent", email };
 }
