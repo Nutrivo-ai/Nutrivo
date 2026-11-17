@@ -29,7 +29,6 @@ jobs:
           anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
           allowed_bots: claude          # autopilot pull requests are opened and pushed by claude[bot]
           claude_args: "--model claude-opus-5-5 --max-turns 60"
-          show_full_output: true   # TEMPORARY: show why Claude Code exits at once with is_error and no cost; reverted after one run
           prompt: |
             Review pull request #${{ github.event.pull_request.number }} against its task (named in the description),
             the workflow specs in docs/workflows/, spec/acceptance.yaml, docs/04-contracts.md and CLAUDE.md. Use the

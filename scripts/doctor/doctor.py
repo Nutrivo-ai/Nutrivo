@@ -275,6 +275,10 @@ def c_ses(env):
     return f"{domain} verified" + ("" if acct.get("ProductionAccessEnabled") else ", SANDBOX: request production access")
 
 
+# The cheapest model, for a one-token probe of the dev key; the workflows run Opus on the same account.
+ANTHROPIC_PROBE_MODEL = "claude-haiku-5-5"
+
+
 def c_anthropic(env):
     if env in ("staging", "prod"):
         # D-11: no Anthropic API for customer data. Names only, never values.
@@ -283,9 +287,20 @@ def c_anthropic(env):
         assert not found, f"{', '.join(found)} set in {env}; the Anthropic API stays in dev (D-11)"
         return "not configured, as D-11 requires"
     need("ANTHROPIC_API_KEY")
-    s, _ = http("GET", "https://api.anthropic.com/v1/models", {"x-api-key": E("ANTHROPIC_API_KEY"), "anthropic-version": "2023-06-01"})
-    assert s == 200, f"models endpoint returned {s}"
-    return "key valid"
+    # A one-token message, not GET /v1/models: listing models succeeds with no credits left, while claude-review and
+    # claude-autopilot (which read this key from dev) then fail at once with "Credit balance is too low" (#284).
+    s, body = http("POST", "https://api.anthropic.com/v1/messages",
+                   {"x-api-key": E("ANTHROPIC_API_KEY"), "anthropic-version": "2023-06-01"},
+                   {"model": ANTHROPIC_PROBE_MODEL, "max_tokens": 1, "messages": [{"role": "user", "content": "ok"}]})
+    if s != 200:
+        try:
+            err = json.loads(body or b"{}").get("error") or {}
+        except ValueError:
+            err = {}
+        if err.get("type") == "billing_error" or "credit balance" in str(err.get("message", "")).lower():
+            raise AssertionError("the key's credit balance is too low (claude-review and claude-autopilot fail until it is topped up)")
+        raise AssertionError(f"messages endpoint returned {s} {err.get('type', '')}".rstrip())
+    return "key valid, credits available"
 
 
 def c_stripe(env):

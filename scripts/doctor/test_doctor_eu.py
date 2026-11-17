@@ -219,9 +219,32 @@ class AnthropicOutsideDev(unittest.TestCase):
                     self.assertNotIn("should-not-print", str(exc.exception))
 
     def test_dev_still_checks_the_key(self):
+        calls = []
+        def fake(method, url, headers=None, data=None, timeout=20):
+            calls.append((method, url, data))
+            return 200, b"{}"
+        with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-test"}), mock.patch.object(doctor, "http", fake):
+            self.assertEqual(doctor.c_anthropic("dev"), "key valid, credits available")
+        method, url, data = calls[0]
+        self.assertEqual((method, url), ("POST", "https://api.anthropic.com/v1/messages"))
+        self.assertEqual(data["max_tokens"], 1)
+
+    def test_dev_names_a_low_credit_balance(self):
+        body = b'{"type":"error","error":{"type":"billing_error","message":"Credit balance is too low"}}'
         with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-test"}), \
-                mock.patch.object(doctor, "http", lambda *a, **k: (200, b"{}")):
-            self.assertEqual(doctor.c_anthropic("dev"), "key valid")
+                mock.patch.object(doctor, "http", lambda *a, **k: (400, body)):
+            with self.assertRaises(AssertionError) as exc:
+                doctor.c_anthropic("dev")
+        self.assertIn("credit balance is too low", str(exc.exception))
+        self.assertNotIn("sk-ant-test", str(exc.exception))
+
+    def test_dev_reports_any_other_refusal(self):
+        body = b'{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}'
+        with mock.patch.dict(os.environ, {"ANTHROPIC_API_KEY": "sk-ant-test"}), \
+                mock.patch.object(doctor, "http", lambda *a, **k: (401, body)):
+            with self.assertRaises(AssertionError) as exc:
+                doctor.c_anthropic("dev")
+        self.assertIn("401 authentication_error", str(exc.exception))
 
 
 if __name__ == "__main__":
