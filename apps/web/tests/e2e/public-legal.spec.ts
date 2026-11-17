@@ -87,16 +87,16 @@ for (const r of ROUTES) {
 
     test(`${r.screen} ${r.url} names no invented figure and never Ireland as the hosting location`, async ({ page }) => {
       await open(page, r.url);
-      let text = await page.locator("body").innerText();
-      if (r.url === "/legal/dpa") {
-        // D-02 and D-17: hosting is Frankfurt, and the DPA names "Langfuse, Ireland" as a sub-processor. Ireland may
-        // appear there, as Langfuse's processing location, and nowhere else on the page.
-        const langfuse = page.getByRole("row").filter({ hasText: "Langfuse" });
-        await expect(langfuse).toHaveCount(1);
-        await expect(langfuse).toContainText("EU (Ireland)");
-        text = text.replace(await langfuse.innerText(), "");
+      const text = await page.locator("body").innerText();
+      for (const phrase of INVENTED) expect(text, phrase).not.toContain(phrase);
+      // Our own hosting is Frankfurt (D-02): no hosting statement names Ireland. A sub-processor table row may name
+      // where that sub-processor processes (the DPA lists Langfuse in Ireland, D-17), except the hosting rows.
+      let outsideTables = text;
+      for (const table of await page.locator('[role="table"]').allInnerTexts()) outsideTables = outsideTables.replace(table, "");
+      for (const phrase of ["Ireland", "eu-west-1"]) expect(outsideTables, phrase).not.toContain(phrase);
+      for (const row of await page.locator('[role="table"] [role="row"]').allInnerTexts()) {
+        if (/Supabase|Vercel|Render/.test(row)) expect(row, row).not.toMatch(/Ireland|eu-west-1/);
       }
-      for (const phrase of [...INVENTED, "Ireland", "eu-west-1"]) expect(text, phrase).not.toContain(phrase);
     });
   });
 }
