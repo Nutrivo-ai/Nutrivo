@@ -4,6 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { isUuid } from "@/lib/artwork/queries";
+import { inPlan, readPlan, regionName } from "@/lib/plan/regions";
 import { ShellReadError } from "@/lib/workspace/memberships";
 import type { EnvelopeItemRow, EnvelopeNodeRow } from "./envelope";
 import type { FormulaLineInput, RegisterRow } from "./rules";
@@ -143,6 +144,8 @@ export type EnvelopeRead = {
     outOfScope: string[];
     nodes: EnvelopeNodeRow[];
     items: EnvelopeItemRow[];
+    /** J04.must.1: markets of the envelope in a region the plan does not hold; their rows are not read into nodes/items. */
+    outsidePlan: { nodeId: string; regionName: string }[];
   } | null;
   /** The latest envelope job for the brief's current inputs, unless it is the one that wrote the envelope shown. */
   job: { id: string; status: string; outcome: string | null; createdAt: string } | null;
@@ -197,13 +200,19 @@ export async function readEnvelope(db: Db, workspaceId: string, productId: strin
     ]);
     if (nodes.error) throw new ShellReadError("envelope", nodes.error);
     if (items.error) throw new ShellReadError("envelope", items.error);
+    // J04.must.1: as on the verdict and the label report, nothing of a market whose region the plan does not hold is
+    // shown (RLS keys on membership scope, not on the plan: lib/plan/regions.ts).
+    const held = await readPlan(db, workspaceId);
+    if (!held) return null;
+    const outside = [...new Set((nodes.data ?? []).map((n) => n.node_id).filter((n) => !inPlan(held, n)))].sort();
     envelope = {
       id: env.data.id,
       rulesetVersion: env.data.ruleset_version,
       createdAt: env.data.created_at,
       outOfScope: env.data.out_of_scope,
-      nodes: nodes.data ?? [],
-      items: (items.data ?? []) as EnvelopeItemRow[],
+      nodes: (nodes.data ?? []).filter((n) => inPlan(held, n.node_id)),
+      items: ((items.data ?? []) as EnvelopeItemRow[]).filter((i) => i.node_id === null || inPlan(held, i.node_id)),
+      outsidePlan: outside.map((n) => ({ nodeId: n, regionName: regionName(held, n) })),
     };
   }
   const j = job.data;
