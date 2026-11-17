@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
+import { settled } from "./support/settled";
 import { createClient } from "@supabase/supabase-js";
 import { expect, test, type Page } from "@playwright/test";
 import { parse } from "yaml";
@@ -45,6 +46,7 @@ function watch(page: Page) {
 }
 
 async function axe(page: Page) {
+  await settled(page);
   const results = await new AxeBuilder({ page }).analyze();
   const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
@@ -55,6 +57,18 @@ async function fillAccount(page: Page, email: string, fullName: string, password
   await page.getByLabel("Work email").fill(email);
   await page.getByLabel("Full name").fill(fullName);
   await page.getByLabel("Password", { exact: true }).fill(password);
+}
+
+/**
+ * Step 01's "Check your email" after a submit, as text. When the screen shows a problem instead, the failure names it
+ * (#279: a timeout on this wait said nothing about what the screen showed).
+ */
+async function checkEmail(page: Page) {
+  const sent = page.getByTestId("onboarding-check-email");
+  const problem = page.getByTestId("onboarding-account").getByRole("alert");
+  await expect(sent.or(problem)).toBeVisible();
+  if (await problem.isVisible()) expect(await problem.innerText(), "step 01 showed a problem, not Check your email").toBe("");
+  return sent.innerText();
 }
 
 /** Every auth user with this address (the admin API pages; a CI stack holds a few hundred at most). */
@@ -392,12 +406,12 @@ test.describe("A01 sign up and create a workspace", () => {
     await page.goto("/onboarding");
     await fillAccount(page, fresh, "Somebody New", secret());
     await page.getByRole("button", { name: "Create workspace" }).click();
-    const newcomer = await page.getByTestId("onboarding-check-email").innerText();
+    const newcomer = await checkEmail(page);
 
     await page.goto("/onboarding");
     await fillAccount(page, owner.email, "Somebody Else", secret());
     await page.getByRole("button", { name: "Create workspace" }).click();
-    const known = await page.getByTestId("onboarding-check-email").innerText();
+    const known = await checkEmail(page);
     // The screen never says whether the address had an account.
     expect(known.replace(owner.email, "EMAIL")).toBe(newcomer.replace(fresh, "EMAIL"));
 
