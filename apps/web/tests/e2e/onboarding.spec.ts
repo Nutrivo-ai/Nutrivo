@@ -14,6 +14,7 @@ import { REPO_ROOT } from "../visual/screens";
 import { expectLikeBaseline } from "./support/baseline";
 import { haveMail, linkFromEmail } from "./support/mail";
 import { admin, haveStack, person, signIn, workspace } from "./support/people";
+import { sql } from "./support/sql";
 
 const nfr = parse(fs.readFileSync(path.join(REPO_ROOT, "spec/nfr.yaml"), "utf8")) as {
   quality: { visual_max_diff_pixel_ratio: number; axe_serious_or_critical: number };
@@ -69,6 +70,13 @@ async function checkEmail(page: Page) {
   await expect(sent.or(problem)).toBeVisible();
   if (await problem.isVisible()) expect(await problem.innerText(), "step 01 showed a problem, not Check your email").toBe("");
   return sent.innerText();
+}
+
+/** Sets when Supabase Auth last emailed `email` (the stamp its per-address window counts from), as postgres. */
+function sentAt(email: string, column: "confirmation_sent_at" | "recovery_sent_at", when: string) {
+  if (!/^[a-z0-9-]+@example\.test$/.test(email)) throw new Error(`not a test address: ${email}`);
+  const updated = sql(`update auth.users set ${column} = ${when} where email = '${email}' returning id`);
+  if (!updated) throw new Error(`no auth user for ${email}`);
 }
 
 /** Every auth user with this address (the admin API pages; a CI stack holds a few hundred at most). */
@@ -369,26 +377,31 @@ test.describe("A01 sign up and create a workspace", () => {
       createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
         auth: { persistSession: false },
       });
-    /** Submits step 01 for `email`; `before` runs just before the click, to put the address inside the email window. */
-    const answer = async (email: string, before?: () => Promise<unknown>) => {
+    /** Submits step 01 for `email` and returns what the screen says, with the address as EMAIL. */
+    const answer = async (email: string) => {
       await page.goto("/onboarding");
       await fillAccount(page, email, "Somebody", secret());
-      await before?.();
       await page.getByRole("button", { name: "Create workspace" }).click();
       const shown = page.getByTestId("onboarding-check-email").or(page.getByTestId("onboarding-account").getByRole("alert"));
       await expect(shown).toBeVisible();
       return (await shown.innerText()).replace(email, "EMAIL");
     };
     // Supabase Auth refuses a second email to one address inside its window (max_frequency: 1 s on the local stack,
-    // 60 s hosted). An email sent to each address just before the click puts both paths inside it: the new address's
-    // signup and the registered address's sign-in link are both refused, and must read the same.
+    // 60 s hosted), counted from the address's last send: confirmation_sent_at for an unconfirmed signup, and
+    // recovery_sent_at for a sign-in link. Each stamp is set a minute ahead, so the submit is inside the window however
+    // long the server takes to reach Auth. Sending a real email just before the click did not hold on a loaded CI runner,
+    // where the submit could reach Auth more than a second later (#279).
     const fresh2 = emailFor("a01-fresh-busy2");
-    const busyNew = await answer(fresh2, () => anon().auth.signUp({ email: fresh2, password: secret() }));
-    const busyKnown = await answer(owner.email, () => anon().auth.signInWithOtp({ email: owner.email, options: { shouldCreateUser: false } }));
+    const first = await anon().auth.signUp({ email: fresh2, password: secret() }); // unconfirmed, as a first signup leaves it
+    if (first.error) throw first.error;
+    sentAt(fresh2, "confirmation_sent_at", "now() + interval '1 minute'");
+    sentAt(owner.email, "recovery_sent_at", "now() + interval '1 minute'");
+    const busyNew = await answer(fresh2);
+    const busyKnown = await answer(owner.email);
     expect(busyNew).toContain("could not be created just now");
     expect(busyKnown).toBe(busyNew);
     // Outside the window both read "sent", alike.
-    await page.waitForTimeout(1_500);
+    sentAt(owner.email, "recovery_sent_at", "now() - interval '1 hour'");
     expect(await answer(owner.email)).toBe(await answer(fresh));
     expect(await usersWith(owner.email)).toHaveLength(1);
   });
