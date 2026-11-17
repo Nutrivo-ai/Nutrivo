@@ -68,10 +68,16 @@ pr-update: ## PR=123: bring it up to date with its base (GitHub's Update branch,
 	$(PY) scripts/protocol/pr.py update $(PR)
 pr-merge: ## PR=123: squash-merge, only if up to date, every required check green, no changes requested, threads resolved
 	$(PY) scripts/protocol/pr.py merge $(PR)
+# TITLE and BODY reach pr.py through the environment, never through the recipe text: written as TITLE="$(TITLE)" the
+# shell would re-parse a title holding " ' $ or backticks. $(value …) keeps a value given on the make command line from
+# being expanded by make; override beats the command-line definition so the raw value is what gets exported.
+pr-comment: override export BODY := $(value BODY)
+pr-open: override export TITLE := $(value TITLE)
+pr-open: override export BODY := $(value BODY)
 pr-comment: ## PR=123 BODY=file.md: comment on a PR or issue
-	BODY="$(BODY)" $(PY) scripts/protocol/pr.py comment $(PR)
-pr-open: ## TITLE="…" BODY=file.md: open a PR from the current branch into main (the body names its task)
-	TITLE="$(TITLE)" BODY="$(BODY)" $(PY) scripts/protocol/pr.py open
+	$(PY) scripts/protocol/pr.py comment $(PR)
+pr-open: ## TITLE='…' BODY=file.md: open a PR from the current branch into main (the body names its task; PR_DRY_RUN=1 prints the request instead)
+	$(PY) scripts/protocol/pr.py open
 verify-task: ## T=T-123: the fast suite, acceptance coverage and the task's checks
 	bash scripts/protocol/verify-task.sh $(T)
 autopilot: ## run tasks with Claude Code headless: LANE=web MAX_TASKS=3
