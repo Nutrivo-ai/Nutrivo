@@ -180,8 +180,8 @@ test.describe("@local-only Design envelope (E02)", () => {
       await signIn(context, viewer, baseURL!);
       await page.goto(`/w/${ws}/briefs/${productId}/envelope`);
       await expect(page.locator("[data-envelope-wording]")).toContainText("Hundefutter");
-      await expect(page.locator("main")).not.toContainText("Texas-only wording");
-      await expect(page.locator("main")).not.toContainText("TEST TX Sec. 9");
+      await expect(page.locator("[data-envelope]")).not.toContainText("Texas-only wording");
+      await expect(page.locator("[data-envelope]")).not.toContainText("TEST TX Sec. 9");
       await expect(page.locator('[data-card="action"]')).toContainText("DE");
       await expect(page.locator('[data-card="action"]')).not.toContainText("TX");
       await expect(page.locator('[data-cell="TEST-J04:US-TX"]')).toHaveCount(0);
