@@ -244,6 +244,16 @@ def test_a_rerun_is_unchanged_and_a_failed_second_key_resumes_there(tmp_path):
     assert extract.run([BATCH], Reader(), store, m)[0].status == "unchanged" and provider.calls == []
 
 
+def test_a_target_with_any_named_unit_missing_is_withheld_whole_and_no_model_is_called(tmp_path):
+    m, provider = models(tmp_path, {})
+    # Reg. 767/2009 numbers its annexes, so it has no bare "Annex": Art. 17 alone is never extracted from.
+    mixed = targets.Target("EU.767.MIXED", "mandatory_particular", "x", "Reg. 767/2009, Art. 17 and Annex", None, ACT,
+                           ("Art. 17", "Annex"))
+    (res,) = extract.run([mixed], Reader(), Store(), m)
+    assert (res.status, res.reason, res.missing_units) == ("withheld", "units_not_in_source", ["Annex"])
+    assert res.as_dict()["missing_units"] == ["Annex"] and provider.calls == []
+
+
 def test_every_pair_ends_in_a_visible_state(tmp_path):
     m, _ = models(tmp_path, {("eu.extract", BATCH.key): answer(found=False)})
     claims = targets.Target("EU.767.CLAIMS_GENERAL", "claim_judgement", "claims_wording", "Reg. 767/2009, Art. 11(1)",
