@@ -64,6 +64,15 @@ def test_targets_resolve_to_their_first_act_and_its_units():
     ("Reg. 767/2009, Art. 17 with Annex 1", "32009R0767", ("Art. 17",)),
     ("Reg. 767/2009, Art. 17 and the Annexes", "32009R0767", ("Art. 17",)),
     ("Reg. 767/2009, Art. 17 (with Annex Part C where applicable)", "32009R0767", ("Art. 17",)),
+    # Any word but a list's own before it is prose; any other numbering or lettering is not the bare unit.
+    ("Reg. 767/2009, Art. 17 with the said Annex", "32009R0767", ("Art. 17",)),
+    ("Reg. 767/2009, Art. 17 with the relevant Annex", "32009R0767", ("Art. 17",)),
+    ("Reg. 767/2009, Art. 17 with Annex No 1", "32009R0767", ("Art. 17",)),
+    ("Reg. 767/2009, Art. 17 with Annex-1", "32009R0767", ("Art. 17",)),
+    ("Reg. 767/2009, Art. 17 with Annex (1)", "32009R0767", ("Art. 17",)),
+    ("Reg. 767/2009, Art. 17 with Annex A", "32009R0767", ("Art. 17",)),
+    ("Reg. 68/2013; Annex Part C", "32013R0068", ("Annex",)),
+    ("Reg. 68/2013, Part C in Annex", "32013R0068", ("Annex",)),
     # The bare unit belongs to the first act only.
     ("Reg. 767/2009, Art. 16 as amended by Reg. 2017/2279, Annex", "32009R0767", ("Art. 16",)),
 ])

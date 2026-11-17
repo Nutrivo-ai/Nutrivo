@@ -170,6 +170,7 @@ class Result:
     reason: str | None = None
     first: str | None = None      # the two printed terms, shown only when the keys disagree (official text, no PII)
     second: str | None = None
+    missing_units: list[str] | None = None   # with units_not_in_source: the named units the stored text lacks
 
     def as_dict(self) -> dict[str, Any]:
         return {k: v for k, v in asdict(self).items() if v is not None}
@@ -238,10 +239,11 @@ def extract_group(group: TermGroup, row: SourceRow, reader: SourceReader, store:
         body = reader.body(row)
         check_body(row, body)
         all_units = articles.split_units(body)
-        units = {label: all_units[label] for label in group.units if label in all_units}
-        if not units:
+        # Every unit the group names, or none: terms are never read from part of what the group names.
+        if missing := [label for label in group.units if label not in all_units]:
             return results + [Result(**base, status="withheld", term_key=s.key,  # type: ignore[arg-type]
-                                     reason="units_not_in_source") for s in todo]
+                                     reason="units_not_in_source", missing_units=missing) for s in todo]
+        units = {label: all_units[label] for label in group.units}
         texts = [u.text for u in units.values()]
         inputs = _inputs(group, row, units, todo)
         with _trace(group, row):

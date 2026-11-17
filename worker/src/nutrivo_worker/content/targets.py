@@ -4,9 +4,11 @@
 The first act named is the one extracted from, and it must be listed in content/sources.yaml (EU primary law only,
 D-10): anything else is refused, never guessed. Parenthesised descriptions are dropped before units are read, so an
 aside such as "(with Reg. 183/2005 Art. 10)" does not add another act's article. "Annex" with no numeral after it
-("Reg. 68/2013, Annex Part C") names the unit `Annex`, the label articles.py gives an act's only, unnumbered annex;
-after a determiner ("the Annex to Reg. 68/2013") it is prose and names nothing, and an Arabic figure ("Annex 1") is
-never read as that bare unit. A target names a unit; its values always come from the extraction, never from this
+("Reg. 68/2013, Annex Part C") names the unit `Annex`, the label articles.py gives an act's only, unnumbered annex.
+It does so only where a unit list puts it: at the start, or after a comma, semicolon, colon, "with", "and" or "in".
+After any other word ("the Annex to Reg. 68/2013", "the relevant Annex") it is prose and names nothing, and an annex
+numbered or lettered in any other way ("Annex 1", "Annex No 1", "Annex-1", "Annex (1)", "Annex A") is never read as
+that bare unit. A target names a unit; its values always come from the extraction, never from this
 file."""
 from __future__ import annotations
 
@@ -27,9 +29,10 @@ REFUSED_SOURCES = re.compile(r"\b(fediaf|aafco)\b", re.IGNORECASE)
 
 _ACT = re.compile(r"\b(Reg|Dir)\.\s*(?:\((?:EC|EU|EEC)\)\s*No\s*)?(\d+)/(\d+)(?:/(?:EEC|EC|EU))?")
 _UNIT = re.compile(r"(?:\bArt\.\s*|\band\s+)(\d+[a-z]?)(?=\(|\b)|\bAnnex\s+([IVXLC]+)\b"
-                   r"|\b(Annex)\b(?!\s+[IVXLC]+\b|\s*\d)")
-# "the Annex to …", "that Annex": prose about an annex, not a unit this target names.
-_DETERMINER = re.compile(r"\b(?:the|an|a|this|that|these|those|its|each|any|every|same|such)\s+$", re.IGNORECASE)
+                   r"|\b(Annex)\b(?!\s+[IVXLC]+\b|\s*(?:No\.?\s*|-\s*|\(\s*)?\d|\s+[A-Z]\b)")
+# Where a unit list names the bare annex: "…, Annex Part C", "Art. 1 and Annex". After any other word ("the Annex to
+# …", "the relevant Annex") it is prose about an annex, not a unit this target names.
+_LIST_POSITION = re.compile(r"(?:^|[,;:]|\b(?:with|and|in))\s*$", re.IGNORECASE)
 _PARENS = re.compile(r"\([^()]*\s[^()]*\)")
 
 
@@ -88,7 +91,7 @@ def resolve(candidate_source: str) -> tuple[str | None, tuple[str, ...]]:
     rest = rest[:nxt.start()] if nxt else rest
     units: list[str] = []
     for u in _UNIT.finditer(rest):
-        if u.group(3) and _DETERMINER.search(rest[:u.start()]):
+        if u.group(3) and not _LIST_POSITION.search(rest[:u.start()]):
             continue
         label = f"Art. {u.group(1)}" if u.group(1) else f"Annex {u.group(2)}" if u.group(2) else "Annex"
         if label not in units:
