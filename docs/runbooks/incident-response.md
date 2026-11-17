@@ -57,7 +57,7 @@ what a person does around them.
 | Verification failing | `/verify` with a known reference; the `verify` Edge Function's logs in the Supabase dashboard (it does not report to Sentry) | Critical. Verification never depends on billing (non-negotiable 9): look for a deploy, a database fault or a Supabase outage |
 | Stripe webhooks failing | Sentry project `nutrivo-functions`; Stripe → Developers → Webhooks | Stripe retries failed deliveries; the daily monitor `stripe-reconcile` corrects the subscription mirror from the Stripe API (docs/08) |
 | Overload or rate-limit refusals | Sentry p95 alerts; customers seeing "Too many requests" (P0049 refusals are not sent to Sentry) | Limits are in the `private.rate_limits` table (docs/09, defaults pending #81); changing them is a reviewed migration, not a hand edit |
-| Staging deploy failed | The "Staging deploy failed" issue and its run | The autopilot works the issue; later staging deploys wait until it is closed. A founder may run Actions → `deploy-staging` by hand to try a fix first (docs/22 §4) |
+| Staging deploy failed | The "Staging deploy failed" issue and its run | The autopilot works the issue; later merges' staging deploys are refused (they fail, they are not queued) until it is closed. A founder may run Actions → `deploy-staging` by hand to try a fix first (docs/22 §4) |
 | Restore drill failed | The drill's issue | [restore-drill.md](restore-drill.md) step 5 |
 | Supabase, Vercel or Render down | The provider's status page | Nothing to deploy. Note it on the issue and tell customers if it lasts |
 
@@ -75,5 +75,7 @@ a new pull request (CLAUDE.md, How to work).
    the next `deploy-staging` run is green).
 2. Write the summary on the issue: start and end (UTC), impact (workspaces affected, as a count), cause, the pull
    request that fixed it, and the follow-up tasks. Each follow-up is a new issue.
-3. Close the issue. Closing a "Staging deploy failed" issue releases the staging deploys that waited for it.
+3. Close the issue. For a "Staging deploy failed" issue, closing it releases nothing: the `deploy-staging` runs it
+   refused meanwhile failed and are not queued. Run Actions → `deploy-staging` by hand once the issue is closed
+   (docs/22 §4), or let the next merge deploy.
 4. If the incident showed a runbook was wrong, fix the runbook in the same week.

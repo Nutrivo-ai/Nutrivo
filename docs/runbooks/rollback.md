@@ -15,7 +15,7 @@ Both deploy workflows deploy in the order database, Edge Functions, worker, web,
 | Worker | Render rollback to the deploy that was live before (recorded by `scripts/deploy/render.sh` in `.render-prev`) | The same |
 | Web | Not rolled back: `vercel rollback` acts on the production deployment, and staging is a preview. Roll back by hand (§2) until a founder decides how (#19) | `vercel rollback` to the previous production deployment |
 | Edge Functions, database | Never | Never |
-| Then | Opens a "Staging deploy failed at …" issue (labels `incident` and `autopilot`) and starts the autopilot on it; later staging deploys wait until it is closed | Opens a "Production release … rolled back" issue (labels `incident` and `needs-human`) |
+| Then | Opens a "Staging deploy failed at …" issue (labels `incident` and `autopilot`) and starts the autopilot on it; later merges' staging deploys are refused until it is closed | Opens a "Production release … rolled back" issue (labels `incident` and `needs-human`) |
 
 A rollback that fails fails the job, so the run shows red. A worker deploy that was started but not confirmed live is
 cancelled by `scripts/deploy/render.sh`, so it cannot go live later with nothing rolling it back.
