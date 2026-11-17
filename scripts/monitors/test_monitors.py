@@ -116,6 +116,16 @@ class CronMonitors(unittest.TestCase):
         self.repo.edit(f"{monitors.WORKFLOWS}/synthetic.yml", '-s "*/15 * * * *"', '-s "*/30 * * * *"')
         self.assertProblem("checks in with schedule ['*/30 * * * *']")
 
+    def test_a_workflow_cron_that_differs_from_its_monitor_fails(self):
+        self.repo.edit(f"{monitors.WORKFLOWS}/synthetic.yml", 'cron: "*/15 * * * *"', 'cron: "*/30 * * * *"')
+        self.assertProblem("synthetic.yml is scheduled ['*/30 * * * *'], the registry says '*/15 * * * *'")
+
+    def test_a_workflow_whose_cron_only_reminds_names_it_as_workflow_schedule(self):
+        self.repo.edit(f"{monitors.WORKFLOWS}/synthetic.yml", 'cron: "*/15 * * * *"', 'cron: "0 8 2 * *"')
+        self.repo.edit(monitors.REGISTRY, 'job: synthetic.yml, schedule: "*/15 * * * *"',
+                       'job: synthetic.yml, schedule: "*/15 * * * *", workflow_schedule: "0 8 2 * *"')
+        self.assertEqual(self.repo.problems(), [])
+
     def test_a_pg_cron_schedule_that_differs_from_the_registry_fails(self):
         self.repo.edit(f"{monitors.MIGRATIONS}/20261101000000_dunning.sql", "'41 7 * * *'", "'45 7 * * *'")
         self.assertProblem("pg_cron runs dunning at '45 7 * * *'")

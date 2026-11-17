@@ -130,6 +130,10 @@ def problems(root=ROOT):
             if job not in workflows:
                 errors.append(f"{where}: {WORKFLOWS}/{job} has no `on: schedule`")
                 continue
+            crons = [c for c in workflows[job] if c]
+            expected = entry.get("workflow_schedule", schedule)
+            if crons != [expected]:
+                errors.append(f"{where}: {job} is scheduled {crons}, the registry says '{expected}'")
             found = [s for name, s in checkins(_read(root, os.path.join(WORKFLOWS, job))) if name == slug]
             if not found:
                 errors.append(f"{where}: {job} never runs `sentry-cli monitors run ... {slug}`")

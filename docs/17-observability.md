@@ -18,7 +18,8 @@ Every failure is seen within minutes, every model call can be explained later, a
 - **Cron monitors (check-ins).** Every scheduled job has exactly one monitor, named in `config/monitors.yaml`
   (T-1102). `scripts/monitors/test_monitors.py` (the protocol check) fails when a pg_cron schedule, a worker
   `*_MONITOR` or a scheduled workflow has no entry, when a schedule differs between pg_cron, the worker's
-  `monitor_config` and the registry, when a workflow does not check in to its slug, or when this list does not name it.
+  `monitor_config` and the registry, when a workflow's own cron or its check-in schedule differs from the registry, when a
+  workflow does not check in to its slug, or when this list does not name it.
 
   | Monitor | Job | Schedule (UTC) | Project |
   |---|---|---|---|
@@ -30,7 +31,7 @@ Every failure is seen within minutes, every model call can be explained later, a
   | `expiry-reminders` | pg_cron `expiry-reminders` (T-803) | 06:23 daily | worker |
   | `rate-counter-purge` | pg_cron `rate-counter-purge` → `rate_purge` job, deletes RPC rate counters older than two days (T-1103) | 02:53 daily | worker |
   | `alert-sweep` | pg_cron `alert-sweep` → `diff_fanout` sweep (J03, T-901) | 07:23 daily | worker |
-  | `synthetic-smoke-prod` | workflow `synthetic.yml`, once `SYNTHETIC_ENABLED` (docs/22 §4) | every 15 min | web |
+  | `synthetic-smoke-prod` | workflow `synthetic.yml`, once `SYNTHETIC_ENABLED` (docs/22 §4) | every 15 min, margin 30 min; an issue after 2 missed or failed runs in a row, because GitHub often starts a `*/15` schedule 10–30 minutes late or drops a run | web |
   | `nightly-staging` | workflow `nightly.yml`, its last job: ok only when the acceptance and load jobs passed; once `STAGING_DEPLOY_ENABLED` | 02:00 daily, margin 5 h | web |
   | `restore-drill-prod` | the restore drill (`restore-drill.yml`, T-1101), started by a founder; the workflow's own schedule (the 2nd) only opens a reminder issue | the 1st monthly, margin 14 days | web |
 
@@ -38,7 +39,9 @@ Every failure is seen within minutes, every model call can be explained later, a
   check in with `sentry-cli monitors run <slug>`, authorised by the web project's DSN, and declare their schedule on
   every run, so the monitor exists from the first run and never before.
 - **Synthetic check (T-1102).** `scripts/synthetic/check.py`, every 15 minutes in the `production` environment, only
-  when the repository variable `SYNTHETIC_ENABLED` is `true` (otherwise the job is skipped and nothing runs). It
+  when the repository variable `SYNTHETIC_ENABLED` is `true` (otherwise the schedule skips the job and nothing runs).
+  Run workflow always runs the check, so a founder can see it pass before the switch; while the switch is off that run
+  does not check in, so the monitor is created by the first scheduled run, never before. It
   reads production's critical paths, each tried twice before it fails:
   - `GET /api/health`: 200, `{"status":"ok"}` and an `x-request-id`;
   - `GET /sign-in`: 200 and an HTML page;

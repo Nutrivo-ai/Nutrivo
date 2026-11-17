@@ -8,6 +8,8 @@
 #           worker process), github (a scheduled workflow; it checks in with `sentry-cli monitors run <slug>`).
 # job:      the pg_cron job name, the observability.py *_MONITOR constant, or the workflow file.
 # schedule: crontab in UTC, or null when nothing schedules the job yet (check-ins only, no missed-run alerts).
+#           For a workflow it is the schedule its check-in declares, and must equal the workflow's own `on.schedule`
+#           cron unless `workflow_schedule` says otherwise (restore-drill: the cron only opens a reminder).
 # project:  the Sentry project that receives the check-ins (worker = SENTRY_PROJECT_WORKER, web = SENTRY_PROJECT_WEB).
 monitors:
   - slug: worker-heartbeat
@@ -71,4 +73,5 @@ monitors:
     source: github
     job: restore-drill.yml
     schedule: "0 9 1 * *"
+    workflow_schedule: "37 8 2 * *"
     project: web
