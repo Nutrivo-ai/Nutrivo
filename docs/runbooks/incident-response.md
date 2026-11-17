@@ -8,8 +8,8 @@ what a person does around them.
 ## 1 · Where incidents come from
 | Signal | Where it shows | Opened by |
 |---|---|---|
-| A new production error, an error-rate spike, p95 over the spec/nfr.yaml budgets | Sentry alert (docs/17) | Sentry, with a GitHub issue through Sentry's GitHub integration |
-| A missed or failed scheduled run | Sentry cron monitor alert | Sentry; the monitors are listed in §3 |
+| A new production error, an error-rate spike, p95 over the spec/nfr.yaml budgets | Sentry alert by email to the Sentry team in `config/sentry-alerts.yaml` (docs/17 Alerts) | Sentry; a new production issue also opens a GitHub issue through Sentry's GitHub integration |
+| A missed or failed scheduled run, in any environment | The "Missed or failed cron" alert, by email | Sentry; the monitors are in `config/monitors.yaml` and in §3 |
 | Production smoke failing | monitor `synthetic-smoke-prod`, every 15 minutes once `SYNTHETIC_ENABLED` is set (`.github/workflows/synthetic.yml`) | Sentry |
 | A failed staging deploy | An issue titled "Staging deploy failed at …", labels `incident` and `autopilot` | Actions → `deploy-staging`, which then starts Actions → `claude-autopilot` on it |
 | A failed production release | An issue titled "Production release v… rolled back", labels `incident` and `needs-human` | Actions → `release-production` |
@@ -22,8 +22,9 @@ what a person does around them.
    customer report), open one with the label `incident`, and add `needs-human` while a person must act. Keep every
    note on that issue: times in UTC, what was seen, what was done. Never paste label text, customer names, emails,
    tokens or keys into it; ids, counts, Sentry links and run links only.
-   **Open (#84):** who is on call and who receives alerts (docs/21 §5 "Alerts reach named people"). Default: both
-   founders receive every production alert and whoever sees it first owns it.
+   Alerts reach the members of one Sentry team by email (`config/sentry-alerts.yaml`, applied with Actions →
+   `sentry-alerts`; docs/17). **Open (#84):** who is on call, and who is in that team (docs/21 §5 "Alerts reach named
+   people"). Default: both founders are in the team, and whoever sees an alert first owns it.
 2. **Size it.** **Open (#84):** severity levels and response times are not decided. Default, highest first:
    - *Critical:* data of one workspace visible to another, a Clear shown where a result should be withheld (CLAUDE.md
      non-negotiable 3), `public.verify_reference` not answering or answering wrongly, or data lost.
@@ -51,10 +52,11 @@ what a person does around them.
 | Model provider down | Sentry errors from `nutrivo_worker.models` | Nothing to switch: claims are withheld as `model_unavailable`, never passed (D-11, docs/18). Tell affected customers if it lasts |
 | Daily runs missed or failed | monitors `stripe-reconcile`, `dunning`, `expiry-reminders`, `alert-sweep` and `rate-counter-purge` | pg_cron queues them and the worker runs them; check the worker first. Each job is idempotent, so the next day's run catches up |
 | Source watch failed | monitor `source-watch` (check-ins only, no schedule yet: docs/17) | A content-operations fault, not a customer one: docs/12 |
+| Nightly staging run failed | monitor `nightly-staging` (ok only when the acceptance and load jobs of Actions → `nightly` both passed) | A build fault, not a customer one: the run's own logs; the fix is a pull request |
 | Restore drill missed or failed | monitor `restore-drill-prod` | [restore-drill.md](restore-drill.md) |
 | Production smoke failing | monitor `synthetic-smoke-prod` | Run Actions → `synthetic` by hand to confirm, then Actions → `doctor` with env `prod` to find the service |
 | A key expired or rotated | Actions → `doctor` with env `prod` | Rotate it in Infisical's prod project (docs/16), then run the doctor again |
-| Verification failing | `/verify` with a known reference; the `verify` Edge Function's logs in the Supabase dashboard (it does not report to Sentry) | Critical. Verification never depends on billing (non-negotiable 9): look for a deploy, a database fault or a Supabase outage |
+| Verification failing | monitor `synthetic-smoke-prod` (its check calls the `verify` Edge Function and `public.verify_reference`, docs/17); `/verify` with a known reference; the function's logs in the Supabase dashboard (it does not report to Sentry) | Critical. Verification never depends on billing (non-negotiable 9): look for a deploy, a database fault or a Supabase outage |
 | Stripe webhooks failing | Sentry project `nutrivo-functions`; Stripe → Developers → Webhooks | Stripe retries failed deliveries; the daily monitor `stripe-reconcile` corrects the subscription mirror from the Stripe API (docs/08) |
 | Overload or rate-limit refusals | Sentry p95 alerts; customers seeing "Too many requests" (P0049 refusals are not sent to Sentry) | Limits are in the `private.rate_limits` table (docs/09, defaults pending #81); changing them is a reviewed migration, not a hand edit |
 | Staging deploy failed | The "Staging deploy failed" issue and its run | The autopilot works the issue; later merges' staging deploys are refused (they fail, they are not queued) until it is closed. A founder may run Actions → `deploy-staging` by hand to try a fix first (docs/22 §4) |

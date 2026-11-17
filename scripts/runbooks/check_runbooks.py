@@ -62,6 +62,9 @@ class Repo:
         # `sentry-cli monitors run [flags] <slug> -- <command>` in a workflow: the slug is the last word before `--`
         for args in re.findall(r"monitors run\s+(.*?)\s--\s", wf_text, re.S):
             self.monitors.add(args.split()[-1])
+        # T-1102's registry of every scheduled job's monitor, when present
+        if os.path.exists(os.path.join(ROOT, "config/monitors.yaml")):
+            self.monitors.update(re.findall(r"^\s*-\s*slug:\s*([a-z0-9-]+)", _read("config/monitors.yaml"), re.M))
         doctor = _read("scripts/doctor/doctor.py")
         checks = re.search(r"^CHECKS\s*=\s*\{(.*?)\}", doctor, re.M | re.S)
         self.doctor_checks = set(re.findall(r"\"([a-z-]+)\":", checks.group(1))) if checks else set()

@@ -1,14 +1,22 @@
 name: synthetic
+# T-1102 (docs/17, docs/19, docs/22 §4): production's critical paths every 15 minutes, only once an organisation owner
+# sets the repository variable SYNTHETIC_ENABLED to true; until then the schedule skips the job and nothing runs. A
+# founder's Run workflow always runs the check, so it can pass once by hand before the switch (docs/22 §4); while the
+# switch is off that run does not check in, so Sentry never expects a schedule nothing keeps. The check
+# (scripts/synthetic/check.py) reads /api/health, /sign-in and the verify Edge Function (public.verify_reference),
+# and checks in to the Sentry monitor synthetic-smoke-prod: a failed run is an error check-in, a run that does not
+# happen is a missed one, and either opens an issue routed by config/sentry-alerts.yaml.
 on:
   schedule: [{ cron: "*/15 * * * *" }]
   workflow_dispatch:
+concurrency: { group: synthetic, cancel-in-progress: false }
 permissions: { contents: read }
 jobs:
   smoke-prod:
-    if: vars.SYNTHETIC_ENABLED == 'true'      # switched on in T-1102
+    if: github.event_name == 'workflow_dispatch' || vars.SYNTHETIC_ENABLED == 'true'
     environment: production                    # the prod Infisical identity is an environment secret
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: ./.github/actions/infisical
@@ -18,9 +26,18 @@ jobs:
           project-id: ${{ vars.INFISICAL_PROJECT_ID }}
           domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
           env-slug: prod
-      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-        with: { version: 10 }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: 22 }
       # An exact version: this runs beside every prod secret. The check-in authenticates with the web project's DSN.
-      - run: SENTRY_DSN="$SENTRY_DSN_WEB" npx --yes @sentry/cli@3.8.0 monitors run --environment prod synthetic-smoke-prod -- make smoke ENV=prod
+      # The schedule, margin and runtime are config/monitors.yaml's (scripts/monitors/test_monitors.py compares them).
+      # GitHub often starts a */15 schedule 10-30 minutes late or drops a run: a 30-minute margin and an issue only
+      # after two missed or failed runs in a row keep a healthy production from paging anyone (docs/17).
+      - name: Critical paths, inside the synthetic-smoke-prod check-in
+        if: vars.SYNTHETIC_ENABLED == 'true'
+        run: >
+          SENTRY_DSN="$SENTRY_DSN_WEB" npx --yes @sentry/cli@3.8.0 monitors run -e prod
+          -s "*/15 * * * *" --check-in-margin 30 --max-runtime 10 --failure-issue-threshold 2 --recovery-threshold 1
+          synthetic-smoke-prod -- python3 scripts/synthetic/check.py
+      - name: Critical paths, by hand before the switch (no check-in)
+        if: vars.SYNTHETIC_ENABLED != 'true'
+        run: python3 scripts/synthetic/check.py

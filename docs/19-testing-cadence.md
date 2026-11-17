@@ -34,7 +34,7 @@ in the task's PR, from that list.
 | Every merge to main (once `STAGING_DEPLOY_ENABLED` is set, T-010) | Deploy to staging; `@smoke` suite; Sentry and Langfuse round-trip; doctor; rollback on failure | Staging | Later deploys until fixed |
 | Nightly | The full acceptance suite against staging with real models and real email; golden labels; claims evaluations; extraction benchmark; performance budgets; schema-drift diff; doctor for every environment; dependency audit | Staging | Opens issues |
 | Release (tag) | Approval; production deploy; production smoke on the synthetic workspace; rollback on failure | Production | The release |
-| Every 15 minutes after launch | Synthetic smoke with a Sentry cron check-in | Production | Alerts |
+| Every 15 minutes after launch (once `SYNTHETIC_ENABLED`, T-1102) | Synthetic check of health, sign-in and verify (`scripts/synthetic/check.py`) inside the Sentry check-in `synthetic-smoke-prod` | Production | Alerts (docs/17) |
 
 ## Determinism
 - **Models.** CI runs in `MODELS_MODE=replay` against recorded responses in `worker/tests/cassettes/`. The nightly run

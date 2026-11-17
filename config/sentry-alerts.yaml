@@ -1,0 +1,80 @@
+# Sentry alert routing (T-1102, docs/17 "Alerts"). Applied by scripts/sentry/alerts.py from the dispatch-only workflow
+# sentry-alerts.yml (production environment): `check` reports drift and changes nothing, `apply` creates or updates
+# each rule by name. Rules this file does not name are left alone.
+#
+# Recipients: the members of one Sentry team, by email. The team's slug is the repository variable SENTRY_ALERT_TEAM,
+# else `team` below. No Slack until a founder names a workspace and channel (#80: Slack would be a new recipient of
+# alert content, non-negotiable 10). New production issues also open a GitHub issue through Sentry's GitHub
+# integration (docs/15 "Self-healing development").
+team: nutrivo
+github_repo: Nutrivo-ai/Nutrivo
+github_labels: [sentry]
+
+# Sentry projects by role: SENTRY_PROJECT_WEB, SENTRY_PROJECT_WORKER and the functions project (docs/17).
+projects:
+  web: SENTRY_PROJECT_WEB
+  worker: SENTRY_PROJECT_WORKER
+  functions: SENTRY_PROJECT_FUNCTIONS     # defaults to nutrivo-functions when the variable is unset
+
+issue_alerts:
+  # "A new issue in production goes to email, and to a GitHub issue through Sentry's GitHub integration."
+  - name: "New issue in production"
+    projects: [web, worker, functions]
+    environment: prod
+    when: first_seen
+    notify: [email, github_issue]
+    frequency_min: 30
+  # "A missed cron": a monitor opens an issue (category Cron) after failure_issue_threshold missed or error check-ins.
+  # Every environment, so a missed staging night (nightly-staging) reaches the team too; email only.
+  - name: "Missed or failed cron"
+    projects: [web, worker]
+    environment: null
+    when: first_seen
+    category: cron
+    notify: [email]
+    frequency_min: 30
+
+metric_alerts:
+  # "An error-rate spike": more than 5% of production transactions failing over 15 minutes.
+  - name: "Error rate over 5% (web, prod)"
+    project: web
+    aggregate: failure_rate()
+    query: ""
+    window_min: 15
+    above: 0.05
+  - name: "Error rate over 5% (worker, prod)"
+    project: worker
+    aggregate: failure_rate()
+    query: ""
+    window_min: 15
+    above: 0.05
+  # "p95 latency over the budgets in spec/nfr.yaml". Each names its budget; scripts/sentry/test_alerts.py fails when a
+  # performance budget has neither an alert nor an entry under not_alerted, or when a threshold differs from the budget.
+  - name: "p95 over budget: verify page"
+    budget: performance.verify_endpoint_p95_ms
+    project: web
+    aggregate: p95(transaction.duration)
+    query: 'transaction:"GET /verify/[ref]"'
+    window_min: 60
+    above_ms: 300
+  - name: "p95 over budget: board"
+    budget: performance.board_300_recipes_p95_ms
+    project: web
+    aggregate: p95(transaction.duration)
+    query: 'transaction:"GET /w/[workspace]/board"'
+    window_min: 60
+    above_ms: 1500
+  - name: "p95 over budget: check job"
+    budget: performance.check_completion_p95_s
+    project: worker
+    aggregate: p95(transaction.duration)
+    query: 'transaction:"job:check"'
+    window_min: 60
+    above_ms: 120000
+
+# Performance budgets with no production alert, and why. The nightly load run measures each against staging (T-1105).
+not_alerted:
+  performance.rpc_p95_ms: "RPCs are spans inside web transactions, not transactions; measured by the nightly load run"
+  performance.search_300_recipes_p95_ms: "BE-41 ships after launch; its alert comes with it"
+  performance.extraction_10_pages_p95_s: "the budget is per 10 pages and job:extract spans any page count; measured by the nightly load run"
+  performance.public_pages_lcp_s: "a field metric of the visitor's browser, not a server p95; measured by the nightly load run"
