@@ -137,16 +137,17 @@ export function ArtworkReport({
                           title={verdict.reasonCodes.length ? `Reason: ${verdict.reasonCodes.join(", ")}` : undefined}
                         >
                           {(() => {
+                            // One line, where the design sets the words. The glyph hangs in the gutter to their left, so
+                            // "Not assessed" and "Action needed" fit the design's column and the row keeps its height.
                             const label = (
-                              <>
+                              <span className="relative inline-block whitespace-nowrap">
                                 {verdict.state !== "not_checked" ? (
-                                  // Inline, so the row keeps the design's baseline and height.
-                                  <span className="mr-[5px] inline-block align-[-1px] leading-none">
+                                  <span className="absolute right-full top-1/2 mr-[5px] -translate-y-1/2 leading-none">
                                     <StateGlyph state={verdict.state} size="sm" />
                                   </span>
                                 ) : null}
                                 {verdict.label}
-                              </>
+                              </span>
                             );
                             const checked = reportHref && checks.some((c) => c.panelId === p.id);
                             return checked ? (

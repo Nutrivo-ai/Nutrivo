@@ -50,7 +50,7 @@ describe("Envelope", () => {
     expect(view.wording).toHaveLength(1);
     expect(view.wording[0]).toMatchObject({ language: "de", text: "Testcharge", markets: ["EU-DE", "EU-AT"], citation: "TEST Art. 1" });
     const html = renderToStaticMarkup(
-      <Envelope workspaceId={WS} data={{ id: "e1", rulesetVersion: "T-RS", createdAt: "2026-11-11T02:00:00Z", outOfScope: ["nutrient_adequacy"], nodes, items }} />,
+      <Envelope workspaceId={WS} data={{ id: "e1", rulesetVersion: "T-RS", createdAt: "2026-11-11T02:00:00Z", outOfScope: ["nutrient_adequacy"], nodes, items, outsidePlan: [] }} />,
     );
     expect(html).toContain("RULESET T-RS");
     expect(html).toContain("Testcharge");
@@ -59,7 +59,7 @@ describe("Envelope", () => {
 
   it("[E02.must.1] every withheld item names its reason and its gap, and a market with nothing recorded says so", () => {
     const html = renderToStaticMarkup(
-      <Envelope workspaceId={WS} data={{ id: "e1", rulesetVersion: "T-RS", createdAt: "2026-11-11T02:00:00Z", outOfScope: ["nutrient_adequacy"], nodes, items }} />,
+      <Envelope workspaceId={WS} data={{ id: "e1", rulesetVersion: "T-RS", createdAt: "2026-11-11T02:00:00Z", outOfScope: ["nutrient_adequacy"], nodes, items, outsidePlan: [] }} />,
     );
     expect(html).toContain(`href="/w/${WS}/library/coverage/EU-AT#GAP-T-AT-COMP"`);
     expect(html).toContain("NO COVERAGE GAP RECORDED");
@@ -69,8 +69,26 @@ describe("Envelope", () => {
 
   it("[E02.must.2] states that nutrient adequacy is out of scope until FEDIAF is licensed", () => {
     const html = renderToStaticMarkup(
-      <Envelope workspaceId={WS} data={{ id: "e1", rulesetVersion: "T-RS", createdAt: "2026-11-11T02:00:00Z", outOfScope: ["nutrient_adequacy"], nodes: [], items: [] }} />,
+      <Envelope workspaceId={WS} data={{ id: "e1", rulesetVersion: "T-RS", createdAt: "2026-11-11T02:00:00Z", outOfScope: ["nutrient_adequacy"], nodes: [], items: [], outsidePlan: [] }} />,
     );
     expect(html).toContain("Nutrient adequacy is not assessed: it is out of scope until the FEDIAF guidelines are licensed.");
+  });
+
+  it("[J04.must.1] names the markets outside the plan and says why their envelope is not shown", () => {
+    const html = renderToStaticMarkup(
+      <Envelope
+        workspaceId={WS}
+        data={{ id: "e1", rulesetVersion: "T-RS", createdAt: "2026-11-11T02:00:00Z", outOfScope: [], nodes: [], items: [], outsidePlan: [{ nodeId: "US-TX", regionName: "United States" }] }}
+      />,
+    );
+    expect(html).toContain("data-outside-plan");
+    expect(html).toContain("Your plan does not include United States");
+  });
+
+  it("shows no outside-plan note when every market is in the plan", () => {
+    const html = renderToStaticMarkup(
+      <Envelope workspaceId={WS} data={{ id: "e1", rulesetVersion: "T-RS", createdAt: "2026-11-11T02:00:00Z", outOfScope: [], nodes: [], items: [], outsidePlan: [] }} />,
+    );
+    expect(html).not.toContain("data-outside-plan");
   });
 });

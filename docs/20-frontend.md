@@ -110,7 +110,9 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
   - the inbox names the recipe without a link;
   - the verdict (S-MOB-003) shows "Your plan does not include …", including at a direct URL;
   - the label report (S-NV2-003) and the board's findings view (F04) leave those markets out and say so.
-  - the artwork page (S-NV2-025) leaves those markets' checks out of its panel states and reason codes.
+  - the artwork page (S-NV2-025) leaves those markets' checks out of its panel states and reason codes;
+  - the design envelope (S-NV2-005) leaves those markets' state, ceilings, wording and withheld items out and names
+    them (incident: the envelope read them all).
 
   The database's RLS does not apply this, and neither do the worker's report PDFs; both are on #73. E2E fixtures that
   sell in the US now give their workspace the US region, as the product RPCs require.
