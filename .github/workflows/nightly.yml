@@ -21,11 +21,17 @@ jobs:
           env-slug: staging
       - uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with: { version: 2.120.0 }
+      - run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with: { version: 10 }
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with: { node-version: 22 }
+        with: { node-version: 22, cache: pnpm, cache-dependency-path: apps/web/pnpm-lock.yaml }
+      # The same set-up as staging-load: the web's packages (Playwright) and the synthetic artworks the specs upload.
+      - name: Web packages and synthetic fixtures
+        run: |
+          pnpm --dir apps/web install --frozen-lockfile
+          (cd worker && uv sync && uv run python ../fixtures/synth/generate.py --out ../fixtures/synth/out && touch ../fixtures/synth/out/.built)
       - name: Full acceptance suite against staging (real models, real email)
         run: make acceptance-staging
       - name: Doctor for every environment
