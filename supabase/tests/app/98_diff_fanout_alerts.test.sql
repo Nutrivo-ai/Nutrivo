@@ -121,7 +121,7 @@ insert into app.alerts (workspace_id, rule_diff_id, product_id, node_id, phase, 
   -- a1's latest EU-DE check applies T901.R only: contract 5 no longer names it for d4 (re-checked since the fan-out)
   ('20000000-0000-4000-8901-00000000000a','80000000-0000-4000-8901-0000000000d4','40000000-0000-4000-8901-0000000000a1',
    'EU-DE','coming','prescribed_wording', current_date - 1);
-select is(app.run_alert_sweep(current_date) - 'day',
+select is(app.run_alert_sweep(current_date) - array['day', 'since', 'diffs'],
           '{"in_force": 1, "notify_jobs": 4}'::jsonb,
           '[J03.main] the sweep writes the in_force row of an arrived alert and one notify job per diff × workspace');
 select is((select count(*)::int from app.alerts where rule_diff_id = '80000000-0000-4000-8901-0000000000d4'
@@ -139,7 +139,7 @@ select is((select string_agg(j.workspace_id::text || ' ' || (j.payload ->> 'temp
           '20000000-0000-4000-8901-00000000000a rule_changed 80000000-0000-4000-8901-0000000000d1, '
           '20000000-0000-4000-8901-00000000000b rule_changed 80000000-0000-4000-8901-0000000000d1',
           '[J03.main] each affected workspace gets its own rule_changed job for the diff');
-select is(app.run_alert_sweep(current_date) - 'day', '{"in_force": 0, "notify_jobs": 0}'::jsonb,
+select is(app.run_alert_sweep(current_date) - array['day', 'since', 'diffs'], '{"in_force": 0, "notify_jobs": 0}'::jsonb,
           '[J03.main] repeating the sweep writes nothing and queues no second email');
 select throws_ok($$select app.run_alert_sweep(current_date + 2)$$, '22023', null,
                  '[J03.main] the sweep never runs for a day not yet reached');
