@@ -4,6 +4,7 @@
 // No baseline comparison yet: the design's Workspace Settings side nav and header tag are the settings layout's
 // (T-107), and the "Export events" card is out of scope (answer 1 on #71).
 import AxeBuilder from "@axe-core/playwright";
+import { settled } from "./support/settled";
 import { expect, test, type Page } from "@playwright/test";
 import { admin, haveStack, person, signIn, workspace, type Person } from "./support/people";
 
@@ -20,6 +21,7 @@ function watch(page: Page) {
 }
 
 async function axe(page: Page) {
+  await settled(page);
   const results = await new AxeBuilder({ page }).analyze();
   const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);

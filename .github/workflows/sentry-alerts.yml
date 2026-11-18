@@ -1,0 +1,36 @@
+name: sentry-alerts
+# T-1102 (docs/17 "Alerts"): Sentry alert routing from config/sentry-alerts.yaml. By hand only: a founder runs
+# `check` (read-only, fails when a rule is missing or differs) and, after reading its output, `apply` (creates or
+# updates the rules the file names, leaves every other rule alone). Uses the production identity, because the prod
+# Infisical environment holds the Sentry token with alerts:write; Sentry projects carry every environment.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: check (read-only) or apply
+        type: choice
+        options: [check, apply]
+        default: check
+concurrency: { group: sentry-alerts, cancel-in-progress: false }
+permissions: { contents: read }
+
+jobs:
+  alerts:
+    environment: production
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: ./.github/actions/infisical
+        with:
+          client-id: ${{ secrets.INFISICAL_CLIENT_ID }}
+          client-secret: ${{ secrets.INFISICAL_CLIENT_SECRET }}
+          project-id: ${{ vars.INFISICAL_PROJECT_ID }}
+          domain: ${{ vars.INFISICAL_DOMAIN || 'https://app.infisical.com' }}
+          env-slug: prod
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - name: Alert rules (${{ inputs.mode }})
+        env:
+          SENTRY_ALERT_TEAM: ${{ vars.SENTRY_ALERT_TEAM }}
+          MODE: ${{ inputs.mode }}
+        run: uv run --no-project --with pyyaml python scripts/sentry/alerts.py "$MODE"

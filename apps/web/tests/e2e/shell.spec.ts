@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
+import { settled } from "./support/settled";
 import { expect, test, type Page } from "@playwright/test";
 import { parse } from "yaml";
 import { REPO_ROOT } from "../visual/screens";
@@ -37,6 +38,7 @@ async function open(page: Page, url: string) {
 }
 
 async function axe(page: Page) {
+  await settled(page);
   const results = await new AxeBuilder({ page }).analyze();
   const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);

@@ -50,5 +50,5 @@ The issue holds counts and timestamps, never row data.
 ## What a restore does not bring back
 A restore to a new project copies the database only. Storage objects, Edge Functions, Auth settings, API keys and
 Realtime settings are not copied. A real recovery uses the in-place PITR restore on `nutrivo-prod` (the dashboard or
-`restore-pitr`), after which the Edge Functions, worker and web keep working. The incident runbook (T-1106) covers
-that path.
+`restore-pitr`), after which the Edge Functions, worker and web keep working. That path is
+[pitr-restore.md](pitr-restore.md).

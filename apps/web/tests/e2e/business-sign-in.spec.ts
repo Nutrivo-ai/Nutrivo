@@ -5,6 +5,7 @@
 // there the way Supabase Auth answers, so what is tested is everything on our side of the provider.
 import { randomUUID } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
+import { settled } from "./support/settled";
 import { createClient } from "@supabase/supabase-js";
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { isBusinessEmailRefusal, SIGN_IN_PROBLEM } from "../../src/lib/auth/rules";
@@ -44,6 +45,7 @@ test.describe("T-109 the provider buttons on /sign-in", () => {
     await expect(providers.getByRole("button", { name: "Continue with Google" })).toBeVisible();
     await expect(providers.getByRole("button", { name: "Continue with Microsoft" })).toBeVisible();
     await expect(page.getByLabel("Work email")).toBeVisible();
+    await settled(page);
     const results = await new AxeBuilder({ page }).analyze();
     const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
     expect(serious.map((v) => v.id)).toEqual([]);

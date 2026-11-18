@@ -49,6 +49,10 @@
 - **Backups.** Point-in-time recovery on production, with a restore drill monthly (T-1101): the prod doctor's `pitr`
   check fails while PITR is off, and a founder restores into a new project from the dashboard, then the `restore-drill`
   workflow checks the copy and records the drill (docs/runbooks/restore-drill.md).
+- **Runbooks.** What a person does around these automatic responses is in docs/runbooks/: incident response,
+  rollback, the in-place point-in-time restore of production (pitr-restore.md) and the drill; onboarding a pilot is
+  docs/pilot-runbook.md. `scripts/runbooks/test_runbooks.py` fails CI when a runbook names a workflow, script, make
+  target, Sentry monitor, doctor check, label or RPC that does not exist (T-1106).
 
 ## Service levels (spec/nfr.yaml)
 - **Availability:** app 99.5% monthly; public verification 99.9%.
