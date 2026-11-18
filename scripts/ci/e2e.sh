@@ -11,10 +11,6 @@ export SUPABASE_URL="$API_URL" SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" DAT
 # Mail the stack sends lands in Mailpit; tests read it through Mailpit's API at MAILPIT_URL (older CLIs: INBUCKET_URL).
 export MAILPIT_URL="${MAILPIT_URL:-${INBUCKET_URL:-http://127.0.0.1:54324}}"
 export MODELS_MODE=replay EMAIL_MODE=mailpit NUTRIVO_ENV=ci
-# The public site's start buttons read as the design draws them ("Check a label free"), so the design-baseline
-# comparisons (S-LND-001 and the other public frames) test the design. Production builds without it and reads
-# "Join the pilot" until launch (apps/web/src/lib/public/links.ts; the label itself is unit-tested in links.test.ts).
-export NEXT_PUBLIC_SIGNUPS_OPEN=true
 # T-703: the web server's Stripe calls go to the fake Stripe the Playwright global setup serves on this port
 # (apps/web/tests/fake-stripe), with a placeholder test-mode key it accepts. Nothing here reaches Stripe.
 export STRIPE_API_BASE="http://127.0.0.1:12111" STRIPE_SECRET_KEY="sk_test_fake"
