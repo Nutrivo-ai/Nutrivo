@@ -7,7 +7,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/kit";
 import { SiteFooter, SiteHeader } from "@/components/public/Site";
 import { REQUEST_ID_HEADER } from "@/lib/observability/request-id";
 import { DOMAIN_LABEL, isoDay, longDay, readCoverage, type Coverage, type DomainState, type NodeCoverage, type RegionCoverage } from "@/lib/public/coverage";
-import { PUBLIC_ROUTES, START } from "@/lib/public/links";
+import { PUBLIC_ROUTES, START, START_LABEL } from "@/lib/public/links";
 import { sx } from "@/lib/public/sx";
 
 export const metadata: Metadata = { title: "Coverage · Nutrivo" };
@@ -133,7 +133,7 @@ export default function CoveragePage({ searchParams }: { searchParams: Promise<P
               <h2 style={sx("margin: 0; font-size: 34px; font-weight: 600; line-height: 1.08; max-width: 30ch; text-wrap: balance")}>The reason this page exists</h2>
               <p style={sx("margin: 16px 0 0; font-size: 16px; line-height: 1.6; color: var(--n700); max-width: 82ch; text-wrap: pretty")}>A compliance tool that answers everything is either much better than it looks or lying. Four states, and one of them is Not assessed — shown as prominently as the rest, because a label can be fully compliant and a product still unsellable, and because a silence you cannot see is the most expensive thing we could sell you.</p>
               <div style={sx("margin-top: 26px; display: flex; gap: 12px; align-items: center")}>
-                <Link href={START} className="pub-primary" style={sx("background: var(--accent); color: var(--paper); padding: 13px 22px; border-radius: 3px; font-size: 15px; font-weight: 500")}>Check a label free</Link>
+                <Link href={START} className="pub-primary" style={sx("background: var(--accent); color: var(--paper); padding: 13px 22px; border-radius: 3px; font-size: 15px; font-weight: 500")}>{START_LABEL}</Link>
                 <Link href={PUBLIC_ROUTES.pricing} className="pub-secondary" style={sx("border: 1px solid var(--n400); padding: 13px 20px; border-radius: 3px; font-size: 14.5px; color: var(--ink)")}>See the plans</Link>
               </div>
               <p style={sx("margin: 16px 0 0; font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.05em; color: var(--n600)")}>THREE LABELS FREE · NO CARD · NO SALES CALL</p>

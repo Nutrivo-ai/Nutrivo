@@ -5,7 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { REPO_ROOT } from "../visual/screens";
-import { expectLikeBaseline } from "./support/baseline";
+import { expectLikeBaseline, type Rect } from "./support/baseline";
 import { axe, crawl, INVENTED, maxDiffPixelRatio, open, REMOVED_IN_REVIEW } from "./support/public";
 import { createClient } from "@supabase/supabase-js";
 import { addonAmount, euros, PARTNER, plans, priceLabel } from "../../src/lib/public/pricing";
@@ -17,13 +17,26 @@ import { START } from "../../src/lib/public/links";
  * Compares the element with the same box of the baseline: `dy` lower down where something above it was omitted, or at
  * the baseline's `y` where data above it makes the route's position vary.
  */
-async function likeDesign(page: Page, testId: string, screenId: string, at: { dy?: number; y?: number; fractionY?: number } = {}) {
+async function likeDesign(
+  page: Page,
+  testId: string,
+  screenId: string,
+  at: { dy?: number; y?: number; fractionY?: number; ignore?: string[] } = {},
+) {
   const element = page.getByTestId(testId).filter({ visible: true }).first();
   const box = await element.boundingBox();
   if (!box) throw new Error(`${testId} is not rendered`);
   const scroll = await page.evaluate(() => window.scrollY);
   const y = at.y ?? Math.floor(box.y + scroll) + (at.dy ?? 0);
-  const region = { x: Math.floor(box.x), y, width: Math.round(box.width), height: Math.round(box.height), fractionY: at.fractionY };
+  // `ignore`: test ids inside the element whose box is left out of the comparison (with a pixel's margin for the
+  // fractional nudge), for content that differs from the design on purpose.
+  const exclude: Rect[] = [];
+  for (const id of at.ignore ?? []) {
+    const inner = await element.getByTestId(id).boundingBox();
+    if (!inner) throw new Error(`${id} is not rendered inside ${testId}`);
+    exclude.push({ x: Math.floor(inner.x - box.x) - 1, y: Math.floor(inner.y - box.y) - 1, width: Math.ceil(inner.width) + 2, height: Math.ceil(inner.height) + 2 });
+  }
+  const region = { x: Math.floor(box.x), y, width: Math.round(box.width), height: Math.round(box.height), fractionY: at.fractionY, exclude };
   await expectLikeBaseline(page, element, screenId, region, maxDiffPixelRatio);
 }
 
@@ -247,7 +260,10 @@ test.describe("landing page (P01, P02)", () => {
     // everything below them sits lower: at 8794.5, 9012.5 and 9287.5 px, located from the notes' borders and the
     // close's ink in the baseline image.
     await likeDesign(page, "never", "S-LND-001", { y: 8794, fractionY: 0.5 });
-    await likeDesign(page, "start", "S-LND-001", { y: 9012, fractionY: 0.5 });
+    // The start button's label is production's pre-launch wording ("Join the pilot", founder decision, 17 Nov 2026)
+    // where the design draws "Check a label free"; its wording may change again, so the button is not compared. Its
+    // box is fixed by its column, so the wording cannot move anything around it.
+    await likeDesign(page, "start", "S-LND-001", { y: 9012, fractionY: 0.5, ignore: ["start-cta"] });
     await likeDesign(page, "footer", "S-LND-001", { y: 9287, fractionY: 0.5 });
   });
 
