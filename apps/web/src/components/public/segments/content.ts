@@ -6,7 +6,7 @@
 //   - regulatory statements: what a law, authority or market requires, and the example panels that show permitted
 //     wordings, levels or registrations (no person has accepted them as content);
 //   - invented example data the public site may not show (INVENTED in tests/e2e/support/public.ts).
-import { CONTACT, PUBLIC_ROUTES, SEGMENTS, START } from "@/lib/public/links";
+import { CONTACT, PUBLIC_ROUTES, SEGMENTS, START, START_LABEL } from "@/lib/public/links";
 import { amount, euros, PARTNER } from "@/lib/public/pricing";
 
 export type SegmentKey = (typeof SEGMENTS)[number]["key"];
@@ -97,7 +97,7 @@ export const SEGMENT_CONTENT: Segment[] = [
     kicker: "For product and range managers",
     headline: "Every recipe, every market, one screen, and no green wall",
     sub: "One row per recipe, one column per market, and four states in each cell. The cell also carries the ruleset version it was judged against, so a stale answer cannot pass itself off as a current one in a slide.",
-    cta: { label: "Check a label free", href: START },
+    cta: { label: START_LABEL, href: START },
     cta2: { label: "See the board", href: `#${ANCHOR.flow}` },
     ctaNote: "THREE LABELS FREE · NO CARD · NO SALES CALL",
     heroCard: { kicker: "The number that matters", title: "Not assessed is shown as prominently as clear", body: "A board where everything is green is either much better than it looks or hiding something. The count of things nobody has checked is on the screen at the same size as the count of things that passed.", tone: "none", bg: "var(--none-bg)" },

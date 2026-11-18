@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { SEGMENTS, SIGN_IN, START, segmentHref } from "@/lib/public/links";
+import { SEGMENTS, SIGN_IN, START, START_LABEL, segmentHref } from "@/lib/public/links";
 import { sx } from "@/lib/public/sx";
 
 // Pieces every public design file draws the same way (design/public/). Each route keeps its own file's header where
@@ -48,7 +48,7 @@ export function SiteHeader({ items, current }: { items: NavItem[]; current: NavI
       </nav>
       <Link href={SIGN_IN} style={sx("font-size: 13px; color: var(--n700)")}>Sign in</Link>
       <Link href={START} className="pub-primary" style={sx("background: var(--accent); color: var(--paper); padding: 9px 16px; border-radius: 3px; font-size: 13.5px; font-weight: 500")}>
-        Check a label free
+        {START_LABEL}
       </Link>
     </header>
   );
