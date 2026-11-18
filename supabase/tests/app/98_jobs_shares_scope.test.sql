@@ -39,6 +39,10 @@ insert into app.memberships (workspace_id, person_id, role, ended_at) values
 insert into app.products (id, workspace_id, family_id, name) values
   ('40000000-0000-4000-8409-00000000000a','20000000-0000-4000-8409-00000000000a','30000000-0000-4000-8409-00000000000a','Product A'),
   ('40000000-0000-4000-8409-00000000000b','20000000-0000-4000-8409-00000000000b','30000000-0000-4000-8409-00000000000b','Product B');
+-- Product A is sold in Germany and Sweden: request_check takes only the product's markets (#274).
+insert into app.product_nodes (product_id, node_id, workspace_id) values
+  ('40000000-0000-4000-8409-00000000000a','EU-DE','20000000-0000-4000-8409-00000000000a'),
+  ('40000000-0000-4000-8409-00000000000a','EU-SE','20000000-0000-4000-8409-00000000000a');
 insert into app.checks (id, workspace_id, product_id, node_id, ruleset_version, artwork_sha, language, label_state,
                         withheld_rule_keys) values
   ('50000000-0000-4000-8409-0000000000a1','20000000-0000-4000-8409-00000000000a','40000000-0000-4000-8409-00000000000a',
@@ -111,8 +115,9 @@ insert into t (name, id) select 'job:share_notify', j.id from app.jobs j
 insert into t (name, id) select 'job:docreq_notify', j.id from app.jobs j
   where j.idempotency_key = 'docreq:' || (select v ->> 'request_id' from t where name = 'docreq');
 
--- Sid (scoped to EU-DE) checks the product in Sweden and Germany: a job naming a market outside his scope.
-select pg_temp.as_user('e2');
+-- Carl (unscoped) checks the product in Sweden and Germany: a job naming two markets. Since #274 a member scoped to
+-- one of them cannot request it (supabase/tests/app/99_market_scope_check_envelope.test.sql).
+select pg_temp.as_user('c1');
 set local role authenticated;
 insert into t (name, id) values ('job:check_both', app.request_check('40000000-0000-4000-8409-00000000000a', '{EU-DE,EU-SE}'));
 reset role;
@@ -256,11 +261,11 @@ select is(pg_temp.others_seen(), '', '[T-409] a family-scoped member reads no sh
 reset role;
 
 -- An editor scoped to EU-DE: the product's Swedish report, check, share and supersessions are gone; the artwork and
--- supplier jobs (no market) stay. The two-market check he requested himself is gone too: it names EU-SE (#198 Q1).
+-- supplier jobs (no market) stay. The two-market check is gone too: it names EU-SE (#198 Q1).
 select pg_temp.as_user('e2');
 set local role authenticated;
 select is(pg_temp.jobs_seen(), 'job:billing,job:docreq_notify,job:export,job:extract,job:scan',
-          '[T-409] a market-scoped member no longer reads another market''s report job or check job, even one they requested');
+          '[T-409] a market-scoped member no longer reads another market''s report job or check job');
 select is((select count(*)::int from app.jobs where progress ? 'ref'), 0,
           '[T-409] a market-scoped member no longer reads another market''s report reference (progress.ref)');
 select is(pg_temp.others_seen(), '', '[T-409] a market-scoped member reads no share or supersession of another market');

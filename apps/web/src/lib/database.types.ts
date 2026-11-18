@@ -1372,6 +1372,9 @@ isOneToOne: false
 "open_share":
 { Args: { "p_token": string,"p_user_agent"?: string }; Returns: Json
                            },
+"purge_rate_counters":
+{ Args: { "p_ref": string }; Returns: Json
+                           },
 "queue_expiry_reminders":
 { Args: { "p_ref": string }; Returns: Json
                            },
