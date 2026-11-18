@@ -23,8 +23,14 @@ export function checkRefusal(input: string | RpcErrorLike | null | undefined): C
     case "42501":
       return {
         code,
-        title: "Your role cannot run a check on this product",
-        body: "Running a check needs an editor or a role above it. An admin of this workspace can change your role.",
+        title: "Your role or market scope cannot run a check on this product",
+        body: "Running a check needs an editor or a role above it, and at least one of the product's markets in your scope. An admin of this workspace can change your role or scope.",
+      };
+    case "22023":
+      return {
+        code,
+        title: "This product has no markets to check",
+        body: "Choose at least one market: a check answers per market. Nothing was run and nothing was counted.",
       };
     case "P0002":
       return {

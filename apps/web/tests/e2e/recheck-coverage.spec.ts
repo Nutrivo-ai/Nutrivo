@@ -371,6 +371,42 @@ test.describe("re-check a revision, and coverage per product", () => {
     await expect(page.getByRole("button", { name: "Run the check" })).toHaveCount(0);
   });
 
+  test("[#274] Run the check as a market-scoped editor: only their market is checked, and they follow their own job", async ({ page, context, baseURL }) => {
+    test.setTimeout(STEP_MS * 2 + 60_000);
+    const fresh = await workspace(editor, "Halden Scoped Check");
+    const scoped = await person("t274-scoped-editor");
+    await workspace(scoped, "Scoped editor's own"); // makes the scoped editor's app.people row
+    const service = admin().schema("app");
+    const p = await service.from("people").select("id").eq("user_id", scoped.userId).single();
+    if (p.error) throw p.error;
+    const grant = await service.from("memberships").insert({ workspace_id: fresh, person_id: p.data.id, role: "editor", scope_node_ids: ["EU-DE"] });
+    if (grant.error) throw grant.error;
+    const product = await seedProduct(fresh, "Lamb & Rice Adult Dry", MARKETS); // sold in EU-AT and EU-DE
+
+    await signIn(context, scoped, baseURL!);
+    const errors = watch(page);
+    await page.goto(`/w/${fresh}/products/${product}/check`);
+    await expect(bar(page).getByRole("heading", { level: 2 })).toHaveText("1 product × 1 jurisdiction node × 1 language, answered in one pass");
+    await runFromBar(page);
+    expect(errors).toEqual([]);
+
+    // The job names only EU-DE, and the editor reads it under RLS (the T-409 jobs policy): that is how the bar finished.
+    const jobs = await service.from("jobs").select("id, node_ids, payload").eq("kind", "check").eq("product_id", product);
+    if (jobs.error) throw jobs.error;
+    expect(jobs.data.map((j) => j.node_ids)).toEqual([["EU-DE"]]);
+    const own = await scoped.db.schema("app").from("jobs").select("id").eq("id", jobs.data[0].id);
+    expect(own.data).toHaveLength(1);
+    const { checks } = await checksOf(product);
+    expect(checks.length).toBeGreaterThan(0);
+    expect(new Set(checks.map((c) => c.node_id))).toEqual(new Set(["EU-DE"]));
+
+    // Austria is outside the scope: naming it is refused whole, and nothing more is queued.
+    const refused = await scoped.db.schema("app").rpc("request_check", { p_product: product, p_nodes: ["EU-AT", "EU-DE"] });
+    expect(refused.error?.code).toBe("42501");
+    const after = await service.from("jobs").select("id", { count: "exact", head: true }).eq("kind", "check").eq("product_id", product);
+    expect(after.count).toBe(1);
+  });
+
   test("coverage states: every node, a product with no markets, an unknown product and an unknown node", async ({ page, context, baseURL }) => {
     const noMarkets = await seedProduct(ws, "Kitten Salmon 400 g", [], false);
     await signIn(context, viewer, baseURL!);
