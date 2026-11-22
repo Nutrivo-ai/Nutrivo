@@ -39,6 +39,10 @@ insert into app.memberships (workspace_id, person_id, role, ended_at) values
 insert into app.products (id, workspace_id, family_id, name) values
   ('40000000-0000-4000-8409-00000000000a','20000000-0000-4000-8409-00000000000a','30000000-0000-4000-8409-00000000000a','Product A'),
   ('40000000-0000-4000-8409-00000000000b','20000000-0000-4000-8409-00000000000b','30000000-0000-4000-8409-00000000000b','Product B');
+-- Product A is sold in Germany and Sweden (#274: a check names only markets of the product).
+insert into app.product_nodes (product_id, node_id, workspace_id) values
+  ('40000000-0000-4000-8409-00000000000a','EU-DE','20000000-0000-4000-8409-00000000000a'),
+  ('40000000-0000-4000-8409-00000000000a','EU-SE','20000000-0000-4000-8409-00000000000a');
 insert into app.checks (id, workspace_id, product_id, node_id, ruleset_version, artwork_sha, language, label_state,
                         withheld_rule_keys) values
   ('50000000-0000-4000-8409-0000000000a1','20000000-0000-4000-8409-00000000000a','40000000-0000-4000-8409-00000000000a',
@@ -111,8 +115,9 @@ insert into t (name, id) select 'job:share_notify', j.id from app.jobs j
 insert into t (name, id) select 'job:docreq_notify', j.id from app.jobs j
   where j.idempotency_key = 'docreq:' || (select v ->> 'request_id' from t where name = 'docreq');
 
--- Sid (scoped to EU-DE) checks the product in Sweden and Germany: a job naming a market outside his scope.
-select pg_temp.as_user('e2');
+-- Carl (unscoped) checks the product in Sweden and Germany: a job naming a market outside Sid's scope. Since #274
+-- Sid cannot request it (supabase/tests/app/99_market_scope_check_envelope.test.sql).
+select pg_temp.as_user('c1');
 set local role authenticated;
 insert into t (name, id) values ('job:check_both', app.request_check('40000000-0000-4000-8409-00000000000a', '{EU-DE,EU-SE}'));
 reset role;

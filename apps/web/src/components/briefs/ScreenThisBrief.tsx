@@ -11,7 +11,7 @@ import { requestEnvelope, type EnvelopeRequest } from "@/lib/briefs/actions";
 type Refusal = Extract<EnvelopeRequest, { ok: false }>["reason"];
 
 export const ENVELOPE_REFUSAL: Record<Refusal, string> = {
-  "no-permission": "Your role cannot screen this brief. An editor whose scope holds its markets, or an admin, can.",
+  "no-permission": "Your role or market scope cannot screen this brief. Screening needs an editor whose scope holds every one of its markets. An admin can change your role or scope.",
   invalid: "This brief was not found. Reload the page.",
   "no-ruleset": "No ruleset has been released yet, so there is nothing to screen against.",
   "no-markets": "This brief has no markets yet. Add a market, then screen it.",
