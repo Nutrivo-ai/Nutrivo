@@ -117,6 +117,8 @@ verify-fast: ## what the Claude Code Stop hook runs
 	python3 -m unittest discover -s scripts/env -p 'test_*.py'
 	python3 -m unittest discover -s scripts/doctor -p 'test_*.py'
 	python3 -m unittest discover -s scripts/deploy -p 'test_*.py'
+	python3 -m unittest discover -s scripts/drill -p 'test_*.py'
+	python3 -m unittest discover -s scripts/runbooks -p 'test_*.py'
 	$(PY) -m unittest discover -s scripts/load -p 'test_*.py'
 	node --no-warnings --test scripts/stripe/*.test.ts
 verify: verify-fast e2e ## everything CI runs

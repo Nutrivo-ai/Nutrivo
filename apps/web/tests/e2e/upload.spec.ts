@@ -6,6 +6,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
+import { settled } from "./support/settled";
 import { expect, test, type Page } from "@playwright/test";
 import { parse } from "yaml";
 import { REPO_ROOT } from "../visual/screens";
@@ -20,11 +21,14 @@ const maxDiff = (parse(fs.readFileSync(path.join(REPO_ROOT, "spec/nfr.yaml"), "u
 const ARTWORK_CARD = { x: 242, y: 116, width: 294, height: 131, fractionY: 0 };
 
 // S-NV2-025 at 1600 px, compared where T-303 has the data. What is left out is waived on #41
-// (https://github.com/Nutrivo-ai/Nutrivo/issues/41#issuecomment-6489086392) until its task lands: the verdict column
-// (T-401–T-403), the copy-deck headline copy and "From copy deck" read status, file Size and Fonts embedded, and the
-// text-layer count over the markets' languages (T-401).
-// The state column is drawn since T-304 (D02), but the seeded run has no check, so it reads "Not checked" where the
-// design shows verdicts; tests/e2e/triage.spec.ts covers it.
+// (https://github.com/Nutrivo-ai/Nutrivo/issues/41#issuecomment-6489086392) until its task lands: the copy-deck
+// headline copy and "From copy deck" read status, file Size and Fonts embedded, and the text-layer count over the
+// markets' languages (T-401).
+// The state column is drawn since T-304 (D02) and compared since T-306 (#193, option A): the seeded run carries honest
+// Not assessed checks, so the Polish and Czech cells match the design. The four live-text cells stay waived on #41: the
+// design shows Clear and Action needed there, and the local stack's only ruleset, 0000.00-empty, encodes nothing, so
+// private.verdict_guard rightly withholds every verdict (no rule, no verdict). They come out of the waiver with
+// option B, a local, accepted, fully encoded fixture ruleset (a db and content follow-up to #193).
 const VERDICT = { x: 528, y: 0, width: 98 };
 const S_NV2_025 = {
   // The headline frame: its edge and rules. The copy inside is the copy-deck scenario's, and its length sets where the
@@ -32,14 +36,14 @@ const S_NV2_025 = {
   headline: { x: 242, y: 91, width: 626, height: 170, fractionY: 0, exclude: [{ x: 12, y: 12, width: 602, height: 158 }] },
   // "What ran, per language panel" and the four live-text rows: Language, Source, Read and Measured.
   table: { x: 242, y: 307, width: 626, height: 205, fractionY: 0, exclude: [{ ...VERDICT, height: 205 }] },
-  // The outlined rows' Language, Source and Measured cells; their Read cell is "From copy deck" in the design.
+  // The outlined rows' Language, Source, Measured and state cells; their Read cell is "From copy deck" in the design.
   outlined: (y: number) => ({
     x: 242,
     y,
     width: 626,
     height: 40,
     fractionY: 0,
-    exclude: [{ x: 362, y: 0, width: 86, height: 40 }, { ...VERDICT, height: 40 }],
+    exclude: [{ x: 362, y: 0, width: 86, height: 40 }],
   }),
   // File as received, without its Size and Fonts embedded rows and the text-layer count.
   facts: {
@@ -56,9 +60,21 @@ const S_NV2_025 = {
   },
 };
 
-/** The design's partial extraction, as rows the worker would write: four live-text panels and two outlined ones. */
+// The design's markets the default plan ({EU}) holds, one per EU panel language. UK-GB (English) is outside the plan,
+// and the page leaves a market outside it out (J04.must.1).
+const DESIGN_MARKETS = ["EU-CZ", "EU-DE", "EU-FR", "EU-NL", "EU-PL"];
+const EMPTY_RULESET = "0000.00-empty";
+
+/**
+ * The design's partial extraction, then its check, as rows the worker writes: four live-text panels and two outlined
+ * ones, then one check per panel × market at the local stack's only ruleset, 0000.00-empty. Every node × domain there
+ * is not_encoded, so every check is Not assessed with a withheld finding per coverage row, carrying its gap_id
+ * (engine/core.py evaluate_check, engine/store.py PgCheckStore.write). Coverage is read from ref, never made up here.
+ */
 async function seedDesignRun(workspaceId: string, productId: string) {
   const service = admin().schema("app");
+  const nodes = await service.from("product_nodes").insert(DESIGN_MARKETS.map((node_id) => ({ workspace_id: workspaceId, product_id: productId, node_id })));
+  if (nodes.error) throw nodes.error;
   const sha = randomUUID().replace(/-/g, "").padEnd(64, "0");
   const av = await service
     .from("artwork_versions")
@@ -124,7 +140,91 @@ async function seedDesignRun(workspaceId: string, productId: string) {
     const inserted = await service.from("text_objects").insert(rows);
     if (inserted.error) throw inserted.error;
   }
+  await seedEmptyRulesetCheck(workspaceId, productId, av.data.id, sha, panels.data.map((p) => ({ id: p.id, language: design[p.panel_index][0] })));
   return av.data.id as string;
+}
+
+/** The check job's rows at 0000.00-empty, as PgCheckStore.write leaves them: checks, findings, then product_nodes. */
+async function seedEmptyRulesetCheck(
+  workspaceId: string,
+  productId: string,
+  artworkVersionId: string,
+  sha: string,
+  panels: { id: string; language: string }[],
+) {
+  const service = admin().schema("app");
+  const coverage = await admin()
+    .schema("ref")
+    .from("coverage_nodes")
+    .select("node_id, domain, state, gap_id")
+    .eq("ruleset_version", EMPTY_RULESET)
+    .in("node_id", DESIGN_MARKETS)
+    .order("node_id")
+    .order("domain");
+  if (coverage.error) throw coverage.error;
+  // The honest baseline: nothing is encoded, so nothing here can be Clear (non-negotiable 3).
+  expect(coverage.data.length).toBeGreaterThan(0);
+  for (const c of coverage.data) expect([c.state, c.gap_id ? "gap" : null]).toEqual(["not_encoded", "gap"]);
+  const job = await service
+    .from("jobs")
+    .insert({
+      workspace_id: workspaceId,
+      kind: "check",
+      status: "succeeded",
+      idempotency_key: `e2e:check:${artworkVersionId}`,
+      payload: { product_id: productId, artwork_version_id: artworkVersionId, ruleset_version: EMPTY_RULESET, node_ids: DESIGN_MARKETS },
+    })
+    .select("id")
+    .single();
+  if (job.error) throw job.error;
+  for (const node_id of DESIGN_MARKETS) {
+    const checks = await service
+      .from("checks")
+      .insert(
+        panels.map((p) => ({
+          workspace_id: workspaceId,
+          job_id: job.data.id,
+          product_id: productId,
+          node_id,
+          artwork_version_id: artworkVersionId,
+          panel_id: p.id,
+          language: p.language,
+          artwork_sha: sha,
+          ruleset_version: EMPTY_RULESET,
+          label_state: "not_assessed",
+        })),
+      )
+      .select("id, panel_id, language");
+    if (checks.error) throw checks.error;
+    const findings = checks.data.flatMap((check) =>
+      coverage.data
+        .filter((c) => c.node_id === node_id)
+        .map((c) => ({
+          workspace_id: workspaceId,
+          check_id: check.id,
+          product_id: productId,
+          node_id,
+          rule_key: null,
+          gap_id: c.gap_id,
+          kind: c.domain === "registration" ? "registration" : "label",
+          state: "not_assessed",
+          provenance: "not_assessed",
+          reason_code: "not_encoded",
+          message: `Not assessed (${c.domain}).`,
+          citation: null,
+          panel_id: check.panel_id,
+          language: check.language,
+        })),
+    );
+    const inserted = await service.from("check_findings").insert(findings);
+    if (inserted.error) throw inserted.error;
+  }
+  const updated = await service
+    .from("product_nodes")
+    .update({ label_state: "not_assessed", ruleset_version: EMPTY_RULESET, open_actions: 0, last_check_job_id: job.data.id })
+    .eq("product_id", productId)
+    .in("node_id", DESIGN_MARKETS);
+  if (updated.error) throw updated.error;
 }
 
 function fixture(name: string) {
@@ -148,6 +248,7 @@ function watch(page: Page) {
 }
 
 async function axe(page: Page) {
+  await settled(page);
   const results = await new AxeBuilder({ page }).analyze();
   const serious = results.violations.filter((v) => v.impact === "serious" || v.impact === "critical");
   expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
@@ -291,7 +392,7 @@ test.describe("upload and extract", () => {
     expect(errors).toEqual([]);
   });
 
-  test("S-NV2-025 matches its design baseline at 1600 px where T-303 has the data (waived parts on #41)", async ({ page, context, baseURL }) => {
+  test("S-NV2-025 matches its design baseline at 1600 px where T-303 and T-306 have the data (waived parts on #41)", async ({ page, context, baseURL }) => {
     const productId = await product(ws, "Salmon & Rice Adult Dry 12 kg");
     const artworkId = await seedDesignRun(ws, productId);
     await signIn(context, editor, baseURL!);
@@ -299,6 +400,13 @@ test.describe("upload and extract", () => {
     await page.goto(`/w/${ws}/products/${productId}/artwork/${artworkId}`);
     await expect(page.getByRole("heading", { level: 1, name: "Partial extraction" })).toBeVisible();
     await expect(page.locator("tr[data-panel]")).toHaveCount(6);
+    // Every panel is Not assessed at 0000.00-empty with its gaps' reason, never Clear; the outlined ones keep theirs.
+    for (const i of [0, 1, 2, 3, 4, 5]) {
+      const row = page.locator(`tr[data-panel="${i}"]`);
+      await expect(row).toHaveAttribute("data-panel-state", "not_assessed");
+      await expect(row).toHaveAttribute("data-reason-codes", i >= 4 ? "outlined_text not_encoded" : "not_encoded");
+      await expect(row.locator("td").last()).toContainText("Not assessed");
+    }
     await axe(page);
     await expectLikeBaseline(page, page.locator("[data-artwork-headline]"), "S-NV2-025", S_NV2_025.headline, maxDiff);
     await expectLikeBaseline(page, page.locator("[data-panel-table]"), "S-NV2-025", S_NV2_025.table, maxDiff);

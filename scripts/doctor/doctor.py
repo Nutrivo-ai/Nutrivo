@@ -9,7 +9,7 @@ REQUIRED = {
     "staging": ["supabase", "supabase-management", "function-secrets", "postgres", "supabase-grants", "bedrock",
                 "bedrock-profiles", "bedrock-retention", "anthropic", "ses", "stripe", "sentry", "langfuse", "posthog",
                 "vercel", "render", "app"],
-    "prod": ["supabase", "supabase-management", "function-secrets", "postgres", "supabase-grants", "bedrock",
+    "prod": ["supabase", "supabase-management", "pitr", "function-secrets", "postgres", "supabase-grants", "bedrock",
              "bedrock-profiles", "bedrock-retention", "anthropic", "ses", "stripe", "sentry", "langfuse", "posthog",
              "vercel", "render"],
 }
@@ -112,6 +112,20 @@ def c_supabase_management(env):
     region = json.loads(b).get("region")
     assert region == "eu-central-1", f"project region is {region}; decision D-02 says eu-central-1"
     return f"project in {region}"
+
+
+def c_pitr(env):
+    """T-1101, gate G7: point-in-time recovery is on (docs/18 Backups). Read-only; required for prod only, so a
+    release cannot pass its doctor step while prod has no PITR."""
+    need("SUPABASE_ACCESS_TOKEN", "SUPABASE_PROJECT_REF")
+    s, b = http("GET", f"https://api.supabase.com/v1/projects/{E('SUPABASE_PROJECT_REF')}/database/backups",
+                bearer(E("SUPABASE_ACCESS_TOKEN")))
+    assert s == 200, f"management API returned {s} for the project's backups"
+    body = json.loads(b)
+    assert body.get("pitr_enabled") is True, ("point-in-time recovery is off: turn on the PITR add-on "
+                                              "(docs/runbooks/restore-drill.md)")
+    assert body.get("walg_enabled") is True, "PITR is on but WAL archiving (walg_enabled) is off"
+    return "point-in-time recovery on"
 
 
 # What scripts/deploy/function-secrets.sh puts in each Supabase project before the Edge Functions deploy.
@@ -261,6 +275,10 @@ def c_ses(env):
     return f"{domain} verified" + ("" if acct.get("ProductionAccessEnabled") else ", SANDBOX: request production access")
 
 
+# The cheapest model, for a one-token probe of the dev key; the workflows run Opus on the same account.
+ANTHROPIC_PROBE_MODEL = "claude-haiku-5-5"
+
+
 def c_anthropic(env):
     if env in ("staging", "prod"):
         # D-11: no Anthropic API for customer data. Names only, never values.
@@ -269,9 +287,20 @@ def c_anthropic(env):
         assert not found, f"{', '.join(found)} set in {env}; the Anthropic API stays in dev (D-11)"
         return "not configured, as D-11 requires"
     need("ANTHROPIC_API_KEY")
-    s, _ = http("GET", "https://api.anthropic.com/v1/models", {"x-api-key": E("ANTHROPIC_API_KEY"), "anthropic-version": "2023-06-01"})
-    assert s == 200, f"models endpoint returned {s}"
-    return "key valid"
+    # A one-token message, not GET /v1/models: listing models succeeds with no credits left, while claude-review and
+    # claude-autopilot (which read this key from dev) then fail at once with "Credit balance is too low" (#284).
+    s, body = http("POST", "https://api.anthropic.com/v1/messages",
+                   {"x-api-key": E("ANTHROPIC_API_KEY"), "anthropic-version": "2023-06-01"},
+                   {"model": ANTHROPIC_PROBE_MODEL, "max_tokens": 1, "messages": [{"role": "user", "content": "ok"}]})
+    if s != 200:
+        try:
+            err = json.loads(body or b"{}").get("error") or {}
+        except ValueError:
+            err = {}
+        if err.get("type") == "billing_error" or "credit balance" in str(err.get("message", "")).lower():
+            raise AssertionError("the key's credit balance is too low (claude-review and claude-autopilot fail until it is topped up)")
+        raise AssertionError(f"messages endpoint returned {s} {err.get('type', '')}".rstrip())
+    return "key valid, credits available"
 
 
 def c_stripe(env):
@@ -448,7 +477,7 @@ def c_infisical_scope(env):
     return "; ".join(report)
 
 
-CHECKS = {"supabase": c_supabase, "supabase-management": c_supabase_management,
+CHECKS = {"supabase": c_supabase, "supabase-management": c_supabase_management, "pitr": c_pitr,
           "function-secrets": c_function_secrets, "postgres": c_postgres,
           "supabase-grants": c_supabase_grants, "bedrock": c_bedrock, "bedrock-profiles": c_bedrock_profiles,
           "bedrock-retention": c_bedrock_retention, "ses": c_ses, "anthropic": c_anthropic, "stripe": c_stripe,

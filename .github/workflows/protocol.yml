@@ -48,6 +48,13 @@ jobs:
       - run: python3 -m unittest discover -s scripts/env -p 'test_*.py'
       - run: python3 -m unittest discover -s scripts/doctor -p 'test_*.py'
       - run: python3 -m unittest discover -s scripts/deploy -p 'test_*.py'
+      - run: python3 -m unittest discover -s scripts/drill -p 'test_*.py'
+      # T-1106: every workflow, script, make target, Sentry monitor, doctor check, label and RPC a runbook names exists.
+      - run: python3 -m unittest discover -s scripts/runbooks -p 'test_*.py'
+      # T-1102: every scheduled job has a Sentry cron monitor; the synthetic check; alert routing against spec/nfr.yaml.
+      - run: uv run --no-project --with pyyaml python -m unittest discover -s scripts/monitors -p 'test_*.py'
+      - run: python3 -m unittest discover -s scripts/synthetic -p 'test_*.py'
+      - run: uv run --no-project --with pyyaml python -m unittest discover -s scripts/sentry -p 'test_*.py'
       # T-1105: every budget in spec/nfr.yaml has a test that names it; the budgets the repository holds are met.
       - run: uv run --no-project --with pyyaml python -m unittest discover -s scripts/load -p 'test_*.py'
       # The Stripe catalogue script (config/pricing.ts) against an in-memory Stripe: Node 22 strips the types.

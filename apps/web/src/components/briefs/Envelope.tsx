@@ -29,6 +29,7 @@ export function Envelope({ workspaceId, data }: { workspaceId: string; data: Non
   const silent = unexplained(view);
   return (
     <div data-envelope={data.id}>
+      {data.outsidePlan.length ? <OutsidePlan markets={data.outsidePlan} /> : null}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-[16px]">
         {CARDS.map((c) => {
           const inCard = view.markets.filter((m) => m.state === c.state).map((m) => marketLabel(m.nodeId));
@@ -183,5 +184,19 @@ export function Envelope({ workspaceId, data }: { workspaceId: string; data: Non
         </p>
       </div>
     </div>
+  );
+}
+
+/**
+ * J04.must.1: markets of the brief in a region the plan does not hold are named, and their envelope is not shown (the
+ * label report's wording). The alerts inbox still names any change that affects them.
+ */
+function OutsidePlan({ markets }: { markets: { nodeId: string; regionName: string }[] }) {
+  const regions = [...new Set(markets.map((m) => m.regionName))];
+  return (
+    <p data-outside-plan className="mt-0 mb-[14px] max-w-[948px] text-[12.5px] leading-[1.5] text-n700">
+      Not shown: {markets.map((m) => marketLabel(m.nodeId)).join(", ")}. Your plan does not include {regions.join(" or ")}, so
+      what these markets allow cannot be opened.
+    </p>
   );
 }
