@@ -29,7 +29,7 @@ delete (BE-13).
 
 **Envelopes (T-1002, E02).** `app.envelope_items` and `app.envelope_nodes` name their market and are read by product
 and market scope (`can_see_product` and `node_in_scope`). `app.envelopes.node_ids`, the product's markets, is readable
-with the product, as job payloads are (open decision DB-5 Q2, #8). An envelope belongs to its product's workspace. A market's
+with the product (only an editor whose market scope holds every one of them may request it, #274), as job payloads are (open decision DB-5 Q2, #8). An envelope belongs to its product's workspace. A market's
 `envelope_nodes` row seals it: no item is added for that market afterwards (P0021). Its `withheld` and `open_items`
 equal its items' counts (23514), and `clear` needs the market fully encoded with nothing withheld
 (`private.envelope_verdict_guard`, P0021).

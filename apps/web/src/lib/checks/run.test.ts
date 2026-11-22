@@ -46,7 +46,8 @@ describe("describeCheckJob", () => {
 
 describe("checkRefusal", () => {
   it.each([
-    ["42501", /role/],
+    ["42501", /role or market scope/],
+    ["22023", /no markets/],
     ["P0002", /no artwork/],
     ["P0003", /No ruleset/],
     [undefined, /not started/],
