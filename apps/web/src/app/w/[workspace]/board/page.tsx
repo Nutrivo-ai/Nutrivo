@@ -10,9 +10,10 @@ import type { Metadata } from "next";
 export const metadata: Metadata = { title: "Board · Nutrivo" };
 
 // S-NV2-006 Board (spec/screens.yaml; design: product/Nutrivo 2.0.dc.html, screen "board"). F01: products × markets
-// grouped by region, region cells from app.rollup_state; F04: the open findings across the portfolio (?view=findings).
-// Read under RLS. A read failure goes to the workspace error boundary, and loading.tsx covers the wait. S-MIS-003
-// (search, saved views) is F02, LATER; S-MOB-001 waits for a roll-up across a whole product in the database (#56 q4).
+// grouped by region, region cells from app.rollup_state (one app.board_rollup call); F04: the open findings across the
+// portfolio (?view=findings). Read under RLS. A read failure goes to the workspace error boundary, and loading.tsx
+// covers the wait. S-MIS-003 (search, saved views) is F02, LATER; S-MOB-001 is not built (its data is
+// app.board_rollup's product_state, #56 q4).
 export default async function Page({ params, searchParams }: PageProps<"/w/[workspace]/board">) {
   const { workspace } = await params;
   const filters = parseFilters(await searchParams);

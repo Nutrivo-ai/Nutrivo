@@ -1,8 +1,7 @@
 // S-NV2-006 Board (F01) and portfolio findings (F04): the reads, under the person's own session, so RLS decides what
 // any of them returns (a family- or market-scoped member sees only their products and markets). The board never
-// rolls a state up itself: region cells are app.rollup_state(product, region) (BE-15), called once per product ×
-// region the product is sold in. That is one call per pair, which the 300-recipe budget will want as one
-// set-returning function in the database (#56 question 5); until then the calls run a few at a time.
+// rolls a state up itself: region cells come from app.board_rollup(workspace) (BE-15), which answers
+// app.rollup_state(product, region) for every product × region on the board in one call (#56 Q5, incident issue 315).
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
@@ -42,7 +41,6 @@ function ok<T>(what: string, r: Result<T>): T {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const PAGE = 1000; // PostgREST's max_rows (supabase/config.toml)
 const BATCH = 60; // ids per `in` filter, so a URL stays short
-const ROLLUP_CONCURRENCY = 8;
 
 /** Every row of a query, a page at a time, up to `cap`. */
 async function paged<T>(what: string, query: (from: number, to: number) => PromiseLike<Result<T[]>>, cap = Infinity): Promise<T[]> {
@@ -57,20 +55,6 @@ async function paged<T>(what: string, query: (from: number, to: number) => Promi
 
 function batches<T>(xs: T[], size = BATCH): T[][] {
   return Array.from({ length: Math.ceil(xs.length / size) }, (_, i) => xs.slice(i * size, (i + 1) * size));
-}
-
-async function pool<T, R>(xs: T[], n: number, f: (x: T) => Promise<R>): Promise<R[]> {
-  const out: R[] = new Array(xs.length);
-  let next = 0;
-  await Promise.all(
-    Array.from({ length: Math.min(n, xs.length) }, async () => {
-      while (next < xs.length) {
-        const i = next++;
-        out[i] = await f(xs[i]);
-      }
-    }),
-  );
-  return out;
 }
 
 export type BoardPage =
@@ -121,21 +105,21 @@ async function readBase(supabase: Client, workspaceId: string): Promise<BaseRows
   return { products, nodes, jurisdictions, rulesets };
 }
 
-/** app.rollup_state for every product × region the product is sold in. */
-async function readRollups(supabase: Client, base: BaseRows): Promise<RollupRow[]> {
-  const live = new Set(base.products.map((p) => p.id));
-  const parent = new Map(base.jurisdictions.map((j) => [j.id, j.parent_id]));
-  const pairs = new Map<string, { product_id: string; region_id: string }>();
-  for (const n of base.nodes) {
-    const region = parent.get(n.node_id);
-    if (!live.has(n.product_id) || !region) continue;
-    pairs.set(`${n.product_id}|${region}`, { product_id: n.product_id, region_id: region });
-  }
+/**
+ * The region cells: app.board_rollup, which is app.rollup_state for every product × region the workspace's board shows,
+ * read in one paged call instead of one call per pair. It reads the same products as readBase (not discontinued, under
+ * RLS), so it runs alongside it.
+ */
+async function readRollups(supabase: Client, workspaceId: string): Promise<RollupRow[]> {
   const app = supabase.schema("app");
-  return pool([...pairs.values()], ROLLUP_CONCURRENCY, async (p) => ({
-    ...p,
-    state: ok("roll-up", await app.rpc("rollup_state", { p_product: p.product_id, p_node: p.region_id })),
-  }));
+  return paged<RollupRow>("roll-up", (from, to) =>
+    app
+      .rpc("board_rollup", { p_workspace: workspaceId })
+      .select("product_id, region_id, state")
+      .order("product_id")
+      .order("region_id")
+      .range(from, to),
+  );
 }
 
 /** F04: the open findings of each market's latest check job, with the coverage gaps they cite. */
@@ -192,19 +176,19 @@ async function readFindings(
 
 export async function readBoard(supabase: Client, workspaceId: string, filters: BoardFilters): Promise<BoardPage> {
   if (!UUID.test(workspaceId)) return { kind: "not-found" };
+  if (filters.view !== "findings") {
+    const [base, rollups] = await Promise.all([readBase(supabase, workspaceId), readRollups(supabase, workspaceId)]);
+    return { kind: "loaded", board: buildBoard({ workspaceId, ...base, filters, rollups }), findings: null };
+  }
+  // F04 (?view=findings) draws no region cells, so it reads no roll-up.
   const base = await readBase(supabase, workspaceId);
   const rows = { workspaceId, ...base, filters };
-  if (filters.view === "findings") {
-    const plan = await readPlan(supabase, workspaceId);
-    if (!plan) return { kind: "not-found" };
-    const read = await readFindings(supabase, base, plan);
-    const board = buildBoard({ ...rows, rollups: [] });
-    return {
-      kind: "loaded",
-      board,
-      findings: { ...buildFindings(rows, read.rows, read.gaps), capped: read.capped, outsidePlan: read.outsidePlan },
-    };
-  }
-  const rollups = await readRollups(supabase, base);
-  return { kind: "loaded", board: buildBoard({ ...rows, rollups }), findings: null };
+  const plan = await readPlan(supabase, workspaceId);
+  if (!plan) return { kind: "not-found" };
+  const read = await readFindings(supabase, base, plan);
+  return {
+    kind: "loaded",
+    board: buildBoard({ ...rows, rollups: [] }),
+    findings: { ...buildFindings(rows, read.rows, read.gaps), capped: read.capped, outsidePlan: read.outsidePlan },
+  };
 }

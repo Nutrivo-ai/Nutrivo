@@ -159,10 +159,12 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
 ### Built in T-506: the board (`apps/web/src/components/board`, `apps/web/src/lib/board`)
 - **S-NV2-006 Board** at `/w/[workspace]/board`: the stat tiles (answers unproven, stale against ruleset), the filter
   chips (links, so filters live in the URL), products × markets grouped by region with each region's roll-up cell from
-  `app.rollup_state`, the ruleset each row was judged against, and the legend. `?view=findings` lists the open findings
+  `app.rollup_state` (read for the whole board in one `app.board_rollup` call, incident #315), the ruleset each
+  row was judged against, and the legend. `?view=findings` lists the open findings
   across the portfolio (F04). Empty: "Add a product". An empty workspace keeps the screen title "Board".
-- **Not built** (#56): the "Obligations with a date" tile, S-MOB-001 at 390 px and the 300-recipe budget (both need a
-  set-returning roll-up in the database), S-MIS-003's search and saved views (F02, LATER).
+- **Not built** (#56): the "Obligations with a date" tile, S-MOB-001 at 390 px (its data is `app.board_rollup`'s
+  `product_state`), S-MIS-003's search and saved views (F02, LATER). The 300-recipe budget is met locally since
+  incident #315; the page is ~3.9 MB of HTML at 300 recipes (see the incident), which is what remains of its time.
 - **Tests** (`tests/e2e/board.spec.ts`): F01.main, F01.must.1, F04.main, the empty state, axe, the screen's links and
   no buttons, and the legend against the S-NV2-006 baseline.
 
