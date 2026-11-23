@@ -46,7 +46,10 @@ caller can set, so only the per-instance cap is a hard bound) are open on #81 (Q
 
 **Advisors (local, 14 Nov 2026).** `supabase db advisors --local --type security`: clean apart from INFO
 `rls_enabled_no_policy` on `app.model_calls`, which is deliberate (service role only, gate BE-02). Performance: INFO
-only (unindexed foreign keys, and unused indexes on a fresh database), left to a measured follow-up (#81 Q5).
+only (unindexed foreign keys, and unused indexes on a fresh database), left to a measured follow-up (#81 Q5). The
+first measured ones are indexed (migration 20261123162450): `formula_lines (product_id, position)`,
+`intended_claims (product_id, language)` and `families (workspace_id)`, which the brief RPCs and
+`live_billable_counts` filter on; the nightly load test's `rpc_p95_ms` found them.
 `supabase db lint`: warnings only (untyped literals assigned to jsonb, unused variables). The full-tree rls-reviewer
 pass found certificates issued and read outside the signer's scope and artwork uploads outside family scope, and review
 found certificates issued for a report other than the market's latest clear check; migration

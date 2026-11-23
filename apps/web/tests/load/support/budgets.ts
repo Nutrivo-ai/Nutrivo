@@ -119,6 +119,33 @@ export async function timed(service: "app" | "verify", fn: () => Promise<boolean
   return { ms, ok };
 }
 
+/** p95 per label, rounded to 0.1 ms: which calls make up a mixed sample's tail. */
+export function p95By(samples: { label: string; ms: number }[]): Record<string, number | null> {
+  const by: Record<string, number[]> = {};
+  for (const s of samples) (by[s.label] ??= []).push(s.ms);
+  return Object.fromEntries(Object.entries(by).map(([k, v]) => [k, roundTo(percentile(v, 95), 0.1)]));
+}
+
+/**
+ * The network floor between the load client and the Supabase API: sequential GETs of Auth's health endpoint, which
+ * touches no table. A latency sample is this floor plus the work under test, so the report shows how much of a p95 is
+ * distance (a runner in another region than the project) rather than the endpoint. Reported only, never judged.
+ */
+export async function networkFloor(base: string, anon: string, n = 20): Promise<{ p50_ms: number | null; p95_ms: number | null; n: number }> {
+  const xs: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const started = performance.now();
+    const res = await fetch(`${base.replace(/\/$/, "")}/auth/v1/health`, { headers: { apikey: anon } }).catch(() => null);
+    await res?.arrayBuffer().catch(() => null);
+    if (res?.ok) xs.push(performance.now() - started);
+  }
+  return { p50_ms: roundTo(percentile(xs, 50), 0.1), p95_ms: roundTo(percentile(xs, 95), 0.1), n: xs.length };
+}
+
+function roundTo(n: number | null, step: number) {
+  return n == null ? null : Math.round(n / step) / Math.round(1 / step);
+}
+
 /** Appends one request outcome to reports/load/requests.jsonl (read by the availability tests). */
 export function outcome(service: "app" | "verify", ok: boolean) {
   fs.mkdirSync(OUT, { recursive: true });
