@@ -30,9 +30,11 @@ that are all clear; otherwise it is Not assessed. The answer cites the deciding 
 no RPC, job or storage path takes a pack photo or compares one with approved artwork (open on #57).
 
 **How the board reads contract 3 (T-506).** S-NV2-006 shows each market cell as `app.product_nodes.display_state` and
-each region cell as `app.rollup_state(product, region)`, one call per product × region the product is sold in, as the
-database answers it; the web never rolls a state up. A product-wide roll-up (the phone board, S-MOB-001) and a batched
-one for the 300-recipe budget need a set-returning function in the database (open on #56).
+each region cell as `app.rollup_state(product, region)` for every product × region the product is sold in, as the
+database answers it; the web never rolls a state up. It reads them in one call, `app.board_rollup(p_workspace)`
+(#56 Q4/Q5, incident #315): security invoker, so the viewer's RLS decides the products and markets rolled up; one
+row per product × region with `state` (what `rollup_state` answers for that pair) and `product_state` (the product's
+worst state across its regions, for S-MOB-001), in the order blocked > action > not_assessed > clear (D-06).
 
 ## RPCs (writes go through these; more are added per milestone in the same pattern)
 | Function | Workflow | Notes |
@@ -55,7 +57,7 @@ one for the 300-recipe budget need a set-returning function in the database (ope
 | `app.record_registration(p_product, p_node, p_number, p_registered_on, p_expires_at, p_evidence_doc, p_obligation)` | G03, D06 (T-504) | an editor of the product with the market in scope (42501 otherwise); the product must be sold in that market (P0002); a number, a registration date, an expiry (if any) on or after it, an evidence document from the same workspace and an obligation of that market (22023 otherwise). Inserts `app.registrations` (a correction is a new row; the latest wins), recomputes `product_nodes.registration_state` through `private.refresh_registration_state` in the same transaction, audited `registration.recorded` with the state before and after. Returns the registration id. Records what the customer tells us; never submits to an authority (G02.must.1) |
 | `app.request_report(p_check, p_request_id)` | I01 (T-408) | the producer of the `report` job. An active member with an editor-class role (admin, portfolio_manager, editor; external included) who sees the check's product (`private.can_see_product`) and market (`private.node_in_scope`); anyone else, viewers included, and an unknown check are 42501 (viewers pending on #188). One job per check, key `report:<check_id>`: a repeat request returns that job whatever its status (a failed job included, pending on #188), queues nothing and audits nothing. A new job carries `{check_id}` and the `request_id` when it is a plain token, and is audited `report.requested` with the check's ruleset version. Returns the job id; the web reads `progress.ref` and `path` from it |
 | `app.issue_certificate(p_report, p_node)` | I03 (after launch) | the product and node inside the signer's scope (else P0002 / P0291), grant (P0291), the report names this market (22023), two-factor (P0292), the report cites the market's latest check, on the same artwork_sha and ruleset_version (P0294), no Not assessed items and every cited check for the market clear with no open finding, and the market displaying Clear (P0293, T-1103); hash chain. Certificates are read with product and market scope |
-| `app.rollup_state`, `app.affected_objects`, `app.live_billable_counts` | F01, J03, M01 | read functions |
+| `app.rollup_state`, `app.board_rollup`, `app.affected_objects`, `app.live_billable_counts` | F01, J03, M01 | read functions |
 | `app.change_member(p_membership, p_role, p_is_external, p_scope_family_ids, p_scope_node_ids, p_access_ends_at)` | A05 | the whole editable state (null scope = all, null end = none); seat check only when it starts using a seat (P0033); last admin (P0043); becoming external revokes signing grants; never grants any |
 | `app.remove_member(p_membership, p_reason)` | A06 | ends the membership, revokes signing grants, enqueues `session_revoke`; last admin (P0043); idempotent |
 | `app.revoke_invitation(p_invitation)` | A03 | cancels the queued invitation email; accepted ones refused (P0040); idempotent |
