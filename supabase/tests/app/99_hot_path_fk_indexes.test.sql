@@ -1,4 +1,4 @@
--- Incident (nightly load, performance.rpc_p95_ms) · The foreign keys the busiest RPCs filter on are indexed (migration
+-- Incident #314 (nightly load, performance.rpc_p95_ms) · The foreign keys the busiest RPCs filter on are indexed (migration
 -- 20261123162450, #81 Q5), so app.set_formula_lines, app.set_intended_claims and app.live_billable_counts cost what the
 -- caller's own rows cost, not a scan of every workspace's. With many other workspaces' rows present, the per-product
 -- and per-workspace lookups those RPCs make use the indexes. Synthetic rows only, rolled back.
