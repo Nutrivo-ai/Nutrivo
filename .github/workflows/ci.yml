@@ -43,7 +43,7 @@ jobs:
           for f in $(find supabase/tests -name '*.sql' | sort); do psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -Atq -f "$f"; done > reports/database.tap
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
-        with: { name: reports-database, path: reports/ }
+        with: { name: "reports-database-attempt-${{ github.run_attempt }}", path: reports/ }
 
   # The worker tests on the local stack (tests/pgtest.py) run against the database, with its migrations and pgmq, and
   # Mailpit. NUTRIVO_REQUIRE_DB=1 makes a test that would skip for want of a local service ("no local ...") fail
@@ -66,7 +66,7 @@ jobs:
       - run: cd worker && uv run ruff check . && mkdir -p ../reports && uv run pytest -q -rs --junitxml=../reports/worker.xml
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
-        with: { name: reports-worker, path: reports/ }
+        with: { name: "reports-worker-attempt-${{ github.run_attempt }}", path: reports/ }
 
   web:
     runs-on: ubuntu-24.04
@@ -89,7 +89,7 @@ jobs:
         run: pnpm --dir apps/web build
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && steps.app.outputs.ready == 'true'
-        with: { name: reports-web, path: reports/ }
+        with: { name: "reports-web-attempt-${{ github.run_attempt }}", path: reports/ }
 
   e2e:
     needs: [database, worker, web]
@@ -125,7 +125,7 @@ jobs:
         run: bash scripts/ci/supabase-start.sh start -x studio,logflare,vector,supavisor,imgproxy && make e2e-ci
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
-        with: { name: reports-e2e, path: reports/ }
+        with: { name: "reports-e2e-attempt-${{ github.run_attempt }}", path: reports/ }
       # #279: a failed or retried test's error context (the page as it was) and trace, so a flake can be read from the
       # run instead of guessed at. Always: a test that fails and then passes on its retry leaves the job green, and its
       # first attempt's trace is the evidence. Local-stack data only: random test identities and the CLI's local keys.
@@ -181,8 +181,11 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with: { fetch-depth: 0 }   # the base commit, whose baseline the ratchet is held to
+      # Each job uploads reports-<job>-attempt-<n>. A re-run of a failed job adds a new attempt beside the old one,
+      # so only each job's latest attempt is read: a re-run's result replaces the failed one.
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with: { pattern: reports-*, path: reports, merge-multiple: true }
+        with: { pattern: reports-*, path: report-attempts }
+      - run: python3 scripts/conformance/latest_attempt.py report-attempts reports
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
       # A PR or merge group is held to the base's baseline as well as its own, so it cannot shrink it. On main, none.
       - env:
