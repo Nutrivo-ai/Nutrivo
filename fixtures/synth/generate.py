@@ -171,10 +171,10 @@ def build(spec: dict, m: Metrics, out: Path):
                 if p["index"] in spec["outlined_panels"]:
                     outline(part, td / f'o{p["index"]}.pdf'); part = td / f'o{p["index"]}.pdf'
                 parts.append(part)
-            base = PdfReader(str(parts[0])).pages[0]
+            # Attach the base page to the writer before merging: pypdf 7 refuses to merge onto a reader's page.
+            w = PdfWriter(); base = w.add_page(PdfReader(str(parts[0])).pages[0])
             for part in parts[1:]:
                 base.merge_page(PdfReader(str(part)).pages[0])
-            w = PdfWriter(); w.add_page(base)
             with open(pdf, "wb") as fh: w.write(fh)
         else:
             clean = td / "clean.pdf"
