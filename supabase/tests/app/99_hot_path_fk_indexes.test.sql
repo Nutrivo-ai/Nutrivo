@@ -53,8 +53,14 @@ select ok(pg_temp.plan_of(format('delete from app.intended_claims c where c.prod
 select ok(pg_temp.plan_of(format('select count(*) from app.families f where f.workspace_id = %L',
                                  (select id from bulk_ws limit 1))) ~ 'families_workspace',
           'counting one workspace''s recipes uses families_workspace');
-select isnt(private.formula_digest((select id from bulk_pr limit 1)), '-',
-          'formula_digest still digests the product''s own lines');
+-- The digest read through the index equals one computed from a whole-table scan of the same lines.
+set local enable_indexscan = off;
+set local enable_bitmapscan = off;
+create temp table digest_scan as select private.formula_digest((select id from bulk_pr limit 1)) as d;
+reset enable_indexscan;
+reset enable_bitmapscan;
+select is(private.formula_digest((select id from bulk_pr limit 1)), (select d from digest_scan),
+          'formula_digest through the index equals the digest from a full scan of the product''s lines');
 
 select * from finish();
 rollback;
