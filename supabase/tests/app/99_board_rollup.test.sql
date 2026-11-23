@@ -4,16 +4,17 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(27);
+select plan(30);
 set local client_min_messages = warning;
 
--- ─── A: Ed (editor, unrestricted), Fay (editor scoped to family A2), Sid (viewer scoped to EU-DE).
+-- ─── A: Ed (editor, unrestricted), Fay (editor scoped to family A2), Sid (viewer scoped to EU-DE), Rae (viewer
+-- scoped to the region EU).
 -- B: Bo (admin). Otto: signed in, no membership anywhere. Ned: A's membership ended. Xia: A's access expired. ──────────────────────────────────────────────────────
 insert into auth.users (id, email) values
   ('00000000-0000-4000-8311-0000000000e1','ed@a.test'), ('00000000-0000-4000-8311-0000000000e2','fay@a.test'),
   ('00000000-0000-4000-8311-0000000000e3','sid@a.test'), ('00000000-0000-4000-8311-0000000000b1','bo@b.test'),
   ('00000000-0000-4000-8311-0000000000c1','otto@c.test'), ('00000000-0000-4000-8311-0000000000d1','ned@a.test'),
-  ('00000000-0000-4000-8311-0000000000d2','xia@a.test');
+  ('00000000-0000-4000-8311-0000000000d2','xia@a.test'), ('00000000-0000-4000-8311-0000000000e4','rae@a.test');
 insert into app.people (id, user_id, display_name, email)
 select ('10000000' || substr(u.id::text, 9))::uuid, u.id, split_part(u.email, '@', 1), u.email
 from auth.users u where u.id::text like '00000000-0000-4000-8311-%';
@@ -27,6 +28,7 @@ insert into app.memberships (workspace_id, person_id, role, scope_family_ids, sc
   ('20000000-0000-4000-8311-00000000000a','10000000-0000-4000-8311-0000000000e1','editor',null,null),
   ('20000000-0000-4000-8311-00000000000a','10000000-0000-4000-8311-0000000000e2','editor','{30000000-0000-4000-8311-0000000000a2}',null),
   ('20000000-0000-4000-8311-00000000000a','10000000-0000-4000-8311-0000000000e3','viewer',null,'{EU-DE}'),
+  ('20000000-0000-4000-8311-00000000000a','10000000-0000-4000-8311-0000000000e4','viewer',null,'{EU}'),
   ('20000000-0000-4000-8311-00000000000b','10000000-0000-4000-8311-0000000000b1','admin',null,null);
 insert into app.memberships (workspace_id, person_id, role, ended_at, access_ends_at) values
   ('20000000-0000-4000-8311-00000000000a','10000000-0000-4000-8311-0000000000d1','editor', now() - interval '1 day', null),
@@ -34,7 +36,8 @@ insert into app.memberships (workspace_id, person_id, role, ended_at, access_end
 
 -- Products. P1: EU (DE action, FR clear) and US (TX not registered, FED clear): the Texas case. P2: EU all clear.
 -- P3 (family A2): EU-DE clear label with unknown registration, UK-GB clear. P4: discontinued. P5: no markets.
--- P6: sold at the region node EU itself (action) and in EU-AT (clear). Q (workspace B): EU-DE clear.
+-- P6: sold at the region node EU itself (action) and in EU-AT (clear). P7: EU-DE clear, EU-FR not registered.
+-- Q (workspace B): EU-DE clear.
 insert into app.products (id, workspace_id, family_id, name, stage, species, life_stage, format, discontinued_at)
 select v.id::uuid, v.ws::uuid, v.fam::uuid, v.name, v.stage, v.species, v.life, v.format,
        case when v.stage = 'discontinued' then now() end
@@ -45,6 +48,7 @@ from (values
   ('40000000-0000-4000-8311-0000000000a4','20000000-0000-4000-8311-00000000000a','30000000-0000-4000-8311-00000000000a','P4','discontinued','dog','adult','dry'),
   ('40000000-0000-4000-8311-0000000000a5','20000000-0000-4000-8311-00000000000a','30000000-0000-4000-8311-00000000000a','P5','active','dog','adult','dry'),
   ('40000000-0000-4000-8311-0000000000a6','20000000-0000-4000-8311-00000000000a','30000000-0000-4000-8311-00000000000a','P6','active','dog','adult','dry'),
+  ('40000000-0000-4000-8311-0000000000a7','20000000-0000-4000-8311-00000000000a','30000000-0000-4000-8311-00000000000a','P7','active','dog','adult','dry'),
   ('40000000-0000-4000-8311-0000000000b1','20000000-0000-4000-8311-00000000000b','30000000-0000-4000-8311-00000000000b','Q','active','dog','adult','dry')
 ) v(id, ws, fam, name, stage, species, life, format);
 
@@ -69,6 +73,8 @@ select p::uuid, n, w::uuid, l, r, 'TEST-INC-BOARD' from (values
   ('40000000-0000-4000-8311-0000000000a4','EU-DE','20000000-0000-4000-8311-00000000000a','action','not_required'),
   ('40000000-0000-4000-8311-0000000000a6','EU','20000000-0000-4000-8311-00000000000a','action','not_required'),
   ('40000000-0000-4000-8311-0000000000a6','EU-AT','20000000-0000-4000-8311-00000000000a','clear','not_required'),
+  ('40000000-0000-4000-8311-0000000000a7','EU-DE','20000000-0000-4000-8311-00000000000a','clear','not_required'),
+  ('40000000-0000-4000-8311-0000000000a7','EU-FR','20000000-0000-4000-8311-00000000000a','clear','not_registered'),
   ('40000000-0000-4000-8311-0000000000b1','EU-DE','20000000-0000-4000-8311-00000000000b','clear','not_required')
 ) v(p, n, w, l, r);
 
@@ -108,7 +114,8 @@ select pg_temp.as_user('e1');
 set local role authenticated;
 select results_eq($$select * from pg_temp.board('20000000-0000-4000-8311-00000000000a')$$,
   $$values ('a1:EU:action:blocked'), ('a1:US:blocked:blocked'), ('a2:EU:clear:clear'),
-           ('a3:EU:not_assessed:not_assessed'), ('a3:UK:clear:not_assessed'), ('a6:EU:action:action')$$,
+           ('a3:EU:not_assessed:not_assessed'), ('a3:UK:clear:not_assessed'), ('a6:EU:action:action'),
+           ('a7:EU:blocked:blocked')$$,
   '[F01.must.1] board_rollup: each region cell and each product''s worst state, in the order blocked > action > not_assessed > clear');
 select is(pg_temp.disagreements('20000000-0000-4000-8311-00000000000a'), 0::bigint,
           '[F01.must.1] board_rollup answers exactly what app.rollup_state answers for every pair (unrestricted member)');
@@ -162,10 +169,24 @@ reset role;
 select pg_temp.as_user('e3');
 set local role authenticated;
 select results_eq($$select * from pg_temp.board('20000000-0000-4000-8311-00000000000a')$$,
-  $$values ('a1:EU:action:action'), ('a2:EU:clear:clear'), ('a3:EU:not_assessed:not_assessed')$$,
+  $$values ('a1:EU:action:action'), ('a2:EU:clear:clear'), ('a3:EU:not_assessed:not_assessed'), ('a7:EU:clear:clear')$$,
   '[F01.must.1] a market-scoped member rolls up only the markets in scope (no US, UK or region-node rows)');
 select is(pg_temp.disagreements('20000000-0000-4000-8311-00000000000a'), 0::bigint,
           '[F01.must.1] board_rollup agrees with app.rollup_state for a market-scoped member');
+select is((select state from app.board_rollup('20000000-0000-4000-8311-00000000000a')
+           where product_id = '40000000-0000-4000-8311-0000000000a7'), 'clear',
+          '[F01.must.1] a market-scoped member''s region cell is not worsened by a market outside the scope (P7: FR blocked, DE clear)');
+reset role;
+
+-- ─── Rae (scope: the region EU) rolls up every EU market and the region node itself, nothing outside EU ────────
+select pg_temp.as_user('e4');
+set local role authenticated;
+select results_eq($$select * from pg_temp.board('20000000-0000-4000-8311-00000000000a')$$,
+  $$values ('a1:EU:action:action'), ('a2:EU:clear:clear'), ('a3:EU:not_assessed:not_assessed'),
+           ('a6:EU:action:action'), ('a7:EU:blocked:blocked')$$,
+  '[F01.must.1] a region-scoped member rolls up all of the region''s markets and its own node, and no other region');
+select is(pg_temp.disagreements('20000000-0000-4000-8311-00000000000a'), 0::bigint,
+          '[F01.must.1] board_rollup agrees with app.rollup_state for a region-scoped member');
 reset role;
 
 -- ─── anon cannot call it at all ─────────────────────────────────────────────────────────────────────────────────
@@ -174,7 +195,7 @@ select throws_ok($$select * from app.board_rollup('20000000-0000-4000-8311-00000
                  '[F01.must.1] anon cannot execute board_rollup');
 reset role;
 
--- ─── Product state is the worst of the product's region cells ──────────────────────────────────────────────────
+-- ─── Product state is the worst of the product's region cells (read as the table owner, without RLS) ──────────────────────────────────────────────────
 select is_empty($$select 1 from app.board_rollup('20000000-0000-4000-8311-00000000000a') b
                   group by b.product_id having count(distinct b.product_state) <> 1$$,
                 '[F01.must.1] each product carries one worst state across its rows');
@@ -187,11 +208,11 @@ select is((select distinct product_state from app.board_rollup('20000000-0000-40
 select is((select distinct product_state from app.board_rollup('20000000-0000-4000-8311-00000000000a')
            where product_id = '40000000-0000-4000-8311-0000000000a2'), 'clear',
           '[F01.must.1] a product is Clear overall only when every region is Clear');
-select is((select count(*) from app.board_rollup('20000000-0000-4000-8311-00000000000a')), 6::bigint,
-          '[F01.must.1] as the table owner (no RLS), A''s board has six region cells');
+select is((select count(*) from app.board_rollup('20000000-0000-4000-8311-00000000000a')), 7::bigint,
+          '[F01.must.1] as the table owner (no RLS), A''s board has seven region cells');
 
 -- ─── private.can_see_product, rewritten in this migration, answers as the composition it replaces ───────────────
-select is((select sum(pg_temp.helper_disagreements(u)) from unnest(array['e1','e2','e3','b1','c1','d1','d2']) u),
+select is((select sum(pg_temp.helper_disagreements(u)) from unnest(array['e1','e2','e3','e4','b1','c1','d1','d2']) u),
           0::numeric,
           '[F01.must.1] can_see_product equals family_in_scope(product''s workspace, family) for every person and product');
 select pg_temp.as_user('d1');
