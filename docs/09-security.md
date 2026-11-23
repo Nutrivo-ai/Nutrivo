@@ -16,6 +16,13 @@ owner) only: clients reach them through the security definer RPCs (#179 X2). Eve
 `search_path = ''` (#179 DB-17). The doctor's read-only `supabase-grants` check proves this on staging and production
 (docs/16).
 
+**Helper cost (incident #315).** A read policy calls its helpers once per row, so a helper must not call another
+security definer SQL function inside its query: neither can be inlined, and the inner one is set up and planned again
+on every outer call (~130 µs a row). `private.can_see_product` writes `family_in_scope`'s predicate out for that reason,
+and pgTAP (`supabase/tests/app/99_board_rollup.test.sql`) holds it equal to the composition for every person and
+product. A screen that needs a value per row (a roll-up, a count) reads it from one set-returning function rather than
+one RPC per row.
+
 **Public verification (I04, T-406).** The `verify` Edge Function holds the anon key only, never the service role, so
 it can execute `verify_reference` and nothing else. It answers status, issue date, ruleset version and whether Not
 assessed items existed; a missing and a malformed reference get the identical `unknown` answer, so a caller learns
