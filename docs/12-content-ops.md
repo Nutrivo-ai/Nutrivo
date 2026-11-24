@@ -138,11 +138,11 @@ target × source. It never writes a rule.
   extracted only when the stored text has every unit it names: if any is missing (for example `Annex` of an act whose
   annexes are numbered), the whole target is withheld as `units_not_in_source`, with the missing units listed, and
   no model is called.
-- **First key (K01).** `extraction_primary.v2` runs on the extraction model class. v2 (incident #326) tells the
+- **First key (K01).** `extraction_primary.v3` runs on the extraction model class. v3 (incident #326) tells the
   model that printed quotation marks are characters of the value, never a straight `"` (under structured output
-  that ends the string and cuts the answer short); that each value is one unbroken run of the excerpt, list markers
-  inside it kept, never stitched from separate items; and that a band stated in two units (`1 000 g or 100 cl`) is
-  one band per unit, each with its single printed unit. The verbatim checks below are unchanged. The answer is the shape's params,
+  that ends the string and cuts the answer short); and that each value is one unbroken run of the excerpt, list
+  markers inside it kept, never stitched from separate items. It keeps v2's bands (#325): one per unit, each with
+  its single printed unit and inclusive ends. The verbatim checks below are unchanged. The answer is the shape's params,
   the article reference to the paragraph and a verbatim excerpt. The excerpt must be printed in the units, up to
   whitespace. Every field the schema calls verbatim (`content/schemas.py`) must be printed inside the excerpt. Every
   number (a threshold's value, a band's heights and quantities) must be one of the numbers printed in its own
@@ -150,11 +150,13 @@ target × source. It never writes a rule.
   returns `'` for `‘ ’` unreliably), the excerpt and those params are taken from the stored text (`articles.locate`),
   so the candidate holds the printed text, never the model's copy; `printed_fields` lists them and the model's own
   output stays in `app.model_calls`. If any check fails, the result is withheld as `excerpt_not_in_source` and
-  nothing is written. This
+  nothing is written. A character_height band has one unit and states each end as included or not
+  (`from_inclusive`, `to_inclusive`, read from the wording); a line bounded in two units is extracted as one band per
+  unit (#325, prompts v2). This
   is also what keeps a term from being translated. The comparison operator is worded differently in every language,
   so it is not checked here: the second key compares it, and thresholds always go to a person. When the
   model abstains, the result is withheld as `not_found`.
-- **Second key (K02).** `extraction_secondary.v2` runs on the judgement model class with its own prompt and the same
+- **Second key (K02).** `extraction_secondary.v3` runs on the judgement model class with its own prompt and the same
   inputs. It never sees the first answer. `agree` is computed field by field: `found`, the article reference and
   every param, with case, whitespace and list order ignored. Excerpts are not compared. The second key's answer gets
   the same printed-text recovery as the first (quotation-mark and dash style only) before it is checked and compared. The per-field map is in

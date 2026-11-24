@@ -86,8 +86,13 @@ while the questions on #45 are open; each is the conservative option.
   - **character_height** reads `height_definition`, `bands` and `detect.term_keys`. `detect.term_keys` are the
     register terms whose printed text is the target, in the panel's language.
     - The rule is judged on panels in one of the node's languages, and every target text object is measured.
-    - The band is the one whose range `[quantity_from, quantity_to)` holds the product's quantity, in the same unit.
-      A single band open at both ends needs no quantity.
+    - The band is the one whose range holds the product's quantity, among the bands in the quantity's own unit.
+      A range is `[quantity_from, quantity_to)` unless the band says otherwise: `from_inclusive` (default true) and
+      `to_inclusive` (default false) state each end, as the official text words it (#325). A null end is open.
+    - A band has one `quantity_unit`. A text that bounds each band in two units (a mass or a volume) is stored as
+      one band per unit, so a product declared in volume is judged on the volume bands. A unit with no band is
+      never converted: the rule is withheld `data_missing`. So is a quantity that falls in no band or in two.
+    - A single band open at both ends needs no quantity.
     - It fails when a target is below the band minimum. The finding carries `text_object_id`, `bbox_mm`,
       `measured_mm` (the lowest), `required_mm` and `height_definition`.
     - A `no_true_scale` or `outlined_text` panel is withheld with that code, by step 4.
@@ -95,7 +100,7 @@ while the questions on #45 are open; each is the conservative option.
     - `figure_height` has no stored measurement (`app.text_objects` holds x-height and cap height only), so it is
       withheld `data_missing`; it is never taken from cap height.
     - Each of these is withheld `data_missing`, never guessed: a K02 rule without `height_definition` or
-      `detect`, a target not printed, a missing measurement, a missing quantity, a unit that differs, or no single
+      `detect`, a target not printed, a missing measurement, a missing quantity, a unit no band is in, or no single
       band.
   - **threshold** reads `quantity`, `operator`, `value`, `unit` and `detect.term_keys` (what the consequence prints
     as).

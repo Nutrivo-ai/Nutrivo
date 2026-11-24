@@ -130,10 +130,10 @@ def test_K01_main_first_extraction_from_the_stored_text_writes_a_candidate_with_
     assert cand["article"] == "Art. 15" and cand["source_ref"] == "02009R0767-20181226 en Art. 15(d)"
     first = cand["first_value"]
     assert first["extraction"]["excerpt"] == "the batch or lot reference number;" and first["verified"] is True
-    assert first["source_sha256"] == SHA and first["prompt_version"] == "extraction_primary.v2"
+    assert first["source_sha256"] == SHA and first["prompt_version"] == "extraction_primary.v3"
     assert first["model_id"] == "eu.extract" and first["units"] == ["Art. 15"]
     # One app.model_calls row per call, with the prompt file that produced it.
-    assert [c["prompt_version"] for c in store.model_calls] == ["extraction_primary.v2", "extraction_secondary.v2"]
+    assert [c["prompt_version"] for c in store.model_calls] == ["extraction_primary.v3", "extraction_secondary.v3"]
     assert store.locks == [("src-en", BATCH.key)]
 
 
@@ -189,7 +189,7 @@ def test_K02_main_second_extraction_is_independent_and_agreement_is_computed_fie
     assert cand["article"] == "Annex I" and cand["agree"] is False
     fields = cand["second_value"]["fields"]
     assert fields["params.value"] is False and fields["params.operator"] is True and fields["article_ref"] is True
-    assert cand["second_value"]["prompt_version"] == "extraction_secondary.v2"
+    assert cand["second_value"]["prompt_version"] == "extraction_secondary.v3"
     # An abstaining second key disagrees on `found` and goes to a person.
     m2, _ = models(tmp_path, {("eu.extract", BATCH.key): answer(), ("eu.judge", BATCH.key): answer(found=False)})
     (res,) = extract.run([BATCH], Reader(), Store(), m2)
@@ -352,3 +352,21 @@ def test_as_printed_replaces_only_quote_and_dash_style_inside_the_printed_excerp
     assert out["params"]["conditions"] == ["the name of each feed material"]
     untouched = answer(excerpt="nowhere in the text 'x'")
     assert extract.as_printed("mandatory_particular", untouched, text) == (untouched, [])
+
+
+def test_incident_325_a_height_band_bounded_in_g_and_cl_is_one_band_per_unit_with_its_inclusive_ends():
+    """#325: the schema carries each band's inclusive ends and one unit per band; a line bounded in two units is two
+    bands with the same printed line, each verified against it. Synthetic text, not regulatory content."""
+    from nutrivo_worker.content.schemas import CharacterHeightExtraction
+    text = "Test figures: 4 mm if from 900 g or 90 cl inclusive down to but not including 150 g or 15 cl."
+    band = {"text": text, "from_inclusive": False, "to_inclusive": True, "min_height_mm": 4}
+    out = answer(ref="Annex I point 3.1", excerpt=text, params={"target": "Test figures", "bands": [
+        {**band, "quantity_from": 150, "quantity_to": 900, "quantity_unit": "g"},
+        {**band, "quantity_from": 15, "quantity_to": 90, "quantity_unit": "cl"}]})
+    CharacterHeightExtraction.model_validate(out)
+    assert extract.unverified_fields("character_height", out, text) == []
+    with pytest.raises(ValueError):           # the ends are required, never left to a convention
+        CharacterHeightExtraction.model_validate({**out, "params": {"target": "Test figures", "bands": [
+            {k: v for k, v in out["params"]["bands"][0].items() if k != "to_inclusive"}]}})
+    wrong = {**out, "params": {**out["params"], "bands": [{**out["params"]["bands"][1], "quantity_unit": "ml"}]}}
+    assert extract.unverified_fields("character_height", wrong, text) == ["params.bands.quantity_unit"]
