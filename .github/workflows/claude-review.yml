@@ -72,5 +72,8 @@ jobs:
             CHANGES-NEEDED)
               gh pr review "$PR" --repo "$REPO" --request-changes --body "Changes requested by the Claude review of $REVIEWED_SHA (D-23)." ;;
             *)
-              echo "::warning::no APPROVE-READY or CHANGES-NEEDED line in a claude[bot] comment from this run; no review submitted" ;;
+              # No verdict is a failed review, never a pass: a green job here would leave an earlier CHANGES_REQUESTED
+              # standing unseen (#333). Re-run the job, or push, to review again.
+              echo "::error::no APPROVE-READY or CHANGES-NEEDED line in a claude[bot] comment from this run; no review submitted (#333)"
+              exit 1 ;;
           esac

@@ -57,7 +57,8 @@ Any task may touch docs/. Anything else outside the task's lanes fails the proto
 8. **Review.** The Claude reviewer comments against the spec, and the `claude-review` workflow approves on
    APPROVE-READY or requests changes on CHANGES-NEEDED (D-23). The `main` ruleset requires no approval (D-24); a
    founder can still approve, or dismiss a review, and a Claude Code session approves pull requests it did not author
-   or push last.
+   or push last. A run that ends with no verdict fails the `review` check rather than passing, so an earlier
+   CHANGES_REQUESTED never stands unseen (#333); push or re-run the job to review again.
 9. **Merge.** Through the merge queue, or only when up to date with main, so the PR is tested on the latest main and
    main stays green. A Claude Code session updates the branch and squash-merges once every required check is green,
    every thread is resolved and no review requests changes (D-24). It does so with `make pr-check PR=N`,
