@@ -5,8 +5,10 @@ writes (denied in .claude/settings.json).
   make pr-update PR=123   bring PR 123 up to date with its base (GitHub's "Update branch": a merge, never a rebase)
   make pr-merge  PR=123   squash-merge PR 123, only if every rule below holds on its current head
   make pr-comment PR=123 BODY=file.md   comment on PR or issue 123 (the body from a file, never a secret)
-  make pr-open TITLE="…" BODY=file.md   open a PR from the current branch into main; the body must name its task
-                                        ('Task: T-123' and 'Closes #N', or 'Incident: #N', or 'Task: none')
+  make pr-open TITLE='…' BODY=file.md   open a PR from the current branch into main; the body must name its task
+                                        ('Task: T-123' and 'Closes #N', or 'Incident: #N', or 'Task: none').
+                                        The title is sent exactly as given (quotes, $ and backticks included);
+                                        PR_DRY_RUN=1 prints the request as JSON instead of sending it.
 
 A PR may merge only when (CLAUDE.md 11, docs/15 step 9, D-24): it is open and not a draft; its head is up to date with
 the base; every required check of the main ruleset has succeeded on the head; no reviewer's latest review requests
@@ -46,6 +48,9 @@ def open_pr(title, body):
     if not re.search(r"Task:\s*(T-\d+|none)\b|Incident:\s*#\d+", text):
         sys.exit("the body must name its task: 'Task: T-123' + 'Closes #N', 'Incident: #N', or 'Task: none' (docs/15)")
     head = sh("git", "rev-parse", "--abbrev-ref", "HEAD").strip()
+    if os.environ.get("PR_DRY_RUN"):
+        print(json.dumps({"title": title, "head": head, "base": "main", "body": text}, ensure_ascii=False))
+        return
     if head in ("main", "HEAD"):
         sys.exit("open a PR from a branch, not from main")
     out = write("POST", "pulls", f"title={title}", f"head={head}", "base=main", files=[("body", body)])
