@@ -130,10 +130,10 @@ def test_K01_main_first_extraction_from_the_stored_text_writes_a_candidate_with_
     assert cand["article"] == "Art. 15" and cand["source_ref"] == "02009R0767-20181226 en Art. 15(d)"
     first = cand["first_value"]
     assert first["extraction"]["excerpt"] == "the batch or lot reference number;" and first["verified"] is True
-    assert first["source_sha256"] == SHA and first["prompt_version"] == "extraction_primary.v1"
+    assert first["source_sha256"] == SHA and first["prompt_version"] == "extraction_primary.v2"
     assert first["model_id"] == "eu.extract" and first["units"] == ["Art. 15"]
     # One app.model_calls row per call, with the prompt file that produced it.
-    assert [c["prompt_version"] for c in store.model_calls] == ["extraction_primary.v1", "extraction_secondary.v1"]
+    assert [c["prompt_version"] for c in store.model_calls] == ["extraction_primary.v2", "extraction_secondary.v2"]
     assert store.locks == [("src-en", BATCH.key)]
 
 
@@ -189,7 +189,7 @@ def test_K02_main_second_extraction_is_independent_and_agreement_is_computed_fie
     assert cand["article"] == "Annex I" and cand["agree"] is False
     fields = cand["second_value"]["fields"]
     assert fields["params.value"] is False and fields["params.operator"] is True and fields["article_ref"] is True
-    assert cand["second_value"]["prompt_version"] == "extraction_secondary.v1"
+    assert cand["second_value"]["prompt_version"] == "extraction_secondary.v2"
     # An abstaining second key disagrees on `found` and goes to a person.
     m2, _ = models(tmp_path, {("eu.extract", BATCH.key): answer(), ("eu.judge", BATCH.key): answer(found=False)})
     (res,) = extract.run([BATCH], Reader(), Store(), m2)

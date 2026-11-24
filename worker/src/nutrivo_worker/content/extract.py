@@ -37,7 +37,7 @@ from .targets import REFUSED_SOURCES, Target
 
 log = get_logger(__name__)
 
-PROMPT_VERSION = "v1"
+PROMPT_VERSION = "v2"
 PRIMARY, SECONDARY = "extraction_primary", "extraction_secondary"
 OPEN_DECISIONS = ("pending", "needs_review")          # the only decisions extraction ever writes
 REVIEW_SHAPES = ("threshold", "prescribed_wording")   # extracted twice and always reviewed (D-10)
