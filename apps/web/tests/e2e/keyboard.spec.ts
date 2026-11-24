@@ -4,7 +4,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
 import { focused, tabThrough } from "./support/a11y";
-import { haveMail, linkFromEmail } from "./support/mail";
+import { haveMail, linkFromEmail, readyForEmail } from "./support/mail";
 import { admin, haveStack, person, signIn, workspace, type Person } from "./support/people";
 
 test.skip(!haveStack(), "needs the local Supabase stack (scripts/ci/e2e.sh)");
@@ -219,6 +219,7 @@ test.describe("[T-1104] choosing a new password", () => {
     await workspace(who, "Halden Reset");
     const { error } = await admin().auth.admin.updateUserById(who.userId, { password: `pass ${randomUUID()}` });
     if (error) throw error;
+    readyForEmail(who.email);
 
     await settle(page, "/auth/forgot");
     await page.getByLabel("Email address").fill(who.email);

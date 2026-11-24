@@ -10,7 +10,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { parse } from "yaml";
 import { REPO_ROOT } from "../visual/screens";
 import { expectLikeBaseline } from "./support/baseline";
-import { haveMail, linkFromEmail } from "./support/mail";
+import { haveMail, linkFromEmail, readyForEmail } from "./support/mail";
 import { admin, haveStack, person, signIn, workspace, type Person } from "./support/people";
 import { totp } from "./support/totp";
 
@@ -134,13 +134,16 @@ test.describe("A02 sign in and start a session", () => {
 
   test("[A02.main] a sign-in link by email signs in, and the answer never says whether the address has an account", async ({ page }) => {
     const { who, ws } = await member("a02-link", `pass ${randomUUID()}`, "Link Workspace");
+    readyForEmail(who.email);
     await page.goto("/sign-in");
     await page.getByLabel("Work email").fill(`nobody-${randomUUID().slice(0, 8)}@example.test`);
     await page.getByRole("button", { name: "Email me a sign-in link instead" }).click();
+    await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible(); // not while "Sending…"
     const stranger = await page.getByTestId("auth-sign-in").innerText();
     await page.goto("/sign-in");
     await page.getByLabel("Work email").fill(who.email);
     await page.getByRole("button", { name: "Email me a sign-in link instead" }).click();
+    await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible(); // not while "Sending…"
     const known = await page.getByTestId("auth-sign-in").innerText();
     expect(known.replace(who.email, "EMAIL")).toBe(stranger.replace(/nobody-\w+@example\.test/, "EMAIL"));
     await page.goto(await linkFromEmail(who.email));
@@ -239,6 +242,7 @@ test.describe("A07 change or reset a password", () => {
     const oldPassword = `old ${randomUUID()}`;
     const newPassword = `copper kettle river lamp ${randomUUID().slice(0, 8)}`;
     const { who, ws } = await member("a07-main", oldPassword, "Reset Workspace");
+    readyForEmail(who.email);
     // Another device, signed in before the reset.
     const elsewhere = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
       auth: { persistSession: false, autoRefreshToken: false },
@@ -301,6 +305,7 @@ test.describe("A07 change or reset a password", () => {
     const newPassword = `amber harbour quiet lantern ${randomUUID().slice(0, 8)}`;
     const { who: owner, ws } = await member("a07-owner", oldPassword, "Signer Reset Workspace");
     const signer = await member("a07-signer", oldPassword);
+    readyForEmail(signer.who.email);
     const signerId = await join(signer.who, ws!, "editor");
     const granted = await admin().schema("app").from("signing_grants")
       .insert({ workspace_id: ws!, person_id: signerId, node_id: "EU-SE", granted_by: await personIdOf(owner) });
@@ -342,6 +347,7 @@ test.describe("A07 change or reset a password", () => {
 
   test("[A07.fail.1] a reset link used once lands on the Account Recovery page the second time", async ({ page }) => {
     const { who } = await member("a07-expired", `pass ${randomUUID()}`, "Expired Link Workspace");
+    readyForEmail(who.email);
     await page.goto("/auth/forgot");
     await page.getByLabel("Email address").fill(who.email);
     await page.getByRole("button", { name: "Send the link" }).click();

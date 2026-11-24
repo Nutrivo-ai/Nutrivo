@@ -12,7 +12,7 @@ import { parse } from "yaml";
 import type { Database } from "../../src/lib/database.types";
 import { REPO_ROOT } from "../visual/screens";
 import { expectLikeBaseline } from "./support/baseline";
-import { haveMail, linkFromEmail } from "./support/mail";
+import { haveMail, linkFromEmail, readyForEmail } from "./support/mail";
 import { admin, haveStack, person, signIn, workspace } from "./support/people";
 import { sql } from "./support/sql";
 
@@ -408,6 +408,7 @@ test.describe("A01 sign up and create a workspace", () => {
 
   test("[A01.fail.1] an email that is already registered gets the sign-in path, and never a second user", async ({ page }) => {
     const owner = await person("a01-known");
+    readyForEmail(owner.email); // issue 291: person() was just emailed a magic link
     const ws = await workspace(owner, "Already Here");
     // Past onboarding: the operator is set, so the sign-in link goes on to the workspace.
     const set = await owner.db.schema("app").rpc("set_default_operator", {
@@ -439,6 +440,7 @@ test.describe("A01 sign up and create a workspace", () => {
   test("[A01.main] a confirmed account with no workspace signs in and lands on step 02, never on a dead end", async ({ page, context, baseURL }) => {
     // They confirmed, then left before step 02 (or confirmed on another device): an account, no person, no workspace.
     const who = await person("a01-returning");
+    readyForEmail(who.email);
     const password = secret();
     const { error } = await admin().auth.admin.updateUserById(who.userId, { password });
     if (error) throw error;
