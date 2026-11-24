@@ -1,6 +1,7 @@
 // The local stack's Mailpit (scripts/ci/e2e.sh exports MAILPIT_URL from `supabase status`): the emails Supabase Auth
 // sends, read back so a test can follow a link the way a person would.
 import { expect } from "@playwright/test";
+import { sql } from "./sql";
 
 type Summary = { ID: string; Subject: string; Created: string };
 
@@ -12,6 +13,19 @@ function mailpit() {
 
 export function haveMail() {
   return Boolean(process.env.MAILPIT_URL ?? process.env.INBUCKET_URL);
+}
+
+/**
+ * Issue 291: person() signs in through generateLink(magiclink), which stamps recovery_sent_at, and Supabase Auth refuses
+ * another email to that address within max_frequency (1 s locally). A test that asks the app to email a person() address
+ * at once clears the stamp first. Local stack only: it needs Mailpit, so it never runs against staging's database.
+ */
+export function readyForEmail(email: string) {
+  if (!haveMail()) throw new Error("readyForEmail is for the local stack only (Mailpit)");
+  if (!/^[a-z0-9-]+@example\.test$/.test(email)) throw new Error(`not a test address: ${email}`);
+  if (!sql(`update auth.users set recovery_sent_at = null where email = '${email}' returning id`)) {
+    throw new Error(`no auth user for ${email}`);
+  }
 }
 
 async function messagesTo(email: string): Promise<Summary[]> {
