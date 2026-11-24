@@ -28,13 +28,18 @@ jobs:
         with:
           anthropic_api_key: ${{ env.ANTHROPIC_API_KEY }}
           allowed_bots: claude          # autopilot pull requests are opened and pushed by claude[bot]
-          claude_args: "--model claude-opus-5-5 --max-turns 60"
+          # The reviewer reads the diff and posts its one comment through gh; without these it is denied both and posts
+          # nothing, so no verdict ever reached the next step (every run before 24 Nov 2026 ended without a comment).
+          claude_args: >-
+            --model claude-opus-5-5 --max-turns 60
+            --allowedTools "Read,Grep,Glob,Write(/tmp/**),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
           prompt: |
             Review pull request #${{ github.event.pull_request.number }} against its task (named in the description),
             the workflow specs in docs/workflows/, spec/acceptance.yaml, docs/04-contracts.md and CLAUDE.md. Use the
             spec-checker procedure; for changes under supabase/ also the rls-reviewer checklist. Post one review
             comment: a table of must-hold and failure cases with evidence (file:line) or MISSING, then any bugs,
-            security issues or design deviations. Do not push changes. The comment's last line must be exactly
+            security issues or design deviations. Write the comment to a file under /tmp and post it with
+            `gh pr comment ${{ github.event.pull_request.number }} --body-file <file>`. Do not push changes. The comment's last line must be exactly
             APPROVE-READY or CHANGES-NEEDED: the next step turns it into this workflow's approval (D-23).
       # D-23: the verdict becomes the pull request's one required approval. It reads the newest claude[bot] comment or
       # review posted or edited since this run started, and approves only if the head is still the commit that was reviewed;

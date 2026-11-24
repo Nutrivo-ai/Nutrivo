@@ -15,7 +15,7 @@
 | Web unit and end-to-end | apps/web | `pnpm test`, `pnpm e2e`; `make e2e` runs the full stack | Claude Code |
 | Conformance report and ratchet | scripts/conformance/ (tests in test_report.py) | `make conformance`; CI's `conformance` | Claude Code |
 | Load test and budgets (T-1105) | apps/web/tests/load/, scripts/load/, worker/tests/test_nfr_reliability.py | `make load PROFILE=local\|ci`; `make budgets`; staging only in nightly.yml | Claude Code |
-| Repository scripts | scripts/env/test_*.py, scripts/doctor/test_*.py | `make verify-fast`; CI's `protocol` check | Claude Code |
+| Repository scripts | scripts/env/test_*.py, scripts/doctor/test_*.py, scripts/protocol/test_*.py | `make verify-fast`; CI's `protocol` check | Claude Code |
 
 ## The 13 gates (Backend Action Register rows tagged GATE)
 The register's text says seven; its data tags thirteen. All thirteen are treated as gates.
