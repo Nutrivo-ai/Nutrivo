@@ -85,6 +85,16 @@ class World:
         return str(self.conn.execute("select private.enqueue(%s, %s, %s, %s::jsonb) as id",
                                      ("diff_fanout", ws, key, psycopg.types.json.Jsonb(payload))).fetchone()["id"])
 
+    def sweep(self):
+        """Queue today's alert sweep for this test. The sweep is idempotent per UTC day (diff_fanout:sweep:<date>), so
+        once pg_cron's alert-sweep has run on the stack, private.enqueue_alert_sweep() returns that job, whose pgmq
+        message a worker may already have taken. Inside this rolled-back transaction, today's job is given another key
+        first, so the call queues a job and message of the test's own; the stack's job is untouched after rollback."""
+        self.conn.execute("update app.jobs set idempotency_key = idempotency_key || ':displaced-by-test:' || %s "
+                          "where idempotency_key = 'diff_fanout:sweep:' || to_char(now() at time zone 'UTC', 'YYYY-MM-DD')",
+                          (self.tag,))
+        return str(self.conn.execute("select private.enqueue_alert_sweep() as id").fetchone()["id"])
+
     def run(self, kind, job_id):
         msg = self.conn.execute(f"select msg_id from pgmq.q_{kind} where message->>'job_id' = %s",
                                 (str(job_id),)).fetchone()
@@ -151,7 +161,7 @@ def test_J03_main_a_released_diff_becomes_alerts_then_one_batched_email_per_work
                    (w.ws, w.puppy, w.ruleset, [w.rule]))
 
     # The daily sweep queues one rule_changed job per affected workspace, inside its cron check-in.
-    sweep = str(w.conn.execute("select private.enqueue_alert_sweep() as id").fetchone()["id"])
+    sweep = w.sweep()
     outcome, row = w.run("diff_fanout", sweep)
     assert outcome == "succeeded", row
     assert row["progress"]["outcome"] == "swept"
@@ -229,7 +239,7 @@ def test_T901_the_sweep_moves_an_arrived_alert_in_force_with_a_new_row(world):
     w.conn.execute("insert into app.alerts (workspace_id, rule_diff_id, product_id, node_id, phase, effect_type, "
                    "effective_from) values (%s, %s, %s, 'EU-FR', 'coming', 'prescribed_wording', %s)",
                    (w.ws, diff, w.salmon, today))
-    w.run("diff_fanout", str(w.conn.execute("select private.enqueue_alert_sweep() as id").fetchone()["id"]))
+    w.run("diff_fanout", w.sweep())
     assert sorted(a["phase"] for a in w.alerts(diff)) == ["coming", "in_force"]
 
 
@@ -244,5 +254,5 @@ def test_J03_must_1_a_recipe_rechecked_without_the_rule_gets_no_in_force_alert(w
     w.conn.execute("insert into app.checks (workspace_id, product_id, node_id, ruleset_version, label_state, "
                    "applied_rule_keys, at) values (%s, %s, 'EU-FR', %s, 'action', %s, now() + interval '1 minute')",
                    (w.ws, w.salmon, w.ruleset, [w.rule2]))
-    w.run("diff_fanout", str(w.conn.execute("select private.enqueue_alert_sweep() as id").fetchone()["id"]))
+    w.run("diff_fanout", w.sweep())
     assert [a["phase"] for a in w.alerts(diff)] == ["coming"]
