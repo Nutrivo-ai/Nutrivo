@@ -105,10 +105,13 @@ A session closes issues and pull requests and adds labels only through `make pr-
 - **May close:** a duplicate (`REASON=not_planned`), an incident whose fix has merged or whose evidence shows no
   defect, a pull request that is superseded or no longer wanted, and a failure issue that has stopped recurring. Every
   close posts its reason first.
-- **Never closes:** a task issue. It closes when its pull request merges, through `Closes #N` (step 11).
-- **Labels:** any existing label except `human-approved`, `scope-approved` and `autopilot`. D-24 lets a session add
-  the first two when a founder asks for that change in the session; `pr-label` is narrower because a script cannot
-  verify that request, so a founder adds them. `autopilot` starts paid autonomous work, so only a founder adds it.
+- **Never closes:** a task issue, which closes when its pull request merges through `Closes #N` (step 11); nor a
+  "Staging deploy failed" or "Production release" incident, which lifts a deploy hold or ends a production incident and
+  closes only as docs/runbooks/rollback.md says.
+- **Labels:** any existing label except `human-approved`, `scope-approved` and `autopilot`, which founders add, and
+  `incident`, `nightly` and `task`, which CI and the plan sync apply and check-pr trusts to route a PR. D-24 lets a
+  session add the first two when a founder asks for that change in the session; `pr-label` is narrower because a
+  script cannot verify that request. `autopilot` starts paid autonomous work, so only a founder adds it.
 
 ## What the autopilot may and may not do
 There are two. The GitHub autopilot (the `claude-autopilot` workflow, from T-009/T-010) takes a ready issue a founder

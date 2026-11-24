@@ -65,8 +65,14 @@ def open_pr(title, body):
 
 # A session never adds these through this tool. D-24 lets a session add human-approved or scope-approved when a founder
 # asked for that change in the session, but a script cannot verify that request, so pr-label is narrower than D-24 and
-# the founder adds them (docs/15, "Closing and labelling"). autopilot starts paid autonomous work: founder only (docs/15).
+# the founder adds them (docs/15, "Closing and labelling"). autopilot starts paid autonomous work: founder only.
 FOUNDER_LABELS = {"human-approved", "scope-approved", "autopilot"}
+# Applied only by CI or the plan sync, and trusted by check-pr.py: an 'incident' or 'nightly' issue lets a PR skip the
+# task and lane checks, and 'task' marks a plan task. A session that added them could route around those checks.
+CI_LABELS = {"incident", "nightly", "task"}
+# Closing one of these lifts a hold (docs/19: staging deploys wait while "Staging deploy failed" is open) or ends a
+# production incident: they close only as the runbooks say (docs/runbooks/rollback.md), never through pr-close.
+HOLD_TITLES = ("Staging deploy failed", "Production release")
 CLOSE_REASONS = {"completed", "not_planned"}
 
 
@@ -93,6 +99,8 @@ def close(n, body, reason):
         return 0
     if "task" in {l["name"] for l in issue["labels"]}:
         sys.exit(f"#{n} is a task issue: it closes when its pull request merges ('Closes #{n}', docs/15 step 11)")
+    if issue["title"].startswith(HOLD_TITLES):
+        sys.exit(f"#{n} holds deploys or tracks a release: it closes as docs/runbooks/rollback.md says, not through pr-close")
     print(write("POST", f"issues/{n}/comments", files=[("body", body)])["html_url"])
     fields = ["state=closed"] + ([] if "pull_request" in issue else [f"state_reason={reason}"])
     out = write("PATCH", f"issues/{n}", *fields)
@@ -106,6 +114,8 @@ def label(n, name):
         sys.exit("LABEL=<name> is required")
     if name.lower() in FOUNDER_LABELS:
         sys.exit(f"'{name}' is added by a founder, never through pr-label (docs/15, 'Closing and labelling')")
+    if name.lower() in CI_LABELS:
+        sys.exit(f"'{name}' is applied by CI or the plan sync, never through pr-label (docs/15, 'Closing and labelling')")
     path = f"labels/{quote(name, safe='')}"
     if dry({"label": name, "issue": n, "lookup": path}):
         return 0
