@@ -77,7 +77,8 @@ pr-open: override export BODY := $(value BODY)
 pr-comment: ## PR=123 BODY=file.md: comment on a PR or issue
 	$(PY) scripts/protocol/pr.py comment $(PR)
 pr-close: override export BODY := $(value BODY)
-pr-close: ## PR=123 BODY=file.md: comment why, then close issue or PR 123
+pr-close: override export REASON := $(value REASON)
+pr-close: ## PR=123 BODY=file.md [REASON=not_planned]: comment why, then close issue or PR 123 (never a task issue)
 	$(PY) scripts/protocol/pr.py close $(PR)
 pr-label: override export LABEL := $(value LABEL)
 pr-label: ## PR=123 LABEL=name: add an existing label; never human-approved, scope-approved or autopilot

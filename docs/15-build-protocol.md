@@ -99,6 +99,17 @@ Any task may touch docs/. Anything else outside the task's lanes fails the proto
 - **Production error in Sentry:** a GitHub issue through Sentry's GitHub integration, triaged into a task.
 - **Flaky test:** retried once, then quarantined with an issue. A quarantined acceptance test counts as failing.
 
+## Closing and labelling
+A session closes issues and pull requests and adds labels only through `make pr-close` and `make pr-label`
+(scripts/protocol/pr.py); raw `gh api -X` writes stay denied. abnutrivo asked for this on 24 Nov 2026.
+- **May close:** a duplicate (`REASON=not_planned`), an incident whose fix has merged or whose evidence shows no
+  defect, a pull request that is superseded or no longer wanted, and a failure issue that has stopped recurring. Every
+  close posts its reason first.
+- **Never closes:** a task issue. It closes when its pull request merges, through `Closes #N` (step 11).
+- **Labels:** any existing label except `human-approved`, `scope-approved` and `autopilot`. D-24 lets a session add
+  the first two when a founder asks for that change in the session; `pr-label` is narrower because a script cannot
+  verify that request, so a founder adds them. `autopilot` starts paid autonomous work, so only a founder adds it.
+
 ## What the autopilot may and may not do
 There are two. The GitHub autopilot (the `claude-autopilot` workflow, from T-009/T-010) takes a ready issue a founder
 labels `autopilot`; this is the one to use from Claude Code on the web. `make autopilot` (scripts/autopilot/loop.sh)

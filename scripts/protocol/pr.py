@@ -9,15 +9,18 @@ writes (denied in .claude/settings.json).
                                         ('Task: T-123' and 'Closes #N', or 'Incident: #N', or 'Task: none').
                                         The title is sent exactly as given (quotes, $ and backticks included);
                                         PR_DRY_RUN=1 prints the request as JSON instead of sending it.
-  make pr-close PR=123 BODY=file.md     close issue or PR 123, after posting BODY as the comment that says why
-  make pr-label PR=123 LABEL=name       add an existing label to issue or PR 123; never a founder's label
-                                        (human-approved, scope-approved, autopilot: docs/15, D-24)
+  make pr-close PR=123 BODY=file.md [REASON=not_planned]   close issue or PR 123 after posting BODY, the comment that
+                                        says why; never a task issue (it closes at merge); an issue closes as
+                                        'completed' unless REASON=not_planned (a duplicate, say)
+  make pr-label PR=123 LABEL=name       add an existing label to issue or PR 123; never human-approved,
+                                        scope-approved or autopilot (docs/15, "Closing and labelling")
 
 A PR may merge only when (CLAUDE.md 11, docs/15 step 9, D-24): it is open and not a draft; its head is up to date with
 the base; every required check of the main ruleset has succeeded on the head; no reviewer's latest review requests
 changes; and every review thread is resolved. The merge is pinned to the head SHA that was checked, so a push in
 between makes GitHub refuse it rather than merge unchecked code."""
 import json, os, re, sys
+from urllib.parse import quote
 from pathlib import Path
 from lib import api, repo, sh, ROOT
 
@@ -60,8 +63,11 @@ def open_pr(title, body):
     print(f"PR #{out['number']} opened: {out['html_url']}")
 
 
-# Labels that record a founder's decision or start paid autonomous work: only a founder adds them (docs/15, D-24).
+# A session never adds these through this tool. D-24 lets a session add human-approved or scope-approved when a founder
+# asked for that change in the session, but a script cannot verify that request, so pr-label is narrower than D-24 and
+# the founder adds them (docs/15, "Closing and labelling"). autopilot starts paid autonomous work: founder only (docs/15).
 FOUNDER_LABELS = {"human-approved", "scope-approved", "autopilot"}
+CLOSE_REASONS = {"completed", "not_planned"}
 
 
 def dry(request):
@@ -72,24 +78,38 @@ def dry(request):
     return False
 
 
-def close(n, body):
-    """Comment first, so every closed issue or PR says why; then close it."""
-    if dry({"comment": Path(body).read_text(encoding="utf-8"), "close": n}):
+def close(n, body, reason):
+    """Comment first, so every closed issue or PR says why; then close it. Never a task issue: those close through
+    'Closes #N' when their pull request merges (docs/15 step 11)."""
+    if reason not in CLOSE_REASONS:
+        sys.exit(f"REASON must be one of {sorted(CLOSE_REASONS)}")
+    if not Path(body).read_text(encoding="utf-8").strip():
+        sys.exit("BODY is empty: say why it is closed")
+    if dry({"comment": Path(body).read_text(encoding="utf-8"), "close": n, "state_reason": reason}):
         return 0
+    issue = api(f"issues/{n}")
+    if issue["state"] != "open":
+        print(f"#{n} is already {issue['state']}: nothing posted")
+        return 0
+    if "task" in {l["name"] for l in issue["labels"]}:
+        sys.exit(f"#{n} is a task issue: it closes when its pull request merges ('Closes #{n}', docs/15 step 11)")
     print(write("POST", f"issues/{n}/comments", files=[("body", body)])["html_url"])
-    out = write("PATCH", f"issues/{n}", "state=closed")
+    fields = ["state=closed"] + ([] if "pull_request" in issue else [f"state_reason={reason}"])
+    out = write("PATCH", f"issues/{n}", *fields)
     print(f"#{n} {out['state']}")
     return 0 if out["state"] == "closed" else 1
 
 
 def label(n, name):
+    name = name.strip()
     if not name:
         sys.exit("LABEL=<name> is required")
-    if name.strip().lower() in FOUNDER_LABELS:
-        sys.exit(f"'{name}' records a founder's decision: only a founder adds it (docs/15, D-24)")
-    if dry({"label": name, "issue": n}):
+    if name.lower() in FOUNDER_LABELS:
+        sys.exit(f"'{name}' is added by a founder, never through pr-label (docs/15, 'Closing and labelling')")
+    path = f"labels/{quote(name, safe='')}"
+    if dry({"label": name, "issue": n, "lookup": path}):
         return 0
-    api(f"labels/{name}")  # an existing label only: a typo fails here instead of creating a new label
+    api(path)  # an existing label only: a typo fails here instead of creating a new label
     out = write("POST", f"issues/{n}/labels", f"labels[]={name}")
     print(f"#{n} labels: " + ", ".join(sorted(l["name"] for l in out)))
     return 0
@@ -150,7 +170,7 @@ def main(cmd, n):
         print(f"PR #{n} merged as {out['sha'][:7]}" if out.get("merged") else out)
         return 0 if out.get("merged") else 1
     if cmd == "close":
-        return close(n, body_file(os.environ.get("BODY")))
+        return close(n, body_file(os.environ.get("BODY")), os.environ.get("REASON") or "completed")
     if cmd == "label":
         return label(n, os.environ.get("LABEL", ""))
     if cmd == "comment":
