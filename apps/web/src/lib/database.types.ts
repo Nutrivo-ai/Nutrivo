@@ -1316,6 +1316,11 @@ isOneToOne: false
 "billing_context":
 { Args: { "p_ws": string }; Returns: Json
                            },
+"board_rollup":
+{ Args: { "p_workspace": string }; Returns: {
+              "product_id": string,"product_state": string,"region_id": string,"state": string
+            }[]
+                           },
 "change_member":
 { Args: { "p_access_ends_at": string,"p_is_external": boolean,"p_membership": string,"p_role": string,"p_scope_family_ids": (string)[],"p_scope_node_ids": (string)[] }; Returns: string
                            },

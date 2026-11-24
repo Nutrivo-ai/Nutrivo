@@ -8,7 +8,7 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { PUBLIC_ROUTES, SEGMENTS, segmentHref } from "../../src/lib/public/links";
 import { haveStack, signIn } from "../e2e/support/people";
-import { judgeP95, OUT, outcome, pool, profile, timed, withhold } from "./support/budgets";
+import { judgeP95, networkFloor, OUT, outcome, p95By, pool, profile, timed, withhold } from "./support/budgets";
 import { finished, issuedReport, loadWorkspace, product, registerArtwork, type LoadWorkspace } from "./support/seed";
 
 const EXTRACT_TIMEOUT_MS = 10 * 60_000;
@@ -39,16 +39,20 @@ test.describe("performance budgets", () => {
       ["set_formula_lines", () => app.rpc("set_formula_lines", { p_product: p[2 % p.length], p_lines: [{ ingredient: "Lachs", percent: 26 }] })],
     ];
     const errors: Record<string, number> = {};
-    const runs = await pool(profile.rpc_calls, profile.concurrency, (i) => {
+    const runs = await pool(profile.rpc_calls, profile.concurrency, async (i) => {
       const [name, call] = calls[i % calls.length];
-      return timed("app", async () => {
+      const r = await timed("app", async () => {
         const { error } = await call();
         if (error) errors[name] = (errors[name] ?? 0) + 1;
         return !error;
       });
+      return { ...r, label: name };
     });
-    const ok = runs.filter((r) => r.ok).map((r) => r.ms);
-    judgeP95("performance.rpc_p95_ms", "ms", ok, { calls: calls.map(([n]) => n), failed: errors, concurrency: profile.concurrency });
+    const ok = runs.filter((r) => r.ok);
+    const network = await networkFloor(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    judgeP95("performance.rpc_p95_ms", "ms", ok.map((r) => r.ms), {
+      calls: calls.map(([n]) => n), failed: errors, concurrency: profile.concurrency, p95_by_call: p95By(ok), network_floor: network,
+    });
     expect(errors, "every RPC answered").toEqual({});
   });
 
@@ -121,6 +125,9 @@ test.describe("performance budgets", () => {
     const perMinute = 1000; // under the function's per-instance limit (1200 a minute, verify.js)
     const started = Date.now();
     let limited = 0;
+    // Where the platform ran each call (hosted Edge Functions run in the region nearest the caller, not the database's;
+    // absent on the local stack): reported so a p95 can be read against the hop to the database.
+    const regions: Record<string, number> = {};
     const call = (i: number) =>
       fetch(`${base}/functions/v1/verify/${ref}`, {
         headers: {
@@ -139,6 +146,8 @@ test.describe("performance budgets", () => {
       const started1 = performance.now();
       const res = await call(i).catch(() => null);
       const ms = performance.now() - started1;
+      const region = res?.headers.get("x-sb-edge-region") ?? "none";
+      regions[region] = (regions[region] ?? 0) + 1;
       if (res?.status === 429) {
         limited++;
         return { ms, ok: null as boolean | null };
@@ -150,7 +159,10 @@ test.describe("performance budgets", () => {
     // 429 is the rate limiter doing its job (I04): neither a success nor an outage, so it is left out of both.
     for (const r of runs) if (r.ok !== null) outcome("verify", r.ok);
     const ok = runs.filter((r) => r.ok).map((r) => r.ms);
-    judgeP95("performance.verify_endpoint_p95_ms", "ms", ok, { failed: runs.filter((r) => r.ok === false).length, rate_limited: limited });
+    const network = await networkFloor(base, anon);
+    judgeP95("performance.verify_endpoint_p95_ms", "ms", ok, {
+      failed: runs.filter((r) => r.ok === false).length, rate_limited: limited, edge_regions: regions, network_floor: network,
+    });
     expect(runs.filter((r) => r.ok === false).length, "every verification answered current").toBe(0);
   });
 
