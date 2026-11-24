@@ -6,6 +6,7 @@ import { createServerClient } from "@supabase/ssr";
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import type { BrowserContext } from "@playwright/test";
 import type { Database } from "../../../src/lib/database.types";
+import { sql } from "./sql";
 
 function env(name: string) {
   const value = process.env[name];
@@ -39,6 +40,10 @@ export async function person(label: string): Promise<Person> {
   const db = createClient<Database>(url(), anon(), { auth: { persistSession: false, autoRefreshToken: false } });
   const verified = await db.auth.verifyOtp({ type: "email", token_hash: link.data.properties.hashed_token });
   if (verified.error || !verified.data.session) throw verified.error ?? new Error("no session from the magic link");
+  // Issue 291: generateLink stamps recovery_sent_at, and Supabase Auth refuses a second email to the same address
+  // within max_frequency (1 s locally). A test that asks the app to email this person at once (a sign-in link, a
+  // password reset) would then read "busy" when it runs fast. A person starts as an account nobody emailed lately.
+  sql(`update auth.users set recovery_sent_at = null where id = '${created.data.user.id}'`);
   return { email, userId: created.data.user.id, session: verified.data.session, db };
 }
 
