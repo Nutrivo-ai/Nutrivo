@@ -38,7 +38,12 @@ class HeightBand(_Closed):
     text: str = Field(description="The band's line exactly as printed")
     quantity_from: float | None
     quantity_to: float | None
-    quantity_unit: str = Field(description="The unit of the band's quantities exactly as printed")
+    quantity_unit: str = Field(description="The one unit of quantity_from and quantity_to, exactly as printed; a "
+                                           "line bounded in several units is one band per unit")
+    from_inclusive: bool = Field(description="True when the text includes quantity_from in the band; false when it "
+                                             "excludes it or quantity_from is null")
+    to_inclusive: bool = Field(description="True when the text includes quantity_to in the band; false when it "
+                                           "excludes it or quantity_to is null")
     min_height_mm: float
 
 

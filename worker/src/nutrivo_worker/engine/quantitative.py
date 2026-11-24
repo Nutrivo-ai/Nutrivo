@@ -7,9 +7,11 @@ choices that are not written down are the conservative ones and are asked on #52
 
 character_height
   params: `target`, `height_definition` (x_height · cap_height · figure_height), `bands` ([{quantity_from,
-  quantity_to, quantity_unit, min_height_mm}]), `detect.term_keys` (register terms whose printed text is the target).
-  The band is the one whose quantity range holds `facts["quantity"]` ({value, unit}); a single band open at both ends
-  needs no quantity. Every target text object on the panel is measured; the rule fails when one is below the band
+  quantity_to, quantity_unit, min_height_mm, from_inclusive?, to_inclusive?}]), `detect.term_keys` (register terms
+  whose printed text is the target). The band is the one whose quantity range holds `facts["quantity"]` ({value,
+  unit}), among the bands in that unit: a text that bounds each band in more than one unit (g or cl) has one band
+  per unit, and a unit with no band withholds the rule. A range is [from, to) unless the band says otherwise
+  (#325). A single band open at both ends needs no quantity. Every target text object on the panel is measured; the rule fails when one is below the band
   minimum. A target read by OCR has no true scale and is withheld `no_true_scale`; figure_height has no stored
   measurement and is withheld `data_missing`. Judged on panels printed in one of the node's languages.
 threshold
@@ -76,23 +78,31 @@ def _same_unit(a: str, b: str) -> bool:
 
 
 def _band(bands: Any, quantity: dict[str, Any] | None) -> dict[str, Any] | None:
-    """The band whose range holds the quantity ([from, to), open where null); None when it cannot be told."""
+    """The band whose range holds the quantity, among the bands in the quantity's own unit; None when it cannot be
+    told. A range is [from, to) unless the band says otherwise (`from_inclusive`, `to_inclusive`; open where null).
+    Bands in another unit are not read: a quantity is never converted (#325)."""
     if not isinstance(bands, list) or not bands:
         return None
     for b in bands:
         if not isinstance(b, dict) or _number(b.get("min_height_mm")) is None:
             raise InvalidParams("a band needs min_height_mm")
+        if any(not isinstance(b.get(k, True), bool) for k in ("from_inclusive", "to_inclusive")):
+            raise InvalidParams("a band's from_inclusive and to_inclusive are true or false")
     if len(bands) == 1 and bands[0].get("quantity_from") is None and bands[0].get("quantity_to") is None:
         return bands[0]
     if quantity is None:
         return None
-    hits = []
+    v, hits = quantity["value"], []
     for b in bands:
         unit = b.get("quantity_unit")
-        if not isinstance(unit, str) or not _same_unit(unit, quantity["unit"]):
-            return None                       # never converted between units
+        if not isinstance(unit, str) or not unit:
+            return None
+        if not _same_unit(unit, quantity["unit"]):
+            continue                          # another unit's bound: never converted
         lo, hi = _number(b.get("quantity_from")), _number(b.get("quantity_to"))
-        if (lo is None or quantity["value"] >= lo) and (hi is None or quantity["value"] < hi):
+        above = lo is None or (v >= lo if b.get("from_inclusive", True) else v > lo)
+        below = hi is None or (v <= hi if b.get("to_inclusive", False) else v < hi)
+        if above and below:
             hits.append(b)
     return hits[0] if len(hits) == 1 else None
 
