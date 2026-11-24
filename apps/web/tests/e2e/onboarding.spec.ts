@@ -408,6 +408,9 @@ test.describe("A01 sign up and create a workspace", () => {
 
   test("[A01.fail.1] an email that is already registered gets the sign-in path, and never a second user", async ({ page }) => {
     const owner = await person("a01-known");
+    // person() signs in through an admin magic link, which stamps recovery_sent_at now; start outside Auth's per-address
+    // window (max_frequency), or on a fast runner the owner's sign-in link below is refused as busy.
+    sentAt(owner.email, "recovery_sent_at", "now() - interval '1 hour'");
     readyForEmail(owner.email); // issue 291: person() was just emailed a magic link
     const ws = await workspace(owner, "Already Here");
     // Past onboarding: the operator is set, so the sign-in link goes on to the workspace.
