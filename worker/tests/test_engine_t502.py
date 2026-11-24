@@ -70,6 +70,57 @@ def test_D05_main_the_band_is_chosen_by_the_products_quantity_never_guessed():
         assert res.withheld == ["TEST.T502.HEIGHT"] and res.findings[0]["reason_code"] == "data_missing"
 
 
+# Synthetic (from, to] bands bounded in g and in cl (#325): test data shaped like a text whose upper bound is
+# inclusive and lower bound exclusive, never regulatory content.
+def _upper_inclusive(unit, edges):
+    lo_mid, mid_hi, hi_top = edges
+    return [{"quantity_from": hi_top, "quantity_to": None, "quantity_unit": unit, "min_height_mm": 6.0,
+             "from_inclusive": False, "to_inclusive": False},
+            {"quantity_from": mid_hi, "quantity_to": hi_top, "quantity_unit": unit, "min_height_mm": 4.0,
+             "from_inclusive": False, "to_inclusive": True},
+            {"quantity_from": lo_mid, "quantity_to": mid_hi, "quantity_unit": unit, "min_height_mm": 3.0,
+             "from_inclusive": False, "to_inclusive": True},
+            {"quantity_from": None, "quantity_to": lo_mid, "quantity_unit": unit, "min_height_mm": 2.0,
+             "from_inclusive": False, "to_inclusive": True}]
+
+
+G_CL_BANDS = _upper_inclusive("g", (50, 200, 1000)) + _upper_inclusive("cl", (5, 20, 100))
+
+
+def _required(bands, value, unit):
+    res = check(panel("sv", line("Testvikt", 1.0, 1.0)), [height_rule(bands=bands)],
+                facts={**FACTS, "quantity": {"value": value, "unit": unit}})
+    [f] = res.findings
+    return f["required_mm"] if f["state"] == "action" else f["reason_code"]
+
+
+def test_incident_325_a_band_says_which_end_is_inclusive_at_50_200_and_1000_g():
+    """#325: with the upper bound inclusive, each boundary belongs to the band below it."""
+    got = {v: _required(G_CL_BANDS, v, "g") for v in (49, 50, 51, 200, 201, 1000, 1001)}
+    assert got == {49: 2.0, 50: 2.0, 51: 3.0, 200: 3.0, 201: 4.0, 1000: 4.0, 1001: 6.0}
+
+
+def test_incident_325_a_volume_declared_product_is_judged_on_the_cl_bands_at_5_20_and_100_cl():
+    got = {v: _required(G_CL_BANDS, v, "cl") for v in (5, 5.5, 20, 21, 100, 101)}
+    assert got == {5: 2.0, 5.5: 3.0, 20: 3.0, 21: 4.0, 100: 4.0, 101: 6.0}
+
+
+def test_incident_325_a_unit_with_no_band_is_withheld_never_converted():
+    for unit in ("ml", "kg", "l"):
+        assert _required(G_CL_BANDS, 50, unit) == "data_missing"
+    assert _required(_upper_inclusive("g", (50, 200, 1000)), 20, "cl") == "data_missing"
+
+
+def test_incident_325_a_band_without_inclusive_ends_keeps_from_inclusive_to_exclusive():
+    """#325: rules written before the flags keep [from, to): each boundary belongs to the band above it."""
+    default = [{k: v for k, v in b.items() if k not in ("from_inclusive", "to_inclusive")}
+               for b in _upper_inclusive("g", (50, 200, 1000))]
+    got = {v: _required(default, v, "g") for v in (49, 50, 200, 1000)}
+    assert got == {49: 2.0, 50: 3.0, 200: 4.0, 1000: 6.0}
+    bad = [{**default[0], "to_inclusive": "yes"}, *default[1:]]
+    assert _required(bad, 50, "g") == "evaluator_error"
+
+
 def test_D05_must_1_no_true_scale_is_withheld_no_true_scale_never_estimated():
     """[D05.must.1] No true scale: withheld 'no_true_scale', never estimated: a no_true_scale panel, and a target
     read by OCR (no physical scale), even where a height value is present."""
