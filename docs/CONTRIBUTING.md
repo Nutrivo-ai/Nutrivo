@@ -21,7 +21,8 @@ docs/15-build-protocol.md. This page is the short version, plus how the two of y
 6. **Open the pull request** with the template filled in: `Task: T-123` and `Closes #<issue>`. These two lines, not
    the branch name, tell the protocol check which task it is, and the pull request must close exactly its own open
    task issue. Two other forms pass the protocol check:
-   `Incident: #N` with `Closes #N` for a fix to an issue labelled `incident` or `nightly`, and `Task: none` for a
+   `Incident: #N` with `Closes #N` for a fix to an issue labelled `incident` or `nightly` (the label counts only when CI
+   or a founder applied it, because it skips the task and lane checks), and `Task: none` for a
    founder's change to the target itself (spec, plan, decisions), which needs `human-approved`.
    Dependabot pull requests need neither, as long as they only touch dependency files.
 7. **CI** must be green: `protocol`, `secrets-scan`, `database`, `worker`, `web`, `e2e`, `conformance`. Claude
