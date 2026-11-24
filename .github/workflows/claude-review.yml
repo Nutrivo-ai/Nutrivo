@@ -30,9 +30,10 @@ jobs:
           allowed_bots: claude          # autopilot pull requests are opened and pushed by claude[bot]
           # The reviewer reads the diff and posts its one comment through gh; without these it is denied both and posts
           # nothing, so no verdict ever reached the next step (every run before 24 Nov 2026 ended without a comment).
+          # An absolute path in a permission rule starts with // ; /tmp/** would mean <project>/tmp.
           claude_args: >-
             --model claude-opus-5-5 --max-turns 60
-            --allowedTools "Read,Grep,Glob,Write(/tmp/**),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
+            --allowedTools "Read,Grep,Glob,Write(//tmp/**),Edit(//tmp/**),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*)"
           prompt: |
             Review pull request #${{ github.event.pull_request.number }} against its task (named in the description),
             the workflow specs in docs/workflows/, spec/acceptance.yaml, docs/04-contracts.md and CLAUDE.md. Use the
