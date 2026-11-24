@@ -81,7 +81,7 @@ pr-close: override export REASON := $(value REASON)
 pr-close: ## PR=123 BODY=file.md [REASON=not_planned]: comment why, then close issue or PR 123 (never a task issue)
 	$(PY) scripts/protocol/pr.py close $(PR)
 pr-label: override export LABEL := $(value LABEL)
-pr-label: ## PR=123 LABEL=name: add an existing label; never human-approved, scope-approved or autopilot
+pr-label: ## PR=123 LABEL=name: add needs-human, duplicate, question, bug or another label no automation trusts
 	$(PY) scripts/protocol/pr.py label $(PR)
 pr-open: ## TITLE='…' BODY=file.md: open a PR from the current branch into main (the body names its task; PR_DRY_RUN=1 prints the request instead)
 	$(PY) scripts/protocol/pr.py open

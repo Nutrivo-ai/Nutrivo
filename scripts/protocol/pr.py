@@ -12,8 +12,8 @@ writes (denied in .claude/settings.json).
   make pr-close PR=123 BODY=file.md [REASON=not_planned]   close issue or PR 123 after posting BODY, the comment that
                                         says why; never a task issue (it closes at merge); an issue closes as
                                         'completed' unless REASON=not_planned (a duplicate, say)
-  make pr-label PR=123 LABEL=name       add an existing label to issue or PR 123; never human-approved,
-                                        scope-approved or autopilot (docs/15, "Closing and labelling")
+  make pr-label PR=123 LABEL=name       add a label no automation trusts (needs-human, duplicate, question, bug, ...)
+                                        to issue or PR 123 (docs/15, "Closing and labelling")
 
 A PR may merge only when (CLAUDE.md 11, docs/15 step 9, D-24): it is open and not a draft; its head is up to date with
 the base; every required check of the main ruleset has succeeded on the head; no reviewer's latest review requests
@@ -67,9 +67,11 @@ def open_pr(title, body):
 # asked for that change in the session, but a script cannot verify that request, so pr-label is narrower than D-24 and
 # the founder adds them (docs/15, "Closing and labelling"). autopilot starts paid autonomous work: founder only.
 FOUNDER_LABELS = {"human-approved", "scope-approved", "autopilot"}
-# Applied only by CI or the plan sync, and trusted by check-pr.py: an 'incident' or 'nightly' issue lets a PR skip the
-# task and lane checks, and 'task' marks a plan task. A session that added them could route around those checks.
-CI_LABELS = {"incident", "nightly", "task"}
+# The only labels pr-label adds: ones no automation trusts. needs-human only makes the autopilot leave a task alone
+# (the protocol's "stop and ask"). Every other label is refused, so a label CI or a script starts to trust later
+# (incident, nightly, task, restore-drill, fix-attempt-*, status:*, ...) is safe by default.
+SESSION_LABELS = {"needs-human", "duplicate", "question", "bug", "documentation", "enhancement", "accessibility",
+                  "wontfix", "invalid"}
 # Closing one of these lifts a hold (docs/19: staging deploys wait while "Staging deploy failed" is open) or ends a
 # production incident: they close only as the runbooks say (docs/runbooks/rollback.md), never through pr-close.
 HOLD_TITLES = ("Staging deploy failed", "Production release")
@@ -77,11 +79,16 @@ CLOSE_REASONS = {"completed", "not_planned"}
 
 
 def dry(request):
-    """PR_DRY_RUN=1: print the write instead of sending it (tests)."""
+    """PR_DRY_RUN=1: print the write instead of sending it (tests). It returns before anything is read from GitHub, so
+    a dry run never shows the refusals that need the issue (a task issue, a deploy hold)."""
     if os.environ.get("PR_DRY_RUN"):
         print(json.dumps(request, ensure_ascii=False))
         return True
     return False
+
+
+def api_pages(path):
+    return json.loads(sh("gh", "api", "--paginate", "--slurp", f"repos/{repo()}/{path}") or "[]")
 
 
 def close(n, body, reason):
@@ -99,9 +106,14 @@ def close(n, body, reason):
         return 0
     if "task" in {l["name"] for l in issue["labels"]}:
         sys.exit(f"#{n} is a task issue: it closes when its pull request merges ('Closes #{n}', docs/15 step 11)")
-    if issue["title"].startswith(HOLD_TITLES):
+    if any(t.lower() in issue["title"].lower() for t in HOLD_TITLES):  # the hold matches anywhere in the title
         sys.exit(f"#{n} holds deploys or tracks a release: it closes as docs/runbooks/rollback.md says, not through pr-close")
-    print(write("POST", f"issues/{n}/comments", files=[("body", body)])["html_url"])
+    text = Path(body).read_text(encoding="utf-8")
+    said = [c["body"] for page in api_pages(f"issues/{n}/comments?per_page=100") for c in page]
+    if text.strip() in (b.strip() for b in said):  # a retry after a failed close: the reason is already there
+        print(f"#{n}: the reason is already posted")
+    else:
+        print(write("POST", f"issues/{n}/comments", files=[("body", body)])["html_url"])
     fields = ["state=closed"] + ([] if "pull_request" in issue else [f"state_reason={reason}"])
     out = write("PATCH", f"issues/{n}", *fields)
     print(f"#{n} {out['state']}")
@@ -114,8 +126,9 @@ def label(n, name):
         sys.exit("LABEL=<name> is required")
     if name.lower() in FOUNDER_LABELS:
         sys.exit(f"'{name}' is added by a founder, never through pr-label (docs/15, 'Closing and labelling')")
-    if name.lower() in CI_LABELS:
-        sys.exit(f"'{name}' is applied by CI or the plan sync, never through pr-label (docs/15, 'Closing and labelling')")
+    if name.lower() not in SESSION_LABELS:
+        sys.exit(f"'{name}' is not one pr-label adds ({', '.join(sorted(SESSION_LABELS))}): founders, CI or the plan "
+                 "sync apply the others (docs/15, 'Closing and labelling')")
     path = f"labels/{quote(name, safe='')}"
     if dry({"label": name, "issue": n, "lookup": path}):
         return 0
