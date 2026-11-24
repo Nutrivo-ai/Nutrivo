@@ -22,6 +22,8 @@ export function haveMail() {
  */
 export function readyForEmail(email: string) {
   if (!haveMail()) throw new Error("readyForEmail is for the local stack only (Mailpit)");
+  const db = process.env.DATABASE_URL;
+  if (db && !/@(127\.0\.0\.1|localhost)(:\d+)?\//.test(db)) throw new Error("readyForEmail writes to the local database only");
   if (!/^[a-z0-9-]+@example\.test$/.test(email)) throw new Error(`not a test address: ${email}`);
   if (!sql(`update auth.users set recovery_sent_at = null where email = '${email}' returning id`)) {
     throw new Error(`no auth user for ${email}`);
