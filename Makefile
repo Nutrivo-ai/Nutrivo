@@ -14,7 +14,7 @@ WEB_TEST = pnpm --dir apps/web test --reporter=default --reporter=junit --output
 PSQL = $(if $(shell command -v psql),psql -Atq postgresql://postgres:postgres@127.0.0.1:54322/postgres,docker exec -i supabase_db_nutrivo psql -Atq -U postgres)
 
 # Every target is a command, never a file: without this, `make fixtures` sees the fixtures/ directory and does nothing.
-.PHONY: help pr-check pr-update pr-merge pr-comment pr-open bootstrap db-start db-reset db-migrate fixtures typegen env-check doctor design-fetch design-check \
+.PHONY: help pr-check pr-update pr-merge pr-comment pr-open pr-close pr-label bootstrap db-start db-reset db-migrate fixtures typegen env-check doctor design-fetch design-check \
         validate-plan workflows issues-sync next verify-task autopilot status gates db-tap test verify-fast verify e2e \
         e2e-ci smoke acceptance-staging load budgets conformance conformance-update stripe-catalogue
 
@@ -76,6 +76,12 @@ pr-open: override export TITLE := $(value TITLE)
 pr-open: override export BODY := $(value BODY)
 pr-comment: ## PR=123 BODY=file.md: comment on a PR or issue
 	$(PY) scripts/protocol/pr.py comment $(PR)
+pr-close: override export BODY := $(value BODY)
+pr-close: ## PR=123 BODY=file.md: comment why, then close issue or PR 123
+	$(PY) scripts/protocol/pr.py close $(PR)
+pr-label: override export LABEL := $(value LABEL)
+pr-label: ## PR=123 LABEL=name: add an existing label; never human-approved, scope-approved or autopilot
+	$(PY) scripts/protocol/pr.py label $(PR)
 pr-open: ## TITLE='…' BODY=file.md: open a PR from the current branch into main (the body names its task; PR_DRY_RUN=1 prints the request instead)
 	$(PY) scripts/protocol/pr.py open
 verify-task: ## T=T-123: the fast suite, acceptance coverage and the task's checks

@@ -9,6 +9,9 @@ writes (denied in .claude/settings.json).
                                         ('Task: T-123' and 'Closes #N', or 'Incident: #N', or 'Task: none').
                                         The title is sent exactly as given (quotes, $ and backticks included);
                                         PR_DRY_RUN=1 prints the request as JSON instead of sending it.
+  make pr-close PR=123 BODY=file.md     close issue or PR 123, after posting BODY as the comment that says why
+  make pr-label PR=123 LABEL=name       add an existing label to issue or PR 123; never a founder's label
+                                        (human-approved, scope-approved, autopilot: docs/15, D-24)
 
 A PR may merge only when (CLAUDE.md 11, docs/15 step 9, D-24): it is open and not a draft; its head is up to date with
 the base; every required check of the main ruleset has succeeded on the head; no reviewer's latest review requests
@@ -55,6 +58,41 @@ def open_pr(title, body):
         sys.exit("open a PR from a branch, not from main")
     out = write("POST", "pulls", f"title={title}", f"head={head}", "base=main", files=[("body", body)])
     print(f"PR #{out['number']} opened: {out['html_url']}")
+
+
+# Labels that record a founder's decision or start paid autonomous work: only a founder adds them (docs/15, D-24).
+FOUNDER_LABELS = {"human-approved", "scope-approved", "autopilot"}
+
+
+def dry(request):
+    """PR_DRY_RUN=1: print the write instead of sending it (tests)."""
+    if os.environ.get("PR_DRY_RUN"):
+        print(json.dumps(request, ensure_ascii=False))
+        return True
+    return False
+
+
+def close(n, body):
+    """Comment first, so every closed issue or PR says why; then close it."""
+    if dry({"comment": Path(body).read_text(encoding="utf-8"), "close": n}):
+        return 0
+    print(write("POST", f"issues/{n}/comments", files=[("body", body)])["html_url"])
+    out = write("PATCH", f"issues/{n}", "state=closed")
+    print(f"#{n} {out['state']}")
+    return 0 if out["state"] == "closed" else 1
+
+
+def label(n, name):
+    if not name:
+        sys.exit("LABEL=<name> is required")
+    if name.strip().lower() in FOUNDER_LABELS:
+        sys.exit(f"'{name}' records a founder's decision: only a founder adds it (docs/15, D-24)")
+    if dry({"label": name, "issue": n}):
+        return 0
+    api(f"labels/{name}")  # an existing label only: a typo fails here instead of creating a new label
+    out = write("POST", f"issues/{n}/labels", f"labels[]={name}")
+    print(f"#{n} labels: " + ", ".join(sorted(l["name"] for l in out)))
+    return 0
 
 
 def blockers(n):
@@ -111,6 +149,10 @@ def main(cmd, n):
         out = write("PUT", f"pulls/{n}/merge", "merge_method=squash", f"sha={head}", f"commit_title={title} (#{n})")
         print(f"PR #{n} merged as {out['sha'][:7]}" if out.get("merged") else out)
         return 0 if out.get("merged") else 1
+    if cmd == "close":
+        return close(n, body_file(os.environ.get("BODY")))
+    if cmd == "label":
+        return label(n, os.environ.get("LABEL", ""))
     if cmd == "comment":
         out = write("POST", f"issues/{n}/comments", files=[("body", body_file(os.environ.get("BODY")))])
         print(out["html_url"])
