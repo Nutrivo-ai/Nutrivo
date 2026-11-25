@@ -2,10 +2,6 @@
 import { spawnSync } from "node:child_process";
 
 /**
- * Runs SQL as postgres: psql on DATABASE_URL (scripts/ci/e2e.sh exports it), or inside the stack's container, as
- * supabase/seed/demo/load.sh does.
- */
-/**
  * True when `url` can only reach a database on this machine: its host is 127.0.0.1 or localhost, and no libpq
  * `host`/`hostaddr` parameter can point it elsewhere. Parsed, not pattern-matched, so a host hidden in a query string
  * or a password never passes (review on #343).
@@ -28,12 +24,18 @@ export function assertLocalDatabase(what: string) {
   if (url && !isLocalDatabase(url)) throw new Error(`${what} runs only against the local stack's database`);
 }
 
+/**
+ * Runs SQL as postgres: psql on DATABASE_URL (scripts/ci/e2e.sh exports it), or inside the stack's container, as
+ * supabase/seed/demo/load.sh does.
+ */
 export function sql(query: string) {
   const local = "postgresql://postgres:postgres@127.0.0.1:54322/postgres";
   // Never a hosted database: the nightly runs these specs against staging with staging's DATABASE_URL in the
   // environment, and test setup must not write there as postgres (#85, CLAUDE.md 11).
   assertLocalDatabase("sql()");
-  const viaPsql = spawnSync("psql", [process.env.DATABASE_URL || local, "-v", "ON_ERROR_STOP=1", "-Atq", "-c", query], { encoding: "utf8" });
+  // No PGHOST, PGHOSTADDR or PGSERVICE from the environment: libpq would let them redirect the connection.
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^PG(HOST|HOSTADDR|SERVICE|SERVICEFILE)$/.test(k)));
+  const viaPsql = spawnSync("psql", [process.env.DATABASE_URL || local, "-v", "ON_ERROR_STOP=1", "-Atq", "-c", query], { encoding: "utf8", env });
   const run = viaPsql.error
     ? spawnSync("docker", ["exec", "-i", "supabase_db_nutrivo", "psql", "-U", "postgres", "-v", "ON_ERROR_STOP=1", "-Atq", "-c", query], { encoding: "utf8" })
     : viaPsql;
