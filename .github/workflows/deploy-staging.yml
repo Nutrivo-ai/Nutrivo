@@ -74,9 +74,10 @@ jobs:
         run: |
           pnpm --dir apps/web install --frozen-lockfile
           pnpm --dir apps/web exec playwright install --with-deps chromium
-          # STAGING_DOMAIN when the deploy aliased it, else the deployment's own URL (.vercel-url), never a stale one
+          # The staging domain, which the --prod deploy and promote just pointed at this build (#19). Never the deployment's
+          # own *.vercel.app URL: nutrivo-staging has Vercel Authentication on, so that answers a login page.
           base="${STAGING_DOMAIN:+https://$STAGING_DOMAIN}"
-          BASE_URL="${base:-$(cat .vercel-url)}" make smoke ENV=staging
+          BASE_URL="${base:-${APP_BASE_URL:?STAGING_DOMAIN or APP_BASE_URL is required for the staging smoke}}" make smoke ENV=staging
       - name: Sentry release and deploy
         run: |
           export SENTRY_URL="${SENTRY_URL:-https://de.sentry.io}"   # D-17: Sentry's EU region
