@@ -203,7 +203,7 @@ function Pager({ workspaceId, board }: { workspaceId: string; board: BoardModel 
           PREVIOUS {BOARD_PAGE}
         </a>
       ) : null}
-      <span className="text-n600" aria-current="page">
+      <span className="text-n600">
         PAGE {board.page} OF {board.pages}
       </span>
       {board.page < board.pages ? (
