@@ -160,11 +160,14 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
 - **S-NV2-006 Board** at `/w/[workspace]/board`: the stat tiles (answers unproven, stale against ruleset), the filter
   chips (links, so filters live in the URL), products × markets grouped by region with each region's roll-up cell from
   `app.rollup_state` (read for the whole board in one `app.board_rollup` call, incident #315), the ruleset each
-  row was judged against, and the legend. `?view=findings` lists the open findings
+  row was judged against, and the legend. The rows the filters keep are paged, 50 a page in name order (`?page=N`,
+  a link like the filters; a filter link starts again at page 1; a page past the end shows the last), with a "Board
+  pages" nav under the grid ("ROWS a–b OF n", PREVIOUS, PAGE x OF y, NEXT) shown only when there is more than one
+  page; the summary counts every product (founder decision 25 Nov 2026, issue 311). `?view=findings` lists the open findings
   across the portfolio (F04). Empty: "Add a product". An empty workspace keeps the screen title "Board".
 - **Not built** (#56): the "Obligations with a date" tile, S-MOB-001 at 390 px (its data is `app.board_rollup`'s
-  `product_state`), S-MIS-003's search and saved views (F02, LATER). The 300-recipe budget is met locally since
-  incident #315; the page is ~3.9 MB of HTML at 300 recipes (see the incident), which is what remains of its time.
+  `product_state`), S-MIS-003's search and saved views (F02, LATER). At 300 recipes the full grid was ~4 MB of HTML;
+  paged, the first page is ~0.6 MB (26 KB gzipped), about 275 ms locally against about 480 ms (issue 311).
 - **Tests** (`tests/e2e/board.spec.ts`): F01.main, F01.must.1, F04.main, the empty state, axe, the screen's links and
   no buttons, and the legend against the S-NV2-006 baseline.
 

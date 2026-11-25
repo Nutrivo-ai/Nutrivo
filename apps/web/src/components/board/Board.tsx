@@ -2,6 +2,7 @@ import { EmptyState, Finding, StateCell, StateLegend, cx, stateTint } from "@/co
 import { STATE_LABEL } from "@/components/kit/states";
 import {
   FINDINGS_READ_CAP,
+  BOARD_PAGE,
   boardHref,
   type BoardCell,
   type BoardModel,
@@ -44,7 +45,7 @@ export function Board({ workspaceId, page }: { workspaceId: string; page: Extrac
 }
 
 function Summary({ workspaceId, board }: { workspaceId: string; board: BoardModel }) {
-  const f = board.filters;
+  const f = { ...board.filters, page: undefined }; // a filter link starts again at the first page
   return (
     <div data-region="summary" className="flex flex-wrap items-end gap-[20px] border-b border-ink pb-[12px]">
       <Stat value={board.stats.unproven} label="Answers unproven" tone="text-na" name="unproven" />
@@ -137,6 +138,7 @@ function Grid({ workspaceId, board }: { workspaceId: string; board: BoardModel }
           </tbody>
         </table>
       </div>
+      {board.pages > 1 ? <Pager workspaceId={workspaceId} board={board} /> : null}
       {board.rows.length === 0 ? (
         <p data-region="no-match" className="mt-[16px] mb-0 text-[13.5px] text-n700">
           No product matches these filters.{" "}
@@ -178,6 +180,38 @@ function Row({ row, board }: { row: BoardRow; board: BoardModel }) {
         <span className="block mt-[2px] font-mono text-[10px] text-n600">{f.note}</span>
       </td>
     </tr>
+  );
+}
+
+/** Pages of BOARD_PAGE rows (issue 311). Links, like the filters, so a page survives a reload or a shared link. */
+function Pager({ workspaceId, board }: { workspaceId: string; board: BoardModel }) {
+  const first = (board.page - 1) * BOARD_PAGE + 1;
+  const last = first + board.rows.length - 1;
+  const to = (page: number) => boardHref(workspaceId, { ...board.filters, page });
+  return (
+    <nav
+      aria-label="Board pages"
+      data-region="pager"
+      className="mt-[12px] flex gap-[16px] items-center font-mono text-[10.5px] tracking-[0.05em]"
+    >
+      <span className="text-n600" data-range>
+        ROWS {first}–{last} OF {board.matched}
+      </span>
+      <span className="flex-1" />
+      {board.page > 1 ? (
+        <a href={to(board.page - 1)} rel="prev" className="text-accent-700 kit-transition">
+          PREVIOUS {BOARD_PAGE}
+        </a>
+      ) : null}
+      <span className="text-n600">
+        PAGE {board.page} OF {board.pages}
+      </span>
+      {board.page < board.pages ? (
+        <a href={to(board.page + 1)} rel="next" className="text-accent-700 kit-transition">
+          NEXT {Math.min(BOARD_PAGE, board.matched - last)}
+        </a>
+      ) : null}
+    </nav>
   );
 }
 
