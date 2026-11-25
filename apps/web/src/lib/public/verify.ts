@@ -3,6 +3,7 @@
 // issue date, the ruleset version and whether Not assessed items existed. Never the workspace, the product, the label
 // or the findings. The answer does not depend on the workspace's subscription or closure (BE-36).
 import * as Sentry from "@sentry/nextjs";
+import { FUNCTION_REGION } from "./region";
 
 /** The same shape the function accepts (supabase/functions/verify/verify.js); anything else is unknown at once. */
 export const REF_PATTERN = /^[A-Za-z0-9-]{20,64}$/;
@@ -123,6 +124,9 @@ export async function verifyReference(
         apikey: anonKey,
         Authorization: `Bearer ${anonKey}`,
         "x-forwarded-for": visitor,
+        // Run the function in Frankfurt, next to the database, whoever calls (D-02, non-negotiable 10): without it the
+        // platform picks the region nearest the caller, and each database read crosses to eu-central-1 (issue 311).
+        "x-region": FUNCTION_REGION,
         ...(requestId ? { "x-request-id": requestId } : {}),
       },
       cache: "no-store",

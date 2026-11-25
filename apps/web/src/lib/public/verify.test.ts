@@ -29,6 +29,7 @@ describe("public verification (I04, S-NV2-027)", () => {
     expect(headers.Authorization).toBe("Bearer anon-key");
     expect(headers["x-request-id"]).toBe("req-1");
     expect(headers["x-forwarded-for"]).toBe("192.0.2.7");
+    expect(headers["x-region"]).toBe("eu-central-1"); // next to the database, whoever calls (issue 311)
     expect(verificationFacts(REF, CURRENT as never)).toEqual([
       { k: "Reference", v: REF },
       { k: "Document type", v: "Report of Check · generated, attested by nobody" },
