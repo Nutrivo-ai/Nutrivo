@@ -160,15 +160,20 @@ place. Then:
 A manual run of `deploy-staging` skips the open-incident guard, so a founder can try a fix before closing the
 incident. A failed manual run adds a comment to the open incident instead of opening a second one.
 
-Until a founder decides how a staging web rollback works (T-010's issue), a failed staging deploy leaves the web build
-in place and says so: roll it back by hand in Vercel.
+A failed staging deploy rolls the web back with `vercel rollback` on the `nutrivo-staging` project's production slot,
+as prod does on `nutrivo` (#19, answers 1 and 2). Before any deploy or rollback the scripts read back the project that
+`VERCEL_PROJECT_ID` names and refuse unless it is the target's (`nutrivo-staging` or `nutrivo`), so a wrong ID in
+Infisical can never send staging to production (scripts/deploy/vercel-cli.sh).
 
-**The Vercel project.** The web app deploys from one Vercel project, `nutrivo` in the **Nutrivoai** team
+**The Vercel projects.** Staging deploys to its own project, `nutrivo-staging` (fra1, no Git connection: only
+`deploy-staging` deploys to it, as production deploys, with `staging.nutrivo.ai` as its domain; created by abnutrivo on
+25 Nov 2026, #19). Production deploys from the Vercel project `nutrivo` in the **Nutrivoai** team
 (vercel.com/nutrivoai/nutrivo; Pro plan, because the Hobby plan does not allow commercial use). It is connected to
 `Nutrivo-ai/Nutrivo` with Root Directory `apps/web`, so `apps/web/vercel.json` applies: the Next.js preset, the pnpm
 install and build commands, and region `fra1` (D-02). The deploy scripts therefore run the Vercel CLI from the
 repository root, never inside `apps/web`, which the CLI would resolve as `apps/web/apps/web`. `VERCEL_ORG_ID` and
-`VERCEL_PROJECT_ID` in Infisical (staging and prod) are that team's and that project's IDs. Only that project should be connected to the repository: a second
+`VERCEL_PROJECT_ID` in Infisical is `nutrivo-staging`'s ID in the staging project and `nutrivo`'s in prod;
+`VERCEL_ORG_ID` is the team's in both. Only that project should be connected to the repository: a second
 one builds every push and posts its own status, and both report as "Vercel – nutrivo", so they overwrite each other on
 pull requests. As of 10 Nov 2026 an older project is still connected, `nutrivo` in the `nutrivo` team
 (vercel.com/nutrivo/nutrivo). It is not under abnutrivo's Vercel logins, and ar835 has been asked to check theirs.
