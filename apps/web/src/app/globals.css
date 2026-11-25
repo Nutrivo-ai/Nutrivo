@@ -89,6 +89,17 @@
   .blueprint > .corner.br { bottom: -6px; right: -6px; }
 
   .kit-dialog::backdrop { background: color-mix(in srgb, var(--ink) 30%, transparent); }
+
+  /* Board grid (S-NV2-006): one short class per cell instead of the same utilities repeated on 2,400 cells at 300
+     recipes, which the HTML and the RSC payload both carry (issue 311, performance.board_300_recipes_p95_ms). Same rules. */
+  .bd-td { @apply border-b border-rule p-0 align-middle; }
+  .bd-edge { @apply border-l border-l-n200; }
+  .bd-edge-r { @apply border-l border-l-n300; }
+  .bd-none { @apply text-center; }
+  .bd-dot { @apply font-mono text-[10px] text-n400; }
+  .bd-a { @apply block no-underline hover:brightness-95; }
+  .st-cell { @apply flex flex-col items-center justify-center gap-[5px] py-[10px] px-[4px]; }
+  .st-count { @apply block font-mono text-[10px] leading-none min-h-[10px]; }
 }
 
 /* Cobalt §5: 120ms ease-out on state change; nothing animates on load. */

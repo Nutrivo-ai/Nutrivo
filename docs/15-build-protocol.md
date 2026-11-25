@@ -57,7 +57,8 @@ Any task may touch docs/. Anything else outside the task's lanes fails the proto
 8. **Review.** The Claude reviewer comments against the spec, and the `claude-review` workflow approves on
    APPROVE-READY or requests changes on CHANGES-NEEDED (D-23). The `main` ruleset requires no approval (D-24); a
    founder can still approve, or dismiss a review, and a Claude Code session approves pull requests it did not author
-   or push last.
+   or push last. A run that ends with no verdict fails the `review` check rather than passing, so an earlier
+   CHANGES_REQUESTED never stands unseen (#333); push or re-run the job to review again.
 9. **Merge.** Through the merge queue, or only when up to date with main, so the PR is tested on the latest main and
    main stays green. A Claude Code session updates the branch and squash-merges once every required check is green,
    every thread is resolved and no review requests changes (D-24). It does so with `make pr-check PR=N`,
@@ -98,6 +99,22 @@ Any task may touch docs/. Anything else outside the task's lanes fails the proto
 - **Nightly failure:** an issue labelled `autopilot` with the failing test and its log.
 - **Production error in Sentry:** a GitHub issue through Sentry's GitHub integration, triaged into a task.
 - **Flaky test:** retried once, then quarantined with an issue. A quarantined acceptance test counts as failing.
+
+## Closing and labelling
+A session closes issues and pull requests and adds labels only through `make pr-close` and `make pr-label`
+(scripts/protocol/pr.py); raw `gh api -X` writes stay denied. abnutrivo asked for this on 24 Nov 2026.
+- **May close:** a duplicate (`REASON=not_planned`), an incident whose fix has merged or whose evidence shows no
+  defect, a pull request that is superseded or no longer wanted, and a failure issue that has stopped recurring. Every
+  close posts its reason first.
+- **Never closes:** a task issue, which closes when its pull request merges through `Closes #N` (step 11); nor an
+  issue whose title contains "Staging deploy failed" or "Production release" (anywhere, as the hold matches it), which
+  holds deploys or tracks a production incident and closes only as docs/runbooks/rollback.md says.
+- **Labels:** only `needs-human`, `duplicate`, `question`, `bug`, `documentation`, `enhancement`,
+  `accessibility`, `wontfix` and `invalid`, which no automation trusts. Founders add `human-approved`,
+  `scope-approved` and `autopilot`; CI and the plan sync apply `incident`, `nightly`, `task`, `restore-drill`,
+  `fix-attempt-*` and the `status:`, `lane:` and `ms:` labels, which checks and workflows act on. D-24 lets a session
+  add `human-approved` or `scope-approved` when a founder asks for that change in the session; `pr-label` is narrower
+  because a script cannot verify that request.
 
 ## What the autopilot may and may not do
 There are two. The GitHub autopilot (the `claude-autopilot` workflow, from T-009/T-010) takes a ready issue a founder

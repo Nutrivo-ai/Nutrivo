@@ -86,14 +86,21 @@ export function stateTint(state: VerdictState): string {
  * A board cell: glyph and an optional count (open actions), on its state's tint (set on the table cell with
  * stateTint). The name is carried for assistive technology; the legend under the table names the glyphs.
  */
-export function StateCell({ state, count }: { state: VerdictState; count?: number | string }) {
+export function StateCell({
+  state,
+  count,
+  named = true,
+}: {
+  state: VerdictState;
+  count?: number | string;
+  /** false where the enclosing link's aria-label already names the state (the board): the name would never be read. */
+  named?: boolean;
+}) {
   return (
-    <span data-state={state} className="flex flex-col items-center justify-center gap-[5px] py-[10px] px-[4px]">
+    <span data-state={state} className="st-cell">
       <StateGlyph state={state} size="sm" />
-      <span className={cx("block font-mono text-[10px] leading-none min-h-[10px]", STATE_TEXT[state])}>
-        {count ?? ""}
-      </span>
-      <span className="sr-only">{STATE_LABEL[state]}</span>
+      <span className={cx("st-count", STATE_TEXT[state])}>{count ?? ""}</span>
+      {named && <span className="sr-only">{STATE_LABEL[state]}</span>}
     </span>
   );
 }

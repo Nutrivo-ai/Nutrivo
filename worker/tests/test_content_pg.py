@@ -64,7 +64,7 @@ def test_candidates_on_postgres_are_idempotent_and_never_past_needs_review(conn,
     assert rows[0]["source_ref"] == f"{CELEX} en Art. 15(d)" and rows[0]["fields"]["params.particular"] is True
     calls = conn.execute("select prompt_version from app.model_calls where model_id in ('eu.extract', 'eu.judge')"
                          " and created_at > now() - interval '10 minutes'").fetchall()
-    assert {c["prompt_version"] for c in calls} >= {"extraction_primary.v2", "extraction_secondary.v2"}
+    assert {c["prompt_version"] for c in calls} >= {"extraction_primary.v3", "extraction_secondary.v3"}
     # A rerun changes nothing and calls no model.
     provider.calls.clear()
     assert {r.status for r in extract.run(targets_, reader, store, m, languages=["en"])} == {"unchanged"}
