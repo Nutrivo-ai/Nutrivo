@@ -135,7 +135,9 @@ e2e-ci: e2e ## CI entry point for the end-to-end job
 smoke: ## @smoke suite against a deployed environment (ENV=staging|prod; BASE_URL, else APP_BASE_URL)
 	@if [ -f apps/web/package.json ]; then mkdir -p reports && BASE_URL="$${BASE_URL:-$$APP_BASE_URL}" PLAYWRIGHT_JUNIT_OUTPUT_NAME="$(CURDIR)/reports/smoke-$(ENV).xml" pnpm --dir apps/web e2e --grep @smoke --reporter=junit,list; else echo "apps/web is scaffolded in T-007"; fi
 acceptance-staging: ## the full acceptance suite against staging (nightly)
-	@if [ -f apps/web/package.json ]; then mkdir -p reports && BASE_URL="$$APP_BASE_URL" PLAYWRIGHT_JUNIT_OUTPUT_NAME="$(CURDIR)/reports/acceptance-staging.xml" pnpm --dir apps/web e2e --grep-invert @local-only --reporter=junit,list; fi
+	@# Staging's Infisical holds the canonical names (config/secrets.yaml); the specs read the web's NEXT_PUBLIC_* names,
+	@# as scripts/ci/e2e.sh exports them locally. Without them haveStack() skipped 185 of 307 tests (2/150 IDs, #85).
+	@if [ -f apps/web/package.json ]; then mkdir -p reports && NEXT_PUBLIC_SUPABASE_URL="$${NEXT_PUBLIC_SUPABASE_URL:-$$SUPABASE_URL}" NEXT_PUBLIC_SUPABASE_ANON_KEY="$${NEXT_PUBLIC_SUPABASE_ANON_KEY:-$$SUPABASE_ANON_KEY}" BASE_URL="$$APP_BASE_URL" PLAYWRIGHT_JUNIT_OUTPUT_NAME="$(CURDIR)/reports/acceptance-staging.xml" pnpm --dir apps/web e2e --grep-invert @local-only --reporter=junit,list; fi
 load: ## every budget in spec/nfr.yaml under load: PROFILE=local|ci (staging runs only in GitHub Actions); reports/LOAD.md
 	bash scripts/load/run.sh $(or $(PROFILE),local)
 budgets: ## every budget in spec/nfr.yaml and the tests that name it, and the checks that read the repository

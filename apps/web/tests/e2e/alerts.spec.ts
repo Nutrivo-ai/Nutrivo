@@ -211,7 +211,9 @@ const S_MOB_006: Record<string, Region> = {
   title: { x: 24, y: 105, width: 150, height: 18, fractionY: 0.65625 },
 };
 
-test.describe("horizon and alerts inbox", () => {
+// @local-only, never against staging: it writes synthetic ref.rules, ref.rule_diffs and ref.horizon_items that every
+// workspace reads, and nothing removes them (as briefs.spec.ts, #76 Q3).
+test.describe("@local-only horizon and alerts inbox", () => {
   test.skip(!haveStack(), "needs the local Supabase stack: run through scripts/ci/e2e.sh (make e2e)");
   test.describe.configure({ mode: "serial" });
 
