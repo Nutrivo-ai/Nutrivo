@@ -35,7 +35,11 @@ export type RollupRow = { product_id: string; region_id: string; state: string |
 export const STATE_FILTERS = ["action", "not_assessed", "stale"] as const;
 export type StateFilter = (typeof STATE_FILTERS)[number];
 export type BoardView = "board" | "findings";
-export type BoardFilters = { state: StateFilter | null; species: string | null; view: BoardView };
+/** page: 1-based, set only past the first (founder decision 25 Nov 2026, issue 311: the board pages its rows). */
+export type BoardFilters = { state: StateFilter | null; species: string | null; view: BoardView; page?: number };
+
+/** Rows on one page of the board. At 300 recipes the full grid was 2,400 cells and missed its budget (issue 311). */
+export const BOARD_PAGE = 50;
 
 /** The board's filters from the URL. Unknown values are ignored rather than guessed. */
 export function parseFilters(params: Record<string, string | string[] | undefined>): BoardFilters {
@@ -45,10 +49,12 @@ export function parseFilters(params: Record<string, string | string[] | undefine
   };
   const state = one("state");
   const species = one("species");
+  const page = /^[1-9][0-9]{0,4}$/.test(one("page") ?? "") ? Number(one("page")) : 1;
   return {
     state: (STATE_FILTERS as readonly string[]).includes(state ?? "") ? (state as StateFilter) : null,
     species: species && /^[a-z_]{1,32}$/.test(species) ? species : null,
     view: one("view") === "findings" ? "findings" : "board",
+    ...(page > 1 ? { page } : {}),
   };
 }
 
@@ -58,6 +64,7 @@ export function boardHref(workspaceId: string, f: Partial<BoardFilters>): string
   if (f.view === "findings") q.set("view", "findings");
   if (f.state) q.set("state", f.state);
   if (f.species) q.set("species", f.species);
+  if (f.page && f.page > 1 && f.view !== "findings") q.set("page", String(f.page));
   const s = q.toString();
   return `/w/${workspaceId}/board${s ? `?${s}` : ""}`;
 }
@@ -105,8 +112,13 @@ export type BoardRow = {
 export type BoardModel = {
   groups: BoardGroup[];
   columns: BoardColumn[];
-  /** The rows the filters keep. */
+  /** The rows the filters keep, on this page (BOARD_PAGE at most). */
   rows: BoardRow[];
+  /** Rows the filters keep, on every page. */
+  matched: number;
+  /** This page (1-based, clamped to the last) and how many there are; 1 of 1 when everything fits. */
+  page: number;
+  pages: number;
   /** Every product on the board, before filters. */
   productCount: number;
   /** Markets the board has a column for. */
@@ -279,10 +291,15 @@ export function buildBoard(rows: BoardRows): BoardModel {
     return true;
   });
 
+  const pages = Math.max(1, Math.ceil(kept.length / BOARD_PAGE));
+  const page = Math.min(Math.max(1, filters.page ?? 1), pages);
   return {
     groups,
     columns,
-    rows: kept.map((k) => k.row),
+    rows: kept.slice((page - 1) * BOARD_PAGE, page * BOARD_PAGE).map((k) => k.row),
+    matched: kept.length,
+    page,
+    pages,
     productCount: products.length,
     marketCount: columns.filter((c) => c.kind === "market").length,
     stats: { unproven, stale },
