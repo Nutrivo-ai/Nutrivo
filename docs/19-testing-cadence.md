@@ -44,9 +44,11 @@ in the task's PR, from that list.
   service role every night, and nothing removes them yet. Staging is not production, so that is acceptable; a cleanup
   is due before the 7-night window of docs/21 item 1 starts counting.
 - **No email to a test address leaves through SES.** A deployed worker (`mailer_for`, `EMAIL_MODE=ses`) never sends to
-  a reserved domain (`.test`, `.example`, `.invalid`, `.localhost`, `example.com`, `.net`, `.org`): each would be a hard
-  bounce on the SES account staging and production share (D-16). It records a breadcrumb and treats the email as
-  done. Mailpit, locally and in CI, still receives them.
+  a reserved domain (RFC 2606 and 6761: `.test`, `.example`, `.invalid`, `.localhost`, `example.com`, `.net`, `.org`):
+  each would be a hard bounce on the SES account staging and production share (D-16). It is a rejection, recorded as
+  one (`ReservedRecipientError`): a delivery lists the person in `progress.rejected` and ends `partly_sent`, a
+  single-recipient email fails its job, and nothing reads as sent. So staging's nightly leaves some failed `notify`
+  jobs behind by design. Mailpit, locally and in CI, still receives them.
 - Test setup never writes to a hosted database: `sql()` and `readyForEmail()` refuse a `DATABASE_URL` whose host is not
   127.0.0.1 or localhost (`tests/e2e/support/sql.ts`, tested in `tests/e2e/guards.spec.ts`).
 

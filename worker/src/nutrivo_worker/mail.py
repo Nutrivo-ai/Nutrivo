@@ -63,6 +63,13 @@ class RecipientRejectedError(MailError, PermanentJobError):
     verified) are never this: they stay MailError, so the job retries and then fails visibly, and nobody is skipped."""
 
 
+class ReservedRecipientError(RecipientRejectedError):
+    """A reserved test domain (RFC 2606, RFC 6761: .test, .example, .invalid, .localhost, example.com/.net/.org) can
+    never receive mail, so a deployed worker never hands it to SES, where it would only be a hard bounce on the account
+    staging and prod share (D-16). It is a rejection, recorded like one: a delivery lists the person in
+    progress.rejected and ends partly_sent, a single-recipient email fails the job, and nothing reads as sent."""
+
+
 def _about_address(exc: Any) -> bool:
     """SES's BadRequestException is about the recipient only when its message says so. The message can quote the
     address, so it is only inspected here, never kept."""
@@ -100,10 +107,7 @@ class SesMailer:
         from botocore.exceptions import BotoCoreError, ClientError
 
         if self.skip_reserved and undeliverable(email.to):
-            # Not sent, not an error: no customer has such an address (D-27 refuses them at sign-up). Logged by template
-            # only, never the address.
-            sentry_sdk.add_breadcrumb(category="email", message=f"{email.template}: reserved test domain, not sent to SES")
-            return None
+            raise ReservedRecipientError(f"the {email.template} email is to a reserved test domain: not sent")
 
         sender = f"{FROM_NAME} <{self.from_address}>"
         content: dict[str, Any] = {"Raw": {"Data": mime(email, sender)}} if email.attachments else {"Simple": {

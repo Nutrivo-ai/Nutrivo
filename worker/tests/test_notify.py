@@ -203,13 +203,16 @@ def test_ses_sends_html_and_text_from_the_configured_sender_in_eu_central_1():
 
 
 @pytest.mark.parametrize("to", ["buyer-1a2b@example.test", "a@x.example", "a@b.invalid", "a@localhost",
-                                "a@example.com", "A@EXAMPLE.ORG", "a@sub.example.test."])
+                                "a@example.com", "A@EXAMPLE.ORG", "a@sub.example.test.", "a@test"])
 def test_a_deployed_worker_never_sends_to_a_reserved_test_domain(to):
     """The nightly acceptance run makes @example.test people on staging: through SES each send would be a hard bounce
     on the account staging and prod share (D-16). mailer_for turns the skip on; nothing reaches SES."""
     client = FakeSes()
-    assert mail.SesMailer("noreply@mail.nutrivo.test", client, skip_reserved=True).send(render(to=to)) is None
+    with pytest.raises(mail.ReservedRecipientError) as exc:
+        mail.SesMailer("noreply@mail.nutrivo.test", client, skip_reserved=True).send(render(to=to))
     assert client.calls == []
+    assert isinstance(exc.value, mail.RecipientRejectedError)      # recorded like any rejection, never as sent
+    assert "@" not in str(exc.value)                                 # the address is never in the message
 
 
 @pytest.mark.parametrize("to", ["maria@halden.se", "a@example-foods.com", "a@test.com", "a@mail.examples.org"])
@@ -219,7 +222,9 @@ def test_a_real_looking_domain_is_still_sent(to):
     assert client.calls[0]["Destination"] == {"ToAddresses": [to]}
 
 
-def test_mailer_for_turns_the_skip_on_for_ses():
+def test_mailer_for_turns_the_skip_on_for_ses(monkeypatch):
+    import boto3
+    monkeypatch.setattr(boto3, "client", lambda *a, **kw: FakeSes())
     mail._mailers.clear()
     m = mail.mailer_for(Settings.from_env({"NUTRIVO_ENV": "staging", "EMAIL_MODE": "ses",
                                             "SES_FROM_ADDRESS": "noreply@mail.nutrivo.test"}))
