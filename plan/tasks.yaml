@@ -80,6 +80,7 @@ tasks:
   - {id: T-601, ms: M6, lanes: [web, db], deps: [T-405], wf: [I02], title: "Share links: revocable, expiring, access-logged"}
   - {id: T-602, ms: M6, lanes: [worker, web], deps: [T-105], wf: [O01], title: "Notifications in-app and by email for the six templates"}
   - {id: T-603, ms: M6, lanes: [web], deps: [T-101], wf: [P01, P02], title: "Public site: landing, pricing, coverage, FAQ and about, segments, legal, with invented claims removed"}
+  - {id: T-604, ms: M6, lanes: [db, web], deps: [T-601, T-602], wf: [I02], checks: ["make db-tap"], title: "Share recipient page and controls (D-30, #180): a fourth Edge Function share (built like verify: service role, token only, rate-limited and logged; exactly one unknown answer for a revoked, expired, unknown or malformed token, tested) serves /share/[token], laid out like Public verification (S-NV2-027) with its states plus a Download PDF action through a signed link of 300 s (as src/lib/share/actions.ts; docs/09: minutes for viewing); app.create_share caps email shares at 50 per workspace per day with a new P-code (docs/03), pgTAP-tested at 50 and 51; Share by link and Email come back on S-NV2-026 with report_shared tracking; an I02 e2e opens /share/<token> as an anonymous visitor, sees it stop after a revoke, and /verify/<ref> still answers (I02.must.1, BE-27)"}
   # ── M7 · Billing ───────────────────────────────────────────────────────────────────────────────────
   - {id: T-701, ms: M7, lanes: [infra], deps: [T-003], title: "Stripe test catalogue created from config/pricing.ts by an idempotent script"}
   - {id: T-702, ms: M7, lanes: [worker, db], deps: [T-701], wf: [M04], title: "stripe-webhook function, payment events, subscription mirror, daily reconciliation"}
@@ -107,4 +108,4 @@ tasks:
   - {id: T-1104, ms: M11, lanes: [web], deps: [T-506, T-603, T-703], title: "Accessibility to WCAG 2.2 AA"}
   - {id: T-1105, ms: M11, lanes: [infra, web, worker], deps: [T-506], title: "Load test and every budget in spec/nfr.yaml"}
   - {id: T-1106, ms: M11, lanes: [infra], deps: [T-1101], title: "Runbooks: incidents, rollback, restore, pilot onboarding"}
-  - {id: T-1107, ms: M11, lanes: [infra], gate: human, deps: [T-1102, T-1103, T-1104, T-1105, T-1106, T-208, T-705, T-1002, T-1003, T-903, T-804, T-803, T-902, T-507, T-601], title: "Launch review against docs/21 (gate G9)"}
+  - {id: T-1107, ms: M11, lanes: [infra], gate: human, deps: [T-1102, T-1103, T-1104, T-1105, T-1106, T-208, T-705, T-1002, T-1003, T-903, T-804, T-803, T-902, T-507, T-601, T-604], title: "Launch review against docs/21 (gate G9)"}
