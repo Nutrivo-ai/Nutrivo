@@ -131,7 +131,11 @@ admin can start it.
    `NUTRIVO_RELEASE`, never printed); a missing one, a value that is not a `whsec_` signing secret or a DSN outside
    Sentry's EU region stops the deploy there. Before deploying the worker it records the deploy that was live, as its
    rollback target.
-3. Runs the `@smoke` suite against the build it just deployed (`STAGING_DOMAIN`, or the deployment's own URL).
+3. Runs the `@smoke` suite against the build it just deployed (`STAGING_DOMAIN`, or the deployment's own URL): health,
+   the home page, and the synthetic user (#183, `tests/e2e/smoke-synthetic.spec.ts`), who signs in, runs a full export
+   through the queue and the worker to `succeeded` in the workspace "Synthetic monitoring" (made once, the first time,
+   then reused), and gets "unknown" from `verify` for a reference that cannot exist. Staging only: it skips without
+   `SYNTHETIC_USER_EMAIL`, `SYNTHETIC_USER_PASSWORD` and the service role, and for `make smoke ENV=prod`.
 4. Creates the Sentry release (the git SHA) and marks the staging deploy.
 5. Runs the doctor with `--strict`, which includes the Sentry, Langfuse and PostHog round-trip. After T-010 a check
    that skips fails, and a Sentry DSN or PostHog host outside the EU fails.
@@ -160,15 +164,20 @@ place. Then:
 A manual run of `deploy-staging` skips the open-incident guard, so a founder can try a fix before closing the
 incident. A failed manual run adds a comment to the open incident instead of opening a second one.
 
-Until a founder decides how a staging web rollback works (T-010's issue), a failed staging deploy leaves the web build
-in place and says so: roll it back by hand in Vercel.
+A failed staging deploy rolls the web back with `vercel rollback` on the `nutrivo-staging` project's production slot,
+as prod does on `nutrivo` (#19, answers 1 and 2). Before any deploy or rollback the scripts read back the project that
+`VERCEL_PROJECT_ID` names and refuse unless it is the target's (`nutrivo-staging` or `nutrivo`), so a wrong ID in
+Infisical can never send staging to production (scripts/deploy/vercel-cli.sh).
 
-**The Vercel project.** The web app deploys from one Vercel project, `nutrivo` in the **Nutrivoai** team
+**The Vercel projects.** Staging deploys to its own project, `nutrivo-staging` (fra1, no Git connection: only
+`deploy-staging` deploys to it, as production deploys, with `staging.nutrivo.ai` as its domain; created by abnutrivo on
+25 Nov 2026, #19). Production deploys from the Vercel project `nutrivo` in the **Nutrivoai** team
 (vercel.com/nutrivoai/nutrivo; Pro plan, because the Hobby plan does not allow commercial use). It is connected to
 `Nutrivo-ai/Nutrivo` with Root Directory `apps/web`, so `apps/web/vercel.json` applies: the Next.js preset, the pnpm
 install and build commands, and region `fra1` (D-02). The deploy scripts therefore run the Vercel CLI from the
 repository root, never inside `apps/web`, which the CLI would resolve as `apps/web/apps/web`. `VERCEL_ORG_ID` and
-`VERCEL_PROJECT_ID` in Infisical (staging and prod) are that team's and that project's IDs. Only that project should be connected to the repository: a second
+`VERCEL_PROJECT_ID` in Infisical is `nutrivo-staging`'s ID in the staging project and `nutrivo`'s in prod;
+`VERCEL_ORG_ID` is the team's in both. Only that project should be connected to the repository: a second
 one builds every push and posts its own status, and both report as "Vercel – nutrivo", so they overwrite each other on
 pull requests. As of 10 Nov 2026 an older project is still connected, `nutrivo` in the `nutrivo` team
 (vercel.com/nutrivo/nutrivo). It is not under abnutrivo's Vercel logins, and ar835 has been asked to check theirs.

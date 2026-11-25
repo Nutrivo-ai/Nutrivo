@@ -24,6 +24,7 @@ case "$method $url" in
   "GET "*"/deploys/dep-new") [ -f "$FAKE_DIR/poll-fails" ] && exit 22; cat "$FAKE_DIR/status.json";;
   "POST "*"/deploys/dep-new/cancel") echo '{}';;
   "POST "*"/rollback") [ -f "$FAKE_DIR/rollback-fails" ] && exit 22; echo '{}';;
+  "GET "*"/v9/projects/"*) [ -f "$FAKE_DIR/project" ] || exit 22; printf '{"name":"%s"}' "$(cat "$FAKE_DIR/project")";;
   *) echo "unexpected $method $url" >&2; exit 22;;
 esac
 """
@@ -65,7 +66,8 @@ class Fake:
         env = {**os.environ, "PATH": f"{self.bin}:{os.environ['PATH']}", "FAKE_DIR": self.dir,
                "RENDER_API_KEY": "rnd_test", "RENDER_WORKER_SERVICE_ID": "srv-1", "VERCEL_TOKEN": "vtok",
                "RENDER_API": "https://api.render.test/v1", "RENDER_PREV_FILE": os.path.join(self.dir, "prev"),
-               "RENDER_POLLS": "3", "RENDER_POLL_SECONDS": "0"}
+               "RENDER_POLLS": "3", "RENDER_POLL_SECONDS": "0",
+               "VERCEL_PROJECT_ID": "prj_test", "VERCEL_ORG_ID": "team_test", "VERCEL_API": "https://api.vercel.test"}
         env.pop("STAGING_DOMAIN", None)
         return subprocess.run(["bash", os.path.join(HERE, script), *args], env=env, capture_output=True, text=True,
                               cwd=self.dir)
@@ -158,16 +160,29 @@ class Rollback(unittest.TestCase):
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("worker rollback FAILED", r.stderr)
 
-    def test_staging_web_never_calls_vercel_rollback(self):
-        """`vercel rollback` acts on the production deployment; staging is a preview (#19)."""
+    def test_staging_web_rolls_back_its_own_project(self):
+        """Staging has its own Vercel project (#19): `vercel rollback` acts on nutrivo-staging's production slot."""
         f = Fake()
+        f.write("project", "nutrivo-staging")
         r = f.run("rollback.sh", "staging", "web")
-        self.assertNotEqual(r.returncode, 0)
-        self.assertEqual(f.read("npx.log"), "")
-        self.assertIn("#19", r.stderr)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("vercel@64.1.0 rollback --yes", f.read("npx.log"))
+        self.assertIn("/v9/projects/prj_test?teamId=team_test", f.read("calls.log"))
+
+    def test_a_rollback_never_reaches_another_targets_project(self):
+        for target, wrong in (("staging", "nutrivo"), ("prod", "nutrivo-staging"), ("staging", None)):
+            with self.subTest(target=target, project=wrong):
+                f = Fake()
+                if wrong:
+                    f.write("project", wrong)
+                r = f.run("rollback.sh", target, "web")
+                self.assertNotEqual(r.returncode, 0)
+                self.assertEqual(f.read("npx.log"), "")  # the CLI never ran
+                self.assertIn("refusing", r.stderr)
 
     def test_prod_web_uses_the_pinned_cli(self):
         f = Fake()
+        f.write("project", "nutrivo")
         r = f.run("rollback.sh", "prod", "web")
         self.assertEqual(r.returncode, 0, r.stderr)
         log = f.read("npx.log")
@@ -177,6 +192,7 @@ class Rollback(unittest.TestCase):
 
     def test_one_failed_part_fails_the_script_but_the_others_still_run(self):
         f = Fake()
+        f.write("project", "nutrivo")
         f.write("vercel-fails", "")
         f.write("prev", "dep-7\n")
         r = f.run("rollback.sh", "prod", "web", "worker")
@@ -186,16 +202,18 @@ class Rollback(unittest.TestCase):
 
 
 class VercelDeploy(unittest.TestCase):
-    def test_staging_is_a_pinned_preview_deploy_and_records_its_url(self):
+    def test_staging_is_a_production_deploy_of_its_own_project_and_records_its_url(self):
         f = Fake()
+        f.write("project", "nutrivo-staging")
         url_file = os.path.join(ROOT, ".vercel-url")
         before = open(url_file).read() if os.path.exists(url_file) else None
         try:
             r = f.run("vercel.sh", "staging")
             self.assertEqual(r.returncode, 0, r.stderr)
             log = f.read("npx.log")
-            self.assertIn("vercel@64.1.0 pull --yes --environment=preview", log)
-            self.assertNotIn("--prod", log)
+            self.assertIn("vercel@64.1.0 pull --yes --environment=production", log)
+            self.assertIn("deploy --prebuilt --prod", log)
+            self.assertIn("vercel@64.1.0 promote https://nutrivo-abc123.vercel.app --yes", log)
             self.assertNotIn("@latest", log)
             self.assertNotIn("alias", log)  # no STAGING_DOMAIN set
             self.assertEqual(open(url_file).read().strip(), "https://nutrivo-abc123.vercel.app")
@@ -207,10 +225,22 @@ class VercelDeploy(unittest.TestCase):
             else:
                 open(url_file, "w").write(before)
 
+    def test_a_deploy_never_reaches_another_targets_project(self):
+        """A wrong VERCEL_PROJECT_ID in Infisical must never send staging to production, or prod to staging."""
+        for target, wrong in (("staging", "nutrivo"), ("prod", "nutrivo-staging"), ("staging", None)):
+            with self.subTest(target=target, project=wrong):
+                f = Fake()
+                if wrong:
+                    f.write("project", wrong)
+                r = f.run("vercel.sh", target)
+                self.assertNotEqual(r.returncode, 0)
+                self.assertEqual(f.read("npx.log"), "")  # nothing pulled, built or deployed
+                self.assertIn("refusing", r.stderr)
 
     def test_prod_promotes_the_new_deployment(self):
         """After an instant rollback Vercel stops moving the production domains to new deploys until one is promoted."""
         f = Fake()
+        f.write("project", "nutrivo")
         url_file = os.path.join(ROOT, ".vercel-url")
         before = open(url_file).read() if os.path.exists(url_file) else None
         try:

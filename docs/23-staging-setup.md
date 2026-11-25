@@ -20,7 +20,7 @@ Every name below is canonical (`config/secrets.yaml`). If you already use anothe
 | SES (eu-central-1) | Verify the sending domain; request production access | Until then, SES sends only to verified addresses |
 | Sentry, Langfuse, PostHog | Use the existing EU projects, or a staging copy | All must be EU-hosted, or the strict doctor fails |
 | Render | A worker service in Frankfurt (the pipeline deploys to it) | Its service ID becomes `RENDER_WORKER_SERVICE_ID` |
-| Vercel | The `nutrivo` project (team Nutrivoai) already exists | Its ID becomes `VERCEL_PROJECT_ID` |
+| Vercel | Project `nutrivo-staging` (team Nutrivoai), fra1, Root Directory `apps/web`, no Git connection (#19); `staging.nutrivo.ai` on its Production | Its ID becomes `VERCEL_PROJECT_ID`; the staging Infisical sync targets its Production environment |
 
 ## 3. Secrets into Infisical (project `nutrivo-staging`, environment `staging`, folder `/`)
 | Name | Where the value comes from |
