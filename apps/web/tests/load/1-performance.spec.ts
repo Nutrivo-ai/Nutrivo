@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { PUBLIC_ROUTES, SEGMENTS, segmentHref } from "../../src/lib/public/links";
+import { FUNCTION_REGION } from "../../src/lib/public/region";
 import { haveStack, signIn } from "../e2e/support/people";
 import { judgeP95, networkFloor, OUT, outcome, p95By, pool, profile, timed, withhold } from "./support/budgets";
 import { finished, issuedReport, loadWorkspace, product, registerArtwork, type LoadWorkspace } from "./support/seed";
@@ -137,6 +138,9 @@ test.describe("performance budgets", () => {
           // otherwise answer 429 to a single load client. A gateway that sets its own address ignores this.
           "X-Forwarded-For": `198.51.100.${(i % 250) + 1}`,
           "x-request-id": `load-${i}`,
+          // As the app calls it (src/lib/public/verify.ts): the function runs next to the database in eu-central-1,
+          // not in the region nearest this runner (spec/nfr.yaml: latency is measured as EU visitors get it).
+          "x-region": FUNCTION_REGION,
         },
       });
     await call(0); // warm-up: the edge runtime's first boot of the function is not a request a person waits for

@@ -1,4 +1,8 @@
 # Non-functional targets. Checked by tests, the nightly run and the launch review (docs/21).
+# Latency budgets (performance.*_ms, *_s) are what a customer gets from the region that hosts their data: the EU
+# today (D-02), with the app, the functions and the database in Frankfurt. A run from elsewhere (the nightly's GitHub
+# runner is in the US) reports its network_floor beside each p95; the budget is judged as EU visitors get it, never
+# by subtracting that floor. Decided by abnutrivo on 25 Nov 2026 (issue 311).
 performance:
   rpc_p95_ms: 300
   board_300_recipes_p95_ms: 1500
