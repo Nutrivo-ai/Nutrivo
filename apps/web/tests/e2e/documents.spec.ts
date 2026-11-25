@@ -79,7 +79,9 @@ function day(offset: number) {
 const documentsOf = (ws: string) => `/w/${ws}/documents`;
 const lines = (page: Page) => page.getByRole("list", { name: "Documents" }).getByRole("listitem");
 
-test.describe("Document library", () => {
+// @local-only, never against staging: it adds synthetic ref.document_requirements that every workspace with a
+// Belgian product sees while it runs (as briefs.spec.ts, #76 Q3).
+test.describe("@local-only Document library", () => {
   test.skip(!haveStack(), "needs the local Supabase stack: run through scripts/ci/e2e.sh (make e2e)");
   test.describe.configure({ mode: "serial" });
 

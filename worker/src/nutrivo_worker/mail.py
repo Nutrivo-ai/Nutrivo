@@ -63,10 +63,29 @@ class RecipientRejectedError(MailError, PermanentJobError):
     verified) are never this: they stay MailError, so the job retries and then fails visibly, and nobody is skipped."""
 
 
+class ReservedRecipientError(RecipientRejectedError):
+    """A reserved test domain (RFC 2606, RFC 6761: .test, .example, .invalid, .localhost, example.com/.net/.org) can
+    never receive mail, so a deployed worker never hands it to SES, where it would only be a hard bounce on the account
+    staging and prod share (D-16). It is a rejection, recorded like one: a delivery lists the person in
+    progress.rejected and ends partly_sent, a single-recipient email fails the job, and nothing reads as sent."""
+
+
 def _about_address(exc: Any) -> bool:
     """SES's BadRequestException is about the recipient only when its message says so. The message can quote the
     address, so it is only inspected here, never kept."""
     return "address" in str(exc.response.get("Error", {}).get("Message", "")).lower()
+
+
+# Domains that can never receive mail (RFC 2606 and RFC 6761): the test addresses the e2e and acceptance suites make
+# (person() uses @example.test). Through SES such a send is a hard bounce on the account staging and prod share
+# (D-16), so it is never made; locally Mailpit still receives them, because tests read them back.
+RESERVED_TLDS = (".test", ".example", ".invalid", ".localhost")
+RESERVED_DOMAINS = {"example.com", "example.net", "example.org"}
+
+
+def undeliverable(address: str) -> bool:
+    domain = address.rsplit("@", 1)[-1].strip().lower().rstrip(".")
+    return domain in RESERVED_DOMAINS or domain.endswith(RESERVED_TLDS) or domain in {t[1:] for t in RESERVED_TLDS}
 
 
 class Mailer(Protocol):
@@ -74,8 +93,10 @@ class Mailer(Protocol):
 
 
 class SesMailer:
-    def __init__(self, from_address: str, client: Any = None):
+    def __init__(self, from_address: str, client: Any = None, skip_reserved: bool = False):
         self.from_address = from_address
+        # mailer_for (every deployed worker) turns this on; unit tests that build a mailer directly leave it off.
+        self.skip_reserved = skip_reserved
         if client is None:
             import boto3  # credentials from the platform's AWS chain, never from the repository
 
@@ -84,6 +105,9 @@ class SesMailer:
 
     def send(self, email: Email) -> str | None:
         from botocore.exceptions import BotoCoreError, ClientError
+
+        if self.skip_reserved and undeliverable(email.to):
+            raise ReservedRecipientError(f"the {email.template} email is to a reserved test domain: not sent")
 
         sender = f"{FROM_NAME} <{self.from_address}>"
         content: dict[str, Any] = {"Raw": {"Data": mime(email, sender)}} if email.attachments else {"Simple": {
@@ -149,7 +173,7 @@ def mailer_for(settings: Settings) -> Mailer:
         if settings.email_mode == "ses":
             if not settings.ses_from_address:
                 raise MailError("email is not configured: SES_FROM_ADDRESS is not set")
-            _mailers[key] = SesMailer(settings.ses_from_address)
+            _mailers[key] = SesMailer(settings.ses_from_address, skip_reserved=True)
         else:
             _mailers[key] = MailpitMailer(settings.mailpit_url, settings.ses_from_address or "no-reply@nutrivo.local")
     return _mailers[key]

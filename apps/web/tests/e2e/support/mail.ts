@@ -1,7 +1,7 @@
 // The local stack's Mailpit (scripts/ci/e2e.sh exports MAILPIT_URL from `supabase status`): the emails Supabase Auth
 // sends, read back so a test can follow a link the way a person would.
 import { expect } from "@playwright/test";
-import { sql } from "./sql";
+import { assertLocalDatabase, sql } from "./sql";
 
 type Summary = { ID: string; Subject: string; Created: string };
 
@@ -22,8 +22,7 @@ export function haveMail() {
  */
 export function readyForEmail(email: string) {
   if (!haveMail()) throw new Error("readyForEmail is for the local stack only (Mailpit)");
-  const db = process.env.DATABASE_URL;
-  if (db && !/@(127\.0\.0\.1|localhost)(:\d+)?\//.test(db)) throw new Error("readyForEmail writes to the local database only");
+  assertLocalDatabase("readyForEmail");
   if (!/^[a-z0-9-]+@example\.test$/.test(email)) throw new Error(`not a test address: ${email}`);
   if (!sql(`update auth.users set recovery_sent_at = null where email = '${email}' returning id`)) {
     throw new Error(`no auth user for ${email}`);
