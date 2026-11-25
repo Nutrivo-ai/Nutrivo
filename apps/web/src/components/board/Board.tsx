@@ -182,11 +182,13 @@ function Row({ row, board }: { row: BoardRow; board: BoardModel }) {
 }
 
 function Cell({ cell, product, column }: { cell: BoardCell; product: string; column: string }) {
-  const edge = cell.kind === "region" ? "border-l border-l-n300" : "border-l border-l-n200";
+  // Short classes from globals.css (.bd-*): at 300 recipes the grid has 2,400 cells, and every byte here is sent twice
+  // (HTML and RSC payload), issue 311.
+  const edge = cell.kind === "region" ? "bd-edge-r" : "bd-edge";
   if (cell.state === null) {
     return (
-      <td data-node={cell.nodeId} data-kind={cell.kind} data-cell-state="" className={cx("border-b border-rule p-0 text-center align-middle", edge)}>
-        <span className="font-mono text-[10px] text-n400" aria-hidden="true">
+      <td data-node={cell.nodeId} data-kind={cell.kind} data-cell-state="" className={`bd-td bd-none ${edge}`}>
+        <span className="bd-dot" aria-hidden="true">
           ·
         </span>
         <span className="sr-only">Not sold in {column}</span>
@@ -199,14 +201,14 @@ function Cell({ cell, product, column }: { cell: BoardCell; product: string; col
       data-kind={cell.kind}
       data-cell-state={cell.state}
       data-stale={cell.stale ? "" : undefined}
-      className={cx("border-b border-rule p-0 align-middle", edge, stateTint(cell.state))}
+      className={cx("bd-td", edge, stateTint(cell.state))}
     >
       <a
         href={cell.href!}
         aria-label={`${product}, ${column}: ${STATE_LABEL[cell.state]}${cell.count ? `, ${cell.count} open` : ""}${cell.kind === "region" ? ", rolled up" : ""}`}
-        className="block no-underline hover:brightness-95 kit-transition"
+        className="bd-a kit-transition"
       >
-        <StateCell state={cell.state} count={cell.count ?? undefined} />
+        <StateCell state={cell.state} count={cell.count ?? undefined} named={false} />
       </a>
     </td>
   );
