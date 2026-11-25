@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  BOARD_PAGE,
   asState,
   boardHref,
   buildBoard,
@@ -165,6 +166,36 @@ describe("board rows, stats and filters", () => {
     expect(parseFilters({ state: "clear", species: "<x>", view: "x" })).toEqual({ state: null, species: null, view: "board" });
     expect(boardHref(WS, { view: "findings", state: "stale" })).toBe(`/w/${WS}/board?view=findings&state=stale`);
     expect(boardHref(WS, {})).toBe(`/w/${WS}/board`);
+  });
+
+  it("pages the rows the filters keep, 50 a page, in name order (issue 311)", () => {
+    const many = Array.from({ length: 123 }, (_, i) =>
+      product(`30000000-0000-4000-8000-${String(i).padStart(12, "0")}`, `Recipe ${String(i + 1).padStart(3, "0")}`, {
+        species: i % 2 ? "cat" : "dog",
+      }),
+    );
+    const at = (f: Partial<BoardRows["filters"]>) =>
+      buildBoard(rows({ products: many, nodes: [], rollups: [], filters: { state: null, species: null, view: "board", ...f } }));
+    expect(BOARD_PAGE).toBe(50);
+    const first = at({});
+    expect([first.rows.length, first.matched, first.page, first.pages, first.productCount]).toEqual([50, 123, 1, 3, 123]);
+    expect(first.rows[0].name).toBe("Recipe 001");
+    const last = at({ page: 3 });
+    expect([last.rows.length, last.page]).toEqual([23, 3]);
+    expect(last.rows[0].name).toBe("Recipe 101");
+    expect(at({ page: 99 }).page).toBe(3); // past the end: the last page, never an empty grid
+    const cats = at({ species: "cat" });
+    expect([cats.matched, cats.pages, cats.rows.length]).toEqual([61, 2, 50]); // paged after filtering
+    const small = buildBoard(rows());
+    expect([small.page, small.pages, small.matched]).toEqual([1, 1, 2]); // fits: no pager
+  });
+
+  it("reads the page from the URL, keeps it in links, and drops it on the first page and for findings", () => {
+    expect(parseFilters({ page: "3" }).page).toBe(3);
+    for (const bad of ["0", "-1", "x", "1.5", "999999", "1"]) expect(parseFilters({ page: bad }).page).toBeUndefined();
+    expect(boardHref(WS, { state: "action", page: 2 })).toBe(`/w/${WS}/board?state=action&page=2`);
+    expect(boardHref(WS, { page: 1 })).toBe(`/w/${WS}/board`);
+    expect(boardHref(WS, { view: "findings", page: 2 })).toBe(`/w/${WS}/board?view=findings`);
   });
 
   it("current is the latest release by date", () => {
