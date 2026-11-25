@@ -43,7 +43,8 @@ async function stateOf(page: Page, supplier: string) {
   return page.getByRole("row").filter({ hasText: supplier }).locator("[data-request-state]").getAttribute("data-request-state");
 }
 
-test.describe("Supplier links", () => {
+// @local-only, never against staging: it adds synthetic ref.document_requirements (as briefs.spec.ts, #76 Q3).
+test.describe("@local-only Supplier links", () => {
   // Mailpit too: the supplier gets the link by email and the steps follow it. On staging the worker never sends to a
   // reserved test domain (docs/19), so these would fail for a harness reason, not a real one (#343).
   test.skip(!haveStack() || !haveMail(), "needs the local Supabase stack and Mailpit: run through scripts/ci/e2e.sh (make e2e)");

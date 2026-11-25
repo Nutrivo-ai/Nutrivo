@@ -40,9 +40,16 @@ in the task's PR, from that list.
 - `make acceptance-staging` maps staging's canonical `SUPABASE_URL` and `SUPABASE_ANON_KEY` to the `NEXT_PUBLIC_*`
   names the specs read, so every spec gated only on `haveStack()` runs there (#343). Specs that read mail back from
   Mailpit (`haveMail()`) still skip until staging has a real test inbox (a founder decision, #85).
+- **Specs that write shared `ref` data are `@local-only`.** A spec that inserts reference rows as the service role
+  (rules, rule diffs, horizon items, document requirements, register terms) would show them to every staging
+  workspace, so it carries `@local-only` and `make acceptance-staging` leaves it out (`admin`, `alerts`, `briefs`,
+  `documents`, `suppliers`).
 - **Test data accumulates on staging.** `person()` makes `@example.test` accounts and their workspaces through the
-  service role every night, and nothing removes them yet. Staging is not production, so that is acceptable; a cleanup
-  is due before the 7-night window of docs/21 item 1 starts counting.
+  service role every night, and the specs leave their `app` rows behind: jobs, checks, findings, reports, shares and
+  audit events. Staging is not production, so that is acceptable. Insert-only rows (docs/03) can never be removed, so
+  a cleanup (due before the 7-night window of docs/21 item 1 starts counting) can only delete the accounts and the
+  mutable rows; the rest stays, tied to test workspaces nobody else
+  sees.
 - **No email to a test address leaves through SES.** A deployed worker (`mailer_for`, `EMAIL_MODE=ses`) never sends to
   a reserved domain (RFC 2606 and 6761: `.test`, `.example`, `.invalid`, `.localhost`, `example.com`, `.net`, `.org`):
   each would be a hard bounce on the SES account staging and production share (D-16). It is a rejection, recorded as
