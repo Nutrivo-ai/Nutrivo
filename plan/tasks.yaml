@@ -80,6 +80,7 @@ tasks:
   - {id: T-601, ms: M6, lanes: [web, db], deps: [T-405], wf: [I02], title: "Share links: revocable, expiring, access-logged"}
   - {id: T-602, ms: M6, lanes: [worker, web], deps: [T-105], wf: [O01], title: "Notifications in-app and by email for the six templates"}
   - {id: T-603, ms: M6, lanes: [web], deps: [T-101], wf: [P01, P02], title: "Public site: landing, pricing, coverage, FAQ and about, segments, legal, with invented claims removed"}
+  - {id: T-604, ms: M6, lanes: [db, web, infra], deps: [T-601, T-602], wf: [I02], title: "Share recipient page and controls (D-30, #180): a fourth Edge Function share (built like verify: service role, token only, rate-limited and logged; one unknown answer for revoked, expired, unknown or malformed) serves /share/[token] with the report face facts, a short-lived PDF download and a link to /verify; app.create_share caps email shares at 50 per workspace per day with a new P-code (docs/03); Share by link and Email come back on S-NV2-026 with report_shared tracking; an I02 e2e opens /share/<token> as an anonymous visitor and sees it stop after a revoke"}
   # ── M7 · Billing ───────────────────────────────────────────────────────────────────────────────────
   - {id: T-701, ms: M7, lanes: [infra], deps: [T-003], title: "Stripe test catalogue created from config/pricing.ts by an idempotent script"}
   - {id: T-702, ms: M7, lanes: [worker, db], deps: [T-701], wf: [M04], title: "stripe-webhook function, payment events, subscription mirror, daily reconciliation"}
