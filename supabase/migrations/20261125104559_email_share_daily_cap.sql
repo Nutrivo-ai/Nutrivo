@@ -69,3 +69,48 @@ end $$;
 
 -- The count above reads one workspace's email shares of one day.
 create index if not exists shares_email_per_day on app.shares (workspace_id, created_at) where channel = 'email';
+
+-- The recipient page names the market as the rest of the app does ("Germany", not "EU-DE"): app.open_share also
+-- returns node_name from ref.jurisdictions. The body of 20261107061456 otherwise; create or replace keeps the grants
+-- (service_role only).
+create or replace function app.open_share(p_token text, p_user_agent text default null) returns jsonb
+language plpgsql volatile security definer set search_path = '' as $$
+declare v_s app.shares; v_r app.reports; v_product text; v_ws text; v_node text;
+begin
+  if not (auth.role() = 'service_role'
+          or (auth.role() is null and session_user not in ('authenticator', 'anon', 'authenticated'))) then
+    raise exception 'a share is opened by the web server only' using errcode = '42501';
+  end if;
+  if p_token is null or p_token !~ '^[A-Za-z0-9_-]{43}$' then
+    return jsonb_build_object('status', 'unknown');
+  end if;
+  select s.* into v_s from app.shares s where s.token_hash = private.share_token_hash(p_token);
+  if not found or v_s.revoked_at is not null or (v_s.expires_at is not null and v_s.expires_at <= now()) then
+    return jsonb_build_object('status', 'unknown');
+  end if;
+  select r.* into v_r from app.reports r where r.id = v_s.report_id and r.workspace_id = v_s.workspace_id;
+  if not found then
+    return jsonb_build_object('status', 'unknown');
+  end if;
+  select p.name into v_product from app.products p where p.id = v_r.product_id;
+  select w.name into v_ws from app.workspaces w where w.id = v_s.workspace_id;
+  select j.name into v_node from ref.jurisdictions j where j.id = v_r.node_id;
+
+  insert into app.share_access_log (workspace_id, share_id, user_agent)
+  values (v_s.workspace_id, v_s.id, nullif(left(btrim(p_user_agent), 256), ''));
+
+  return jsonb_build_object(
+    'status', 'open',
+    'share_id', v_s.id,
+    'expires_at', v_s.expires_at,
+    'workspace_name', v_ws,
+    'product_name', v_product,
+    'node_id', v_r.node_id,
+    'node_name', v_node,
+    'ref', v_r.ref,
+    'issued_at', v_r.created_at,
+    'ruleset_version', v_r.ruleset_version,
+    'artwork_sha', v_r.artwork_sha,
+    'has_not_assessed', v_r.has_not_assessed,
+    'pdf_path', v_r.pdf_path);
+end $$;

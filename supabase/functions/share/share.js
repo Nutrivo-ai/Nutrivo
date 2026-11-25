@@ -9,8 +9,8 @@
 // supplier-upload), so no gateway or platform log holds it:
 //
 //   POST application/json {token}             200 {status:"open", ref, issued_at, ruleset_version, artwork_sha,
-//                                             has_not_assessed, workspace_name, product_name, node_id, expires_at,
-//                                             has_pdf} for a live share
+//                                             has_not_assessed, workspace_name, product_name, node_id, node_name,
+//                                             expires_at, has_pdf} for a live share
 //   POST application/json {token, pdf: true}  the same, plus pdf_signed_path: the signed object path under
 //                                             /storage/v1 ("/object/sign/reports/…?token=…&download=<ref>.pdf"),
 //                                             valid for 300 s, or null when the report has no stored PDF
@@ -57,7 +57,7 @@ export function shareAnswer(result) {
   const r = result;
   if (!isString(r.ref) || !isString(r.issued_at) || !isString(r.ruleset_version) || !isString(r.artwork_sha)
       || typeof r.has_not_assessed !== "boolean" || !isStringOrNull(r.workspace_name ?? null)
-      || !isStringOrNull(r.product_name ?? null) || !isStringOrNull(r.node_id ?? null)
+      || !isStringOrNull(r.product_name ?? null) || !isStringOrNull(r.node_id ?? null) || !isStringOrNull(r.node_name ?? null)
       || !isStringOrNull(r.expires_at ?? null) || !isStringOrNull(r.pdf_path ?? null)) return null;
   return {
     status: "open",
@@ -69,6 +69,7 @@ export function shareAnswer(result) {
     workspace_name: r.workspace_name ?? null,
     product_name: r.product_name ?? null,
     node_id: r.node_id ?? null,
+    node_name: r.node_name ?? null,
     expires_at: r.expires_at ?? null,
     has_pdf: !!r.pdf_path,
   };

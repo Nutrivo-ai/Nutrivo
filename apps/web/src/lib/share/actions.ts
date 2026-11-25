@@ -85,7 +85,11 @@ export async function createEmailShare(
     });
     if (error) return refusal("create_share", error);
     const out = data as { share_id?: string } | null;
-    return { ok: true, value: { shareId: String(out?.share_id ?? "") } } as const;
+    if (!out?.share_id) {
+      Sentry.captureException(new Error("create_share returned no share id for an email"));
+      return { ok: false, reason: "error" } as const;
+    }
+    return { ok: true, value: { shareId: out.share_id } } as const;
   });
 }
 

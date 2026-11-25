@@ -23,6 +23,8 @@ export type SharedReport = {
   workspace_name: string | null;
   product_name: string | null;
   node_id: string | null;
+  /** The market's name ("Germany"); null for an older function or an unknown node. */
+  node_name?: string | null;
   expires_at: string | null;
   has_pdf: boolean;
 };
@@ -55,12 +57,19 @@ export function parseShare(body: unknown): Shared | null {
   if (b.status !== "open") return null;
   if (!str(b.ref) || !str(b.issued_at) || !str(b.ruleset_version) || !str(b.artwork_sha)
       || typeof b.has_not_assessed !== "boolean" || typeof b.has_pdf !== "boolean" || !strOrNull(b.workspace_name)
-      || !strOrNull(b.product_name) || !strOrNull(b.node_id) || !strOrNull(b.expires_at)) return null;
+      || !strOrNull(b.product_name) || !strOrNull(b.node_id) || !strOrNull(b.expires_at)
+      || (b.node_name !== undefined && !strOrNull(b.node_name))) return null;
   return {
     status: "open", ref: b.ref, issued_at: b.issued_at, ruleset_version: b.ruleset_version, artwork_sha: b.artwork_sha,
     has_not_assessed: b.has_not_assessed, workspace_name: b.workspace_name, product_name: b.product_name,
-    node_id: b.node_id, expires_at: b.expires_at, has_pdf: b.has_pdf,
+    node_id: b.node_id, node_name: (b.node_name as string | null | undefined) ?? null, expires_at: b.expires_at,
+    has_pdf: b.has_pdf,
   };
+}
+
+/** The market as the rest of the app names it ("Germany"), its id when the name is not known. */
+export function marketOf(s: SharedReport): string | null {
+  return s.node_name ?? s.node_id;
 }
 
 /** The rows of the result card, in S-NV2-027's style: what the report states on its face, nothing more. */
@@ -70,7 +79,7 @@ export function sharedFacts(s: SharedReport): { k: string; v: string }[] {
     { k: "Document type", v: "Report of Check · generated, attested by nobody" },
     { k: "Product", v: s.product_name ?? "—" },
     { k: "Shared by", v: s.workspace_name ?? "—" },
-    { k: "Market", v: s.node_id ?? "—" },
+    { k: "Market", v: marketOf(s) ?? "—" },
     { k: "Issued", v: DAY.format(new Date(s.issued_at)) },
     { k: "Ruleset version", v: s.ruleset_version },
     { k: "Artwork hash", v: shortHash(s.artwork_sha) },

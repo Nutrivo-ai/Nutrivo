@@ -168,7 +168,7 @@ test.describe("share a report (I02, S-NV2-026)", () => {
     await visitor.page.goto(`/share/${token}`);
     const card = visitor.page.getByTestId("share-result");
     await expect(card).toHaveAttribute("data-status", "open");
-    await expect(card.getByRole("heading", { level: 2 })).toHaveText("Salmon & Rice Adult 12 kg · EU-DE");
+    await expect(card.getByRole("heading", { level: 2 })).toHaveText("Salmon & Rice Adult 12 kg · Germany");
     await expect(card).toContainText(ref);
     await expect(card).toContainText("Halden Pet Nutrition");
     await expect(card).toContainText("25 August 2026");

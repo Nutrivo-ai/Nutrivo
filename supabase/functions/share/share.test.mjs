@@ -13,7 +13,7 @@ const REF = "N7QK42P9MXR31ABCDEFGHJKLMQ";
 const PDF_PATH = "20000000-0000-4000-8000-00000000000a/40000000-0000-4000-8000-00000000000a/N7QK42P9MXR31ABCDEFGHJKLMQ.pdf";
 const OPEN = Object.freeze({
   status: "open", share_id: "60000000-0000-4000-8000-000000000001", expires_at: "2026-12-25T09:14:00+00:00",
-  workspace_name: "Halden Pet Nutrition", product_name: "Salmon & Rice Adult 12 kg", node_id: "EU-DE", ref: REF,
+  workspace_name: "Halden Pet Nutrition", product_name: "Salmon & Rice Adult 12 kg", node_id: "EU-DE", node_name: "Germany", ref: REF,
   issued_at: "2026-08-25T14:08:00+00:00", ruleset_version: "2026.08", artwork_sha: "4f1c" + "0".repeat(56) + "9ab2",
   has_not_assessed: true, pdf_path: PDF_PATH,
 });
@@ -51,7 +51,7 @@ async function snapshot(res) {
 const FACTS = {
   status: "open", ref: REF, issued_at: OPEN.issued_at, ruleset_version: "2026.08", artwork_sha: OPEN.artwork_sha,
   has_not_assessed: true, workspace_name: "Halden Pet Nutrition", product_name: "Salmon & Rice Adult 12 kg",
-  node_id: "EU-DE", expires_at: OPEN.expires_at, has_pdf: true,
+  node_id: "EU-DE", node_name: "Germany", expires_at: OPEN.expires_at, has_pdf: true,
 };
 
 test("[I02.main] a live token answers the report's face facts, through app.open_share only, with the service role", async () => {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cx } from "@/components/kit";
 import { PublicCardFrame, TONE, mono, type StateTile } from "@/components/verify/VerifyScreen";
-import { sharedFacts, type ShareOutcome } from "@/lib/public/share";
+import { marketOf, sharedFacts, type ShareOutcome } from "@/lib/public/share";
 import { DownloadSharedPdf } from "./DownloadSharedPdf";
 
 // /share/[token] (I02, D-30, T-604): the recipient of a share link, with no account. There is no design of its own: it
@@ -84,7 +84,7 @@ export function ShareResult({ token, outcome }: { token: string; outcome: ShareO
       <p className={cx(mono, "m-0 text-[10px] tracking-[0.13em]", tone.text)}>Shared</p>
       <h2 className="mt-[7px] mb-0 font-head text-[22px] font-semibold leading-[1.2] tracking-normal">
         {s.product_name ?? "Report of Check"}
-        {s.node_id ? ` · ${s.node_id}` : ""}
+        {marketOf(s) ? ` · ${marketOf(s)}` : ""}
       </h2>
       <dl className="mt-[16px] mb-0">
         {sharedFacts(s).map((f) => (

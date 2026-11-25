@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(50);
+select plan(51);
 set local client_min_messages = warning;
 
 -- ─── A: Alice (admin), Carl (editor), Vera (viewer), Sid (editor scoped to family A2), Pia (portfolio manager).
@@ -109,9 +109,11 @@ select ok(pg_temp.v('open1') ->> 'status' = 'open'
           and pg_temp.v('open1') ->> 'pdf_path' like '20000000-0000-4000-8601-00000000000a/%',
           '[I02.main] the share page opens the report''s face facts and its stored PDF');
 select is((select array_agg(k order by k) from jsonb_object_keys(pg_temp.v('open1')) k),
-          array['artwork_sha','expires_at','has_not_assessed','issued_at','node_id','pdf_path','product_name','ref',
+          array['artwork_sha','expires_at','has_not_assessed','issued_at','node_id','node_name','pdf_path','product_name','ref',
                 'ruleset_version','share_id','status','workspace_name'],
           '[I02.main] and nothing else from the workspace');
+select is(pg_temp.v('open1') ->> 'node_name', (select name from ref.jurisdictions where id = 'EU-SE'),
+          '[I02.main] the market is named as the rest of the app names it');
 select ok((select workspace_id = '20000000-0000-4000-8601-00000000000a' and user_agent = 'Mozilla/5.0 (I02 test)'
                   and ip_hash is null
            from app.share_access_log where share_id = (pg_temp.v('link') ->> 'share_id')::uuid),

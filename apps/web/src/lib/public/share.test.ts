@@ -10,7 +10,8 @@ const REF = "N7QK42P9MXR31ABCDEFGHJKLMQ";
 const OPEN: SharedReport = {
   status: "open", ref: REF, issued_at: "2026-08-25T14:08:00+00:00", ruleset_version: "2026.08",
   artwork_sha: "4f1c" + "0".repeat(56) + "9ab2", has_not_assessed: true, workspace_name: "Halden Pet Nutrition",
-  product_name: "Salmon & Rice Adult 12 kg", node_id: "EU-DE", expires_at: "2026-12-25T09:00:00+00:00", has_pdf: true,
+  product_name: "Salmon & Rice Adult 12 kg", node_id: "EU-DE", node_name: "Germany",
+  expires_at: "2026-12-25T09:00:00+00:00", has_pdf: true,
 };
 const SIGNED = `/object/sign/reports/w/p/${REF}.pdf?token=jwt&download=${REF}.pdf`;
 
@@ -50,7 +51,7 @@ describe("shared report page (I02, D-30, T-604)", () => {
       { k: "Document type", v: "Report of Check · generated, attested by nobody" },
       { k: "Product", v: "Salmon & Rice Adult 12 kg" },
       { k: "Shared by", v: "Halden Pet Nutrition" },
-      { k: "Market", v: "EU-DE" },
+      { k: "Market", v: "Germany" },
       { k: "Issued", v: "25 August 2026" },
       { k: "Ruleset version", v: "2026.08" },
       { k: "Artwork hash", v: "sha256 4f1c…9ab2" },
@@ -61,6 +62,8 @@ describe("shared report page (I02, D-30, T-604)", () => {
       { k: "Items not assessed", v: "No" },
       { k: "Link expires", v: "No expiry" },
     ]);
+    // An answer without the market's name (an older function) falls back to its id.
+    expect(sharedFacts({ ...OPEN, node_name: null }).find((f) => f.k === "Market")).toEqual({ k: "Market", v: "EU-DE" });
   });
 
   it("[I02.must.1] a malformed token is unknown at once; the function's unknown is passed on as is", async () => {
