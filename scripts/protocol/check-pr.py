@@ -1,14 +1,14 @@
 """CI 'protocol' check for pull requests: a task (closing its own open issue), its lanes only, no protected files
 without approval.
 Without a task: a Dependabot PR that changes only dependency files; 'Incident: #N' for a PR that closes an incident or
-nightly issue; 'Task: none' for a founder's change to the target, with 'human-approved'. An approval label counts only
+nightly issue whose label CI or a founder applied (it skips the task and lane checks); 'Task: none' for a founder's change to the target, with 'human-approved'. An approval label counts only
 when a founder applied it: a code owner on the base branch or a repository admin, by hand or through their Claude Code
 session (D-24), never a bot or another app.
 The plan and CODEOWNERS are read as committed on the base branch, so a PR cannot loosen the rules it is checked by."""
 import os, re, subprocess, sys
 from functools import cache
 import yaml
-from lib import allowed_paths, gh_json, label_applier, matches, plan, repo, sh, task_by_id
+from lib import allowed_paths, ci_bot, gh_json, label_applier, matches, plan, repo, sh, task_by_id
 
 DEPENDENCY_FILES = [".github/workflows/*.yml", ".github/actions/*/action.yml", "apps/web/package.json", "pnpm-lock.yaml",
                     "apps/web/pnpm-lock.yaml", "worker/pyproject.toml", "worker/uv.lock", "worker/Dockerfile"]
@@ -46,25 +46,34 @@ def gh_or_none(*args):
 
 
 @cache
-def unapproved(label):
-    """Why `label` does not count, or None: its latest 'labeled' event must be by a founder (a code owner on main, or a
-    repository admin), by hand or through their Claude Code session (D-24), never a bot or another app."""
-    if label not in labels:
-        return f"a founder must add '{label}'"
-    pages = gh_json("api", "--paginate", "--slurp", f"repos/{repo()}/issues/{pr}/events")
+def applied_by(number, label, ci_too=False):
+    """Why `label` on issue or PR `number` does not count, or None: its latest 'labeled' event must be by a founder (a
+    code owner on main, or a repository admin), by hand or through their Claude Code session (D-24), never a bot or
+    another app; with ci_too, GitHub Actions itself counts as well (the incident and nightly issues CI opens)."""
+    pages = gh_json("api", "--paginate", "--slurp", f"repos/{repo()}/issues/{number}/events")
     events = [e for page in pages for e in page if e.get("event") == "labeled" and e["label"]["name"] == label]
     if not events:
         return f"no 'labeled' event found for '{label}'"
+    if ci_too and ci_bot(events[-1]):
+        return None
     who = label_applier(events[-1])
     if who is None:
         who = (events[-1].get("actor") or {}).get("login", "unknown")
-        return f"'{label}' was applied by {who}, a bot or app; a founder must apply it"
+        return f"'{label}' was applied by {who}, a bot or app; " + ("CI or " if ci_too else "") + "a founder must apply it"
     if who.lower() in founders():
         return None
     perm = (gh_or_none("api", f"repos/{repo()}/collaborators/{who}/permission") or {}).get("permission", "none")
     if perm != "admin":
-        return f"'{label}' was applied by {who}, who is not a code owner or admin; a founder must apply it"
+        return f"'{label}' was applied by {who}, who is not a code owner or admin; " + ("CI or " if ci_too else "") + \
+            "a founder must apply it"
     return None
+
+
+def unapproved(label):
+    """Why the approval `label` on this PR does not count, or None (D-24)."""
+    if label not in labels:
+        return f"a founder must add '{label}'"
+    return applied_by(pr, label)
 
 
 errors = []
@@ -91,8 +100,11 @@ elif incident and not m:
     issue = gh_or_none("issue", "view", n, "--json", "labels")
     if issue is None:
         errors.append(f"cannot read issue #{n} to confirm it is an incident or nightly issue")
-    elif not {l["name"] for l in issue["labels"]} & {"incident", "nightly"}:
+    elif not (kinds := sorted({l["name"] for l in issue["labels"]} & {"incident", "nightly"})):
         errors.append(f"issue #{n} is not labelled incident or nightly; name a task instead: 'Task: T-123'")
+    elif all(why := [applied_by(n, k, ci_too=True) for k in kinds]):
+        # The label lets this PR skip the task and lane checks, so it counts only from CI or a founder (docs/15).
+        errors.append(f"issue #{n}'s {' or '.join(kinds)} label does not count: " + "; ".join(why))
 else:
     task = task_by_id(p, m.group(1)) if m else None
     if not task:

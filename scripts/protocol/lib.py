@@ -84,6 +84,13 @@ def label_applier(event):
     return actor.get("login")
 
 
+def ci_bot(event):
+    """True when GitHub Actions itself made the issue event: how deploy-staging, release-production and nightly label
+    the incident and nightly issues they open."""
+    actor = event.get("actor") or {}
+    return actor.get("type") == "Bot" and actor.get("login") == "github-actions[bot]"
+
+
 def gh_failure(e):
     """A failed gh or git call as a message for sys.exit, with gh's own words instead of a traceback."""
     why = (e.stderr or "").strip() or f"exit {e.returncode}"

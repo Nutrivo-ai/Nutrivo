@@ -2,7 +2,7 @@
 Run: uv run --no-project --with pyyaml python -m unittest discover -s scripts/protocol -p 'test_*.py'"""
 import unittest
 
-from lib import label_applier
+from lib import ci_bot, label_applier
 
 
 def event(login, kind="User", app=None):
@@ -37,6 +37,21 @@ class LabelApplier(unittest.TestCase):
     def test_missing_actor(self):
         self.assertIsNone(label_applier({"event": "labeled"}))
         self.assertIsNone(label_applier({"event": "labeled", "actor": None}))
+
+
+
+class CiBot(unittest.TestCase):
+    """Whose incident or nightly label lets a PR skip the task and lane checks: GitHub Actions, or a founder (docs/15)."""
+
+    def test_github_actions_counts(self):
+        self.assertTrue(ci_bot(event("github-actions[bot]", kind="Bot")))
+
+    def test_other_bots_and_people_do_not(self):
+        self.assertFalse(ci_bot(event("claude[bot]", kind="Bot")))
+        self.assertFalse(ci_bot(event("dependabot[bot]", kind="Bot")))
+        self.assertFalse(ci_bot(event("abnutrivo")))
+        self.assertFalse(ci_bot(event("abnutrivo", app={"slug": "claude"})))
+        self.assertFalse(ci_bot({"event": "labeled"}))
 
 
 if __name__ == "__main__":
