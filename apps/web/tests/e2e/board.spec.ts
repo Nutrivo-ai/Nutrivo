@@ -8,6 +8,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { expectLikeBaseline, type Region } from "./support/baseline";
 import { admin, haveStack, person, signIn, workspace, type Person } from "./support/people";
 import { axe, maxDiffPixelRatio, watch } from "./support/public";
+import { loadWorkspace } from "../load/support/seed";
 
 const RULESET = "0000.00-empty";
 
@@ -291,6 +292,40 @@ test.describe("portfolio board and findings", () => {
     await expect(page.getByText("No products on the board yet")).toBeVisible();
     await expect(page.locator('[data-region="board"]').getByRole("link", { name: "Add a product" })).toHaveAttribute("href", `/w/${empty}/products/new`);
     await axe(page);
+  });
+
+  test("a board of more than 50 products pages its rows, and a filter starts again at the first page (issue 311)", async ({ page, context, baseURL }) => {
+    test.setTimeout(180_000);
+    const big = await loadWorkspace(55); // names Load recipe 001…055, dog and cat alternating
+    await signIn(context, big.owner, baseURL!);
+    const errors = watch(page);
+    const rows = page.locator('[data-region="grid"] tbody tr');
+    const pager = page.getByRole("navigation", { name: "Board pages" });
+
+    await page.goto(`/w/${big.ws}/board`);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("55 products");
+    await expect(rows).toHaveCount(50);
+    await expect(pager).toContainText("ROWS 1–50 OF 55");
+    await expect(pager).toContainText("PAGE 1 OF 2");
+    await expect(pager.getByRole("link", { name: "PREVIOUS 50" })).toHaveCount(0);
+    await axe(page);
+
+    await pager.getByRole("link", { name: "NEXT 5" }).click();
+    await expect(page).toHaveURL(new RegExp(`/w/${big.ws}/board\\?page=2$`));
+    await expect(rows).toHaveCount(5);
+    await expect(rows.first()).toContainText("Load recipe 051");
+    await expect(pager).toContainText("ROWS 51–55 OF 55");
+
+    // A filter link leaves page 2: 28 dogs fit on one page, so there is no pager.
+    await page.getByRole("navigation", { name: "Board filters" }).getByRole("link", { name: "dog", exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/w/${big.ws}/board\\?species=dog$`));
+    await expect(rows).toHaveCount(28);
+    await expect(pager).toHaveCount(0);
+
+    // A page past the end shows the last page, never an empty grid.
+    await page.goto(`/w/${big.ws}/board?page=9`);
+    await expect(rows).toHaveCount(5);
+    expect(errors).toEqual([]);
   });
 
   test("no dead controls: every link on the board and the findings view goes somewhere, and there is no button", async ({ page, context, baseURL }) => {

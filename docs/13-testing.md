@@ -50,7 +50,7 @@ fails when a budget has none.
 | Budget | How it is measured | Where |
 |---|---|---|
 | `performance.rpc_p95_ms` | p95 of five RPCs (`rollup_state`, `live_billable_counts`, `billing_context`, `set_intended_claims`, `set_formula_lines`) under a member's session, `concurrency` in flight. The record's detail adds each RPC's p95 (`p95_by_call`) and the `network_floor` | tests/load/1-performance |
-| `performance.board_300_recipes_p95_ms` | p95 of `/w/<ws>/board`, server-rendered with the grid, for a workspace of `recipes` products in `markets_per_recipe` EU markets | tests/load/1-performance |
+| `performance.board_300_recipes_p95_ms` | p95 of `/w/<ws>/board`, server-rendered, for a workspace of `recipes` products in `markets_per_recipe` EU markets: the board's first page, 50 rows (since issue 311 the board pages its rows), with the stats and filters over every product. A pass does not mean 300 rows render in budget | tests/load/1-performance |
 | `performance.search_300_recipes_p95_ms` | Withheld `not_built`: search (F02, BE-41) is after launch | tests/load/1-performance |
 | `performance.extraction_10_pages_p95_s` | A ten-page artwork (the synthetic labels joined) uploaded and registered; the extract job's created_at to its terminal update | tests/load/1-performance |
 | `performance.check_completion_p95_s` | `request_check` on that artwork; the check job's created_at to its terminal update | tests/load/1-performance |

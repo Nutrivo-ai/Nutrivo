@@ -43,6 +43,6 @@
    dunning schedule → `new_artwork_stopped` on day 14, never deletion.
 
 ## Environments
-Local (`supabase start`, worker and web on the laptop) → staging (Supabase staging, Render staging, Vercel preview;
+Local (`supabase start`, worker and web on the laptop) → staging (Supabase staging, Render staging, the Vercel project `nutrivo-staging`;
 deploys on merge once `STAGING_DEPLOY_ENABLED` is true, from T-010) → production (a `v*` tag created by the owner,
 once `PRODUCTION_DEPLOY_ENABLED` is true: docs/22 §4). Claude Code only ever touches local.

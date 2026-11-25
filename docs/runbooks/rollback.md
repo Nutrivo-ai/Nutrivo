@@ -13,7 +13,7 @@ Both deploy workflows deploy in the order database, Edge Functions, worker, web,
 | Starts | After `ci` is green on a merge to main, or by hand | A `v*` tag on a commit already on main (`.github/rulesets/release-tags.json`: repository admins only) |
 | Rolls back when | A step fails, times out or is cancelled after the worker or web went live | A step fails after the worker or web went live |
 | Worker | Render rollback to the deploy that was live before (recorded by `scripts/deploy/render.sh` in `.render-prev`) | The same |
-| Web | Not rolled back: `vercel rollback` acts on the production deployment, and staging is a preview. Roll back by hand (§2) until a founder decides how (#19) | `vercel rollback` to the previous production deployment |
+| Web | `vercel rollback` to the previous production deployment of the `nutrivo-staging` project (#19); the script first checks that `VERCEL_PROJECT_ID` names that project | `vercel rollback` to the previous production deployment of `nutrivo`, after the same check |
 | Edge Functions, database | Never | Never |
 | Then | Opens a "Staging deploy failed at …" issue (labels `incident` and `autopilot`) and starts the autopilot on it; later merges' staging deploys are refused until it is closed | Opens a "Production release … rolled back" issue (labels `incident` and `needs-human`) |
 
@@ -24,12 +24,13 @@ cancelled by `scripts/deploy/render.sh`, so it cannot go live later with nothing
 Use this when a release passed its smoke tests but is bad, or when the automatic rollback failed. Open or reuse an
 issue with the label `incident` first ([incident-response.md](incident-response.md)).
 
-**Web.** Vercel → team Nutrivoai → project `nutrivo` (docs/22 §4) → Deployments.
+**Web.** Vercel → team Nutrivoai → project `nutrivo` for production, `nutrivo-staging` for staging (docs/22 §4) →
+Deployments.
 - Production: pick the last good production deployment → Instant Rollback. Vercel then stops giving the production
   domains to new production deployments until one is promoted; the next release does that itself
   (`scripts/deploy/vercel.sh` promotes every production deploy).
-- Staging: the staging domain is an alias on a preview deployment. Point it back at the last good preview deployment.
-  **Open (#19):** the staging web rollback is not decided; this is the default.
+- Staging: the same on project `nutrivo-staging` (its own project since #19): its last good production deployment
+  → Instant Rollback; the next staging deploy promotes itself, as in production.
 
 **Worker.** Render → Render service `nutrivo-worker-prod` (or Render service `nutrivo-worker-staging`) → Events →
 the last good deploy → Rollback. The worker drains its running jobs on SIGTERM (docs/18); pgmq redelivers any it did not
