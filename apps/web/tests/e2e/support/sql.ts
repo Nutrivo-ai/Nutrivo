@@ -34,7 +34,8 @@ export function sql(query: string) {
   // environment, and test setup must not write there as postgres (#85, CLAUDE.md 11).
   assertLocalDatabase("sql()");
   // No PGHOST, PGHOSTADDR or PGSERVICE from the environment: libpq would let them redirect the connection.
-  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/^PG(HOST|HOSTADDR|SERVICE|SERVICEFILE)$/.test(k)));
+  const env = { ...process.env };
+  for (const k of ["PGHOST", "PGHOSTADDR", "PGSERVICE", "PGSERVICEFILE"]) delete env[k];
   const viaPsql = spawnSync("psql", [process.env.DATABASE_URL || local, "-v", "ON_ERROR_STOP=1", "-Atq", "-c", query], { encoding: "utf8", env });
   const run = viaPsql.error
     ? spawnSync("docker", ["exec", "-i", "supabase_db_nutrivo", "psql", "-U", "postgres", "-v", "ON_ERROR_STOP=1", "-Atq", "-c", query], { encoding: "utf8" })
