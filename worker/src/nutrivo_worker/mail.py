@@ -69,13 +69,27 @@ def _about_address(exc: Any) -> bool:
     return "address" in str(exc.response.get("Error", {}).get("Message", "")).lower()
 
 
+# Domains that can never receive mail (RFC 2606 and RFC 6761): the test addresses the e2e and acceptance suites make
+# (person() uses @example.test). Through SES such a send is a hard bounce on the account staging and prod share
+# (D-16), so it is never made; locally Mailpit still receives them, because tests read them back.
+RESERVED_TLDS = (".test", ".example", ".invalid", ".localhost")
+RESERVED_DOMAINS = {"example.com", "example.net", "example.org"}
+
+
+def undeliverable(address: str) -> bool:
+    domain = address.rsplit("@", 1)[-1].strip().lower().rstrip(".")
+    return domain in RESERVED_DOMAINS or domain.endswith(RESERVED_TLDS) or domain in {t[1:] for t in RESERVED_TLDS}
+
+
 class Mailer(Protocol):
     def send(self, email: Email) -> str | None: ...
 
 
 class SesMailer:
-    def __init__(self, from_address: str, client: Any = None):
+    def __init__(self, from_address: str, client: Any = None, skip_reserved: bool = False):
         self.from_address = from_address
+        # mailer_for (every deployed worker) turns this on; unit tests that build a mailer directly leave it off.
+        self.skip_reserved = skip_reserved
         if client is None:
             import boto3  # credentials from the platform's AWS chain, never from the repository
 
@@ -84,6 +98,12 @@ class SesMailer:
 
     def send(self, email: Email) -> str | None:
         from botocore.exceptions import BotoCoreError, ClientError
+
+        if self.skip_reserved and undeliverable(email.to):
+            # Not sent, not an error: no customer has such an address (D-27 refuses them at sign-up). Logged by template
+            # only, never the address.
+            sentry_sdk.add_breadcrumb(category="email", message=f"{email.template}: reserved test domain, not sent to SES")
+            return None
 
         sender = f"{FROM_NAME} <{self.from_address}>"
         content: dict[str, Any] = {"Raw": {"Data": mime(email, sender)}} if email.attachments else {"Simple": {
@@ -149,7 +169,7 @@ def mailer_for(settings: Settings) -> Mailer:
         if settings.email_mode == "ses":
             if not settings.ses_from_address:
                 raise MailError("email is not configured: SES_FROM_ADDRESS is not set")
-            _mailers[key] = SesMailer(settings.ses_from_address)
+            _mailers[key] = SesMailer(settings.ses_from_address, skip_reserved=True)
         else:
             _mailers[key] = MailpitMailer(settings.mailpit_url, settings.ses_from_address or "no-reply@nutrivo.local")
     return _mailers[key]

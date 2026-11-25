@@ -36,6 +36,20 @@ in the task's PR, from that list.
 | Release (tag) | Approval; production deploy; production smoke on the synthetic workspace; rollback on failure | Production | The release |
 | Every 15 minutes after launch (once `SYNTHETIC_ENABLED`, T-1102) | Synthetic check of health, sign-in and verify (`scripts/synthetic/check.py`) inside the Sentry check-in `synthetic-smoke-prod` | Production | Alerts (docs/17) |
 
+## The nightly acceptance run on staging
+- `make acceptance-staging` maps staging's canonical `SUPABASE_URL` and `SUPABASE_ANON_KEY` to the `NEXT_PUBLIC_*`
+  names the specs read, so every spec gated only on `haveStack()` runs there (#343). Specs that read mail back from
+  Mailpit (`haveMail()`) still skip until staging has a real test inbox (a founder decision, #85).
+- **Test data accumulates on staging.** `person()` makes `@example.test` accounts and their workspaces through the
+  service role every night, and nothing removes them yet. Staging is not production, so that is acceptable; a cleanup
+  is due before the 7-night window of docs/21 item 1 starts counting.
+- **No email to a test address leaves through SES.** A deployed worker (`mailer_for`, `EMAIL_MODE=ses`) never sends to
+  a reserved domain (`.test`, `.example`, `.invalid`, `.localhost`, `example.com`, `.net`, `.org`): each would be a hard
+  bounce on the SES account staging and production share (D-16). It records a breadcrumb and treats the email as
+  done. Mailpit, locally and in CI, still receives them.
+- Test setup never writes to a hosted database: `sql()` and `readyForEmail()` refuse a `DATABASE_URL` whose host is not
+  127.0.0.1 or localhost (`tests/e2e/support/sql.ts`, tested in `tests/e2e/guards.spec.ts`).
+
 ## Determinism
 - **Models.** CI runs in `MODELS_MODE=replay` against recorded responses in `worker/tests/cassettes/`. The nightly run
   records against real models and opens a PR when outputs change.
