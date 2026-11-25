@@ -102,7 +102,7 @@ jobs:
         env: { GH_TOKEN: "${{ github.token }}" }
         run: |
           run="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          body="Run: $run. Database: ${{ steps.database.outcome }}, functions: ${{ steps.functions.outcome }}, worker: ${{ steps.worker.outcome }}, web: ${{ steps.web.outcome }}. Rollback: ${{ steps.rollback.outcome || 'nothing went live' }} (the database is never rolled back: fix forward, docs/18-reliability.md; on staging the web is rolled back by hand until #19 decides how). Later staging deploys wait until this issue is closed."
+          body="Run: $run. Database: ${{ steps.database.outcome }}, functions: ${{ steps.functions.outcome }}, worker: ${{ steps.worker.outcome }}, web: ${{ steps.web.outcome }}. Rollback: ${{ steps.rollback.outcome || 'nothing went live' }} (the database is never rolled back: fix forward, docs/18-reliability.md). Later staging deploys wait until this issue is closed."
           open=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --label incident \
             --search 'in:title "Staging deploy failed"' --json number --jq '.[0].number // empty')
           if [ -n "$open" ]; then gh issue comment "$open" --repo "$GITHUB_REPOSITORY" --body "Failed again at ${DEPLOY_SHA::7}. $body"; exit 0; fi
