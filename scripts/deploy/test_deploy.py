@@ -32,7 +32,9 @@ esac
 FAKE_NPX = r"""#!/usr/bin/env bash
 echo "$*" >> "$FAKE_DIR/npx.log"
 echo "$PWD" >> "$FAKE_DIR/npx.cwd"
-case "$*" in *" deploy "*) echo "https://nutrivo-abc123.vercel.app";; *" rollback "*) [ -f "$FAKE_DIR/vercel-fails" ] && exit 1;; esac
+case "$*" in *" deploy "*) echo "https://nutrivo-abc123.vercel.app";; *" rollback "*) [ -f "$FAKE_DIR/vercel-fails" ] && exit 1;;
+  *" promote "*) [ -f "$FAKE_DIR/promote-current" ] && { echo "Error: The provided deploymentId (dpl_x) is already the current production deployment. (409)" >&2; exit 1; }
+                 [ -f "$FAKE_DIR/promote-fails" ] && { echo "Error: forbidden (403)" >&2; exit 1; };; esac
 exit 0
 """
 
@@ -252,6 +254,33 @@ class VercelDeploy(unittest.TestCase):
                 os.path.exists(url_file) and os.remove(url_file)
             else:
                 open(url_file, "w").write(before)
+
+
+class VercelPromote(unittest.TestCase):
+    def run_with(self, flag):
+        f = Fake()
+        f.write("project", "nutrivo-staging")
+        f.write(flag, "")
+        url_file = os.path.join(ROOT, ".vercel-url")
+        before = open(url_file).read() if os.path.exists(url_file) else None
+        try:
+            return f.run("vercel.sh", "staging")
+        finally:
+            if before is None:
+                os.path.exists(url_file) and os.remove(url_file)
+            else:
+                open(url_file, "w").write(before)
+
+    def test_already_the_current_production_deployment_is_success(self):
+        """A normal --prod deploy is already current: Vercel's 409 on promote is not a failure (25 Nov 2026)."""
+        r = self.run_with("promote-current")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("already the current production deployment", r.stdout)
+
+    def test_any_other_promote_refusal_fails(self):
+        r = self.run_with("promote-fails")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("403", r.stderr)
 
 
 class NoUnpinnedVercel(unittest.TestCase):
