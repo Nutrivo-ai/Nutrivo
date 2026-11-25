@@ -11,7 +11,7 @@ insert into auth.users (id, email) values
   ('00000000-0000-4000-8604-0000000000c1','carl@a.test'), ('00000000-0000-4000-8604-0000000000b1','bea@b.test');
 insert into app.people (id, user_id, display_name, email)
 select ('10000000' || substr(u.id::text, 9))::uuid, u.id, split_part(u.email, '@', 1), u.email
-from auth.users u where u.id::text like '00000000-0000-4000-8604-%';
+from auth.users u where u.id in ('00000000-0000-4000-8604-0000000000c1','00000000-0000-4000-8604-0000000000b1');
 insert into app.workspaces (id, name) values
   ('20000000-0000-4000-8604-00000000000a','Workspace A'), ('20000000-0000-4000-8604-00000000000b','Workspace B');
 insert into app.families (id, workspace_id, name) values
