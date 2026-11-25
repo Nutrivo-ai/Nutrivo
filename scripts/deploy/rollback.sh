@@ -13,16 +13,13 @@ failed=0
 for part in "$@"; do
   case "$part" in
     web)
-      if [ "$TARGET" = prod ]; then
-        # shellcheck source=scripts/deploy/vercel-cli.sh
-        . "$ROOT/scripts/deploy/vercel-cli.sh"
-        if ( cd "$ROOT" && vercel_cli rollback --yes --token="$VERCEL_TOKEN" ); then echo "web rolled back"
-        else echo "web rollback FAILED" >&2; failed=1; fi
-      else
-        # Staging is a Vercel preview (docs/01): `vercel rollback` acts on the production deployment, so it must not run
-        # here. How a staging web rollback works waits on a founder decision (#19, questions 1 and 2).
-        echo "web rollback for staging is not defined yet (#19): roll back by hand in Vercel" >&2; failed=1
-      fi ;;
+      # shellcheck source=scripts/deploy/vercel-cli.sh
+      . "$ROOT/scripts/deploy/vercel-cli.sh"
+      # Staging has its own Vercel project (#19), so `vercel rollback` acts on its production slot, never prod's: the
+      # project is read back first and must be the target's.
+      if vercel_expect_project "$TARGET" && ( cd "$ROOT" && vercel_cli rollback --yes --token="$VERCEL_TOKEN" ); then
+        echo "web rolled back"
+      else echo "web rollback FAILED" >&2; failed=1; fi ;;
     worker)
       prev="$(cat "$PREV_FILE" 2>/dev/null || true)"
       if [ -z "$prev" ]; then
