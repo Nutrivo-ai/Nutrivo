@@ -37,7 +37,7 @@ The same names and sources as staging (docs/23 §3), from the production account
 | `VERCEL_PROJECT_ID` | The **`nutrivo`** project's ID, never `nutrivo-staging`'s |
 | `RENDER_WORKER_SERVICE_ID` | `nutrivo-worker-prod`'s `srv-…` |
 | `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` | **Test mode until G8.** At G8 (T-705) a founder swaps in the live keys and the live webhook's signing secret, with Smart Retries off and the events docs/08 lists |
-| `SENTRY_DSN_FUNCTIONS` | Production only: the `stripe-webhook` function's DSN |
+| `SENTRY_DSN_FUNCTIONS` | The production `stripe-webhook` function's DSN (staging has its own) |
 | `APP_BASE_URL` | The production web URL, https |
 | `SYNTHETIC_USER_EMAIL`, `SYNTHETIC_USER_PASSWORD` | A synthetic account on a business domain (D-27) |
 | `SYNTHETIC_VERIFY_REF` | Optional: a report of the synthetic workspace, once one exists (scripts/synthetic/check.py) |
@@ -69,15 +69,15 @@ run it through the `doctor` workflow (§5).
    the doctor. A failure rolls back what went live (never the database) and opens a "Production release … rolled
    back" issue (docs/runbooks/rollback.md).
    - The release's doctor runs **with** its write checks (Sentry, Langfuse, PostHog and Bedrock round-trips), so a
-     release proves production data reaches them (docs/21 §5). #10 (ENV-13) asked for `--readonly` here; a founder
-     decides which holds.
+     release proves production data reaches them (docs/21, item 5). #10 (ENV-13) asked for `--readonly` here; a founder
+     decides which holds (raised on #79).
 5. Run **doctor** again with `prod`, `all` and `strict`. Link that run on T-1101's issue.
 
 ## 6. Before any customer data (G7)
 1. **Restore drill:** the first one, by docs/runbooks/restore-drill.md. Its Sentry cron monitor `restore-drill-prod`
    then expects one a month.
 2. **Synthetic monitoring:** Settings → Variables → `SYNTHETIC_ENABLED` = `true`. `synthetic.yml` checks production
-   every 15 minutes inside the Sentry monitor `synthetic-smoke-prod` (T-1102). docs/21 §4 asks for 7 green days.
+   every 15 minutes inside the Sentry monitor `synthetic-smoke-prod` (T-1102). docs/21 item 4 asks for 7 green days.
 3. **Alerts reach named people:** each Sentry monitor and alert rule notifies a named founder (docs/17).
 
 ## 7. Opening the doors (at launch, after G6, G8 and G9)
