@@ -21,8 +21,17 @@ vercel_cli build $flag --token="$VERCEL_TOKEN" >/dev/null
 url="$(vercel_cli deploy --prebuilt $flag --token="$VERCEL_TOKEN")"
 [ -n "$url" ] || { echo "vercel $TARGET: deploy returned no URL" >&2; exit 1; }
 # After `vercel rollback`, Vercel stops assigning the production domains to new production deployments until one is
-# promoted; promoting this one makes it live either way.
-vercel_cli promote "$url" --yes --token="$VERCEL_TOKEN" >/dev/null
+# promoted; promoting this one makes it live either way. A normal --prod deploy is already the current production
+# deployment, and Vercel answers that promote with 409 "already the current production deployment": that is success
+# (the first nutrivo-staging deploy failed on it, 25 Nov 2026). Any other refusal fails the step.
+if ! out="$(vercel_cli promote "$url" --yes --token="$VERCEL_TOKEN" 2>&1)"; then
+  if printf '%s' "$out" | grep -q "already the current production deployment"; then
+    echo "vercel $TARGET: $url is already the current production deployment"
+  else
+    printf '%s\n' "$out" >&2
+    exit 1
+  fi
+fi
 if [ "$TARGET" = staging ] && [ -n "${STAGING_DOMAIN:-}" ]; then
   vercel_cli alias set "$url" "$STAGING_DOMAIN" --token="$VERCEL_TOKEN" >/dev/null
 fi
