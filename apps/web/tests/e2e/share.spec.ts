@@ -1,13 +1,12 @@
-// T-601 · I02 Share a report (BE-27) on S-NV2-026 Export, send, share. An editor shares an issued report by link and by
-// email, sees and revokes the shares, and downloads the PDF; revoking stops the share and never the verification of the
-// document. A report is seeded as the worker writes it (T-405), its PDF in the reports bucket. The recipient's page
-// /share/<token> waits on question 1 of #58, so the share's own answer is read from app.open_share as the service
-// role here (test setup only), the way that page will read it. Until that page exists the screen makes no share
-// (orchestrator decision on the T-601 pull request), so the tests make shares through app.create_share as the editor.
+// T-601, T-604 · I02 Share a report (BE-27, D-30) on S-NV2-026 Export, send, share and the recipient's page
+// /share/<token>. An editor shares an issued report by link and by email from the screen, sees and revokes the shares,
+// and downloads the PDF; an anonymous visitor opens the link, reads the face facts and downloads the PDF through the
+// `share` Edge Function; revoking stops that page and never the verification of the document, which /verify/<ref>
+// still answers. A report is seeded as the worker writes it (T-405), its PDF in the reports bucket.
 import { createHash, randomBytes } from "node:crypto";
 import AxeBuilder from "@axe-core/playwright";
 import { settled } from "./support/settled";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Browser, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "../../src/lib/database.types";
 import { expectLikeBaseline, type Region } from "./support/baseline";
@@ -58,15 +57,34 @@ async function share(id: string) {
   return data;
 }
 
-/** What the share page will be told for a token (app.open_share, service role only). */
+/** What the share function is told for a token (app.open_share, service role only; test setup reads it directly). */
 async function openShare(token: string) {
   const { data, error } = await admin().schema("app").rpc("open_share", { p_token: token, p_user_agent: "e2e" });
   if (error) throw error;
   return data as Record<string, unknown>;
 }
 
-/** A link share made the way the screen will make it once the recipient page exists: app.create_share as the editor. */
-let createLink: () => Promise<string>;
+/**
+ * An anonymous visitor: a fresh context with no session. Each gets its own forwarded address, so the per-visitor budgets
+ * of /share and /verify (30 a minute each, in server memory) are this test's own and never verify.spec.ts's.
+ */
+async function anonymous(browser: Browser, baseURL: string, n: number) {
+  const context = await browser.newContext({ baseURL, extraHTTPHeaders: { "x-forwarded-for": `198.51.100.${n}` } });
+  const page = await context.newPage();
+  return { context, page };
+}
+
+/** The link the screen shows once after "Create a link", and its token. */
+async function createLinkOnScreen(page: Page): Promise<{ link: string; token: string }> {
+  const s = screen(page);
+  await s.getByRole("button", { name: "Create a link" }).click();
+  const field = s.getByLabel("Share link");
+  await expect(field).toBeVisible();
+  const link = await field.inputValue();
+  const token = /\/share\/([A-Za-z0-9_-]{43})$/.exec(link)?.[1];
+  expect(token, link).toBeTruthy();
+  return { link, token: token! };
+}
 
 // The free-labels panel and the "Send it" heading row, where the design draws them at 1600 px. The rest of the left
 // column is wider than the design's, which draws the Compliance Worker panel beside it (out of scope, #24).
@@ -116,16 +134,9 @@ test.describe("share a report (I02, S-NV2-026)", () => {
       .single();
     if (report.error) throw report.error;
     reportId = report.data.id;
-    createLink = async () => {
-      const made = await ed.db.schema("app").rpc("create_share", { p_report: reportId, p_channel: "link", p_expires_in_days: 30 });
-      if (made.error) throw made.error;
-      const token = (made.data as { token: string }).token;
-      expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
-      return token;
-    };
   });
 
-  test("[I02.main] Share a report: the main path works end to end", async ({ page, context, baseURL }) => {
+  test("[I02.main] Share a report: the main path works end to end", async ({ page, context, baseURL, browser }) => {
     test.setTimeout(180_000);
     await signIn(context, ed, baseURL!);
     const errors = watch(page);
@@ -139,67 +150,95 @@ test.describe("share a report (I02, S-NV2-026)", () => {
     await expectLikeBaseline(page, s.getByRole("region", { name: "On your three free labels" }), "S-NV2-026", S_NV2_026.freePanel, maxDiffPixelRatio);
     await expectLikeBaseline(page, s.getByRole("heading", { name: "Send it" }).locator(".."), "S-NV2-026", S_NV2_026.sendHeading, maxDiffPixelRatio);
 
-    // The screen makes no share until the recipient page exists (#58 Q1, follow-up issue): Email and Share by link
-    // say so instead of offering a control.
-    await expect(s.locator("[data-not-yet]")).toHaveCount(2);
-    await expect(s.getByRole("button", { name: /Create a link|^Send$/ })).toHaveCount(0);
-
-    // Share by link through app.create_share under the editor's own session: the token comes back once; only its
-    // SHA-256 is stored; the share opens the report and is logged; the screen lists it.
-    const token = await createLink();
+    // Share by link: the URL is shown once; only its SHA-256 is stored; the screen lists it.
+    const { link, token } = await createLinkOnScreen(page);
+    expect(link).toBe(`${new URL(baseURL!).origin}/share/${token}`);
     const { data: rows } = await admin().schema("app").from("shares").select("id, token_hash, channel, expires_at").eq("report_id", reportId);
     expect(rows).toHaveLength(1);
     expect(rows![0].channel).toBe("link");
     expect(String(rows![0].token_hash).replace(/^\\x/, "")).toBe(sha256(token));
     expect(Date.parse(rows![0].expires_at!) - Date.now()).toBeGreaterThan(29 * 86_400_000);
-    const opened = await openShare(token);
-    expect(opened).toMatchObject({ status: "open", ref, product_name: "Salmon & Rice Adult 12 kg", has_not_assessed: true });
-    const { data: log } = await admin().schema("app").from("share_access_log").select("share_id").eq("share_id", rows![0].id);
-    expect(log).toHaveLength(1);
-    await openSend(page, url(), "loaded");
     await expect(s.locator(`[data-share="${rows![0].id}"]`)).toHaveAttribute("data-share-status", "live");
+    await axe(page);
 
-    // Email, with no expiry: the notify job holds ids only, and the worker emails Template 01 with its own token.
-    const recipient = `buyer-${randomBytes(4).toString("hex")}@example.test`;
-    const emailed = await ed.db.schema("app").rpc("create_share", {
-      p_report: reportId, p_channel: "email", p_recipient: recipient, p_expires_in_days: null as unknown as number,
-    });
-    expect(emailed.error).toBeNull();
-    const mailedId = (emailed.data as { share_id: string }).share_id;
-    expect((await share(mailedId)).expires_at).toBeNull();
-    const { data: jobs } = await admin().schema("app").from("jobs").select("payload").eq("idempotency_key", `share:${mailedId}`);
-    expect(jobs).toHaveLength(1);
-    expect(Object.keys(jobs![0].payload as object).sort()).toEqual(["share_id", "template"]);
-    if (haveMail()) {
-      const path = await shareLinkFromEmail(recipient);
-      const mailedToken = path.split("/").pop()!;
-      expect((await share(mailedId)).token_hash.replace(/^\\x/, "")).toBe(sha256(mailedToken));
-      expect(await openShare(mailedToken)).toMatchObject({ status: "open", ref });
-    }
-    await openSend(page, url(), "loaded");
-    await expect(s.locator("li[data-share]").filter({ hasText: recipient })).toContainText("NO EXPIRY");
+    // The recipient: an anonymous visitor opens the link and reads the report's face facts, through the share function,
+    // and the open is logged.
+    const visitor = await anonymous(browser, baseURL!, 11);
+    const visitorErrors = watch(visitor.page);
+    await visitor.page.goto(`/share/${token}`);
+    const card = visitor.page.getByTestId("share-result");
+    await expect(card).toHaveAttribute("data-status", "open");
+    await expect(card.getByRole("heading", { level: 2 })).toHaveText("Salmon & Rice Adult 12 kg · EU-DE");
+    await expect(card).toContainText(ref);
+    await expect(card).toContainText("Halden Pet Nutrition");
+    await expect(card).toContainText("25 August 2026");
+    await expect(card).toContainText("0000.00-empty");
+    await expect(card).toContainText("Yes — the report lists them by name");
+    await expect(card.getByRole("link", { name: "VERIFY THIS REFERENCE" })).toHaveAttribute("href", `/verify/${ref}`);
+    await axe(visitor.page);
+    const { data: log } = await admin().schema("app").from("share_access_log").select("share_id, user_agent, ip_hash").eq("share_id", rows![0].id);
+    expect(log).toHaveLength(1);
+    expect(log![0].ip_hash).toBeNull();
+    expect(log![0].user_agent).toBeTruthy();
 
-    // Export: the stored PDF downloads under the editor's own session.
-    const download = page.waitForEvent("download");
-    await s.getByRole("button", { name: "Download the PDF" }).click();
+    // Download PDF: a signed link to the stored PDF, valid for 300 s, named after the reference.
+    const signed = visitor.page.waitForRequest((r) => r.url().includes("/storage/v1/object/sign/reports/"));
+    const download = visitor.page.waitForEvent("download");
+    await card.getByRole("button", { name: "Download PDF" }).click();
+    const pdfUrl = new URL((await signed).url());
+    const claims = JSON.parse(Buffer.from(pdfUrl.searchParams.get("token")!.split(".")[1], "base64url").toString());
+    expect(claims.exp - claims.iat).toBe(300);
     const file = await download;
     expect(file.suggestedFilename()).toBe(`${ref}.pdf`);
     expect(Buffer.concat((await (await file.createReadStream()).toArray()) as Buffer[]).subarray(0, 5).toString()).toBe("%PDF-");
+    expect(visitorErrors).toEqual([]);
+    await visitor.context.close();
+
+    // Email, with no expiry: the notify job holds ids only, and the worker emails Template 01 with its own token, which
+    // opens the same page.
+    const recipient = `buyer-${randomBytes(4).toString("hex")}@example.test`;
+    await s.getByLabel("Expires").selectOption("never");
+    await s.getByLabel("Recipient email").fill(recipient);
+    await s.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(s.getByText(`Queued for ${recipient}.`)).toBeVisible();
+    await expect(s.locator("li[data-share]").filter({ hasText: recipient })).toContainText("NO EXPIRY");
+    const { data: mailed } = await admin().schema("app").from("shares").select("id, expires_at").eq("report_id", reportId).eq("channel", "email").single();
+    expect(mailed!.expires_at).toBeNull();
+    const { data: jobs } = await admin().schema("app").from("jobs").select("payload").eq("idempotency_key", `share:${mailed!.id}`);
+    expect(jobs).toHaveLength(1);
+    expect(Object.keys(jobs![0].payload as object).sort()).toEqual(["request_id", "share_id", "template"]);
+    if (haveMail()) {
+      const path = await shareLinkFromEmail(recipient);
+      const mailedToken = path.split("/").pop()!;
+      expect((await share(mailed!.id)).token_hash.replace(/^\\x/, "")).toBe(sha256(mailedToken));
+      expect(await openShare(mailedToken)).toMatchObject({ status: "open", ref });
+    }
+
+    // Export: the stored PDF downloads under the editor's own session.
+    const exported = page.waitForEvent("download");
+    await s.getByRole("button", { name: "Download the PDF" }).click();
+    const exportedFile = await exported;
+    expect(exportedFile.suggestedFilename()).toBe(`${ref}.pdf`);
     await axe(page);
     expect(errors).toEqual([]);
   });
 
-  test("[I02.must.1] Revoking a link stops the page, never verification of the document (BE-27).", async ({ page, context, baseURL }) => {
+  test("[I02.must.1] Revoking a link stops the page, never verification of the document (BE-27).", async ({ page, context, baseURL, browser }) => {
+    test.setTimeout(120_000);
     await signIn(context, ed, baseURL!);
     const errors = watch(page);
     await openSend(page, url(), "loaded");
     const s = screen(page);
-    const token = await createLink();
-    expect(await openShare(token)).toMatchObject({ status: "open" });
-    await openSend(page, url(), "loaded");
+    const { token } = await createLinkOnScreen(page);
     const { data } = await admin().schema("app").from("shares").select("id").eq("token_hash", `\\x${sha256(token)}`).single();
     const row = s.locator(`li[data-share="${data!.id}"]`);
     await expect(row).toHaveAttribute("data-share-status", "live");
+
+    // The anonymous visitor's page opens before the revoke.
+    const visitor = await anonymous(browser, baseURL!, 12);
+    const visitorErrors = watch(visitor.page);
+    await visitor.page.goto(`/share/${token}`);
+    await expect(visitor.page.getByTestId("share-result")).toHaveAttribute("data-status", "open");
 
     await row.getByRole("button", { name: /^Revoke/ }).click();
     const dialog = page.getByRole("dialog");
@@ -210,18 +249,29 @@ test.describe("share a report (I02, S-NV2-026)", () => {
     await expect(row.getByRole("button")).toHaveCount(0);
     expect((await share(data!.id)).revoked_at).not.toBeNull();
 
-    // The share answers exactly as an unknown token does: the page stops.
-    expect(await openShare(token)).toEqual({ status: "unknown" });
-    expect(await openShare("A".repeat(43))).toEqual({ status: "unknown" });
-    // The document still verifies: public.verify_reference as anon, the one function the verify Edge Function calls
-    // (contract 8). Not through /verify itself: that page allows 30 checks a minute per visitor, and every e2e test is
-    // the same visitor, so this spec leaves that budget to verify.spec.ts, which tests the page.
-    const anon = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
-      auth: { persistSession: false },
-    });
-    const verified = await anon.rpc("verify_reference", { p_ref: ref });
-    expect(verified.error).toBeNull();
-    expect((verified.data as { status: string }).status).toBe("current");
+    // The page stops: Download PDF on the page already open finds the link revoked and reloads into the unknown answer,
+    // and the link opened afresh reads exactly as a link that never existed.
+    await visitor.page.getByRole("button", { name: "Download PDF" }).click();
+    const card = visitor.page.getByTestId("share-result");
+    await expect(card).toHaveAttribute("data-status", "unknown");
+    await expect(card.getByRole("heading", { level: 2 })).toHaveText("No shared report at this link.");
+    await expect(card).not.toContainText(ref);
+    await visitor.page.goto(`/share/${token}`);
+    await expect(card).toHaveAttribute("data-status", "unknown");
+    const revokedText = await card.innerText();
+    await axe(visitor.page);
+    await visitor.page.goto(`/share/${"A".repeat(43)}`);
+    await expect(card).toHaveAttribute("data-status", "unknown");
+    expect(await card.innerText()).toBe(revokedText);
+    await visitor.page.goto("/share/not-a-token");
+    await expect(card).toHaveAttribute("data-status", "unknown");
+    expect(await card.innerText()).toBe(revokedText);
+
+    // The document still verifies: /verify/<ref> answers current for the same report.
+    await visitor.page.goto(`/verify/${ref}`);
+    await expect(visitor.page.getByTestId("verify-result")).toHaveAttribute("data-status", "current");
+    expect(visitorErrors).toEqual([]);
+    await visitor.context.close();
     expect(errors).toEqual([]);
   });
 
@@ -247,9 +297,12 @@ test.describe("share a report (I02, S-NV2-026)", () => {
       const response = await page.request.get(href!, { maxRedirects: 0 });
       expect(response.status(), href!).toBeLessThan(400);
     }
-    // Its buttons: Download the PDF (tested in I02.main) and Revoke, each behind its own flow; nothing else.
+    // Its buttons: Download the PDF, Create a link, Send and Revoke (each tested above); Send checks the address first.
     const buttons = await s.getByRole("button").filter({ visible: true }).allInnerTexts();
-    for (const b of buttons) expect(b).toMatch(/^(Download the PDF|Revoke[\s\S]*)$/);
+    for (const b of buttons) expect(b).toMatch(/^(Download the PDF|Create a link|Send|Revoke[\s\S]*)$/);
+    await s.getByLabel("Recipient email").fill("not an address");
+    await s.getByRole("button", { name: "Send", exact: true }).click();
+    await expect(s.getByRole("alert")).toHaveText("Enter one email address.");
     expect(errors).toEqual([]);
 
     await context.clearCookies();

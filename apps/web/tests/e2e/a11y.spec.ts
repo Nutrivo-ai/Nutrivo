@@ -3,7 +3,7 @@
 // impact; support/a11y.ts), for a page title of its own (2.4.2) and a skip link to <main> (2.4.1). The workspace routes
 // are also checked for reflow at 320 px (1.4.10).
 //
-// States: signed out (public, auth, verification, invitation, supplier links, the kit); a workspace admin with a
+// States: signed out (public, auth, verification, invitation, supplier and share links, the kit); a workspace admin with a
 // product in four markets (populated); the same admin in a workspace with no products (empty); a viewer (what a
 // read-only role sees, with no write controls); and a person outside the workspace (no access). Routes that name a
 // check, an artwork or an invoice are opened with an id that does not exist, so they show their not-found state.
@@ -32,6 +32,7 @@ const PUBLIC = [
   "/verify/NV-0000-0000",
   `/invite/${randomUUID()}`,
   `/supplier/${randomUUID()}`,
+  `/share/${"A".repeat(43)}`,
   "/kit",
   "/kit/shell",
   "/kit/empty-and-error-states",
