@@ -42,16 +42,11 @@ export const WORKSPACE_ROUTES: WorkspaceRoute[] = [
   { route: "/w/[workspace]/board", screens: ["S-NV2-006", "S-MIS-003", "S-MOB-001"], title: "Board", crumb: "Portfolio", role: "viewer" },
   { route: "/w/[workspace]/products/[product]/nodes/[node]", screens: ["S-NV2-007", "S-MOB-003"], title: "Product × node", crumb: "Portfolio", role: "viewer" },
   { route: "/w/[workspace]/obligations", screens: ["S-NV2-008"], title: "Obligations", crumb: "Portfolio", role: "viewer" },
-  { route: "/w/[workspace]/certificates", screens: ["S-NV2-009"], title: "Certificates", crumb: "Portfolio", role: "viewer" },
   { route: "/w/[workspace]/documents", screens: ["S-NV2-010"], title: "Documents", crumb: "Portfolio", role: "viewer" },
-  { route: "/w/[workspace]/screening", screens: ["S-NV2-011"], title: "Ingredients & formulas", crumb: "Screening", role: "editor" },
-  { route: "/w/[workspace]/library/terms", screens: ["S-NV2-012"], title: "Term register", crumb: "Library", role: "viewer" },
   { route: "/w/[workspace]/library/coverage", screens: ["S-NV2-013"], title: "Coverage & confidence", crumb: "Library", role: "viewer" },
   { route: "/w/[workspace]/library/suppliers", screens: ["S-NV2-014"], title: "Suppliers", crumb: "Library", role: "viewer" },
-  { route: "/w/[workspace]/monitoring", screens: ["S-NV2-015"], title: "Monitoring & alerts", crumb: "Operations", role: "viewer" },
   { route: "/w/[workspace]/settings", screens: ["S-NV2-017"], title: "Settings & roles", crumb: "Operations", role: "admin" },
   { route: "/w/[workspace]/exports", screens: ["S-NV2-018"], title: "Exports", crumb: "Operations", role: "viewer" },
-  { route: "/w/[workspace]/markets", screens: ["S-NV2-019"], title: "Jurisdiction tree", crumb: "Jurisdictions", role: "viewer" },
   { route: "/w/[workspace]/products/[product]/nodes/[node]/registration", screens: ["S-NV2-020"], title: "Registration pack", crumb: "Jurisdictions", role: "viewer" },
   { route: "/w/[workspace]/library/coverage/[node]", screens: ["S-NV2-021"], title: "Coverage node", crumb: "Jurisdictions", role: "viewer" },
   { route: "/w/[workspace]/products/new", screens: ["S-NV2-022"], title: "Add a product", crumb: "Products", role: "editor" },
@@ -97,15 +92,12 @@ export const NAV: NavGroup[] = [
     items: [
       { label: "Board", screen: "S-NV2-006", route: "/w/[workspace]/board" },
       { label: "Obligations", screen: "S-NV2-008", route: "/w/[workspace]/obligations" },
-      { label: "Certificates", screen: "S-NV2-009", route: "/w/[workspace]/certificates" },
       { label: "Documents", screen: "S-NV2-010", route: "/w/[workspace]/documents" },
     ],
   },
-  { label: "Screening", items: [{ label: "Ingredients & formulas", screen: "S-NV2-011", route: "/w/[workspace]/screening" }] },
   {
     label: "Library",
     items: [
-      { label: "Term register", screen: "S-NV2-012", route: "/w/[workspace]/library/terms" },
       { label: "Coverage & confidence", screen: "S-NV2-013", route: "/w/[workspace]/library/coverage" },
       { label: "Suppliers", screen: "S-NV2-014", route: "/w/[workspace]/library/suppliers" },
     ],
@@ -113,12 +105,10 @@ export const NAV: NavGroup[] = [
   {
     label: "Operations",
     items: [
-      { label: "Monitoring & alerts", screen: "S-NV2-015", route: "/w/[workspace]/monitoring" },
       { label: "Exports", screen: "S-NV2-018", route: "/w/[workspace]/exports" },
       { label: "Settings & roles", screen: "S-NV2-017", route: "/w/[workspace]/settings" },
     ],
   },
-  { label: "Jurisdictions", items: [{ label: "Jurisdiction tree", screen: "S-NV2-019", route: "/w/[workspace]/markets" }] },
   {
     label: "Products",
     items: [

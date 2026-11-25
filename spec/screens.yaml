@@ -151,7 +151,7 @@ screens:
     state: {screen: certificates}
     route: /w/[workspace]/certificates
     role: viewer
-    scope: build
+    scope: later
     viewports: [1600]
     workflows: [I03, I04]
     data: [app.certificates, app.reports]
@@ -178,7 +178,7 @@ screens:
     state: {screen: recipe}
     route: /w/[workspace]/screening
     role: editor
-    scope: build
+    scope: later
     viewports: [1600]
     workflows: []
     data: [ref.feed_additives, ref.feed_materials]
@@ -192,7 +192,7 @@ screens:
     state: {screen: terms}
     route: /w/[workspace]/library/terms
     role: viewer
-    scope: build
+    scope: later
     viewports: [1600]
     workflows: [K03]
     data: [ref.term_entries, ref.term_decisions, ref.glossary_entries]
@@ -231,7 +231,7 @@ screens:
     state: {screen: monitoring}
     route: /w/[workspace]/monitoring
     role: viewer
-    scope: build
+    scope: later
     viewports: [1600]
     workflows: [J03, J04, J05]
     data: [app.alerts, app.alert_reads, ref.rule_diffs, ref.horizon_items, app.affected_objects]
@@ -286,7 +286,7 @@ screens:
     state: {screen: tree}
     route: /w/[workspace]/markets
     role: viewer
-    scope: build
+    scope: later
     viewports: [1600]
     workflows: [F01, G01]
     data: [ref.jurisdictions, app.rollup_state, app.product_nodes]
