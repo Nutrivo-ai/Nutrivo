@@ -131,7 +131,11 @@ admin can start it.
    `NUTRIVO_RELEASE`, never printed); a missing one, a value that is not a `whsec_` signing secret or a DSN outside
    Sentry's EU region stops the deploy there. Before deploying the worker it records the deploy that was live, as its
    rollback target.
-3. Runs the `@smoke` suite against the build it just deployed (`STAGING_DOMAIN`, or the deployment's own URL).
+3. Runs the `@smoke` suite against the build it just deployed (`STAGING_DOMAIN`, or the deployment's own URL): health,
+   the home page, and the synthetic user (#183, `tests/e2e/smoke-synthetic.spec.ts`), who signs in, runs a full export
+   through the queue and the worker to `succeeded` in the workspace "Synthetic monitoring" (made once, the first time,
+   then reused), and gets "unknown" from `verify` for a reference that cannot exist. Staging only: it skips without
+   `SYNTHETIC_USER_EMAIL`, `SYNTHETIC_USER_PASSWORD` and the service role, and for `make smoke ENV=prod`.
 4. Creates the Sentry release (the git SHA) and marks the staging deploy.
 5. Runs the doctor with `--strict`, which includes the Sentry, Langfuse and PostHog round-trip. After T-010 a check
    that skips fails, and a Sentry DSN or PostHog host outside the EU fails.
