@@ -9,12 +9,14 @@ import { verificationFacts, type Verification, type VerifyOutcome } from "@/lib/
 // on #48, Q1). The design draws the Current result; Superseded and Unknown use the same card in the colours and words
 // of the design's own state tiles.
 
-type Tone = "clear" | "action" | "none";
+export type Tone = "clear" | "action" | "none" | "neutral";
 
-const TONE: Record<Tone, { edge: string; text: string; bg: string }> = {
+export const TONE: Record<Tone, { edge: string; text: string; bg: string }> = {
   clear: { edge: "border-t-clear", text: "text-clear", bg: "bg-clear-bg" },
   action: { edge: "border-t-action", text: "text-action", bg: "bg-action-bg" },
   none: { edge: "border-t-na", text: "text-na", bg: "bg-na-bg" },
+  // Not a state of the document: a shared report as it reads (T-604). Ink, never a state colour or the accent.
+  neutral: { edge: "border-t-ink", text: "text-ink", bg: "bg-paper" },
 };
 
 const STATES: { k: string; v: string; tone: Tone }[] = [
@@ -33,63 +35,61 @@ const RESULT: Record<Verification["status"], { label: string; title: string; ton
   unknown: { label: "Unknown", title: "No document with that reference.", tone: "none" },
 };
 
-const mono = "font-mono uppercase";
+export const mono = "font-mono uppercase";
 
-/** The page: a header strip and the grey frame around the card, 16 px gutters at phone width. */
-export function VerifyPage({ reference, children }: { reference: string; children?: ReactNode }) {
+export type StateTile = { k: string; v: string; tone: Tone };
+
+/**
+ * The public page S-NV2-027 draws: a header strip, the grey frame around one card, and the state tiles under it, 16 px
+ * gutters at phone width. /verify and /share (I02, T-604, laid out like this screen) fill the card.
+ */
+export function PublicCardFrame({
+  heading,
+  intro,
+  cardLabel,
+  cardKicker,
+  testId,
+  footnote,
+  states,
+  statesLabel,
+  children,
+}: {
+  heading: string;
+  intro: string;
+  cardLabel: string;
+  cardKicker: string;
+  testId: string;
+  footnote: string;
+  states: StateTile[];
+  statesLabel: string;
+  children?: ReactNode;
+}) {
   return (
     <div className="min-h-screen flex flex-col bg-paper text-ink text-[14px]">
       <header className="flex items-end justify-between gap-[20px] border-b border-ink bg-paper py-[14px] px-[16px] md:px-[26px]">
         <div>
           <p className={cx(mono, "m-0 text-[10px] tracking-[0.14em] text-accent")}>Public · no account</p>
-          <h1 className="mt-[4px] mb-0 text-[22px] font-semibold leading-[1.1] tracking-[-0.02em]">Verify a reference</h1>
+          <h1 className="mt-[4px] mb-0 text-[22px] font-semibold leading-[1.1] tracking-[-0.02em]">{heading}</h1>
         </div>
         <Link href="/" aria-label="Nutrivo home" className="focus-visible:outline-2 focus-visible:outline-accent">
           <Wordmark size="header" />
         </Link>
       </header>
       <main id="main" className="flex-1 py-[24px] px-[16px] md:px-[26px]">
-        <p className="mt-0 mb-[16px] text-[13px] leading-[1.55] text-n600 max-w-[76ch]">
-          Public page, no account. It answers one question about one reference and nothing else: never the composition,
-          never the findings, never who the customer is.
-        </p>
+        <p className="mt-0 mb-[16px] text-[13px] leading-[1.55] text-n600 max-w-[76ch]">{intro}</p>
         <div className="border border-ink bg-panel py-[34px] px-[12px] md:px-[40px] pb-[40px]">
-          <div data-testid="verify-screen" className="max-w-[640px] mx-auto">
-            <section aria-label="Verify a report or certificate" className="bg-paper border border-ink py-[30px] px-[18px] md:px-[34px]">
+          <div data-testid={testId} className="max-w-[640px] mx-auto">
+            <section aria-label={cardLabel} className="bg-paper border border-ink py-[30px] px-[18px] md:px-[34px]">
               <p className="m-0 flex items-end gap-[4px] font-head text-[20px] font-semibold tracking-[-0.045em] leading-none">
                 <span>nutrivo</span>
                 <span aria-hidden="true" className="inline-block w-[6px] h-[6px] bg-accent mb-[2px]" />
               </p>
-              <p className={cx(mono, "mt-[4px] mb-0 text-[10px] tracking-[0.1em] text-n600")}>Verify a report or certificate</p>
-              <form action="/verify" method="get" role="search" className="mt-[22px] flex">
-                <label htmlFor="verify-ref" className="sr-only">Reference</label>
-                <input
-                  id="verify-ref"
-                  name="ref"
-                  defaultValue={reference}
-                  required
-                  autoComplete="off"
-                  spellCheck={false}
-                  maxLength={64}
-                  placeholder="Reference printed on the report"
-                  className="flex-1 min-w-0 border border-n400 border-r-0 py-[11px] px-[13px] font-mono text-[13px] leading-[1.55] text-ink bg-paper rounded-none placeholder:text-n500 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
-                />
-                <button
-                  type="submit"
-                  className="border-0 bg-accent text-paper font-mono text-[11px] tracking-[0.06em] py-[12px] px-[18px] leading-[1.55] cursor-pointer rounded-none hover:bg-accent-600 focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
-                >
-                  VERIFY
-                </button>
-              </form>
+              <p className={cx(mono, "mt-[4px] mb-0 text-[10px] tracking-[0.1em] text-n600")}>{cardKicker}</p>
               {children}
-              <p className="mt-[18px] mb-0 text-[12.5px] leading-[1.6] text-n700">
-                This page confirms that a document exists, when it was issued, which ruleset version it was produced
-                against, and whether items were left not assessed. It does not confirm that the product is compliant, and it
-                does not show the label, the composition or the findings.
-              </p>
+              <p className="mt-[18px] mb-0 text-[12.5px] leading-[1.6] text-n700">{footnote}</p>
             </section>
-            <ul className="list-none p-0 mx-0 mb-0 mt-[20px] grid grid-cols-1 sm:grid-cols-3 gap-[12px]" aria-label="What each answer means">
-              {STATES.map((s) => (
+            <ul className="list-none p-0 mx-0 mb-0 mt-[20px] grid grid-cols-1 sm:grid-cols-3 gap-[12px]" aria-label={statesLabel}>
+              {states.map((s) => (
                 <li key={s.k} className={cx("border border-rule border-t-[3px] py-[12px] px-[14px] bg-paper", TONE[s.tone].edge)}>
                   <p className={cx(mono, "m-0 text-[10px] tracking-[0.08em]", TONE[s.tone].text)}>{s.k}</p>
                   <p className="mt-[6px] mb-0 text-[12px] leading-[1.5] text-n700">{s.v}</p>
@@ -100,6 +100,44 @@ export function VerifyPage({ reference, children }: { reference: string; childre
         </div>
       </main>
     </div>
+  );
+}
+
+/** The verify page: the frame, with the reference form at the top of the card. */
+export function VerifyPage({ reference, children }: { reference: string; children?: ReactNode }) {
+  return (
+    <PublicCardFrame
+      heading="Verify a reference"
+      intro="Public page, no account. It answers one question about one reference and nothing else: never the composition, never the findings, never who the customer is."
+      cardLabel="Verify a report or certificate"
+      cardKicker="Verify a report or certificate"
+      testId="verify-screen"
+      footnote="This page confirms that a document exists, when it was issued, which ruleset version it was produced against, and whether items were left not assessed. It does not confirm that the product is compliant, and it does not show the label, the composition or the findings."
+      states={STATES}
+      statesLabel="What each answer means"
+    >
+      <form action="/verify" method="get" role="search" className="mt-[22px] flex">
+        <label htmlFor="verify-ref" className="sr-only">Reference</label>
+        <input
+          id="verify-ref"
+          name="ref"
+          defaultValue={reference}
+          required
+          autoComplete="off"
+          spellCheck={false}
+          maxLength={64}
+          placeholder="Reference printed on the report"
+          className="flex-1 min-w-0 border border-n400 border-r-0 py-[11px] px-[13px] font-mono text-[13px] leading-[1.55] text-ink bg-paper rounded-none placeholder:text-n500 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+        />
+        <button
+          type="submit"
+          className="border-0 bg-accent text-paper font-mono text-[11px] tracking-[0.06em] py-[12px] px-[18px] leading-[1.55] cursor-pointer rounded-none hover:bg-accent-600 focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
+        >
+          VERIFY
+        </button>
+      </form>
+      {children}
+    </PublicCardFrame>
   );
 }
 

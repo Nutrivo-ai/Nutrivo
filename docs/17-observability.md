@@ -5,7 +5,9 @@ Every failure is seen within minutes, every model call can be explained later, a
 ## Sentry: errors, performance, crons
 - **Projects and setup.**
   - Projects `SENTRY_PROJECT_WEB` (@sentry/nextjs: client, server and edge) and `SENTRY_PROJECT_WORKER` (sentry-sdk),
-    plus `nutrivo-functions` for the stripe-webhook Edge Function (@sentry/deno, DSN `SENTRY_DSN_FUNCTIONS`).
+    plus `nutrivo-functions` for the stripe-webhook and share Edge Functions (@sentry/deno, DSN `SENTRY_DSN_FUNCTIONS`;
+    share, T-604, sends its failures the same way: `misconfigured`, `db_unreachable`, `db_error`, `bad_shape` and the
+    Storage ones, tagged with the outcome and request id, never the token).
     The function sends only the failures Stripe retries (`misconfigured`, `db_unreachable`, `db_error`,
     `exception`), as a message tagged with the event id, type and outcome. It has no default integrations, no request
     and no payload; its environment and release are `NUTRIVO_ENV` and `NUTRIVO_RELEASE`.
@@ -89,7 +91,8 @@ Every failure is seen within minutes, every model call can be explained later, a
 
 ## PostHog: product analytics and kill switches
 - **Events:** `workspace_created`, `artwork_uploaded`, `check_completed`, `report_shared`, `checkout_started`,
-  `plan_started`.
+  `plan_started`. `report_shared` is sent from S-NV2-026 when a share is made (T-604), with `report_id`, `share_id`
+  and `channel` (`link` or `email`) only: never the token or the recipient's address.
 - **Feature flags as kill switches:** `ff_claim_judgement`, `ff_supplier_upload`, `ff_exports`. Session replay
   is off.
 - **Only these events are sent (D-25):** `posthog-js` starts with `autocapture`, `capture_pageview`,

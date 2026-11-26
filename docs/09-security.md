@@ -36,7 +36,9 @@ carries a reference. Rate limits are best-effort and per instance (below, Rate l
 | `/verify/[ref]` in the web app | 30 a minute per visitor | `apps/web/src/lib/public/verify.ts` |
 | `supplier-upload` Edge Function | 30 a minute per client, 600 per instance; 25 MiB per file | `supabase/functions/supplier-upload/upload.js` |
 | `stripe-webhook` Edge Function | No rate limit: only a request with Stripe's signature over the exact payload, at most 300 s old and 1 MiB, reaches the database | `supabase/functions/stripe-webhook/webhook.js` |
-| `share` Edge Function (D-30) | Not built yet; it must copy `verify`'s limiter, and `worker/tests/test_security_sweep.py` fails a public function without one | — |
+| `share` Edge Function (D-30, T-604) | 60 a minute per client, 1,200 per instance, 429 with Retry-After (`verify`'s limiter) | `supabase/functions/share/share.js` |
+| `/share/[token]` in the web app | 30 a minute per visitor (its own budget, separate from `/verify`'s) | `apps/web/src/lib/public/share.ts` |
+| Email shares (D-30, T-604) | 50 per workspace per UTC day, every email share counted (revoked ones too, link shares never); refused with P0050 and `{limit, resets_at}` | `app.create_share` (migration 20261125104559) |
 | RPCs that queue work or email (T-1103) | Per signed-in person and per workspace, per job kind, over a sliding hour: check and extract 300 / 1,500, report 120 / 600, envelope 60 / 300, export 10 / 30, notify (invitations, document requests, shares) 60 / 200. Refused with P0049 and `{kind, retry_after_s}` (the seconds until the sliding count allows one more; the web shows "Too many requests; try again in N minutes" and does not report it to Sentry); the RPC rolls back, so nothing is queued or sent. The worker, pg_cron and the service role are never limited; a request answered by an existing job is not counted | `private.enqueue` → `private.rate_limit_job`, limits in `private.rate_limits` (defaults pending #81); counters older than two days are purged by the daily `rate_purge` job (Sentry cron `rate-counter-purge`) |
 | Supabase Auth | Per IP: 30 sign-ins and sign-ups and 30 code verifications per 5 minutes, 150 token refreshes per 5 minutes; minimum password length 12, as the web requires | `supabase/config.toml` `[auth]`, `[auth.rate_limit]`; the hosted projects set the same in the dashboard |
 
@@ -69,8 +71,12 @@ invitation token is minted inside the `notify` job and exists only in that proce
 a new one, which replaces the undelivered one. A link share's token is the exception (T-601, D-30): the person
 needs the URL at once, and a job must never carry a token, so `app.create_share` makes the 32 bytes in the database
 (`gen_random_bytes`), stores the SHA-256 and returns the token once to the sharer's browser; it is never logged or
-stored, and the web's Sentry scrubber redacts `/share/<token>` like `/invite/<token>`. A revoked, expired or unknown share token gets the identical `unknown` answer, and revoking a share never
-touches `public.verify_reference` (BE-27). Share reads are scoped to the report's product (`app.shares.product_id`).
+stored, and the web's Sentry scrubber redacts `/share/<token>` like `/invite/<token>`. The recipient's page `/share/<token>` reaches `app.open_share` only through the `share` Edge Function (D-30, T-604),
+which holds the service role (the web server never does), takes only the token, in a POST body and never a URL, and
+logs the outcome and request id, never the token. A revoked, expired, unknown or malformed share token gets the
+identical `{"status":"unknown"}` answer, and revoking a share never
+touches `public.verify_reference` (BE-27). The recipient's PDF link is signed by that function for 300 s, freshly on
+each Download PDF, as the editor's own download under their session (`apps/web/src/lib/share/actions.ts`). Share reads are scoped to the report's product (`app.shares.product_id`).
 Buckets are private and path-prefixed by workspace id. Supplier uploads land in quarantine, are scanned (ClamAV),
 then promoted (T-802): a supplier link is 32 random bytes minted by the worker, stored only as SHA-256, emailed once, and
 sent by the portal to the `supplier-upload` function in a POST body only; it reaches one request and is used up by the
@@ -80,7 +86,7 @@ and audit events carry ids only. The scan is `clamscan` inside the worker contai
 at image build); no outside scanning service is used. A file that cannot be scanned is never promoted. Reads of artwork, documents and reports follow the record, not the folder: `private.can_read_object` finds the row
 that names the object, requires the object's folder to be that row's workspace, and applies the row's product and
 market scope, so a family- or market-scoped member never lists the rest of the workspace's files (#179 DB-5).
-`app.register_artwork` refuses a path outside the caller's workspace and product folder (#179 DB-7). Signed URLs are short-lived (minutes for viewing, 7 days for exports).
+`app.register_artwork` refuses a path outside the caller's workspace and product folder (#179 DB-7). Signed URLs are short-lived (minutes for viewing, 7 days for exports): a report's PDF, for the editor and for a share's recipient, is signed for 300 s.
 
 ## Authentication
 Email and password or magic link with email confirmation; TOTP MFA. Signing requires `aal2`, checked in the
