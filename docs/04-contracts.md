@@ -29,6 +29,12 @@ that are all clear; otherwise it is Not assessed. The answer cites the deciding 
 `gap_id`, and pins the latest check's `ruleset_version` and `artwork_sha`. S-MOB-004 Capture reads and writes nothing:
 no RPC, job or storage path takes a pack photo or compares one with approved artwork (open on #57).
 
+**How one recipe's markets read contract 3 (T-1109).** S-MOB-002 (`/products/[product]`) shows each market as
+`app.product_nodes.display_state` and each region as `app.rollup_state(product, region)` (BE-15); a roll-up better than
+a market it covers is an error, never shown. A market reads Clear only as S-MOB-003 would (its latest job's checks,
+all clear), so a row and the verdict it opens agree. It also reads `app.checks` of each latest job and the latest
+released `ref.ruleset_versions` to back Clear and pin the ruleset (non-negotiables 3 and 5).
+
 **How the board reads contract 3 (T-506).** S-NV2-006 shows each market cell as `app.product_nodes.display_state` and
 each region cell as `app.rollup_state(product, region)` for every product × region the product is sold in, as the
 database answers it; the web never rolls a state up. It reads them in one call, `app.board_rollup(p_workspace)`
