@@ -227,10 +227,11 @@ class ReportSummary:
     """Counts over the report's pinned checks, the same counts the PDF prints. Rules passed counts passed rules;
     Action needed counts findings; Not assessed counts withheld findings plus withheld rules that carry no finding
     (the PDF's section 05); Blocked counts the report's markets whose registration blocks sale (display_state).
-    checked_at is when the latest pinned check ran, not when the report was issued."""
+    checked_at is when the latest pinned check ran, not when the report was issued; None when the report pins no
+    check, and then the email names no date rather than the issue date."""
     product: str
     ruleset_version: str
-    checked_at: datetime
+    checked_at: datetime | None
     markets: int
     panels: int
     clear: int
@@ -258,7 +259,8 @@ def report(*, to: str, sender: str, workspace: str, summary: ReportSummary, url:
         preheader=preheader,
         heading=f"{sender} at {workspace} sent you a report",
         panel_title=s.product,
-        panel_body=(f"Checked against ruleset {s.ruleset_version} on {long_date(s.checked_at)}, for "
+        panel_body=(f"Checked against ruleset {s.ruleset_version}"
+                    f"{f' on {long_date(s.checked_at)}' if s.checked_at else ''}, for "
                     f"{counted(s.markets, 'market')} and {counted(s.panels, 'printed language panel')}."),
         panel_rows=[("Rules passed", str(s.clear)), ("Action needed", str(s.action)),
                     ("Not assessed", str(s.not_assessed)), ("Blocked", str(s.blocked))],

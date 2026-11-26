@@ -153,6 +153,14 @@ def test_I01_v2_says_attested_by_nobody_and_label_clear_with_registration_apart(
     assert "attested by nobody" not in v1 and "LABEL CLEAR" not in v1.upper()
 
 
+def test_I01_v2_keeps_the_artwork_hash_whole_in_the_pdf_text():
+    """[I01.main] v2: the attestation sentence sits below the identifiers, so extracted text (and a copy from the PDF)
+    keeps the 64-character artwork SHA-256 in one piece."""
+    doc = fixture_model()
+    flat = "".join(text_of(r.render(doc)).split())
+    assert SHA in flat
+
+
 def test_I01_main_only_bundled_fonts_are_embedded():
     """[I01.main] Glyphs the Cobalt fonts lack (℮, Greek) come from the bundled fallback, never the system's."""
     embedded = fonts_of(r.render(fixture_model()))

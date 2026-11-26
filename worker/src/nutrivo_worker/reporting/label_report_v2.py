@@ -425,10 +425,12 @@ def _close(v: _View) -> str:
     return ('<div class="close"><p style="flex: 1; font-size: 8.5pt; line-height: 1.55; color: var(--n700)">'
             'This document reflects the artwork with the hash shown, checked against the ruleset shown, and nothing '
             'else. A new artwork or ruleset needs a new check. Anything in section 05 was not assessed and is not a '
-            'pass. This report was generated automatically by Nutrivo and attested by nobody: it is not a '
-            'certificate, an authority\'s decision or legal advice.</p>'
+            'pass.</p>'
             f'<p class="mono ids">Reference {e(v.m["ref"])}<br />Ruleset {e(v.c["ruleset_version"])}<br />'
-            f'Artwork SHA-256 {e(v.c["artwork_sha"] or "unknown")}<br />Issued {e(v.m["issued_at"])}</p></div>')
+            f'Artwork SHA-256 {e(v.c["artwork_sha"] or "unknown")}<br />Issued {e(v.m["issued_at"])}</p></div>'
+            '<p style="font-size: 8.5pt; line-height: 1.55; color: var(--n700); margin-top: 8px">This report was '
+            'generated automatically by Nutrivo and attested by nobody: it is not a certificate, an authority\'s '
+            'decision or legal advice.</p>')
 
 
 def html(model: dict[str, Any], font_css: str) -> str:

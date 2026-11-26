@@ -293,6 +293,15 @@ def test_a_report_never_drops_the_not_assessed_count_and_never_scores():
     assert not re.search(r"%|score|pass mark", e.text, re.IGNORECASE)
 
 
+def test_a_report_with_no_pinned_check_names_no_check_date(mailer):
+    """A report whose pinned checks are not found has no check date: the email says none, never the issue date."""
+    store = report_world()
+    store.reports[REPORT] = {**store.reports[REPORT], "checked_at": None}
+    assert run(store, {"template": "report", "share_id": SHARE}) == "succeeded"
+    [e] = mailer.sent
+    assert "Checked against ruleset 2026.08-b, for three markets" in e.text
+
+
 @pytest.mark.parametrize("state,outcome", [({"revoked_at": datetime.now(UTC)}, "skipped_revoked"),
                                            ({"expires_at": datetime.now(UTC) - timedelta(minutes=1)}, "skipped_expired")])
 def test_a_revoked_or_expired_share_gets_no_email_and_no_token(mailer, state, outcome):
