@@ -16,7 +16,7 @@ import {
 } from "@/components/kit";
 import { Screen } from "@/components/shell";
 import type { ReportPage } from "@/lib/report/queries";
-import type { MarketTile, Pin, ReportFinding, ResultSet } from "@/lib/report/model";
+import { tileLabel, type MarketTile, type Pin, type ReportFinding, type ResultSet } from "@/lib/report/model";
 
 // The artwork is drawn to its own scale, no taller than this, so a tall panel still fits beside its findings.
 const MAX_DRAWING_PX = 560;
@@ -213,9 +213,11 @@ function MarketTileView({ tile, active, href }: { tile: MarketTile; active: bool
       </p>
       <p className={cx("mt-[4px] mb-0 font-head text-[14px] font-semibold leading-[1.15] flex items-center gap-[6px]", STATE_TEXT[tile.state])}>
         <StateGlyph state={tile.state} size="sm" />
-        {STATE_LABEL[tile.state]}
+        {tileLabel(tile.state)}
       </p>
       <p className="mt-[3px] mb-0 font-mono text-[10.5px] text-n700">{tile.detail}</p>
+      {/* Registration is separate from the label and never folds into its state (CLAUDE.md 8). */}
+      <p data-registration className="mt-[2px] mb-0 font-mono text-[10.5px] text-n700">Registration: {tile.registration}</p>
     </a>
   );
 }

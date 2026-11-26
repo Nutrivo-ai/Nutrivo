@@ -1,4 +1,4 @@
-"""I01 without a database: the document model, the v1 template and byte-for-byte reproducible rendering (BE-26).
+"""I01 without a database: the document model, the v1 and v2 templates and byte-for-byte reproducible rendering (BE-26).
 
 Rules, findings and names are synthetic (TEST.T405.*), never law."""
 import base64
@@ -97,7 +97,7 @@ def test_I01_main_model_is_canonical_and_pins_ruleset_and_artwork():
     doc = fixture_model()
     assert (doc["ruleset_version"], doc["artwork_sha"], doc["node_id"]) == ("T405-TEST", SHA, "EU-DE")
     assert doc["check_ids"] == [str(uuid.UUID(int=1))] and doc["issued_at"] == "2026-10-29T10:44:07Z"
-    assert doc["has_not_assessed"] is True and doc["template"] == "label_report.v1"
+    assert doc["has_not_assessed"] is True and doc["template"] == "label_report.v2"
     f = doc["pinned"]["findings"][0]
     assert (f["measured"], f["required"], f["bbox_mm"]) == ("1.91 mm", "2.00 mm", ["1.50", "2.00", "40.25", "6.00"])
     assert m.dumps(doc) == m.dumps(json.loads(m.dumps(doc)))          # round-trips through its stored form
@@ -128,6 +128,29 @@ def test_I01_main_not_assessed_section_is_always_present():
     assert doc["has_not_assessed"] is False
     text = text_of(r.render(doc))
     assert "What was not assessed" in text and "Nothing was withheld" in text
+
+
+def test_I01_v2_not_assessed_tile_and_section_05_give_the_same_count():
+    """[I01.main] v2: a withheld rule with no finding of its own is counted on the tile as in section 05 (v1 counted
+    findings only, so the tile read 1 while section 05 listed 2)."""
+    ev, sn = fixture_events()
+    ev.check["withheld_rule_keys"] = ["TEST.T405.CLAIMS"]
+    doc = m.build(ev, sn, ref="ABCDEFGHIJKLMNOPQRSTUVWXYZ", issued_at=ISSUED, workspace_id=str(uuid.UUID(int=9)))
+    text = text_of(r.render(doc))
+    assert "2NOT ASSESSED" in text.replace(" ", "").upper().replace("NOTASSESSED", "NOT ASSESSED")
+    assert "Two items could not be assessed" in text
+    v1 = text_of(r.render({**doc, "template": "label_report.v1"}))
+    assert "1NOT ASSESSED" in v1.replace(" ", "").upper().replace("NOTASSESSED", "NOT ASSESSED")  # v1 stays as issued
+
+
+def test_I01_v2_says_attested_by_nobody_and_label_clear_with_registration_apart():
+    """[I01.main] v2: the close says the report was generated automatically and attested by nobody; the other
+    panels' column reads Label clear, never a bare Clear, and says registration is separate (CLAUDE.md 8)."""
+    text = text_of(r.render(fixture_model()))
+    assert "generated automatically by Nutrivo and attested by nobody" in text
+    assert "LABEL CLEAR" in text.upper() and "Registration is separate" in text
+    v1 = text_of(r.render({**fixture_model(), "template": "label_report.v1"}))
+    assert "attested by nobody" not in v1 and "LABEL CLEAR" not in v1.upper()
 
 
 def test_I01_main_only_bundled_fonts_are_embedded():

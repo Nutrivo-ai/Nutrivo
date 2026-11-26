@@ -46,7 +46,7 @@ export async function readReport(supabase: Client, workspaceId: string, productI
   if (!product) return { kind: "not-found" };
 
   const [nodes, current, plan] = await Promise.all([
-    app.from("product_nodes").select("node_id, last_check_job_id").eq("product_id", productId),
+    app.from("product_nodes").select("node_id, last_check_job_id, registration_state").eq("product_id", productId),
     ref.from("ruleset_versions").select("id").not("released_at", "is", null).order("released_at", { ascending: false }).limit(1),
     readPlan(supabase, workspaceId),
   ]);
@@ -99,7 +99,7 @@ export async function readReport(supabase: Client, workspaceId: string, productI
 
   const report = buildReport({
     workspaceId,
-    markets: marketRows.map((m) => ({ node_id: m.node_id, name: nameOf.get(m.node_id) ?? m.node_id, last_check_job_id: m.last_check_job_id })),
+    markets: marketRows.map((m) => ({ node_id: m.node_id, name: nameOf.get(m.node_id) ?? m.node_id, last_check_job_id: m.last_check_job_id, registration_state: m.registration_state })),
     checks,
     findings,
     panels: ok("panels", panelRows) ?? [],

@@ -280,7 +280,7 @@ def test_a_report_sent_by_email_mints_its_link_stores_only_the_hash_and_writes_n
     assert "Adult dog · complete dry · chicken. Three markets, one of them blocked on registration." in e.html
     for part in ("Johanna Holm at Halden Pet Nutrition sent you a report",
                  ("Checked against ruleset 2026.08-b on 4 September 2026, for three markets and three printed "
-                  "language panels."), "- Clear: 14", "- Action needed: 3", "- Not assessed: 2", "- Blocked: 1",
+                  "language panels."), "- Rules passed: 14", "- Action needed: 3", "- Not assessed: 2", "- Blocked: 1",
                  "Two items are marked Not assessed, which means nothing was checked for them", T.REPORT_BOUNDARY):
         assert part in e.text
     assert e.text.count("http") == 1 and "Texas" not in e.text
@@ -556,3 +556,9 @@ def test_every_template_refuses_a_job_with_no_workspace_before_any_read(mailer, 
     assert run(store, payload, ws=None) == "failed"
     assert store.jobs["job-1"].last_error == "PermanentJobError: the job names no workspace"
     assert reads == [] and mailer.sent == []
+
+
+def test_a_document_expiring_tomorrow_says_one_day_not_one_days():
+    e = T.document_expiring(to="x@y.test", document="CoA", supplier=None, expires_on=date(2026, 12, 1), days=1,
+                            recipes=1, registrations=0, url="http://x", owner=True)
+    assert e.subject == "The CoA expires in 1 day"

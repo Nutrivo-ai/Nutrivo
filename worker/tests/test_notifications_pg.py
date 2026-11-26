@@ -230,7 +230,7 @@ def test_a_report_shared_by_email_reaches_its_addressee_with_the_counts_and_a_li
     [e] = world.emails_to(buyer)
     assert e["Subject"] == "Halden Pet Nutrition sent you a label compliance report"
     for part in ("Anna Berg at Halden Pet Nutrition sent you a report", "for one market and zero printed language",
-                 "- Clear: 0", "- Action needed: 1", "- Not assessed: 0", "- Blocked: 0"):
+                 "- Rules passed: 0", "- Action needed: 1", "- Not assessed: 0", "- Blocked: 0"):
         assert part in e["Text"]
     [token] = re.findall(r"/share/([A-Za-z0-9_-]{43})", e["Text"])
     stored = world.conn.execute("select token_hash from app.shares where id = %s", (share,)).fetchone()["token_hash"]
@@ -305,3 +305,32 @@ def test_a_receipt_without_its_pdf_fails_visibly_and_sends_nothing(world):
     outcome, row = world.run(world.enqueue(f"receipt:{evt}", {"template": "receipt", "payment_event_id": evt}))
     assert outcome == "failed" and row["last_error"].endswith("the invoice PDF is not available")
     assert world.emails_to(world.anna) == []
+
+
+def test_a_report_email_counts_not_assessed_as_the_pdf_does_and_dates_the_check(world):
+    """Not assessed = withheld findings + withheld rules without a finding (the PDF's tile and section 05); the date is
+    when the pinned check ran, not when the report was issued."""
+    report, share, check = world.id(), world.id(), world.id()
+    world.conn.execute("insert into app.checks (id, workspace_id, product_id, node_id, ruleset_version, label_state, "
+                       "applied_rule_keys, withheld_rule_keys, at) values (%s, %s, %s, 'EU-FR', %s, 'not_assessed', "
+                       "'{}', %s, '2026-09-01T08:00:00Z')",
+                       (check, world.ws, world.salmon, world.ruleset, [world.rule, "TEST.T602.OTHER"]))
+    world.conn.execute("insert into app.check_findings (workspace_id, check_id, product_id, node_id, rule_key, state, "
+                       "provenance, reason_code, message) values (%s, %s, %s, 'EU-FR', %s, 'not_assessed', "
+                       "'not_assessed', 'data_missing', 'm')",
+                       (world.ws, check, world.salmon, world.rule))
+    world.conn.execute("insert into app.reports (id, workspace_id, product_id, ref, check_ids, ruleset_version, "
+                       "artwork_sha, has_not_assessed, created_by, created_at) values (%s, %s, %s, %s, %s, %s, 'sha', "
+                       "true, %s, '2026-09-04T08:00:00Z')",
+                       (report, world.ws, world.salmon, f"NTV-T602-{world.tag}-NA", [check], world.ruleset,
+                        world.anna["pid"]))
+    buyer = {"email": world.address("buyer-na")}
+    world.conn.execute("insert into app.shares (id, workspace_id, report_id, token_hash, channel, recipient, "
+                       "created_by) values (%s, %s, %s, %s, 'email', %s, %s)",
+                       (share, world.ws, report, uuid.uuid4().bytes, buyer["email"], world.anna["pid"]))
+    outcome, row = world.run(world.enqueue(f"share:{share}", {"template": "report", "share_id": share}))
+    assert outcome == "succeeded", row
+    [e] = world.emails_to(buyer)
+    # One withheld finding (world.rule) and one withheld rule with no finding (TEST.T602.OTHER): two, not one.
+    assert "- Not assessed: 2" in e["Text"]
+    assert "1 September 2026" in e["Text"] and "4 September 2026" not in e["Text"]

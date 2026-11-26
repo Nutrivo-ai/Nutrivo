@@ -215,8 +215,8 @@ def euro(cents: int, *, whole: bool = False) -> str:
 
 # ── Template 01 · A report was sent to you (I02) ───────────────────────────────────────────────────────
 REPORT_BODY = "The report names every rule that was checked, the ones that were not, and where each answer came from."
-REPORT_NO_ACCOUNT = ("You do not need an account to read this. The link also lets you confirm the report is current, "
-                     "has not been superseded by a ruleset change, and covers what it says it covers.")
+REPORT_NO_ACCOUNT = ("You do not need an account to read this. The report's reference also lets anyone confirm that "
+                     "Nutrivo issued it and whether a ruleset change has superseded it.")
 REPORT_BOUNDARY = ("This report was generated automatically by Nutrivo and attested by nobody. Nutrivo names regulatory "
                    "obligations and checks label artwork against encoded rules. It does not file registrations, pay "
                    "fees, correspond with authorities, confirm that a registration is valid, or guarantee acceptance.")
@@ -224,8 +224,10 @@ REPORT_BOUNDARY = ("This report was generated automatically by Nutrivo and attes
 
 @dataclass(frozen=True)
 class ReportSummary:
-    """Counts over the report's pinned checks. Clear counts passed rules; Action needed and Not assessed count
-    findings; Blocked counts the report's markets whose registration blocks sale (display_state)."""
+    """Counts over the report's pinned checks, the same counts the PDF prints. Rules passed counts passed rules;
+    Action needed counts findings; Not assessed counts withheld findings plus withheld rules that carry no finding
+    (the PDF's section 05); Blocked counts the report's markets whose registration blocks sale (display_state).
+    checked_at is when the latest pinned check ran, not when the report was issued."""
     product: str
     ruleset_version: str
     checked_at: datetime
@@ -258,12 +260,12 @@ def report(*, to: str, sender: str, workspace: str, summary: ReportSummary, url:
         panel_title=s.product,
         panel_body=(f"Checked against ruleset {s.ruleset_version} on {long_date(s.checked_at)}, for "
                     f"{counted(s.markets, 'market')} and {counted(s.panels, 'printed language panel')}."),
-        panel_rows=[("Clear", str(s.clear)), ("Action needed", str(s.action)),
+        panel_rows=[("Rules passed", str(s.clear)), ("Action needed", str(s.action)),
                     ("Not assessed", str(s.not_assessed)), ("Blocked", str(s.blocked))],
         body=[lead, REPORT_NO_ACCOUNT],
         cta="Read the report", cta_url=url,
-        secondary=("The link stays valid. If the report is later superseded, the page will say so rather than showing "
-                   "you something stale."),
+        secondary=("The link works until it expires or the sender revokes it. If the report is later superseded, "
+                   "the page says so rather than showing you something stale."),
         boundary=REPORT_BOUNDARY,
         footer=("You received this because somebody sent you a report. Nutrivo will not email you again unless they "
                 "send another."),
@@ -326,7 +328,7 @@ def document_expiring(*, to: str, document: str, supplier: str | None, expires_o
         rows.append(("Supplier", supplier.upper()))
     return render(Layout(
         template="document_expiring", to=to,
-        subject=f"The {document} expires in {days} days",
+        subject=f"The {document} expires in {days} {'day' if days == 1 else 'days'}",
         preheader=f"It is evidence for {' and '.join(cites)}." if cites else "",
         heading=f"A document you rely on expires on {expires_on.day} {expires_on:%B}",
         panel_title=f"{document} · {supplier}" if supplier else document,

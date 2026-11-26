@@ -10,7 +10,7 @@ What makes the bytes repeatable:
   render sets it to the issue time, under a lock because the environment is the process's.
 - Fonts are always subset by fontTools, never by HarfBuzz-Subset: WeasyPrint picks HarfBuzz-Subset when the system
   has it, and the two give different bytes, so a machine with the library would print another document.
-- Templates are versioned and never edited once released (label_report_v1).
+- Templates are versioned and never edited once released (label_report_v1, then v2).
 WeasyPrint, pydyf and fontTools are pinned by uv.lock, and Pango and HarfBuzz (text shaping) by the worker image's
 base. Upgrading any of them must re-render stored reports (`nutrivo report rerender`) and show the same hashes before
 it merges."""
@@ -25,14 +25,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from . import label_report_v1
+from . import label_report_v1, label_report_v2
 
 FONTS = Path(__file__).parent / "fonts"
 FACES = (("Instrument Sans", 400, "InstrumentSans-Regular.ttf"), ("Instrument Sans", 500, "InstrumentSans-Medium.ttf"),
          ("Instrument Sans", 600, "InstrumentSans-SemiBold.ttf"), ("IBM Plex Mono", 400, "IBMPlexMono-Regular.ttf"),
          ("IBM Plex Mono", 500, "IBMPlexMono-Medium.ttf"), ("Nutrivo Fallback", 400, "DejaVuSans.ttf"))
 FONT_FILES = frozenset(f for _, _, f in FACES)
-TEMPLATES: dict[str, Callable[[dict[str, Any], str], str]] = {"label_report.v1": label_report_v1.html}
+TEMPLATES: dict[str, Callable[[dict[str, Any], str], str]] = {
+    "label_report.v1": label_report_v1.html,
+    "label_report.v2": label_report_v2.html,
+}
 
 _lock = threading.Lock()
 
