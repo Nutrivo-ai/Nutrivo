@@ -82,6 +82,34 @@ export function judgeP95(key: string, unit: string, samples: number[], detail?: 
   return record({ budget: key, unit, measured: p95, n: samples.length, status, detail, reason: reason ?? (p95 == null ? "no samples" : undefined) });
 }
 
+/**
+ * Where the load client sits. Founder decision on #314 (26 Nov): the staging budgets are judged from an EU vantage
+ * point; without an EU or self-hosted runner they are judged on endpoint time, the p95 less the measured network floor.
+ * GitHub's hosted runners are not in the EU, so a staging run is judged on endpoint time unless the job declares
+ * LOAD_VANTAGE=eu. The local and ci profiles run next to the stack and are judged on the samples as measured.
+ */
+export const fromEuVantage = process.env.LOAD_VANTAGE === "eu";
+export const judgedOnEndpointTime = profile.name === "staging" && !fromEuVantage;
+
+/**
+ * A latency budget measured across the network: judgeP95, or, when judgedOnEndpointTime, the p95 less the floor's p50
+ * (each sample less the typical distance; the floor's p95 would subtract more than distance). The raw p95 and the floor
+ * subtracted stay in the detail. Without a floor the budget is withheld, never judged on a guess.
+ */
+export function judgeEndpointP95(key: string, unit: string, samples: number[], floor: { p50_ms: number | null }, detail: Record<string, unknown>, reason?: string, comparable = true): Result {
+  if (!judgedOnEndpointTime) return judgeP95(key, unit, samples, detail, reason, comparable);
+  const p95 = percentile(samples, 95);
+  const full = { ...detail, raw_p95_ms: p95 == null ? null : roundTo(p95, 0.1), floor_subtracted_ms: floor.p50_ms };
+  if (p95 == null || floor.p50_ms == null) {
+    return record({ budget: key, unit, measured: null, n: samples.length, status: "withheld", detail: full,
+      reason: p95 == null ? "no samples" : "no network floor measured, so no endpoint time (#314)" });
+  }
+  const endpoint = Math.max(0, p95 - floor.p50_ms);
+  const status: Status = !comparable ? "withheld" : endpoint <= budget(key) ? "met" : "exceeded";
+  const why = `judged on endpoint time (#314, vantage not EU): p95 ${round(p95)} less network floor p50 ${floor.p50_ms} ${unit}`;
+  return record({ budget: key, unit, measured: endpoint, n: samples.length, status, detail: full, reason: reason ? `${reason}; ${why}` : why });
+}
+
 /** A budget the load run cannot measure: recorded as withheld with its reason, so the report never shows it as met. */
 export function withhold(key: string, unit: string, reason: string, detail?: Record<string, unknown>): Result {
   return record({ budget: key, unit, measured: null, n: 0, status: "withheld", reason, detail });
