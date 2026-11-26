@@ -1,4 +1,5 @@
 [
+"A01.fail.1",
 "A02.fail.1",
 "A02.fail.2",
 "A02.main",
@@ -80,6 +81,7 @@
 "E02.must.1",
 "E02.must.2",
 "E04.main",
+"F01.must.1",
 "G01.main",
 "G01.must.1",
 "G03.main",
@@ -88,6 +90,7 @@
 "H02.must.1",
 "H03.fail.1",
 "H03.must.1",
+"H04.main",
 "I01.main",
 "I01.must.1",
 "I02.main",

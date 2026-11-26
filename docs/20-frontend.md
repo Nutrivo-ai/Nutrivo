@@ -236,6 +236,34 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
 - **Tests** (`tests/e2e/settings-overview.spec.ts`): every state, axe, the no-dead-controls crawl, and both section
   headings against the S-NV2-017 baseline; the wording in `src/lib/settings/overview.test.ts`.
 
+### Built in T-1111: Check in progress (`apps/web/src/components/checks/CheckInProgress.tsx`, `apps/web/src/lib/checks/inProgress.ts`)
+- **S-NV2-024 Check in progress** at `/w/[workspace]/products/[product]/checks/[check]`, where `[check]` is the
+  `app.jobs` id of the product's `check` job (founder decision on #353, option b, 26 Nov 2026). Run the check on
+  S-NV2-002 calls `app.request_check` and goes here; the bar no longer follows the job itself. The job is read under
+  RLS (`read_scoped`) and kept current over Realtime (`lib/jobs/watch.ts`); a job of another product or workspace, one
+  about a market outside the person's scope, and an id that is not one read the same: "This check is not one you can
+  open", with nothing about it shown.
+- **Built against today's contract.** The `check` job writes every result set in one transaction at the end and its
+  `progress` holds only `outcome`, `checks` and result sets per label state (docs/04), so the design's "1 842 of 2 610
+  rules applied", progress bar, "Stage by stage" list and "Findings so far" tallies are not built: that data does not
+  exist and nothing is made up. The card shows Queued or Running with the time elapsed since the check was requested
+  (`created_at`), the product with the markets checked and the checked artwork's printed languages, and copy that says
+  the results are written at once. The progress bar is left out rather than drawn without a fraction (Cobalt §5:
+  nothing animates). The design's note "In progress is neutral" is kept while the check is not finished; the elapsed time shows only then too (a finished job's duration is not in what the page reads). Live staged progress is a later worker task.
+- **Terminal states.** Done: the job's counts as Clear, Action needed and Not assessed tiles, each with its glyph and
+  name, and Open the report; when the page watched the job finish it moves on to the report by itself after 1.5 s. No
+  Blocked tile: blocked is a market's registration state, which a check job does not count. Withheld (finished with
+  nothing Clear or Action needed): says every result is Not assessed and nothing is Clear, and links the report, where
+  each has its reason and gap; it stays. Failed: the plain reason (P0003 no released ruleset) and Back to upload &
+  scope. Stalled past the lease and an unreadable first read: "taking longer than usual" / "cannot be read", with Check
+  again. The header pins the job's ruleset; the crumb follows the state.
+- **States.** Loaded (queued, running, done, withheld, failed, stalled); loading (`loading.tsx`); error (the workspace
+  error boundary for a read failure, the unreadable state for the watcher); no-permission as above.
+- **Tests** (`tests/e2e/check-progress.spec.ts`): the real check from Run the check to the report (`D04.main`), each
+  state over Realtime with job rows the service role writes and never queues, axe on every state, the no-dead-controls
+  crawl, and the page title and the neutral note against the S-NV2-024 baseline; every state rendered in
+  `src/components/checks/CheckInProgress.test.tsx`, the mapping in `src/lib/checks/inProgress.test.ts`.
+
 ## 6 · Performance
 Lighthouse budgets on the public pages (LCP under 2.5 s); a 1.5 s budget for the board with 300 recipes
 (spec/nfr.yaml).
