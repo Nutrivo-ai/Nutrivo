@@ -7,7 +7,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { plans } from "../../../../../config/pricing";
-import { ROLE_TITLE, isActive, relativeTime, seatCount, type MemberRow, type PeopleData, type SeatCount } from "./people";
+import { isLive, isPaidPlan } from "@/lib/billing/plans";
+import type { Usage } from "@/lib/billing/read";
+import { ROLE_TITLE, isActive, relativeTime, seatCount, type InvitationRow, type MemberRow, type PeopleData } from "./people";
 
 type Client = SupabaseClient<Database>;
 
@@ -28,8 +30,10 @@ export type PlanFacts =
       /** app.workspaces.plan */
       plan: string;
       recipes: number;
-      /** app.subscriptions.recipes_included; null means no recipe check (Free within its allowance, Advanced). */
+      /** Recipes the plan includes, add-ons counted; null means no recipe check (Free within its allowance, Advanced). */
       recipesIncluded: number | null;
+      /** Editor seats the plan includes, add-ons counted; null means no seat check (D-21). */
+      editorSeats: number | null;
       regions: string[];
       /** Checks run this calendar month (UTC), app.checks rows read under RLS: shown, never metered. */
       checksThisMonth: number;
@@ -45,6 +49,31 @@ export type OverviewData = {
   marketsInReach: number;
   plan: PlanFacts;
 };
+
+/**
+ * The plan's figures as Plan and allowance (S-BIL-001) reads them, so the two pages agree: the subscription mirror's
+ * seats and recipes (add-ons counted) only while it is live on a paid plan, falling back to the plan's own figures;
+ * otherwise the workspace is on the free allowance, with no recipe or seat check (D-21).
+ */
+export function planFacts(usage: Usage, regions: string[], checksThisMonth: number): Extract<PlanFacts, { kind: "read" }> {
+  const s = usage.subscription;
+  const live = !!s && isLive(s.status) && isPaidPlan(s.plan);
+  const own = live ? plans.find((p) => p.key === s!.plan) : undefined;
+  return {
+    plan: live ? s!.plan : usage.plan,
+    recipes: usage.counts.recipes,
+    recipesIncluded: live ? (s!.recipesIncluded ?? own?.recipes ?? null) : null,
+    editorSeats: live ? (s!.editorSeats ?? own?.editors ?? null) : null,
+    regions,
+    checksThisMonth,
+    kind: "read",
+  };
+}
+
+/** Invitations still waiting for an answer: People and roles reads one past its expiry as lapsed, not pending. */
+export function pendingInvitations(invitations: InvitationRow[], now: Date): number {
+  return invitations.filter((i) => new Date(i.expiresAt) > now).length;
+}
 
 /** The first instant of the month `now` falls in, UTC. */
 export function monthStart(now: Date): string {
@@ -70,6 +99,8 @@ export async function readOverviewFacts(supabase: Client, ws: string, regions: s
   return {
     grants: grants.data.map((g) => ({ personId: g.person_id, nodeId: g.node_id })),
     ruleset: ruleset.data[0]?.id ?? null,
+    // Markets are the direct children of a region (EU-DE, US-TX), as on Workspace (S-WSS-003); a deeper node, if one is
+    // ever added, would not be counted here.
     marketsInReach: markets.data.filter((m) => regions.includes(m.parent_id ?? "")).length,
   };
 }
@@ -157,8 +188,9 @@ const planName = (key: string) => plans.find((p) => p.key === key)?.name ?? key;
 const ofLimit = (used: number, limit: number | null, what: string) =>
   limit === null ? `${num(used)} · no ${what} limit` : `${num(used)} of ${num(limit)}`;
 
-/** The plan card's rows: what D-03 sells, never metered checks included. */
-export function planLines(plan: Extract<PlanFacts, { kind: "read" }>, seats: SeatCount): { k: string; v: string }[] {
+/** The plan card's rows: what D-03 sells, never metered checks included. Seats used are the active members' (BE-33). */
+export function planLines(plan: Extract<PlanFacts, { kind: "read" }>, members: MemberRow[], now: Date): { k: string; v: string }[] {
+  const seats = seatCount(members, plan.editorSeats, now);
   return [
     { k: "Plan", v: planName(plan.plan) },
     { k: "Recipes", v: ofLimit(plan.recipes, plan.recipesIncluded, "recipe") },
@@ -168,4 +200,3 @@ export function planLines(plan: Extract<PlanFacts, { kind: "read" }>, seats: Sea
   ];
 }
 
-export { seatCount };

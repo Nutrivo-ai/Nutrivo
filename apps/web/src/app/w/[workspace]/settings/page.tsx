@@ -5,11 +5,12 @@ import { Overview } from "@/components/settings/Overview";
 import { Screen } from "@/components/shell";
 import { billingContext, readUsage } from "@/lib/billing/read";
 import {
+  pendingInvitations,
   personLines,
+  planFacts,
   planLines,
   readChecksThisMonth,
   readOverviewFacts,
-  seatCount,
   workspaceLines,
   type PlanFacts,
 } from "@/lib/settings/overview";
@@ -48,21 +49,13 @@ export default async function Page({ params }: PageProps<"/w/[workspace]/setting
     let plan: PlanFacts = { kind: "no-billing" };
     if (billing.ok) {
       const [usage, checksThisMonth] = await Promise.all([readUsage(supabase, workspace), readChecksThisMonth(supabase, workspace, now)]);
-      plan = {
-        kind: "read",
-        plan: usage.plan,
-        recipes: usage.counts.recipes,
-        recipesIncluded: usage.subscription?.recipesIncluded ?? null,
-        // The regions the workspace holds (app.workspaces.entitled_regions); the free allowance counts none as bought.
-        regions,
-        checksThisMonth,
-      };
+      // The regions the workspace holds (app.workspaces.entitled_regions); the free allowance counts none as bought.
+      plan = planFacts(usage, regions, checksThisMonth);
     } else if (billing.reason === "error") {
       throw new Error(`billing context failed: ${billing.code ?? "error"}`);
     }
     return { people, ...facts, plan };
   });
-  const seats = seatCount(data.people.members, data.people.editorSeats, now);
   return (
     <Screen
       route="/w/[workspace]/settings"
@@ -74,9 +67,9 @@ export default async function Page({ params }: PageProps<"/w/[workspace]/setting
         view={{
           workspaceId: workspace,
           people: personLines(data.people.members, data.grants, now),
-          invitations: data.people.invitations.length,
+          invitations: pendingInvitations(data.people.invitations, now),
           workspace: workspaceLines(data.ruleset, data.marketsInReach),
-          plan: data.plan.kind === "read" ? { kind: "read", lines: planLines(data.plan, seats) } : { kind: "no-billing" },
+          plan: data.plan.kind === "read" ? { kind: "read", lines: planLines(data.plan, data.people.members, now) } : { kind: "no-billing" },
         }}
       />
     </Screen>

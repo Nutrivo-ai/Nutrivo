@@ -217,14 +217,18 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
   - "People and roles": active members (`readPeople`, T-107) with their role (the four roles; the design's job titles
     are stored nowhere), last activity, and signing authority from active `app.signing_grants` rows only, as market
     codes, or None (BE-04: never implied by a role; an external person's None is drawn in the action colour, since
-    they can never hold one). Pending invitations are counted under the table;
+    they can never hold one). Pending invitations are counted under the table; one past its expiry is lapsed, as People
+    and roles reads it, and is not counted;
   - "Workspace": only the rows with data and a decision behind them (founder decision on #352, 26 Nov 2026): Ruleset
     version (the latest released), Markets enabled (the nodes in the entitled regions, linking Coverage & confidence)
     and Signing policy PER MARKET. The design's Tenancy model and Term register version rows are not built;
   - the Plan card shows what D-03 sells (#352): plan, recipes and editor seats against their limits with viewers free,
-    regions, and checks this month, unmetered. It is read only by an internal admin of the whole workspace
+    regions, and checks this month, unmetered. Seats and recipes follow Plan and allowance's rule, so the two pages
+    agree: the subscription's figures (add-ons counted) only while it is live on a paid plan, else the plan's own; a
+    workspace on the free allowance has no recipe or seat check (D-21). It is read only by an internal admin of the whole workspace
     (`app.billing_context`); any other admin is told who manages the plan. The design's "Portfolio, not activity"
-    figures (products × jurisdiction nodes) contradict D-03 and are not built.
+    figures (products × jurisdiction nodes) contradict D-03 and are not built. The card's text is `accent-700`, where
+    the design draws `accent-900` and `accent-800`, which are not Cobalt tokens.
 - **Links, no buttons.** Each section links the page that changes it: People and roles, Workspace, Audit log, Data and
   retention, Your account, Plan and allowance.
 - **States.** Loaded; empty (the admin alone: an EmptyState linking People and roles); loading (`loading.tsx`); error

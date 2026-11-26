@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { marketCode, monthStart, personLines, planLines, workspaceLines } from "./overview";
-import { seatCount, type MemberRow } from "./people";
+import type { Usage } from "@/lib/billing/read";
+import { marketCode, monthStart, pendingInvitations, personLines, planFacts, planLines, workspaceLines } from "./overview";
+import type { InvitationRow, MemberRow } from "./people";
 
 const NOW = new Date("2026-09-04T09:41:00Z");
 
@@ -61,8 +62,9 @@ describe("Settings & roles overview (S-NV2-017)", () => {
   it("[T-1110] the plan card shows what D-03 sells and never meters checks", () => {
     const team = [member("a", "admin"), member("b", "editor"), member("c", "viewer"), member("d", "viewer")];
     const lines = planLines(
-      { kind: "read", plan: "standard", recipes: 12, recipesIncluded: 30, regions: ["EU"], checksThisMonth: 1412 },
-      seatCount(team, 5, NOW),
+      { kind: "read", plan: "standard", recipes: 12, recipesIncluded: 30, editorSeats: 5, regions: ["EU"], checksThisMonth: 1412 },
+      team,
+      NOW,
     );
     expect(lines).toEqual([
       { k: "Plan", v: "Standard" },
@@ -72,11 +74,63 @@ describe("Settings & roles overview (S-NV2-017)", () => {
       { k: "Checks this month", v: "1 412 · unmetered" },
     ]);
     const advanced = planLines(
-      { kind: "read", plan: "advanced", recipes: 140, recipesIncluded: null, regions: ["EU"], checksThisMonth: 0 },
-      seatCount(team, null, NOW),
+      { kind: "read", plan: "advanced", recipes: 140, recipesIncluded: null, editorSeats: null, regions: ["EU"], checksThisMonth: 0 },
+      team,
+      NOW,
     );
     expect(advanced[1]).toEqual({ k: "Recipes", v: "140 · no recipe limit" });
     expect(advanced[2]).toEqual({ k: "Editor seats", v: "2 · no seat limit · viewers free" });
+  });
+
+  it("[T-1110] the plan's figures agree with Plan and allowance: the mirror only while live, else the free allowance", () => {
+    const usage = (subscription: Usage["subscription"], plan: string): Usage => ({
+      counts: { recipes: 12, regions: [], editorSeats: 2, labelsUsed: 0, labelsAllowed: 3 },
+      subscription,
+      plan,
+      status: "active",
+      checksRun: 99,
+    });
+    const sub = (status: string, extra: Partial<NonNullable<Usage["subscription"]>> = {}) => ({
+      plan: "standard",
+      term: "monthly" as const,
+      status,
+      editorSeats: 7,
+      recipesIncluded: 40,
+      currentPeriodEnd: null,
+      ...extra,
+    });
+    // Live: the mirror's seats and recipes, add-ons counted.
+    expect(planFacts(usage(sub("active"), "standard"), ["EU"], 3)).toMatchObject({ plan: "standard", recipesIncluded: 40, editorSeats: 7 });
+    // Live with an empty mirror: the plan's own figures (Standard: 30 recipes, 5 editors).
+    expect(planFacts(usage(sub("past_due", { editorSeats: null, recipesIncluded: null }), "standard"), ["EU"], 3)).toMatchObject({
+      recipesIncluded: 30,
+      editorSeats: 5,
+    });
+    // Cancelled and back on Free: no recipe or seat check, never the stale mirror (D-21).
+    const ended = planFacts(usage(sub("canceled"), "free"), ["EU"], 3);
+    expect(ended).toMatchObject({ plan: "free", recipesIncluded: null, editorSeats: null, regions: ["EU"], checksThisMonth: 3 });
+    expect(planLines(ended, [member("a", "admin"), member("b", "editor")], NOW).slice(0, 3)).toEqual([
+      { k: "Plan", v: "Free" },
+      { k: "Recipes", v: "12 · no recipe limit" },
+      { k: "Editor seats", v: "2 · no seat limit · viewers free" },
+    ]);
+    // Never subscribed.
+    expect(planFacts(usage(null, "free"), ["EU"], 0)).toMatchObject({ plan: "free", recipesIncluded: null, editorSeats: null });
+  });
+
+  it("[T-1110] a lapsed invitation is not pending", () => {
+    const inv = (id: string, expiresAt: string): InvitationRow => ({
+      kind: "invitation",
+      id,
+      email: `${id}@example.test`,
+      role: "editor",
+      external: false,
+      scope: { familyIds: null, nodeIds: null, endsAt: null },
+      sentAt: "2026-08-20T00:00:00Z",
+      expiresAt,
+    });
+    expect(pendingInvitations([inv("old", "2026-08-27T00:00:00Z"), inv("new", "2026-09-10T00:00:00Z")], NOW)).toBe(1);
+    expect(pendingInvitations([inv("old", "2026-08-27T00:00:00Z")], NOW)).toBe(0);
   });
 
   it("[T-1110] market codes and the month boundary", () => {
