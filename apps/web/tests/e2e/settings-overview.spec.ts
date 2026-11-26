@@ -1,8 +1,8 @@
 // T-1110 · S-NV2-017 Settings & roles at /w/[workspace]/settings (A03, A05, A06, A08), on the full local stack. The
 // overview reads under the admin's session: people (app.memberships), pending invitations, signing authority from
 // app.signing_grants rows only (BE-04), the workspace facts and the plan as D-03 sells it (#352). The service role
-// only sets up. Every state is visited: loaded, empty (the admin alone), no-permission (a viewer), loading (the
-// shell's), and the error boundary is the workspace's. The headings the design draws the same for any workspace are
+// only sets up. Loaded, empty (the admin alone) and no-permission (a viewer) are visited here; loading is the shared
+// ShellLoading and an error goes to the workspace error boundary, both tested with the shell. The headings the design draws the same for any workspace are
 // compared with the baseline; axe runs on every state; the crawl follows every link and expects no button.
 import { expect, test, type Page } from "@playwright/test";
 import { expectLikeBaseline, type Region } from "./support/baseline";
@@ -84,6 +84,7 @@ test.describe("S-NV2-017 Settings & roles", () => {
     await expect(row(page, editor.email).locator("[data-signing]")).toHaveText("AT · DE"); // in node id order
     await expect(row(page, owner.email).locator("[data-signing]")).toHaveText("None"); // admin is a role, not a grant (BE-04)
     await expect(row(page, outside.email).locator("[data-signing]")).toHaveText("None");
+    await expect(row(page, outside.email).locator("[data-signing]")).toHaveClass(/text-action/); // never to an external (BE-04)
     await expect(row(page, outside.email)).toContainText("Editor · external");
     await expect(row(page, viewer.email)).toContainText("Viewer");
     await expect(page.locator("[data-invitations]")).toContainText("1 PENDING INVITATION");
