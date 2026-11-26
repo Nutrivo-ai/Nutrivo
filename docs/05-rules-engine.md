@@ -208,10 +208,13 @@ A fixture is `proposed`, `confirmed` or `rejected` (`status`, with `proposed_by`
 - for `nutrivo fixtures run`, where a member whose fixtures are all still proposed is withheld `no_fixtures`.
 
 Rows written before #360 were written by hand and count as confirmed. A trigger holds every writer to the review,
-the service role included (22023 otherwise):
+the service role included (P0051 otherwise):
 - every new row is inserted proposed;
+- a proposed row keeps the content it was proposed with, so the person confirms exactly what they read;
 - it leaves proposed only for confirmed or rejected, naming the person and the time;
-- a decided row's content and decision never change, so a correction is a new row, proposed and decided again. Authenticated users read
+- a decided row, confirmed or rejected, is never changed or deleted. A correction is a new row, proposed and decided
+  again, and a rejection stays on record, so the same fixture is not proposed again. Only a proposed row can be
+  withdrawn (deleted). Authenticated users read
 confirmed fixtures and staff read all of them (RLS, as `ref.rule_versions`). Clients have no write grant.
 
 **Drafting.** `nutrivo fixtures draft [--rule <key>] [--dry-run]` (`nutrivo_worker.fixtures_draft`) proposes the

@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(33);
+select plan(36);
 set local client_min_messages = warning;
 
 -- ─── Staff (Sam) and a non-staff person (Nina); one accepted and one candidate synthetic version ───
@@ -41,14 +41,14 @@ select col_default_is('ref', 'rule_fixtures', 'status', 'proposed'::text,
                       '[#360] a fixture nobody has decided is only proposed');
 select throws_ok($$insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, status, decided_by)
                    values ('TEST.I360.A', 1, 'x', '{}', 'passed', 'proposed', '10000000-0000-4000-8360-0000000000a1')$$,
-                 '22023', null, '[#360] a proposed fixture carries no decider');
+                 'P0051', null, '[#360] a proposed fixture carries no decider');
 select throws_ok($$insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, status, decided_by,
                                                   decided_at)
                    values ('TEST.I360.A', 1, 'x', '{}', 'passed', 'confirmed', '10000000-0000-4000-8360-0000000000a1',
                            now())$$,
-                 '22023', null, '[#360] no fixture is inserted confirmed, not even by the service role');
+                 'P0051', null, '[#360] no fixture is inserted confirmed, not even by the service role');
 select throws_ok($$update ref.rule_fixtures set status = 'confirmed' where id = '90000000-0000-4000-8360-000000000001'$$,
-                 '22023', null, '[#360] a fixture is not confirmed without naming the person who decided');
+                 'P0051', null, '[#360] a fixture is not confirmed without naming the person who decided');
 select ok((select c.relrowsecurity from pg_class c join pg_namespace n on n.oid = c.relnamespace
            where n.nspname = 'ref' and c.relname = 'rule_fixtures'), '[#360] ref.rule_fixtures has RLS on');
 select ok(not has_table_privilege('authenticated', 'ref.rule_fixtures', 'insert')
@@ -135,14 +135,21 @@ reset role;
 -- ─── A decision is final ─────────────────────────────────────────────────────────────────────────
 select throws_ok($$update ref.rule_fixtures set status = 'proposed', decided_by = null, decided_at = null
                    where id = '90000000-0000-4000-8360-000000000001'$$,
-                 '22023', null, '[#360] a confirmed fixture never goes back to proposed');
+                 'P0051', null, '[#360] a confirmed fixture never goes back to proposed');
 select throws_ok($$update ref.rule_fixtures set status = 'confirmed' where id = '90000000-0000-4000-8360-000000000004'$$,
-                 '22023', null, '[#360] a rejected fixture is never confirmed later');
+                 'P0051', null, '[#360] a rejected fixture is never confirmed later');
 select is((select status from ref.rule_fixtures where id = '90000000-0000-4000-8360-000000000004'), 'rejected',
           '[#360] the rejected fixture stays rejected');
+select throws_ok($$delete from ref.rule_fixtures where id = '90000000-0000-4000-8360-000000000004'$$,
+                 'P0051', null, '[#360] a rejected fixture is never deleted, so it is not proposed again');
+select throws_ok($$update ref.rule_fixtures set input = '{"panel":"changed"}'
+                   where id = '90000000-0000-4000-8360-000000000005'$$,
+                 'P0051', null, '[#360] a proposed fixture keeps the content it was proposed with: the person confirms what they read');
+select lives_ok($$delete from ref.rule_fixtures where id = '90000000-0000-4000-8360-000000000005'$$,
+                '[#360] a proposed fixture, decided by nobody, can be withdrawn');
 select throws_ok($$update ref.rule_fixtures set expected_outcome = 'withheld', input = '{"panel":"other"}'
                    where id = '90000000-0000-4000-8360-000000000001'$$,
-                 '22023', null, '[#360] a confirmed fixture''s content never changes after the person''s decision');
+                 'P0051', null, '[#360] a confirmed fixture''s content never changes after the person''s decision');
 
 select * from finish();
 rollback;

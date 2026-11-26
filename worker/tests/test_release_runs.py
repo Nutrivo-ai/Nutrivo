@@ -261,20 +261,23 @@ def test_pg_a_recorded_draft_run_opens_the_release_gate(pg):
         raise psycopg.Rollback()
 
 
-def test_pg_a_fixture_changed_after_the_run_closes_the_gate(pg):
+def test_pg_a_fixture_corrected_after_the_run_closes_the_gate(pg):
     with pg.transaction():
         _synthetic_draft(pg)
         _run_and_record(pg)
-        # A confirmed fixture never changes (#360): it is replaced by a corrected one, decided again, at the same count.
-        old = pg.execute("delete from ref.rule_fixtures where rule_key = 'TEST.T210.A' and name = 'absent' "
-                         "returning input, expected_outcome, expected").fetchone()
+        # A confirmed fixture is never changed or deleted (#360): a corrected one is added and decided again.
+        with pytest.raises(psycopg.Error) as refused, pg.transaction():
+            pg.execute("delete from ref.rule_fixtures where rule_key = 'TEST.T210.A' and name = 'absent'")
+        assert refused.value.sqlstate == "P0051"
+        old = pg.execute("select input, expected_outcome, expected from ref.rule_fixtures "
+                         "where rule_key = 'TEST.T210.A' and name = 'absent'").fetchone()
         pg.execute("""insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, expected)
                       values ('TEST.T210.A', 1, 'absent, corrected', %s::jsonb, %s, %s::jsonb)""",
                    (json.dumps({**old["input"], "note": "changed"}), old["expected_outcome"], json.dumps(old["expected"])))
         _decide(pg, pg.execute("select id from app.people where user_id = %s", (STAFF_USER,)).fetchone()["id"])
         with pytest.raises(psycopg.Error) as err, pg.transaction():
             pg.execute("select app.release_ruleset(%s)", (DRAFT,))
-        assert err.value.sqlstate == "P0039" and "changed after the latest fixture run" in str(err.value)
+        assert err.value.sqlstate == "P0039" and "judged 3 of 4 fixtures" in str(err.value)
         raise psycopg.Rollback()
 
 

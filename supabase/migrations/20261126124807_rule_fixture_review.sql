@@ -3,8 +3,9 @@
 --   ref.rule_fixtures       gains a review state: proposed (written by `nutrivo fixtures draft`), confirmed or
 --                           rejected (a staff member's decision, with who and when). Rows that existed before this
 --                           change were written by hand and count as confirmed. From now on every row is inserted
---                           proposed, leaves proposed only with a decider and a time, and once decided never changes
---                           its content or its decision (a correction is a new row, proposed and decided again).
+--                           proposed, keeps the content it was proposed with, leaves proposed only with a decider and
+--                           a time, and once decided is never changed or deleted (P0051, new): a correction is a new
+--                           row, proposed and decided again.
 --   RLS                     the same as ref.rule_versions: authenticated users read confirmed fixtures, staff read all.
 --                           Clients still get no write grant; the service role bypasses RLS as before.
 --   app.decide_rule_fixture staff at aal2 confirm or reject one proposed fixture of an accepted rule version; audited.
@@ -31,34 +32,48 @@ alter table ref.rule_fixtures add constraint rule_fixtures_proposed_undecided
 create index rule_fixtures_version_status on ref.rule_fixtures (rule_key, version, status);
 create index rule_fixtures_decided_by on ref.rule_fixtures (decided_by);
 
--- Nothing counts without a person's decision, whoever writes the table (the service role included):
+-- Nothing counts without a person's decision, whoever writes the table (the service role included). P0051:
 --   insert  always proposed: no row is born confirmed;
---   decide  proposed → confirmed | rejected, once, naming the person and the time (app.decide_rule_fixture does);
---   after   a decided row's content and decision never change; a correction is a new row (and a new run).
+--   update  a proposed row's content never changes (the person confirms what they read); it leaves proposed only
+--           for confirmed or rejected, once, naming the person and the time (app.decide_rule_fixture does);
+--           a decided row never changes at all;
+--   delete  only a proposed row; a decision, confirmed or rejected, is never erased. A correction is a new row
+--           (and a new run).
 create function private.rule_fixture_status_guard() returns trigger
 language plpgsql set search_path = '' as $$
 begin
   if tg_op = 'INSERT' then
     if new.status <> 'proposed' or new.decided_by is not null or new.decided_at is not null then
       raise exception 'a fixture is inserted proposed; a person confirms it (app.decide_rule_fixture)'
-        using errcode = '22023';
+        using errcode = 'P0051';
     end if;
     return new;
   end if;
+  if tg_op = 'DELETE' then
+    if old.status <> 'proposed' then
+      raise exception 'a % fixture is never deleted; propose a corrected one instead', old.status
+        using errcode = 'P0051';
+    end if;
+    return old;
+  end if;
+  if (new.id, new.rule_key, new.version, new.name, new.input, new.expected_outcome, new.expected, new.proposed_by,
+      new.proposed_at)
+     is distinct from (old.id, old.rule_key, old.version, old.name, old.input, old.expected_outcome, old.expected,
+                       old.proposed_by, old.proposed_at) then
+    raise exception 'a fixture''s content never changes; propose a new one instead' using errcode = 'P0051';
+  end if;
   if old.status <> 'proposed' then
-    if (new.rule_key, new.version, new.name, new.input, new.expected_outcome, new.expected, new.status,
-        new.decided_by, new.decided_at, new.decision_note)
-       is distinct from (old.rule_key, old.version, old.name, old.input, old.expected_outcome, old.expected,
-                         old.status, old.decided_by, old.decided_at, old.decision_note) then
-      raise exception 'a % fixture never changes; propose a new one instead', old.status using errcode = '22023';
+    if (new.status, new.decided_by, new.decided_at, new.decision_note)
+       is distinct from (old.status, old.decided_by, old.decided_at, old.decision_note) then
+      raise exception 'a % fixture''s decision never changes', old.status using errcode = 'P0051';
     end if;
   elsif new.status <> 'proposed' and (new.status not in ('confirmed','rejected') or new.decided_by is null
                                       or new.decided_at is null) then
-    raise exception 'a fixture is decided by a person, with the time' using errcode = '22023';
+    raise exception 'a fixture is decided by a person, with the time' using errcode = 'P0051';
   end if;
   return new;
 end $$;
-create trigger rule_fixture_status_guard before insert or update on ref.rule_fixtures
+create trigger rule_fixture_status_guard before insert or update or delete on ref.rule_fixtures
   for each row execute function private.rule_fixture_status_guard();
 
 alter table ref.rule_fixtures enable row level security;

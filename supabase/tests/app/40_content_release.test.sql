@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(70);
+select plan(71);
 set local client_min_messages = warning;
 
 -- ─── Staff (Sam) and a non-staff member (Nina) ──────────────────────────────────────────────────────
@@ -213,23 +213,27 @@ set local role authenticated;
 select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
                  '[K05.must.1] the latest run is the last recorded, whatever time it claims: a back-dated failure blocks');
 reset role;
-insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
-values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), true, private.ruleset_draft_fixture_count('2026.90-a'), 'test');
--- A confirmed fixture's content never changes (#360); a correction is a new fixture, decided again.
+create temp table run_before as select private.ruleset_draft_digest('2026.90-a') as digest;
+-- A confirmed fixture's content never changes, and it is never deleted (#360); a correction is a new fixture.
 select throws_ok($$update ref.rule_fixtures set input = '{"panel":"synthetic, changed"}'
                    where rule_key = 'TEST.T204.B' and version = 1 and expected_outcome = 'failed'$$,
-                 '22023', null, '[#360] a confirmed fixture''s content cannot be rewritten');
--- Same number of fixtures, different content: the fixture is replaced by a corrected one. Only the digest can tell.
-delete from ref.rule_fixtures where rule_key = 'TEST.T204.B' and version = 1 and expected_outcome = 'failed';
+                 'P0051', null, '[#360] a confirmed fixture''s content cannot be rewritten');
+select throws_ok($$delete from ref.rule_fixtures where rule_key = 'TEST.T204.B' and version = 1
+                   and expected_outcome = 'failed'$$,
+                 'P0051', null, '[#360] a confirmed fixture is never deleted');
 insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)
 values ('TEST.T204.B', 1, 'synthetic failed, corrected', '{"panel":"synthetic, changed"}', 'failed');
 -- Decided by Sam, as app.decide_rule_fixture records it (#360): inserted proposed, then confirmed with a person.
 update ref.rule_fixtures set status = 'confirmed', decided_by = '10000000-0000-4000-8204-0000000000a1', decided_at = now()
 where status = 'proposed' and rule_key like 'TEST.T204.%';
+-- A passing run that judged as many fixtures as there are now, but recorded on the set before the correction: only
+-- the digest can tell.
+insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
+values ('2026.90-a', (select digest from run_before), true, private.ruleset_draft_fixture_count('2026.90-a'), 'test');
 set local role authenticated;
 select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039',
                  'K05: members or fixtures changed after the latest fixture run; run the fixtures again',
-                 '[K05.must.1] a passing run is stale once a fixture''s content changes, even with the same fixture count');
+                 '[K05.must.1] a passing run is stale once the confirmed fixtures change, even with the same fixture count');
 reset role;
 insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
 values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), true, private.ruleset_draft_fixture_count('2026.90-a'), 'test');

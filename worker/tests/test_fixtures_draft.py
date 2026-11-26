@@ -77,7 +77,7 @@ def outcomes(results):
                            "detect": {"term_keys": ["test_i360_net"]}, "bands": [{"min_height_mm": 1.2}]}),
 ], ids=["mandatory", "mandatory-any-panel", "prescribed", "threshold-gt", "threshold-lt", "height-banded",
         "height-open"])
-def test_k05_main_every_drafted_shape_gets_passed_failed_and_withheld_that_the_engine_agrees_with(version):
+def test_K05_main_every_drafted_shape_gets_passed_failed_and_withheld_that_the_engine_agrees_with(version):
     store = FakeStore([version])
     results = fd.run(store)
     assert outcomes(results) == [("passed", "stored", None), ("failed", "stored", None), ("withheld", "stored", None)]
@@ -243,7 +243,7 @@ def _as_staff(conn) -> None:
         {"sub": STAFF_USER, "role": "authenticated", "aal": "aal2", "app_metadata": {"nutrivo_staff": True}}),))
 
 
-def test_pg_k05_main_drafted_fixtures_count_for_the_release_only_once_a_person_confirmed_them(pg):
+def test_pg_K05_main_drafted_fixtures_count_for_the_release_only_once_a_person_confirmed_them(pg):
     with pg.transaction():
         _synthetic_rule(pg)
         store = fd.PgDraftStore(pg)
