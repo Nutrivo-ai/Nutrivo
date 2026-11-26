@@ -6,6 +6,9 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { parse } from "yaml";
 import { REPO_ROOT } from "../../visual/screens";
+import { edgeOf, percentile, roundTo, spread } from "./stats";
+
+export { edgeOf, percentile, spread };
 
 export type Status = "met" | "exceeded" | "withheld" | "staging_only";
 
@@ -41,13 +44,6 @@ export function budget(key: string): number {
   const value = nfr[section]?.[name];
   if (typeof value !== "number") throw new Error(`spec/nfr.yaml has no budget ${key}`);
   return value;
-}
-
-/** Nearest-rank percentile (the value at or below which p% of samples fall); null for no samples. */
-export function percentile(samples: number[], p: number): number | null {
-  if (!samples.length) return null;
-  const sorted = [...samples].sort((a, b) => a - b);
-  return sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1))];
 }
 
 export type Result = {
@@ -149,21 +145,6 @@ export async function networkFloor(base: string, anon: string, n = 20, concurren
   });
   const xs = runs.filter((x): x is number => x !== null);
   return { ...spread(xs), n: xs.length, failed: runs.length - xs.length, concurrency, edge };
-}
-
-/** The edge location in a cf-ray header ("8f1c2d3e4a5b6c7d-SEA" is SEA); "none" without one. */
-export function edgeOf(ray: string | null | undefined): string {
-  const m = /-([A-Z]{3})$/.exec(ray ?? "");
-  return m ? m[1] : "none";
-}
-
-/** p50 and p95 of samples in ms, to 0.1 ms; null for none. */
-export function spread(samples: number[]): { p50_ms: number | null; p95_ms: number | null } {
-  return { p50_ms: roundTo(percentile(samples, 50), 0.1), p95_ms: roundTo(percentile(samples, 95), 0.1) };
-}
-
-function roundTo(n: number | null, step: number) {
-  return n == null ? null : Math.round(n / step) / Math.round(1 / step);
 }
 
 /** Appends one request outcome to reports/load/requests.jsonl (read by the availability tests). */

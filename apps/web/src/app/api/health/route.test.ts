@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const connection = vi.fn(async () => {});
+const { connection } = vi.hoisted(() => ({ connection: vi.fn(async () => {}) }));
 vi.mock("next/server", async (importOriginal) => ({ ...(await importOriginal<typeof import("next/server")>()), connection }));
 
-const { GET } = await import("./route");
+import { GET } from "./route";
 
 describe("GET /api/health", () => {
   beforeEach(() => connection.mockClear());

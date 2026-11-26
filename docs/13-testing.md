@@ -65,9 +65,10 @@ fails when a budget has none.
 own time. `network_floor` is the p50/p95 of sequential GETs of Auth's health endpoint (no table) from the same client
 in the same run; its `edge` counts the edge location that answered (cf-ray's suffix), which shows where the client
 sat, and `failed` the GETs that did not answer. `network_floor_under_load` is taken right after the RPC samples with
-the same number in flight, not at the same moment. Hosted Edge Functions run in the region nearest the caller, not the database's (Supabase, "Regional
-invocations"), so a client far from eu-central-1 also measures the function's hop back to the database; `edge_regions`
-shows where they ran. Neither changes a status: a budget is judged on the samples alone.
+the same number in flight, not at the same moment. Hosted Edge Functions run in the region nearest the caller, not
+the database's (Supabase, "Regional invocations"), so a client far from eu-central-1 also measures the function's hop
+back to the database; `edge_regions` shows where they ran. Neither changes a status: a budget is judged on the samples
+alone.
 
 Profiles live in config/load/profiles.yaml. `local` is full size against `supabase start`, the worker and the web's
 production build (scripts/load/run.sh starts them, as scripts/ci/e2e.sh does). `ci` is reduced, in ci.yml's `load`
