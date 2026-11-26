@@ -14,7 +14,17 @@ def test_G02_must_1_no_job_kind_submits_to_an_authority():
 
 
 def test_G02_must_1_no_edge_function_submits_to_an_authority():
-    # CLAUDE.md: Edge Functions only for verify, supplier-upload and stripe-webhook. A new one is added here on purpose.
+    # CLAUDE.md: Edge Functions only for verify, share (D-30), supplier-upload and stripe-webhook. A new one is added here
+    # on purpose.
     functions = sorted(d for d in os.listdir(os.path.join(ROOT, "supabase", "functions"))
                        if os.path.isdir(os.path.join(ROOT, "supabase", "functions", d)) and not d.startswith(("_", ".")))
-    assert set(functions) <= {"verify", "supplier-upload", "stripe-webhook"}, functions
+    assert set(functions) <= {"verify", "share", "supplier-upload", "stripe-webhook"}, functions
+
+
+def test_G02_must_1_the_share_function_only_reads_a_share_and_signs_its_pdf():
+    """D-30 (T-604): share calls app.open_share and Storage's sign endpoint for the reports bucket, and nothing else."""
+    with open(os.path.join(ROOT, "supabase", "functions", "share", "share.js"), encoding="utf-8") as f:
+        source = f.read()
+    calls = re.findall(r"fetchFn\(`\$\{base\}([^`$]*)", source)
+    assert calls == ["/rest/v1/rpc/open_share", "/storage/v1/object/sign/reports/"], calls
+    assert not SUBMITS.search(re.sub(r"//.*", "", source))

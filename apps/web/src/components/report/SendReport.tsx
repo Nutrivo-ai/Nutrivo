@@ -6,11 +6,13 @@ import { useState, useTransition, type ReactNode } from "react";
 import { ProductNotFound } from "@/components/artwork/ProductNotFound";
 import { Blueprint, Button, Dialog, EmptyState, SectionHeading, cx } from "@/components/kit";
 import { Screen } from "@/components/shell";
-import { reportPdfLink, revokeShare, type ShareRefusal } from "@/lib/share/actions";
+import { track } from "@/lib/analytics";
+import { createEmailShare, createLinkShare, reportPdfLink, revokeShare, type ShareRefusal } from "@/lib/share/actions";
 import {
   DEFAULT_EXPIRY_DAYS,
-  expiryLabel,
+  EXPIRY_CHOICES,
   formatUtc,
+  looksLikeEmail,
   pinFacts,
   shareLine,
   type PinnedReport,
@@ -20,10 +22,10 @@ import type { SendPage } from "@/lib/share/queries";
 
 // S-NV2-026 Export, send, share (Nutrivo 2.0, screen "send", U09), I01 and I02. The design draws the four routes as
 // static cards and the link settings as a static list; the controls live inside them (question 6 on #58): Export
-// downloads the stored PDF, and Link settings lists this report's shares, each revocable. Email and Share by link make
-// no share yet: the recipient page /share/<token> waits on #58 Q1 (orchestrator decision on the T-601 pull request, follow-up issue), so
-// a link made now would lead nowhere. app.create_share and its tests stay. Revoking stops the share page and never
-// verification of the document (BE-27): the reference keeps verifying on /verify.
+// downloads the stored PDF, Email sends Template 01 to one address, Share by link makes a revocable link to the
+// recipient's page /share/<token> (T-604, D-30), shown once, and Link settings sets the expiry and lists this report's
+// shares, each revocable. A successful share sends report_shared (docs/17) with ids and the channel only. Revoking stops
+// the share page and never verification of the document (BE-27): the reference keeps verifying on /verify.
 
 const mono = "font-mono uppercase";
 
@@ -46,6 +48,8 @@ const REFUSAL: Record<ShareRefusal, string> = {
   "no-permission": "Your role cannot share this report. An editor of this product can.",
   invalid: "That was not accepted. Check the address and try again.",
   "not-available": "The PDF of this report is not available yet.",
+  "daily-limit": "This workspace has sent 50 email shares today. Try again after 00:00 UTC, or share by link.",
+  "rate-limited": "Too many emails were sent in the last hour. Try again in a few minutes; nothing was sent.",
   error: "Nothing changed. Try again in a moment.",
 };
 
@@ -100,6 +104,7 @@ function Loaded({
   productId: string;
   page: Extract<SendPage, { kind: "loaded" }>;
 }) {
+  const [expiry, setExpiry] = useState<number | null>(DEFAULT_EXPIRY_DAYS);
   const r = page.report;
   return (
     <div
@@ -136,20 +141,8 @@ function Loaded({
         </div>
         <div className="mt-[14px] grid grid-cols-1 md:grid-cols-2 gap-[14px]">
           <ExportCard workspaceId={workspaceId} report={r} />
-          <RouteCard
-            k="Email"
-            v="Sent from us with the reference in the subject line, so the recipient can verify it without asking you for anything."
-            meta="TO NAMED RECIPIENTS"
-          >
-            <NotYet />
-          </RouteCard>
-          <RouteCard
-            k="Share by link"
-            v="A read-only page of this one report. The recipient needs no account and sees nothing else in the workspace."
-            meta="LINK · REVOCABLE"
-          >
-            <NotYet />
-          </RouteCard>
+          <EmailCard report={r} expiry={expiry} />
+          <LinkCard report={r} expiry={expiry} />
           <RouteCard
             k="Verification page"
             v="Anyone holding the reference can confirm the report is current, superseded or unknown."
@@ -208,7 +201,7 @@ function Loaded({
             </div>
           </section>
         ) : null}
-        <LinkSettings shares={page.shares} />
+        <LinkSettings shares={page.shares} expiry={expiry} onExpiry={setExpiry} />
       </div>
     </div>
   );
@@ -266,15 +259,6 @@ function Problem({ text }: { text: string | null }) {
   );
 }
 
-/** I02 (#58 Q1, follow-up issue): the recipient page is not built, so no share is created here yet. */
-function NotYet() {
-  return (
-    <p className="m-0 font-mono text-[10.5px] tracking-[0.04em] text-n600" data-not-yet>
-      NOT AVAILABLE YET · THE RECIPIENT PAGE COMES FIRST
-    </p>
-  );
-}
-
 function ExportCard({ workspaceId, report }: { workspaceId: string; report: PinnedReport }) {
   const [pending, start] = useTransition();
   const [problem, setProblem] = useState<string | null>(null);
@@ -300,7 +284,133 @@ function ExportCard({ workspaceId, report }: { workspaceId: string; report: Pinn
   );
 }
 
-function LinkSettings({ shares }: { shares: ShareRow[] }) {
+function EmailCard({ report, expiry }: { report: PinnedReport; expiry: number | null }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [address, setAddress] = useState("");
+  const [problem, setProblem] = useState<string | null>(null);
+  const [sent, setSent] = useState<string | null>(null);
+  function send(e: React.FormEvent) {
+    e.preventDefault();
+    setProblem(null);
+    setSent(null);
+    if (!looksLikeEmail(address)) return setProblem("Enter one email address.");
+    start(async () => {
+      const result = await createEmailShare(report.id, address, expiry);
+      if (!result.ok) return setProblem(REFUSAL[result.reason]);
+      // docs/17: ids and enums only, never the recipient's address.
+      track("report_shared", { report_id: report.id, share_id: result.value.shareId, channel: "email" });
+      setSent(address.trim().toLowerCase());
+      setAddress("");
+      router.refresh();
+    });
+  }
+  return (
+    <RouteCard
+      k="Email"
+      v="Sent from us with the reference in the subject line, so the recipient can verify it without asking you for anything."
+      meta="TO NAMED RECIPIENTS"
+    >
+      <form onSubmit={send} className="flex" noValidate>
+        <label htmlFor="share-email" className="sr-only">
+          Recipient email
+        </label>
+        <input
+          id="share-email"
+          type="email"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          autoComplete="off"
+          placeholder="name@company.com"
+          maxLength={254}
+          className="flex-1 min-w-0 border border-n400 border-r-0 py-[7px] px-[10px] text-[12.5px] bg-paper rounded-none placeholder:text-n500 focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+        />
+        <Button type="submit" variant="primary" className="rounded-none" disabled={pending}>
+          {pending ? "Sending…" : "Send"}
+        </Button>
+      </form>
+      <Problem text={problem} />
+      <p aria-live="polite" className={cx("mb-0 text-[12px] leading-[1.45] text-n700", sent ? "mt-[8px]" : "hidden")}>
+        {sent ? `Queued for ${sent}. It appears under Link settings.` : null}
+      </p>
+    </RouteCard>
+  );
+}
+
+function LinkCard({ report, expiry }: { report: PinnedReport; expiry: number | null }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [problem, setProblem] = useState<string | null>(null);
+  const [url, setUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  function create() {
+    setProblem(null);
+    setCopied(false);
+    start(async () => {
+      const result = await createLinkShare(report.id, expiry);
+      if (!result.ok) return setProblem(REFUSAL[result.reason]);
+      // docs/17: ids and enums only, never the token.
+      track("report_shared", { report_id: report.id, share_id: result.value.shareId, channel: "link" });
+      // Shown once: the database keeps only its hash, so it cannot be shown again.
+      setUrl(`${window.location.origin}/share/${result.value.token}`);
+      router.refresh();
+    });
+  }
+  async function copy() {
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+    } catch {
+      setProblem("The link could not be copied. Select it and copy it yourself.");
+    }
+  }
+  return (
+    <RouteCard
+      k="Share by link"
+      v="A read-only page of this one report. The recipient needs no account and sees nothing else in the workspace."
+      meta="LINK · REVOCABLE"
+    >
+      {url ? (
+        <div data-share-link>
+          <label htmlFor="share-url" className="sr-only">
+            Share link
+          </label>
+          <div className="flex">
+            <input
+              id="share-url"
+              readOnly
+              value={url}
+              onFocus={(e) => e.currentTarget.select()}
+              className="flex-1 min-w-0 border border-n400 border-r-0 py-[7px] px-[10px] font-mono text-[11px] bg-paper rounded-none focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
+            />
+            <Button variant="primary" className="rounded-none" onClick={copy}>
+              {copied ? "Copied" : "Copy"}
+            </Button>
+          </div>
+          <p className="mt-[8px] mb-0 text-[12px] leading-[1.45] text-n700">
+            Shown once: we keep only a fingerprint of it. Make another link any time.
+          </p>
+        </div>
+      ) : (
+        <Button onClick={create} disabled={pending}>
+          {pending ? "Making the link…" : "Create a link"}
+        </Button>
+      )}
+      <Problem text={problem} />
+    </RouteCard>
+  );
+}
+
+function LinkSettings({
+  shares,
+  expiry,
+  onExpiry,
+}: {
+  shares: ShareRow[];
+  expiry: number | null;
+  onExpiry: (days: number | null) => void;
+}) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [confirm, setConfirm] = useState<ShareRow | null>(null);
@@ -319,8 +429,24 @@ function LinkSettings({ shares }: { shares: ShareRow[] }) {
     <section aria-label="Link settings" className="border border-rule py-[16px] px-[18px] bg-paper">
       <h2 className={cx(mono, "m-0 text-[10px] tracking-[0.13em] text-n600 font-normal")}>Link settings</h2>
       <div className="mt-[10px]">
+        <div className={row}>
+          <label htmlFor="share-expiry" className="flex-1 text-[12.5px]">
+            Expires
+          </label>
+          <select
+            id="share-expiry"
+            value={expiry === null ? "never" : String(expiry)}
+            onChange={(e) => onExpiry(e.target.value === "never" ? null : Number(e.target.value))}
+            className="border-0 bg-transparent font-mono text-[10.5px] text-n700 text-right cursor-pointer focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            {EXPIRY_CHOICES.map((c) => (
+              <option key={c.label} value={c.days === null ? "never" : String(c.days)}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+        </div>
         {[
-          { k: "Expires", v: expiryLabel(DEFAULT_EXPIRY_DAYS) },
           { k: "Password", v: "OFF" },
           { k: "Recipient can download", v: "YES" },
           { k: "Revoked links", v: "SHOW AS UNKNOWN" },

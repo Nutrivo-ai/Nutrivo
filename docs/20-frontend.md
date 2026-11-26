@@ -197,6 +197,20 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
   scroll sideways below that width and do not meet 1.4.10 Reflow; making them reflow needs a narrow-screen design.
   Unknown URLs show Next's default 404, which has no `<main>` and none of the site's chrome; no design draws a 404.
 
+### Built in T-604: sharing a report (`apps/web/src/components/report/SendReport.tsx`, `apps/web/src/components/share`)
+- **S-NV2-026 Export, send, share** gets its Email and Share by link controls back, inside the existing cards (#58 Q6):
+  Email sends Template 01 to one address; Share by link makes a link shown once (only its SHA-256 is stored); Link
+  settings sets the expiry (7, 30 by default, 90 days or none) and lists the shares, each revocable. A share made sends
+  `report_shared` (docs/17). 50 email shares per workspace per UTC day (P0050) and the hourly notify limit (P0049) read
+  as refusals on the card, never as errors.
+- **`/share/[token]`**, the recipient's page, has no design of its own: it is laid out like Public verification
+  (S-NV2-027), sharing its frame (`PublicCardFrame` in `components/verify/VerifyScreen.tsx`), with its states (the
+  answer, unknown, too many requests, not answered, loading) and three state tiles. The answer card lists the report's
+  face facts in an ink card (never a state colour or the accent: a share is not a verdict), with Download PDF (a fresh
+  link signed for 300 s by the `share` Edge Function on each click) and a link to `/verify/<ref>`. A revoked, expired,
+  unknown or malformed link shows one identical Unknown card. `noindex`, `Referrer-Policy: no-referrer`; axe in
+  `share.spec.ts` and `a11y.spec.ts`.
+
 ## 6 · Performance
 Lighthouse budgets on the public pages (LCP under 2.5 s); a 1.5 s budget for the board with 300 recipes
 (spec/nfr.yaml).
