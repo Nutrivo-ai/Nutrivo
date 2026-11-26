@@ -102,6 +102,16 @@ export async function relinkRule(ruleKey: string, shape: string, form: FormData)
   );
 }
 
+// #360: the accepting person confirms or rejects a fixture `nutrivo fixtures draft` proposed. Only confirmed fixtures
+// count for BE-10 and the release gate, so the coverage page is revalidated too.
+export async function decideFixture(fixtureId: string, decision: "confirm" | "reject", note: string | null) {
+  return run<Json>(
+    "decide_rule_fixture",
+    (db) => db.schema("app").rpc("decide_rule_fixture", { p_fixture: fixtureId, p_decision: decision, p_note: note ?? undefined }),
+    ["/admin/rules", "/admin/coverage"],
+  );
+}
+
 export async function rejectCandidate(candidateId: string, note: string | null) {
   return run<null>(
     "reject_candidate",

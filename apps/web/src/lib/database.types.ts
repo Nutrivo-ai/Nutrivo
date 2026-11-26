@@ -1342,6 +1342,9 @@ isOneToOne: false
 "create_workspace":
 { Args: { "p_name": string }; Returns: string
                            },
+"decide_rule_fixture":
+{ Args: { "p_decision": string,"p_fixture": string,"p_note"?: string }; Returns: Json
+                           },
 "decide_term":
 { Args: { "p_decision": string,"p_note"?: string,"p_term_entry": string }; Returns: string
                            },
@@ -1775,14 +1778,14 @@ isOneToOne: false
                   ]
                 },"rule_fixtures": {
                   Row: {
-                    "expected": Json | null,"expected_outcome": string,"id": string,"input": NonNullable<Json>,"name": string,"rule_key": string,"version": number
+                    "decided_at": string | null,"decided_by": string | null,"decision_note": string | null,"expected": Json | null,"expected_outcome": string,"id": string,"input": NonNullable<Json>,"name": string,"proposed_at": string | null,"proposed_by": string | null,"rule_key": string,"status": string,"version": number
                   }
                   ComputedFields: never
                   Insert: {
-                    "expected"?: Json | null,"expected_outcome": string,"id"?: string,"input": NonNullable<Json>,"name": string,"rule_key": string,"version": number
+                    "decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"expected"?: Json | null,"expected_outcome": string,"id"?: string,"input": NonNullable<Json>,"name": string,"proposed_at"?: string | null,"proposed_by"?: string | null,"rule_key": string,"status"?: string,"version": number
                   }
                   Update: {
-                    "expected"?: Json | null,"expected_outcome"?: string,"id"?: string,"input"?: NonNullable<Json>,"name"?: string,"rule_key"?: string,"version"?: number
+                    "decided_at"?: string | null,"decided_by"?: string | null,"decision_note"?: string | null,"expected"?: Json | null,"expected_outcome"?: string,"id"?: string,"input"?: NonNullable<Json>,"name"?: string,"proposed_at"?: string | null,"proposed_by"?: string | null,"rule_key"?: string,"status"?: string,"version"?: number
                   }
                   Relationships: [
                     {

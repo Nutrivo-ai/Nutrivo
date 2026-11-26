@@ -104,7 +104,7 @@ database (P0292). Removing a member ends the membership, revokes grants and sign
 - **Staff (T-205, #35 Q6).** `/admin` requires `aal2` for every staff member: one with a verified factor proves it,
   one without enrols first (`/auth/mfa`). The layout, the service-role reader and every staff Server Action check it,
   because a layout is not rendered again on client navigation. The staff RPCs themselves do not check `aal2` yet
-  (#25, question 7).
+  (#25, question 7), except `app.decide_rule_fixture` (#360), which refuses a staff session below `aal2` (42501).
 - **Business sign-in (D-27, T-109).**
   - Google and Microsoft OAuth sit beside email and password on `/sign-in` (`components/auth/ProviderButtons.tsx`, for
     onboarding too). Microsoft is the `organizations` tenant, so a personal Microsoft account is refused by Microsoft.

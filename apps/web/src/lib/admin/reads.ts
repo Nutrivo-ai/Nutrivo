@@ -208,6 +208,64 @@ export async function readAcceptedRules(db: Db): Promise<AcceptedRule[]> {
   return [...latest.values()];
 }
 
+// ─── #360 · proposed fixtures, confirmed or rejected by the accepting person ───────────────────────
+export type ProposedFixture = {
+  id: string;
+  name: string;
+  expectedOutcome: string;
+  expected: Json | null;
+  input: Json;
+  proposedBy: string | null;
+  proposedAt: string | null;
+};
+/** One accepted rule version and its fixtures waiting for a decision, with what is already confirmed. */
+export type FixtureReview = { ruleKey: string; version: number; title: string | null; confirmed: string[]; proposed: ProposedFixture[] };
+
+/** Every proposed fixture (from `nutrivo fixtures draft`), grouped per rule version in rule key and version order. */
+export async function readProposedFixtures(db: Db): Promise<FixtureReview[]> {
+  const ref = db.schema("ref");
+  const rows = must(
+    "proposed fixtures",
+    await ref
+      .from("rule_fixtures")
+      .select("id, rule_key, version, name, input, expected_outcome, expected, proposed_by, proposed_at")
+      .eq("status", "proposed")
+      .order("rule_key")
+      .order("version")
+      .order("expected_outcome")
+      .order("id")
+      .limit(1000),
+  );
+  const keys = [...new Set(rows.map((r) => r.rule_key))];
+  const [rules, confirmed] = keys.length
+    ? await Promise.all([
+        ref.from("rules").select("rule_key, title").in("rule_key", keys),
+        ref.from("rule_fixtures").select("rule_key, version, expected_outcome").in("rule_key", keys).eq("status", "confirmed"),
+      ])
+    : [{ data: [], error: null }, { data: [], error: null }];
+  const title = new Map(must("rules", rules).map((r) => [r.rule_key, r.title]));
+  const done = must("confirmed fixtures", confirmed);
+  const out: FixtureReview[] = [];
+  for (const r of rows) {
+    let group = out.find((g) => g.ruleKey === r.rule_key && g.version === r.version);
+    if (!group) {
+      const outcomes = done.filter((c) => c.rule_key === r.rule_key && c.version === r.version).map((c) => c.expected_outcome);
+      group = { ruleKey: r.rule_key, version: r.version, title: title.get(r.rule_key) ?? null, confirmed: [...new Set(outcomes)].sort(), proposed: [] };
+      out.push(group);
+    }
+    group.proposed.push({
+      id: r.id,
+      name: r.name,
+      expectedOutcome: r.expected_outcome,
+      expected: r.expected,
+      input: r.input,
+      proposedBy: r.proposed_by,
+      proposedAt: r.proposed_at,
+    });
+  }
+  return out;
+}
+
 export type Jurisdiction = { id: string; name: string; nodeType: string; parentId: string | null };
 
 export async function readJurisdictions(db: Db): Promise<Jurisdiction[]> {
@@ -283,7 +341,10 @@ export async function readDraft(db: Db, draftId: string): Promise<DraftDetail> {
   const keys = memberRows.map((m) => m.rule_key);
   const [rules, fixtures, gaps] = await Promise.all([
     keys.length ? ref.from("rules").select("rule_key, title, domain, node_id").in("rule_key", keys) : Promise.resolve({ data: [], error: null }),
-    keys.length ? ref.from("rule_fixtures").select("rule_key, version, expected_outcome").in("rule_key", keys) : Promise.resolve({ data: [], error: null }),
+    // Confirmed fixtures only (#360): a proposed fixture counts for nothing until a person confirms it.
+    keys.length
+      ? ref.from("rule_fixtures").select("rule_key, version, expected_outcome").in("rule_key", keys).eq("status", "confirmed")
+      : Promise.resolve({ data: [], error: null }),
     ref.from("coverage_gaps").select("gap_id, node_id, domain, reason_code, description, opened_in").is("closed_in", null).order("gap_id").limit(2000),
   ]);
   const ruleBy = new Map(must("rules", rules).map((r) => [r.rule_key, r]));

@@ -198,13 +198,57 @@ withheld (`model_abstained`), never passed.
 and expected findings. `nutrivo fixtures run --ruleset <id>` must pass for every member before a release (K05).
 Golden labels (`fixtures/golden/`) gate releases once there are 30 of them.
 
+### Proposed and confirmed (incident #360)
+A fixture is `proposed`, `confirmed` or `rejected` (`status`, with `proposed_by` and `proposed_at`, and `decided_by`,
+`decided_at` and `decision_note` for a decision). Only **confirmed** fixtures count:
+- for a version being tested (`private.version_tested`), so for complete coverage (BE-10, P0010) and the release
+  (P0039);
+- for the fixture count a run must reach (`private.ruleset_draft_fixture_count`);
+- for the draft digest (`private.ruleset_draft_digest`). Confirming or rejecting a fixture therefore makes an earlier
+  run stale;
+- for `nutrivo fixtures run`, where a member whose fixtures are all still proposed is withheld `no_fixtures`.
+
+Rows written before #360 were written by hand and count as confirmed. A new row is proposed unless it says
+otherwise. A decision is final: proposed → confirmed or rejected, once (22023 otherwise). Authenticated users read
+confirmed fixtures and staff read all of them (RLS, as `ref.rule_versions`). Clients have no write grant.
+
+**Drafting.** `nutrivo fixtures draft [--rule <key>] [--dry-run]` (`nutrivo_worker.fixtures_draft`) proposes the
+missing outcomes for every accepted version that lacks a confirmed fixture for passed, failed or withheld. The input
+comes only from the version's own params and applicability, its node's labelling languages, and the accepted register
+entries its params link to (pinned to no ruleset, as a draft run reads them). Nothing comes from memory (CLAUDE.md 7).
+- **Node.** The rule's own node when it has languages, else its child nodes in id order. The first node and
+  language with a linked term, under which the rule applies, is used.
+- **Facts.** Classification facts are only values the applicability predicate names: the fewest that make it apply.
+  A field the predicate only asks about with `has`, or only excludes, is never filled in, so such a version is
+  skipped `applicability_unsatisfied`.
+- **passed.** A panel in that language printing the linked term verbatim. character_height measures it exactly at
+  the first band's minimum, with a quantity from that band's own bounds. threshold sets the quantity to the rule's
+  own value (gt: twice it, lt: half it, or ±1 at 0 and below).
+- **failed.** The same panel with nothing printed. character_height prints the term at half the band minimum. It
+  expects a finding under the rule key.
+- **withheld.** The passed panel with its language undetermined (`und`). It expects `data_missing`.
+- **Skipped.** claim_judgement and additive_condition (`shape_not_drafted`: they need a model or the additive
+  register, which are not params or terms), versions without links (`params_incomplete`), with no linked term in a
+  language of the node (`no_linked_term`), or whose params cannot be read (`params_incomplete`).
+- **The engine first.** Each proposal is run as `nutrivo fixtures run` runs it (`run_rule_fixtures`). It is stored
+  only when it matches; otherwise it is skipped `engine_disagreed:<outcome>`.
+- **Idempotent.** Each version is one transaction under an advisory lock. An outcome with a proposed or confirmed
+  fixture is `unchanged`, and a proposal identical to a rejected fixture is skipped `rejected`.
+- **Output.** One JSON line per fixture (`stored`, `drafted` on a dry run, `unchanged`, `skipped`, `failed`, with
+  rule key, version, outcome, node, language and reason), then a summary. A version that fails is reported to Sentry
+  with ids only, and the run exits 1.
+
+**Confirming.** Staff confirm or reject each proposed fixture in `/admin/rules`, under *Accepted rules: proposed
+fixtures*, through `app.decide_rule_fixture` (docs/04). The RPC needs staff and `aal2` (42501). It decides only a
+proposed fixture of an accepted version, and audits `rule_fixture.confirmed` or `rule_fixture.rejected`.
+
 ### The release gate (T-204)
 A release is prepared as a draft (`ref.ruleset_drafts`, with members and coverage). The fixture runner records each
 run against a draft in `ref.fixture_runs` (insert-only, service role only; the latest is the last inserted) with
 `passed`, `rule_fixtures_ran` and the draft's digest, `private.ruleset_draft_digest(draft)`: every member's version and the content of its fixtures. A run
 that judged no fixture cannot be recorded as passed. `app.release_ruleset` refuses (P0039) unless every member has
-passed, failed and withheld fixtures and the draft's latest run passed, judged every one of them and still matches the
-digest, so a fixture or member changed after the run
+passed, failed and withheld confirmed fixtures and the draft's latest run passed, judged every one of them and still
+matches the digest, so a fixture or member changed (or a fixture confirmed) after the run
 needs a new run. What a release run judges is D-32:
 - `nutrivo fixtures run --draft <id>` runs a draft's member fixtures and records the run;
 - synthetic labels are never part of a release run;
@@ -216,7 +260,8 @@ fixtures can pass.
 ### The runner (T-206, T-210)
 `nutrivo fixtures run --ruleset <id> | --draft <id> [--format text|json] [--out report.json] [--junit report.xml]
 [--golden DIR]` reads, in one repeatable-read, read-only transaction:
-- the rule fixtures of every member, with each member's params, applicability and the accepted term register:
+- the confirmed rule fixtures of every member (§Proposed and confirmed), with each member's params, applicability and
+  the accepted term register:
   - `--ruleset`: a released ruleset (`ref.ruleset_members`);
   - `--draft`: a draft (`ref.ruleset_draft_members`), with the register its release would carry (entries pinned to
     no ruleset), plus `private.ruleset_draft_digest` in the same snapshot;

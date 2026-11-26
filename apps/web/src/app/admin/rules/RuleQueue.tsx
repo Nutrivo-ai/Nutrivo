@@ -3,10 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import { Blueprint, Button, EmptyState, cx } from "@/components/kit";
-import type { AcceptedRule, Extraction, Jurisdiction, LinkableTerm, RuleCandidate } from "@/lib/admin/reads";
+import type { AcceptedRule, Extraction, FixtureReview, Jurisdiction, LinkableTerm, RuleCandidate } from "@/lib/admin/reads";
 import { languageName } from "@/lib/admin/language";
 import { DOMAINS, EFFECT_TYPES, SHAPES, label } from "@/lib/admin/staff";
 import { acceptCandidate, rejectCandidate } from "../actions";
+import { ProposedFixtures } from "./ProposedFixtures";
 import { AcceptedRules, LinkFields } from "./TermLinks";
 
 // docs/12 "Accepting a rule: the checklist", as the person works through it.
@@ -17,7 +18,7 @@ const CHECKLIST = [
   "Applicability (species, product class, life stage, market) matches the text, no wider and no narrower.",
   "Dates: effective_from and any sell-through period are set where the act gives them.",
   "Term links (D-31): each linked term is the register entry for what the text requires, with an accepted entry in every language of the markets the rule holds on.",
-  "Fixtures exist for passed, failed and withheld, and pass (checked again at release).",
+  "Fixtures for passed, failed and withheld are confirmed below, and pass (checked again at release).",
 ];
 
 const field = "block w-full mt-[4px] border border-n400 rounded-control bg-paper py-[6px] px-[8px] text-[13px] text-ink";
@@ -200,7 +201,7 @@ function Candidate({ c, nodes, terms, outcome, setOutcome }: { c: RuleCandidate;
   );
 }
 
-export function RuleQueue({ candidates, nodes, terms, rules }: { candidates: RuleCandidate[]; nodes: Jurisdiction[]; terms: LinkableTerm[]; rules: AcceptedRule[] }) {
+export function RuleQueue({ candidates, nodes, terms, rules, fixtures }: { candidates: RuleCandidate[]; nodes: Jurisdiction[]; terms: LinkableTerm[]; rules: AcceptedRule[]; fixtures: FixtureReview[] }) {
   // Page-level, so the outcome stays on screen after a decided candidate leaves the queue.
   const [outcome, setOutcome] = useState<Outcome>(null);
   return (
@@ -220,6 +221,7 @@ export function RuleQueue({ candidates, nodes, terms, rules }: { candidates: Rul
             candidates.map((c) => <Candidate key={c.id} c={c} nodes={nodes} terms={terms} outcome={outcome} setOutcome={setOutcome} />)
           )}
           <AcceptedRules rules={rules} terms={terms} />
+          <ProposedFixtures reviews={fixtures} />
         </div>
         <aside className="border border-rule bg-panel py-[14px] px-[16px]">
           <p className="m-0 font-mono text-[10px] tracking-[0.12em] uppercase text-n600">Accepting a rule: the checklist</p>

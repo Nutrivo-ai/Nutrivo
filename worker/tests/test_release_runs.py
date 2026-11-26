@@ -217,8 +217,9 @@ def _synthetic_draft(conn):
             ("printed", "Testparti: 42", "sv", "passed", None),
             ("absent", "Sammansättning", "sv", "failed", {"findings": [{"rule_key": "TEST.T210.A"}]}),
             ("no language", "Testparti: 42", "und", "withheld", {"reason": "data_missing"})):
-        conn.execute("""insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, expected)
-                        values ('TEST.T210.A', 1, %s, %s::jsonb, %s, %s::jsonb)""",
+        conn.execute("""insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, expected,
+                                                    status)
+                        values ('TEST.T210.A', 1, %s, %s::jsonb, %s, %s::jsonb, 'confirmed')""",
                      (name, json.dumps({"panel": {"language": lang, "text_objects": [{"text": text}]}, "node": node}),
                       outcome, json.dumps(expected) if expected else None))
     _as_staff(conn)

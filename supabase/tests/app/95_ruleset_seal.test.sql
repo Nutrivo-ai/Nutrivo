@@ -24,8 +24,8 @@ insert into ref.rule_versions (rule_key, version, status, params, article_ref, s
                                accepted_by, accepted_at) values
   ('TEST.T197.A', 1, 'accepted', '{"particular":"synthetic"}', 'Synthetic Act Art. 1', 'Synthetic excerpt.',
    'new_obligation', '10000000-0000-4000-8197-0000000000a1', now());
-insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)
-select 'TEST.T197.A', 1, 'synthetic ' || o, '{"panel":"synthetic"}', o from unnest(array['passed','failed','withheld']) o;
+insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, status)
+select 'TEST.T197.A', 1, 'synthetic ' || o, '{"panel":"synthetic"}', o, 'confirmed' from unnest(array['passed','failed','withheld']) o;
 
 select ok(not has_table_privilege('authenticated', 'ref.ruleset_seals', 'select')
           and not has_table_privilege('service_role', 'ref.ruleset_seals', 'insert')

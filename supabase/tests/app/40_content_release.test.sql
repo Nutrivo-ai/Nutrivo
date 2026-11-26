@@ -157,15 +157,15 @@ select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
                  '[K05.must.1] no release while a member has no fixtures');
 reset role;
 
-insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome) values
-  ('TEST.T204.A', 1, 'synthetic passed', '{"panel":"synthetic"}', 'passed'),
-  ('TEST.T204.B', 1, 'synthetic passed', '{"panel":"synthetic"}', 'passed');
+insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, status) values
+  ('TEST.T204.A', 1, 'synthetic passed', '{"panel":"synthetic"}', 'passed', 'confirmed'),
+  ('TEST.T204.B', 1, 'synthetic passed', '{"panel":"synthetic"}', 'passed', 'confirmed');
 set local role authenticated;
 select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
                  '[K05.must.1] no release while a member lacks failed and withheld fixtures');
 reset role;
-insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)
-select k, 1, 'synthetic ' || o, '{"panel":"synthetic"}', o
+insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, status)
+select k, 1, 'synthetic ' || o, '{"panel":"synthetic"}', o, 'confirmed'
 from unnest(array['TEST.T204.A','TEST.T204.B']) k cross join unnest(array['failed','withheld']) o;
 
 set local role authenticated;
@@ -189,8 +189,8 @@ select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
 reset role;
 insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
 values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), true, private.ruleset_draft_fixture_count('2026.90-a'), 'test');
-insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)
-values ('TEST.T204.A', 1, 'synthetic withheld, unreadable', '{"panel":"unreadable"}', 'withheld');
+insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, status)
+values ('TEST.T204.A', 1, 'synthetic withheld, unreadable', '{"panel":"unreadable"}', 'withheld', 'confirmed');
 set local role authenticated;
 select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
                  '[K05.must.1] a passing run is stale once a fixture changes after it');
@@ -291,8 +291,8 @@ select app.create_ruleset_draft('2026.90-b');
 select app.set_draft_member('2026.90-b', 'TEST.T204.A', 3);
 select app.set_draft_member('2026.90-b', 'TEST.T204.B', 2);
 reset role;
-insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)
-select k, v, 'synthetic ' || o, '{"panel":"synthetic"}', o
+insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, status)
+select k, v, 'synthetic ' || o, '{"panel":"synthetic"}', o, 'confirmed'
 from (values ('TEST.T204.A', 3), ('TEST.T204.B', 2)) as m(k, v) cross join unnest(array['passed','failed','withheld']) o;
 insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
 values ('2026.90-b', private.ruleset_draft_digest('2026.90-b'), true, private.ruleset_draft_fixture_count('2026.90-b'), 'test');

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extraction, releaseBlockers, type DraftMember } from "./model";
+import { extraction, fixtureSummary, releaseBlockers, type DraftMember } from "./model";
 import { currentLinks, hasLinks, isStaff, linkKind, linksFromForm, refusal, staffMfa } from "./staff";
 
 describe("/admin staff check (T-205)", () => {
@@ -118,5 +118,27 @@ describe("[T-211] term links per rule shape (D-31)", () => {
   it("shows P0048 as a refusal with the database's reason", () => {
     expect(refusal({ code: "P0048", message: "D-31: EU-FI mandatory_particulars is complete only when ..." }).kind).toBe("refused");
     expect(refusal({ code: "P0048", message: "x" }).message).toBe("Refused: a linked term lacks one of the node's languages (D-31): x");
+  });
+});
+
+describe("a proposed fixture, as the accepting person reads it (#360)", () => {
+  const node = { id: "EU-SE", languages: ["sv"], region: "EU" };
+  it("gives the panel's language, the printed text verbatim and the market", () => {
+    const s = fixtureSummary(
+      { panel: { index: 0, language: "sv", status: "extracted", text_objects: [{ text: "Testparti", x_height_mm: 1.2 }] }, node, classification: { species: "dog" }, product: { format: null } },
+      null,
+    );
+    expect(s).toEqual({ language: "Swedish (sv)", printed: "“Testparti” (x-height 1.2 mm)", node: "EU-SE (sv)", facts: "species dog", expected: null });
+  });
+  it("says when nothing is printed and what a failed fixture expects", () => {
+    const s = fixtureSummary({ panel: { language: "sv", text_objects: [] }, node, product: { quantities: { fat: { value: 4, unit: "%" } } } }, { findings: [{ rule_key: "TEST.A" }] });
+    expect(s.printed).toBe("Nothing printed");
+    expect(s.facts).toBe('quantities {"fat":{"value":4,"unit":"%"}}');
+    expect(s.expected).toBe("a finding under TEST.A");
+  });
+  it("names an undetermined language and the reason a withheld fixture expects", () => {
+    const s = fixtureSummary({ panel: { language: "und", text_objects: [{ text: "Testparti" }] }, node }, { reason: "data_missing" });
+    expect(s.language).toBe("Language undetermined (und)");
+    expect(s.expected).toBe("withheld as data_missing");
   });
 });

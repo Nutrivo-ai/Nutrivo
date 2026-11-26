@@ -364,13 +364,51 @@ test.describe("@local-only /admin content console", () => {
     await page.reload();
     await expect(page.locator('[data-coverage="EU-SE:composition"]')).toHaveAttribute("data-state", "partial");
 
-    // Synthetic fixtures for passed, failed and withheld (setup, as the worker's fixture drafting would write them).
-    const fixtures = await admin().schema("ref").from("rule_fixtures").insert(
-      (["passed", "failed", "withheld"] as const).map((o) => ({ rule_key: RULE, version: 1, name: `TEST ${o} ${run}`, input: { test: o }, expected_outcome: o })),
-    );
+    // Synthetic fixtures for passed, failed and withheld, proposed as `nutrivo fixtures draft` writes them (setup), and
+    // one more that the person rejects. Proposed fixtures count for nothing until a person confirms them (#360).
+    const panel = (o: string) => ({ language: o === "withheld" ? "und" : "sv", text_objects: o === "failed" ? [] : [{ text: `TEST ${run}` }] });
+    const fixtures = await admin()
+      .schema("ref")
+      .from("rule_fixtures")
+      .insert(
+        (["passed", "failed", "withheld", "withheld"] as const).map((o, i) => ({
+          rule_key: RULE,
+          version: 1,
+          name: `TEST ${o}${i === 3 ? " extra" : ""} ${run}`,
+          input: { panel: panel(o), node: { id: "EU-SE", languages: ["sv"], region: "EU" } },
+          expected_outcome: o,
+          expected: o === "withheld" ? { reason: "data_missing" } : null,
+          status: "proposed",
+          proposed_by: "e2e setup",
+        })),
+      )
+      .select("id, name");
     if (fixtures.error) throw fixtures.error;
     await page.reload();
-    await expect(page.locator(`[data-member="${RULE}"]`)).toContainText("TESTED");
+    await expect(page.locator(`[data-member="${RULE}"]`)).toContainText("MISSING FAILED, PASSED, WITHHELD");
+
+    // The accepting person confirms three and rejects the extra one in /admin/rules.
+    await page.goto("/admin/rules");
+    const review = page.locator(`[data-fixture-review="${RULE}:1"]`);
+    await expect(review.locator("[data-fixture]")).toHaveCount(4);
+    await expect(review.locator('[data-outcome="failed"] [data-printed]')).toHaveText("Nothing printed");
+    await axe(page);
+    const extra = fixtures.data.find((f) => f.name.includes("extra"))!;
+    await review.locator(`[data-fixture="${extra.id}"]`).getByRole("button", { name: "Reject" }).click();
+    await expect(page.locator('[data-said="fixtures"]')).toContainText(`Rejected “TEST withheld extra ${run}”`);
+    for (const f of fixtures.data.filter((x) => x !== extra)) {
+      await page.locator(`[data-fixture="${f.id}"]`).getByRole("button", { name: "Confirm" }).click();
+      await expect(page.locator('[data-said="fixtures"]')).toContainText(`Confirmed “${f.name}”`);
+    }
+    await expect(page.locator('[data-said="fixtures"]')).toContainText(`${RULE} v1 now has confirmed passed, failed and withheld fixtures.`);
+    await expect(page.locator(`[data-fixture-review="${RULE}:1"]`)).toHaveCount(0);
+    const decided = await admin().schema("ref").from("rule_fixtures").select("status, decided_by").eq("rule_key", RULE).eq("version", 1);
+    expect(decided.data?.map((d) => d.status).sort()).toEqual(["confirmed", "confirmed", "confirmed", "rejected"]);
+    const me = await admin().schema("app").from("people").select("id").eq("user_id", staff.userId).single();
+    expect(decided.data?.every((d) => d.decided_by === me.data?.id)).toBe(true);
+
+    await page.goto(`/admin/coverage?draft=${DRAFT}&node=EU-SE`);
+    await expect(page.locator(`[data-member="${RULE}"]`)).toContainText("3 · TESTED");
     const tested = page.locator('[data-coverage="EU-SE:composition"]');
     await tested.getByLabel("State").selectOption("complete");
     await tested.getByRole("button", { name: "Save" }).click();
@@ -465,7 +503,7 @@ test.describe("@local-only /admin content console", () => {
     const member = await staff.db.schema("app").rpc("set_draft_member", { p_draft: draft, p_rule_key: LINKED, p_version: 2 });
     expect(member.error).toBeNull();
     const fixtures = await admin().schema("ref").from("rule_fixtures").insert(
-      (["passed", "failed", "withheld"] as const).map((o) => ({ rule_key: LINKED, version: 2, name: `TEST ${o} ${run}`, input: { test: o }, expected_outcome: o })),
+      (["passed", "failed", "withheld"] as const).map((o) => ({ rule_key: LINKED, version: 2, name: `TEST ${o} ${run}`, input: { test: o }, expected_outcome: o, status: "confirmed" })),
     );
     if (fixtures.error) throw fixtures.error;
     await page.goto(`/admin/coverage?draft=${draft}&node=EU-FI`);
@@ -496,7 +534,7 @@ test.describe("@local-only /admin content console", () => {
     const made = await staff.db.schema("app").rpc("create_ruleset_draft", { p_id: crawlDraft });
     expect(made.error).toBeNull();
     // Decisions that write content are exercised by the K03/K04 tests above, not clicked blind here.
-    const covered = /^(ACCEPT|REJECT|Reject|Accept this rule version|Save as v\d+)$/;
+    const covered = /^(ACCEPT|REJECT|Reject|Confirm|Accept this rule version|Save as v\d+)$/;
     for (const route of [`/admin/terms?entry=${derived}`, "/admin/rules", `/admin/coverage?draft=${crawlDraft}&node=EU-SE`, "/admin/glossary"]) {
       const errors = watch(page);
       await page.goto(route);
