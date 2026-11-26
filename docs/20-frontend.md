@@ -211,6 +211,27 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
   unknown or malformed link shows one identical Unknown card. `noindex`, `Referrer-Policy: no-referrer`; axe in
   `share.spec.ts` and `a11y.spec.ts`.
 
+### Built in T-1110: the Settings & roles overview (`apps/web/src/components/settings/Overview.tsx`, `apps/web/src/lib/settings/overview.ts`)
+- **S-NV2-017 Settings & roles** at `/w/[workspace]/settings`, the summary of Workspace Settings, in the Nutrivo 2.0
+  shell under the design's header ("Settings", "People, signing authority and workspace") with the ruleset chip:
+  - "People and roles": active members (`readPeople`, T-107) with their role (the four roles; the design's job titles
+    are stored nowhere), last activity, and signing authority from active `app.signing_grants` rows only, as market
+    codes, or None (BE-04: never implied by a role; an external person's None is drawn in the action colour, since
+    they can never hold one). Pending invitations are counted under the table;
+  - "Workspace": only the rows with data and a decision behind them (founder decision on #352, 26 Nov 2026): Ruleset
+    version (the latest released), Markets enabled (the nodes in the entitled regions, linking Coverage & confidence)
+    and Signing policy PER MARKET. The design's Tenancy model and Term register version rows are not built;
+  - the Plan card shows what D-03 sells (#352): plan, recipes and editor seats against their limits with viewers free,
+    regions, and checks this month, unmetered. It is read only by an internal admin of the whole workspace
+    (`app.billing_context`); any other admin is told who manages the plan. The design's "Portfolio, not activity"
+    figures (products × jurisdiction nodes) contradict D-03 and are not built.
+- **Links, no buttons.** Each section links the page that changes it: People and roles, Workspace, Audit log, Data and
+  retention, Your account, Plan and allowance.
+- **States.** Loaded; empty (the admin alone: an EmptyState linking People and roles); loading (`loading.tsx`); error
+  (the workspace error boundary); no-permission below admin, with nothing read.
+- **Tests** (`tests/e2e/settings-overview.spec.ts`): every state, axe, the no-dead-controls crawl, and both section
+  headings against the S-NV2-017 baseline; the wording in `src/lib/settings/overview.test.ts`.
+
 ## 6 · Performance
 Lighthouse budgets on the public pages (LCP under 2.5 s); a 1.5 s budget for the board with 300 recipes
 (spec/nfr.yaml).

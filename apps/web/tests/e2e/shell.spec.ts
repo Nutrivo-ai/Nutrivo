@@ -248,9 +248,13 @@ test.describe("workspace shell", () => {
       await expect(page).toHaveURL(new RegExp(`${href}$`));
       await expect(page.locator(`nav[aria-label="Workspace"]:visible a[href="${href}"]`)).toHaveAttribute("aria-current", "page");
       // A placeholder, a pattern state, or a built screen's own content (T-401: Add a product's form; Discontinued
-      // shows its empty pattern state in a fresh workspace, as does the Board (T-506); T-505: Coverage & confidence's table).
+      // shows its empty pattern state in a fresh workspace, as does the Board (T-506); T-505: Coverage & confidence's table;
+      // T-1110: the Settings & roles overview).
       await expect(
-        page.locator("main [data-placeholder], main [data-pattern], main [data-add-product], main [data-region=\"coverage\"]").filter({ visible: true }).first(),
+        page
+          .locator("main [data-placeholder], main [data-pattern], main [data-add-product], main [data-region=\"coverage\"], main [data-region=\"settings-overview\"]")
+          .filter({ visible: true })
+          .first(),
       ).toBeVisible();
     }
     // The switcher opens and closes, and each entry navigates.
