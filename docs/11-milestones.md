@@ -223,6 +223,7 @@ docs/pilot-runbook.md.
 **Done when** SETUP.md Step 8 is fully ticked.
 
 ## After launch
+The design direction of 19 Nov 2026 adds releases 1.1, 1.5 and 2.0 after launch: see docs/25 (D-33 to D-38).
 Certificates UI and signing grants (A08, I03) · the Compliance Worker (L01–L03) once coverage is real · search and
 saved views (F02) · user-started bulk re-check (F03) · SSO (A09) · Partner tier (N01, N03) · Worker proposals (E03) ·
 UK and US regions · GBP and USD catalogues · OCR geometry for raster artwork.
