@@ -4,9 +4,11 @@
 //   only its own check's findings, and only the checks of each market's latest check job are shown;
 // - every Not assessed that carries a gap_id links to that coverage gap (contract 4). A withheld finding without one
 //   stays Not assessed, never Clear, and says that no gap was recorded (#46 question 4).
-import type { Provenance, VerdictState, WithheldReason } from "@/components/kit/states";
+import { STATE_LABEL, type Provenance, type VerdictState, type WithheldReason } from "@/components/kit/states";
+import { registrationWords } from "@/lib/registration/model";
 
-export type MarketRow = { node_id: string; name: string; last_check_job_id: string | null };
+/** registration_state is optional so older callers read as unknown, never as registered (CLAUDE.md 8). */
+export type MarketRow = { node_id: string; name: string; last_check_job_id: string | null; registration_state?: string | null };
 export type CheckRow = {
   id: string;
   job_id: string | null;
@@ -114,7 +116,11 @@ export type ResultSet = {
   } | null;
 };
 
-export type MarketTile = { nodeId: string; code: string; name: string; state: VerdictState; detail: string };
+/**
+ * A market tile on the report. `state` is the label's state only; registration is separate (CLAUDE.md 8), so the tile
+ * says "Label clear", never "Clear", and carries its own registration line.
+ */
+export type MarketTile = { nodeId: string; code: string; name: string; state: VerdictState; detail: string; registration: string };
 
 export type ReportModel = {
   markets: MarketTile[];
@@ -123,6 +129,11 @@ export type ReportModel = {
   /** Withheld findings that carry no gap (reported, #46 question 4). */
   ungapped: number;
 };
+
+/** The label's state on a market tile: "Label clear", because a clear label says nothing about registration. */
+export function tileLabel(state: VerdictState): string {
+  return state === "clear" ? "Label clear" : STATE_LABEL[state];
+}
 
 const LABEL_ORDER: Record<string, number> = { action: 0, not_assessed: 1, clear: 2 };
 
@@ -371,7 +382,7 @@ export function buildReport(rows: ReportRows): ReportModel {
   const tiles: MarketTile[] = markets.map((m) => {
     const own = sets.filter((s) => s.nodeId === m.node_id);
     if (own.length === 0) {
-      return { nodeId: m.node_id, code: nodeCode(m.node_id), name: m.name, state: "not_assessed", detail: "not checked yet" };
+      return { nodeId: m.node_id, code: nodeCode(m.node_id), name: m.name, state: "not_assessed", detail: "not checked yet", registration: registrationWords(m.registration_state) };
     }
     const state = own.map((s) => s.state).sort((a, b) => LABEL_ORDER[a] - LABEL_ORDER[b])[0];
     const count = own.reduce((n, s) => n + s.findings.filter((f) => f.state !== "info").length, 0);
@@ -381,6 +392,7 @@ export function buildReport(rows: ReportRows): ReportModel {
       name: m.name,
       state,
       detail: `${count} finding${count === 1 ? "" : "s"}`,
+      registration: registrationWords(m.registration_state),
     };
   });
 

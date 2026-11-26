@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildReport, gapHref, latestChecks, ReportShapeError, setLabel, type CheckRow, type FindingRow, type ReportRows } from "./model";
+import { buildReport, gapHref, latestChecks, ReportShapeError, setLabel, tileLabel, type CheckRow, type FindingRow, type ReportRows } from "./model";
 
 const WS = "11111111-1111-4111-8111-111111111111";
 const JOB = "22222222-2222-4222-8222-222222222222";
@@ -110,6 +110,17 @@ describe("label report model (D07)", () => {
     const report = buildReport(rows({ markets: [...rows().markets, { node_id: "US-TX", name: "Texas", last_check_job_id: null }] }));
     const tx = report.markets.find((m) => m.nodeId === "US-TX")!;
     expect(tx).toMatchObject({ state: "not_assessed", detail: "not checked yet" });
+  });
+
+  it("[D07] a market tile says Label clear, never Clear, and carries its registration separately (CLAUDE.md 8)", () => {
+    expect(tileLabel("clear")).toBe("Label clear");
+    expect(tileLabel("action")).toBe("Action needed");
+    expect(tileLabel("not_assessed")).toBe("Not assessed");
+    const first = rows().markets[0].node_id;
+    const report = buildReport(rows({ markets: rows().markets.map((m) => ({ ...m, registration_state: m.node_id === first ? "registered" : undefined })) }));
+    expect(report.markets.find((m) => m.nodeId === first)!.registration).toBe("Registered");
+    // An unrecorded or unread registration reads Unknown, never registered.
+    expect(report.markets.filter((m) => m.nodeId !== first).every((m) => m.registration === "Unknown")).toBe(true);
   });
 
   it("[D07.must.1] the switcher names a set by its language at home and by market and language elsewhere", () => {

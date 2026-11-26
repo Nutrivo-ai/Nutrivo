@@ -21,7 +21,7 @@ from decimal import Decimal
 from typing import Any
 
 FORMAT = "nutrivo-label-report/1"
-TEMPLATE = "label_report.v1"
+TEMPLATE = "label_report.v2"  # new reports; v1 stays registered for those issued with it
 STATE_ORDER = {"action": 0, "not_assessed": 1, "info": 2}
 
 # Labelling languages of the EU nodes (ISO 639-1), for the document's own wording. A code not listed prints as itself.

@@ -183,6 +183,8 @@ test.describe("label report", () => {
     await expect(tiles).toHaveCount(MARKETS.length);
     await expect(tiles.filter({ hasText: "Clear" })).toHaveCount(0);
     await expect(tiles.locator('[data-glyph="not_assessed"]')).toHaveCount(MARKETS.length);
+    // Registration is its own line on every tile, separate from the label: none is recorded here, so Unknown.
+    await expect(tiles.locator("[data-registration]")).toHaveText(MARKETS.map(() => "Registration: Unknown"));
 
     // The German panel's text is drawn where it was printed, and the check is pinned to its ruleset and artwork.
     await expect(tabs(page).first()).toHaveAttribute("aria-pressed", "true");
