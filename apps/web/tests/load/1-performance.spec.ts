@@ -82,19 +82,24 @@ test.describe("performance budgets", () => {
         return res.status() === 200 && html.includes('data-region="grid"') && html.includes("Load recipe 001");
       }),
     );
-    // The web's own floor from this client: /api/health renders nothing and calls no service.
+    // The web's own floor from this client: /api/health is rendered per request in the board's region and calls no
+    // service. x-vercel-cache shows it was not answered from the CDN ("none" locally).
     const floor: number[] = [];
+    const cache: Record<string, number> = {};
     for (let i = 0; i < 20; i++) {
       const started = performance.now();
       const res = await context.request.get("/api/health").catch(() => null);
-      if (res?.ok()) floor.push(performance.now() - started);
+      if (!res?.ok()) continue;
+      floor.push(performance.now() - started);
+      const hit = res.headers()["x-vercel-cache"] ?? "none";
+      cache[hit] = (cache[hit] ?? 0) + 1;
     }
     await context.close();
     const ok = runs.filter((r) => r.ok).map((r) => r.ms);
     const scaled = profile.recipes === 300 ? undefined : `profile ${profile.name} seeds ${profile.recipes} recipes, not 300: reported, not comparable`;
     judgeP95("performance.board_300_recipes_p95_ms", "ms", ok, {
       recipes: profile.recipes, failed: runs.length - ok.length, p50_ms: spread(ok).p50_ms, vercel_regions: vercel,
-      web_floor: { ...spread(floor), n: floor.length },
+      web_floor: { ...spread(floor), n: floor.length, cache },
     }, scaled, !scaled);
     expect(runs.length - ok.length, "every board load rendered the grid").toBe(0);
   });

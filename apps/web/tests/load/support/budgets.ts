@@ -126,7 +126,7 @@ export function p95By(samples: { label: string; ms: number }[]): Record<string, 
   return Object.fromEntries(Object.entries(by).map(([k, v]) => [k, roundTo(percentile(v, 95), 0.1)]));
 }
 
-export type Floor = { p50_ms: number | null; p95_ms: number | null; n: number; concurrency: number; edge: Record<string, number> };
+export type Floor = { p50_ms: number | null; p95_ms: number | null; n: number; failed: number; concurrency: number; edge: Record<string, number> };
 
 /**
  * The network floor between the load client and the Supabase API: GETs of Auth's health endpoint, which touches no
@@ -142,12 +142,13 @@ export async function networkFloor(base: string, anon: string, n = 20, concurren
     const started = performance.now();
     const res = await fetch(`${base.replace(/\/$/, "")}/auth/v1/health`, { headers: { apikey: anon } }).catch(() => null);
     await res?.arrayBuffer().catch(() => null);
-    const pop = edgeOf(res?.headers.get("cf-ray"));
+    if (!res?.ok) return null;
+    const pop = edgeOf(res.headers.get("cf-ray")); // only answers that count in n, so edge adds up to n
     edge[pop] = (edge[pop] ?? 0) + 1;
-    return res?.ok ? performance.now() - started : null;
+    return performance.now() - started;
   });
   const xs = runs.filter((x): x is number => x !== null);
-  return { ...spread(xs), n: xs.length, concurrency, edge };
+  return { ...spread(xs), n: xs.length, failed: runs.length - xs.length, concurrency, edge };
 }
 
 /** The edge location in a cf-ray header ("8f1c2d3e4a5b6c7d-SEA" is SEA); "none" without one. */
