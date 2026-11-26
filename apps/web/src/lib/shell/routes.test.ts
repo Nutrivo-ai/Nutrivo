@@ -69,7 +69,7 @@ describe("workspace routes (T-102)", () => {
   });
 
   it("switching keeps the section and never carries an id from the workspace being left", () => {
-    expect(switchHref("/w/a/library/terms", "b")).toBe("/w/b/library/terms");
+    expect(switchHref("/w/a/library/suppliers", "b")).toBe("/w/b/library/suppliers");
     expect(switchHref("/w/a/products/p1/report", "b")).toBe("/w/b");
     expect(switchHref("/w/a/library/coverage/DE", "b")).toBe("/w/b");
     expect(switchHref("/w/a/unknown", "b")).toBe("/w/b");
