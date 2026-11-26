@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { FullExport } from "@/app/w/[workspace]/settings/data/DataAndRetention";
 import { Blueprint, Button, EmptyState, SectionHeading, cx } from "@/components/kit";
+import { FullExport } from "./FullExport";
 import { useShell } from "@/components/shell";
 import { formatWhen, type ExportState } from "@/lib/exports/exports";
 import { requestReport } from "@/lib/exports/report-actions";
@@ -51,9 +51,10 @@ export type ExportsView = {
 export function Exports({ view }: { view: ExportsView }) {
   const { current } = useShell();
   const router = useRouter();
-  const preparing = view.lines.some((l) => l.report.kind === "preparing");
+  const preparing = view.lines.some((l) => l.report.kind === "preparing" && !l.report.stalled);
 
-  // While a report is prepared, re-read the page every 10 s, as the full export card does.
+  // While a report is prepared, re-read the page every 10 s, as the full export card does. A job past the worker's
+  // lease is said to take longer than usual and is no longer re-read on its own (Check again re-reads it).
   useEffect(() => {
     if (!preparing) return;
     const timer = window.setInterval(() => router.refresh(), PREPARING_REFRESH_MS);
@@ -265,10 +266,23 @@ function ReportCell({ workspaceId, line, canRequest }: { workspaceId: string; li
           )}
         </div>
       ) : null}
-      {r.kind === "preparing" ? (
+      {r.kind === "preparing" && !r.stalled ? (
         <p role="status" className="m-0 font-mono text-[10px] tracking-[0.08em] uppercase text-n600">
           Preparing the report
         </p>
+      ) : null}
+      {r.kind === "preparing" && r.stalled ? (
+        <div className="flex flex-wrap items-center gap-x-[12px] gap-y-[6px]" data-stalled>
+          <p role="status" className="m-0 text-[12.5px] leading-[1.5] text-action">
+            This report is taking longer than usual. It is still queued; nothing was lost.
+          </p>
+          <Button variant="ghost" disabled={pending} aria-busy={pending} onClick={() => start(() => router.refresh())}>
+            Check again
+          </Button>
+        </div>
+      ) : null}
+      {r.kind === "unavailable" ? (
+        <p className="m-0 text-[12.5px] leading-[1.5] text-n700">No report to show for this check yet.</p>
       ) : null}
       {r.kind === "failed" ? (
         <p className="m-0 text-[12.5px] leading-[1.5] text-blocked">

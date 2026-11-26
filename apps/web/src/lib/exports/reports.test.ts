@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { latestChecks, reportKey, reportLines, reportState, type CheckRow, type ReportJobRow, type ReportRow } from "./reports";
+import {
+  STALLED_AFTER_MS,
+  latestChecks,
+  reportKey,
+  reportLines,
+  reportState,
+  type CheckRow,
+  type ReportJobRow,
+  type ReportRow,
+} from "./reports";
 
 const check = (id: string, product: string, node: string, language: string | null, at: string): CheckRow => ({
   id,
@@ -20,11 +29,15 @@ const report = (id: string, checkIds: string[], createdAt: string, pdf: string |
   created_at: createdAt,
 });
 
+const QUEUED_AT = "2026-11-20T10:00:00Z";
+const SOON = new Date(Date.parse(QUEUED_AT) + 60_000);
+
 const job = (id: string, checkId: string, status: string): ReportJobRow => ({
   id,
   idempotency_key: reportKey(checkId),
   status,
-  updated_at: "2026-11-20T10:00:00Z",
+  created_at: QUEUED_AT,
+  updated_at: QUEUED_AT,
 });
 
 describe("[T-1112] latest check of each product × market × language", () => {
@@ -60,14 +73,23 @@ describe("[T-1112] a check's report state", () => {
   });
 
   it("is preparing while the check's job is queued or running", () => {
-    expect(reportState("c1", [], [job("j1", "c1", "queued")])).toEqual({ kind: "preparing", jobId: "j1" });
-    expect(reportState("c1", [], [job("j1", "c1", "running")])).toEqual({ kind: "preparing", jobId: "j1" });
+    expect(reportState("c1", [], [job("j1", "c1", "queued")], SOON)).toEqual({ kind: "preparing", jobId: "j1", stalled: false });
+    expect(reportState("c1", [], [job("j1", "c1", "running")], SOON)).toEqual({ kind: "preparing", jobId: "j1", stalled: false });
   });
 
-  it("is failed for a failed or cancelled job, and for a succeeded job whose report this person cannot read (issue 188, default 3)", () => {
-    for (const status of ["failed", "cancelled", "succeeded"]) {
+  it("is stalled, never an endless spinner, once the job is past the worker's lease", () => {
+    const late = new Date(Date.parse(QUEUED_AT) + STALLED_AFTER_MS + 1);
+    expect(reportState("c1", [], [job("j1", "c1", "queued")], late)).toEqual({ kind: "preparing", jobId: "j1", stalled: true });
+  });
+
+  it("is failed for a failed or cancelled job, shown as is with no retry (issue 188)", () => {
+    for (const status of ["failed", "cancelled"]) {
       expect(reportState("c1", [], [job("j1", "c1", status)])).toMatchObject({ kind: "failed", jobId: "j1" });
     }
+  });
+
+  it("is unavailable, not failed, for a succeeded job whose report this person cannot read", () => {
+    expect(reportState("c1", [], [job("j1", "c1", "succeeded")])).toEqual({ kind: "unavailable", jobId: "j1" });
   });
 
   it("is none when neither a report nor a job exists, and ignores another check's job", () => {

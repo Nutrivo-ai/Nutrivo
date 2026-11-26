@@ -1,9 +1,10 @@
 import * as Sentry from "@sentry/nextjs";
 import type { Metadata } from "next";
+import { RulesetChip } from "@/components/coverage/RulesetChip";
 import { Exports } from "@/components/exports/Exports";
 import { Screen } from "@/components/shell";
 import { exportState, readLatestExport } from "@/lib/exports/exports";
-import { readReportLines } from "@/lib/exports/reports";
+import { readLatestRuleset, readReportLines } from "@/lib/exports/reports";
 import { createClient } from "@/lib/supabase/server";
 import { loadShellContext } from "@/lib/workspace/memberships";
 
@@ -21,15 +22,21 @@ export default async function Page({ params }: PageProps<"/w/[workspace]/exports
   if (context.kind !== "member") return null; // the workspace layout has already shown NoAccess
   const admin = context.current.role === "admin";
   const data = await Sentry.startSpan({ name: "exports.read", op: "db.read" }, async () => {
-    const [lines, latest] = await Promise.all([
+    const [lines, latest, ruleset] = await Promise.all([
       readReportLines(supabase, workspace),
       admin ? readLatestExport(supabase, workspace) : Promise.resolve(null),
+      readLatestRuleset(supabase),
     ]);
-    return { lines, fullExport: admin ? exportState(latest, workspace) : null };
+    return { lines, ruleset, fullExport: admin ? exportState(latest, workspace) : null };
   });
   return (
-    <Screen route="/w/[workspace]/exports" title="Reports of Check and the full export">
-      <Exports view={{ workspaceId: workspace, ...data }} />
+    <Screen
+      route="/w/[workspace]/exports"
+      crumb="Exports"
+      title="Reports of Check and the full export"
+      aside={<RulesetChip version={data.ruleset} current />}
+    >
+      <Exports view={{ workspaceId: workspace, lines: data.lines, fullExport: data.fullExport }} />
     </Screen>
   );
 }

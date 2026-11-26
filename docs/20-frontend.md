@@ -236,21 +236,28 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
 - **Tests** (`tests/e2e/settings-overview.spec.ts`): every state, axe, the no-dead-controls crawl, and both section
   headings against the S-NV2-017 baseline; the wording in `src/lib/settings/overview.test.ts`.
 - **S-NV2-018 Exports** at `/w/[workspace]/exports` (T-1112, I01 and O03), role viewer, in the Nutrivo 2.0 shell
-  under the header "Reports of Check and the full export" (the design's "Two artefacts, and the packs your team works
-  from" names packs that are not built). Only what a contract backs is drawn:
+  under the design's crumb "Exports" and ruleset chip (the latest released ruleset), titled "Reports of Check and the
+  full export" (the design's "Two artefacts, and the packs your team works from" names packs that are not built). Only
+  what a contract backs is drawn; every departure below is the conservative default asked of a founder on #354
+  (needs-human), pending an answer:
   - "The export rule" keeps four claims the report and the export make true: Stamped (reference, ruleset version,
     artwork hash and issue time on the report's face), Bounded (section 05 Not assessed always present), Traceable
     (the insert-only `app.reports` row against product and market), Free to take (the full export on every plan,
     BE-44). The design's "term register version" and "who generated it" are not on the report's face, reports are not
     contractually unmetered, and "Sent from the report" is S-NV2-026's, so those are not drawn;
   - "Artefacts": the Report of Check card (sections as `label_report.v2` prints them) and the full export card, which
-    is S-WSS-004's `FullExport` (T-804) for an admin and one line saying an admin requests it for anyone else;
+    is `components/exports/FullExport` (T-804, shared with S-WSS-004) for an admin and one line saying an admin
+    requests it for anyone else. Like S-WSS-004 it is offered on the admin role; `app.request_export` still refuses a
+    scoped or external admin (42501), and the card says so;
   - "Reports of Check": one row per product × market × printed language, from the latest of the workspace's last 500
     checks (100 rows at most), with the report state: issued (reference, issue time, Download the PDF, a 5-minute link
     Storage signs under the person's session, so `private.can_read_object` keeps it to the person's own workspace,
-    product and market), preparing (the page re-reads itself every 10 s), failed (said as is, no retry: #188 default
-    3), or none (Generate the report through `app.request_report` for an editor-class role; a viewer is told an editor
-    can generate it, #188 default 2). Older reports of a product stay on its Export, send, share screen.
+    product and market), preparing (the page re-reads itself every 10 s; a job queued longer than the worker's 15-minute
+    lease reads "taking longer than usual" with Check again, and is no longer re-read on its own), failed (said as is,
+    no retry), unavailable (a succeeded job whose report the person cannot read: "No report to show"), or none
+    (Generate the report through `app.request_report` for an editor-class role; a viewer is told an editor can
+    generate it). No retry and no viewer request are what #195 shipped; both are still open on #188 (docs/04).
+    Older reports of a product stay on its Export, send, share screen.
   - Not built, no contract behind them on this screen: the Certificate of Check card (I03, after launch), the five
     working packs (action plan, portfolio board, obligation register and its ICS, design envelope, dossier pack), the
     "Never exported" box, the per-plan notes, and the Compliance Worker panel. The card text is `accent-700` where the
@@ -260,7 +267,8 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
   NoAccess; below admin, the export card has no controls).
 - **Tests** (`tests/e2e/exports-screen.spec.ts`): I01.main, I01.must.1, O03.main and O03.must.1 on this screen, the
   viewer, another workspace's admin (no signed link, no row, no job), empty, axe on every state, the no-dead-controls
-  crawl, and the Report of Check card title against the S-NV2-018 baseline; the row model in
+  crawl, and the export rule's label, the Artefacts label and the Report of Check card title against the S-NV2-018
+  baseline; the row model in
   `src/lib/exports/reports.test.ts`.
 
 ## 6 · Performance

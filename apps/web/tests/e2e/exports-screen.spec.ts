@@ -16,9 +16,12 @@ import { axe, maxDiffPixelRatio, watch } from "./support/public";
 const REPORT_MS = 150_000;
 const PRODUCT = "Salmon & Rice Adult 12 kg";
 
-// Regions of the S-NV2-018 baseline at 1600 px: the Report of Check card's number and title, which the design draws the
-// same for any workspace (the card is wider here: the design keeps the Compliance Worker open beside it).
+// Regions of the S-NV2-018 baseline at 1600 px that the design draws the same for any workspace: the export rule's label,
+// the Artefacts label and the Report of Check card's number and title (the cards are wider here: the design keeps the
+// Compliance Worker open beside them). The rule's headline and claims, and the header title, are reworded pending #354.
 const S_NV2_018: Record<string, Region> = {
+  ruleLabel: { x: 263, y: 111, width: 110, height: 14 },
+  artefactsLabel: { x: 242, y: 386, width: 70, height: 14 },
   reportTitle: { x: 263, y: 442, width: 180, height: 26 },
 };
 
@@ -74,6 +77,15 @@ test.describe("S-NV2-018 Exports", () => {
     firstCheck = (await row.getAttribute("data-check"))!;
     await expect(row).toHaveAttribute("data-report-state", "none");
     await expect(row).toContainText(PRODUCT);
+    await expect(page.locator("header [data-ruleset]")).toHaveText(/^RULESET .* · current$/);
+    await expectLikeBaseline(
+      page,
+      page.getByRole("heading", { name: "The export rule" }),
+      "S-NV2-018",
+      S_NV2_018.ruleLabel,
+      maxDiffPixelRatio,
+    );
+    await expectLikeBaseline(page, page.getByRole("heading", { name: "Artefacts" }), "S-NV2-018", S_NV2_018.artefactsLabel, maxDiffPixelRatio);
     await expectLikeBaseline(
       page,
       page.locator('[data-region="report-card"] [data-card-title]'),
@@ -166,6 +178,8 @@ test.describe("S-NV2-018 Exports", () => {
   test("[O03.must.1] Free on every plan, never gated (BE-44).", async ({ page, context, baseURL }) => {
     test.setTimeout(180_000);
     // The free plan with the workspace closed: the export is still offered here and runs.
+    const was = await admin().schema("app").from("workspaces").select("plan, status").eq("id", ws).single();
+    if (was.error) throw was.error;
     const set = await admin().schema("app").from("workspaces").update({ plan: "free", status: "closed" }).eq("id", ws);
     if (set.error) throw set.error;
     try {
@@ -184,7 +198,7 @@ test.describe("S-NV2-018 Exports", () => {
         )
         .toBe("succeeded");
     } finally {
-      await admin().schema("app").from("workspaces").update({ status: "active" }).eq("id", ws);
+      await admin().schema("app").from("workspaces").update({ plan: was.data.plan, status: was.data.status }).eq("id", ws);
     }
   });
 

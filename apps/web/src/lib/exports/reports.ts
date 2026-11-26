@@ -30,12 +30,17 @@ export type ReportRow = {
   pdf_path: string | null;
   created_at: string;
 };
-export type ReportJobRow = { id: string; idempotency_key: string; status: string; updated_at: string };
+export type ReportJobRow = { id: string; idempotency_key: string; status: string; created_at: string; updated_at: string };
+
+/** A job not finished after the worker's lease is said to take longer than usual, never an endless spinner (docs/04). */
+export const STALLED_AFTER_MS = 15 * 60_000;
 
 export type ReportState =
   | { kind: "issued"; reportId: string; ref: string; rulesetVersion: string; artworkSha: string; issuedAt: string; pdf: boolean }
-  | { kind: "preparing"; jobId: string }
+  | { kind: "preparing"; jobId: string; stalled: boolean }
   | { kind: "failed"; jobId: string; failedAt: string }
+  /** The job succeeded but no report this person may read pins the check (a short race at most). */
+  | { kind: "unavailable"; jobId: string }
   | { kind: "none" };
 
 export type ReportLine = {
@@ -74,7 +79,7 @@ export function latestChecks(checks: CheckRow[], limit = ROWS_SHOWN): CheckRow[]
 }
 
 /** A check's report state: the issued report wins over its job; a job's status otherwise; none when neither exists. */
-export function reportState(checkId: string, reports: ReportRow[], jobs: ReportJobRow[]): ReportState {
+export function reportState(checkId: string, reports: ReportRow[], jobs: ReportJobRow[], now: Date = new Date()): ReportState {
   const issued = reports
     .filter((r) => r.check_ids.includes(checkId))
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
@@ -91,9 +96,12 @@ export function reportState(checkId: string, reports: ReportRow[], jobs: ReportJ
   }
   const job = jobs.find((j) => j.idempotency_key === reportKey(checkId));
   if (!job) return { kind: "none" };
-  if (job.status === "queued" || job.status === "running") return { kind: "preparing", jobId: job.id };
-  // failed, cancelled, or succeeded with no report this person may read: never offered as a download. A failed job
-  // stays the check's job (issue 188, default 3), so the screen says so and offers no retry.
+  if (job.status === "queued" || job.status === "running") {
+    return { kind: "preparing", jobId: job.id, stalled: now.getTime() - Date.parse(job.created_at) > STALLED_AFTER_MS };
+  }
+  if (job.status === "succeeded") return { kind: "unavailable", jobId: job.id };
+  // failed or cancelled: never offered as a download. A failed job stays the check's job (the default PR 195 shipped,
+  // still open on issue 188), so the screen says so and offers no retry.
   return { kind: "failed", jobId: job.id, failedAt: job.updated_at };
 }
 
@@ -103,6 +111,7 @@ export function reportLines(
   jobs: ReportJobRow[],
   products: Map<string, string>,
   markets: Map<string, string>,
+  now: Date = new Date(),
 ): ReportLine[] {
   return checks
     .filter((c) => products.has(c.product_id))
@@ -115,7 +124,7 @@ export function reportLines(
       language: c.language,
       rulesetVersion: c.ruleset_version,
       checkedAt: c.at,
-      report: reportState(c.id, reports, jobs),
+      report: reportState(c.id, reports, jobs, now),
     }));
 }
 
@@ -148,7 +157,7 @@ export async function readReportLines(supabase: Client, workspaceId: string): Pr
       .overlaps("check_ids", ids),
     app
       .from("jobs")
-      .select("id, idempotency_key, status, updated_at")
+      .select("id, idempotency_key, status, created_at, updated_at")
       .eq("workspace_id", workspaceId)
       .eq("kind", "report")
       .in("idempotency_key", ids.map(reportKey)),
@@ -162,4 +171,19 @@ export async function readReportLines(supabase: Client, workspaceId: string): Pr
     new Map((ok("products", products) ?? []).map((p) => [p.id, p.name])),
     new Map((ok("markets", markets) ?? []).map((j) => [j.id, j.name])),
   );
+}
+
+/** The latest released ruleset, for the header's chip (as the label report and the board read it). */
+export async function readLatestRuleset(supabase: Client): Promise<string | null> {
+  const rows = ok(
+    "ruleset",
+    await supabase
+      .schema("ref")
+      .from("ruleset_versions")
+      .select("id")
+      .not("released_at", "is", null)
+      .order("released_at", { ascending: false })
+      .limit(1),
+  );
+  return rows?.[0]?.id ?? null;
 }
