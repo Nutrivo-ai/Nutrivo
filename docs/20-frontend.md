@@ -250,11 +250,12 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
   (`created_at`), the product with the markets checked and the checked artwork's printed languages, and copy that says
   the results are written at once. The progress bar is left out rather than drawn without a fraction (Cobalt §5:
   nothing animates). The design's note "In progress is neutral" is kept while the check is not finished; the elapsed time shows only then too (a finished job's duration is not in what the page reads). Live staged progress is a later worker task.
-- **Terminal states.** Done: the job's counts as Clear, Action needed and Not assessed tiles, each with its glyph and
+- **Terminal states.** Done: the job's counts as Label clear (never a bare Clear, as the report since #355), Action needed and Not assessed tiles, each with its glyph and
   name, and Open the report; when the page watched the job finish it moves on to the report by itself after 1.5 s. No
   Blocked tile: blocked is a market's registration state, which a check job does not count. Withheld (finished with
-  nothing Clear or Action needed): says every result is Not assessed and nothing is Clear, and links the report, where
-  each has its reason and gap; it stays. Failed: the plain reason (P0003 no released ruleset) and Back to upload &
+  nothing Clear or Action needed): says every result is Not assessed and nothing is Clear, naming no cause (a coverage
+  gap, an unavailable model or an unreadable panel can each withhold), and links the report, where each has its reason;
+  with no result set written it says so; it stays. Failed: the plain reason (P0003 no released ruleset) and Back to upload &
   scope. Stalled past the lease and an unreadable first read: "taking longer than usual" / "cannot be read", with Check
   again. The header pins the job's ruleset; the crumb follows the state.
 - **States.** Loaded (queued, running, done, withheld, failed, stalled); loading (`loading.tsx`); error (the workspace

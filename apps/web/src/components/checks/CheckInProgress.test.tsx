@@ -48,6 +48,9 @@ describe("Check in progress view (S-NV2-024)", () => {
     expect(html).toContain('data-check-terminal="done"');
     expect(html).toContain("4 result sets");
     for (const s of ["clear", "action", "not_assessed"]) expect(html).toContain(`data-glyph="${s}"`);
+    // A clear label says nothing about registration (CLAUDE.md 8, the report's wording since #85): never a bare Clear.
+    expect(html).toContain("Label clear");
+    expect(html).not.toMatch(/<\/span>Clear</);
     expect(html).not.toContain('data-glyph="blocked"');
     expect(html).toContain(`href="/w/${WS}/products/${PR}/report"`);
     expect(html).toContain("OPENING THE REPORT");
@@ -62,6 +65,15 @@ describe("Check in progress view (S-NV2-024)", () => {
     expect(html).toContain("Nothing is Clear.");
     expect(html).toContain(">Open the report<");
     expect(html).not.toContain("OPENING THE REPORT");
+    // It names no cause: a result is withheld for a coverage gap, an unavailable model or an unreadable panel, and the
+    // report gives each one's reason.
+    expect(html).not.toMatch(/encoded|model|coverage gap/i);
+  });
+
+  it("[D04.must.1] withheld with no result set written says so, not \"0 result sets, every one\"", () => {
+    const html = render({ kind: "withheld", checks: 0, clear: 0, action: 0, notAssessed: 0, again: false });
+    expect(html).toContain("No result set was written");
+    expect(html).not.toContain("0 result sets");
   });
 
   it("[D04.fail.1] failed: what did not happen, and the way back to run it again", () => {

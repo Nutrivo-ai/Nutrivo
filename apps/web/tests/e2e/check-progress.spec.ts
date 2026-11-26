@@ -136,6 +136,7 @@ test.describe("S-NV2-024 Check in progress", () => {
     await expect(region(page)).toHaveAttribute("data-progress", "withheld", { timeout: STEP_MS });
     await expect(page.locator("[data-check-terminal]")).toContainText("Nothing is Clear.");
     await expect(page.locator('[data-results] [data-count="clear"]')).toContainText("0");
+    await expect(page.locator('[data-results] [data-count="clear"]')).toContainText("Label clear", { ignoreCase: true });
     await expect(page.locator("[data-ruleset]")).toContainText(`RULESET ${EMPTY}`);
     await axe(page);
     await page.getByRole("link", { name: "Open the report" }).click();

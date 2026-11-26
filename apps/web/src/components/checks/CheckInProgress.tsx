@@ -8,6 +8,7 @@ import { Screen } from "@/components/shell";
 import { useCheckJob } from "@/lib/checks/progress";
 import { crumbFor, elapsed, isTerminal, movesOn, progressView, scopeLine, type Counts, type ProgressView } from "@/lib/checks/inProgress";
 import type { JobRow } from "@/lib/jobs/watch";
+import { tileLabel } from "@/lib/report/model";
 import { createClient } from "@/lib/supabase/client";
 
 export const ROUTE = "/w/[workspace]/products/[product]/checks/[check]";
@@ -154,7 +155,9 @@ export function CheckProgressView({
             <p className="mt-[10px] mb-0 text-[12.5px] leading-[1.5] text-n700">
               {view.kind === "done"
                 ? `${resultSets(view.checks)}, one per market and printed language panel. The report shows every finding with its rule, citation and provenance.`
-                : `${resultSets(view.checks)}, and every one is Not assessed: no rule covering it is fully encoded yet, so no answer was given. The report lists each one with its reason and coverage gap. Nothing is Clear.`}
+                : view.checks === 0
+                  ? "No result set was written, so nothing was assessed and no answer was given. Nothing is Clear."
+                  : `${resultSets(view.checks)}, and every one is Not assessed, so no answer was given. The report gives each one's reason. Nothing is Clear.`}
             </p>
             <div className="mt-[14px] flex items-center gap-[12px] flex-wrap">
               <ButtonLink href={report} variant="primary" size="md">
@@ -219,9 +222,9 @@ const resultSets = (n: number) => `${n} result set${n === 1 ? "" : "s"}`;
  * blocked is a market's registration state, which a check job does not count. */
 function Results({ counts }: { counts: Counts }) {
   const tiles = [
-    { state: "clear" as const, n: counts.clear, name: "Clear", text: "text-clear", bg: "bg-clear-bg", edge: "border-t-clear" },
-    { state: "action" as const, n: counts.action, name: "Action needed", text: "text-action", bg: "bg-action-bg", edge: "border-t-action" },
-    { state: "not_assessed" as const, n: counts.notAssessed, name: "Not assessed", text: "text-na", bg: "bg-na-bg", edge: "border-t-na" },
+    { state: "clear" as const, n: counts.clear, name: tileLabel("clear"), text: "text-clear", bg: "bg-clear-bg", edge: "border-t-clear" },
+    { state: "action" as const, n: counts.action, name: tileLabel("action"), text: "text-action", bg: "bg-action-bg", edge: "border-t-action" },
+    { state: "not_assessed" as const, n: counts.notAssessed, name: tileLabel("not_assessed"), text: "text-na", bg: "bg-na-bg", edge: "border-t-na" },
   ];
   return (
     <section data-results aria-labelledby="results-heading" className="border border-ink py-[16px] px-[18px]">
