@@ -9,7 +9,7 @@ import { expect, test } from "@playwright/test";
 import { PUBLIC_ROUTES, SEGMENTS, segmentHref } from "../../src/lib/public/links";
 import { FUNCTION_REGION } from "../../src/lib/public/region";
 import { haveStack, signIn } from "../e2e/support/people";
-import { judgeEndpointP95, judgeP95, networkFloor, OUT, outcome, p95By, pool, profile, spread, timed, withhold } from "./support/budgets";
+import { judgeP95, networkFloor, OUT, outcome, p95By, pool, profile, spread, timed, withhold } from "./support/budgets";
 import { finished, issuedReport, loadWorkspace, product, registerArtwork, type LoadWorkspace } from "./support/seed";
 
 const EXTRACT_TIMEOUT_MS = 10 * 60_000;
@@ -56,7 +56,7 @@ test.describe("performance budgets", () => {
     // The same floor with as many requests in flight as the RPCs had: what distance alone costs at this concurrency,
     // so the part of the p95 that is our own work is the p95 less this, not less the sequential floor (issue 348).
     const underLoad = await networkFloor(base, anon, Math.min(profile.rpc_calls, 10 * profile.concurrency), profile.concurrency);
-    judgeEndpointP95("performance.rpc_p95_ms", "ms", ok.map((r) => r.ms), network, {
+    judgeP95("performance.rpc_p95_ms", "ms", ok.map((r) => r.ms), {
       calls: calls.map(([n]) => n), failed: errors, concurrency: profile.concurrency, p50_ms: spread(ok.map((r) => r.ms)).p50_ms,
       p95_by_call: p95By(ok), network_floor: network, network_floor_under_load: underLoad,
     });
@@ -97,9 +97,9 @@ test.describe("performance budgets", () => {
     await context.close();
     const ok = runs.filter((r) => r.ok).map((r) => r.ms);
     const scaled = profile.recipes === 300 ? undefined : `profile ${profile.name} seeds ${profile.recipes} recipes, not 300: reported, not comparable`;
-    const webFloor = { ...spread(floor), n: floor.length, cache };
-    judgeEndpointP95("performance.board_300_recipes_p95_ms", "ms", ok, webFloor, {
-      recipes: profile.recipes, failed: runs.length - ok.length, p50_ms: spread(ok).p50_ms, vercel_regions: vercel, web_floor: webFloor,
+    judgeP95("performance.board_300_recipes_p95_ms", "ms", ok, {
+      recipes: profile.recipes, failed: runs.length - ok.length, p50_ms: spread(ok).p50_ms, vercel_regions: vercel,
+      web_floor: { ...spread(floor), n: floor.length, cache },
     }, scaled, !scaled);
     expect(runs.length - ok.length, "every board load rendered the grid").toBe(0);
   });
@@ -193,7 +193,7 @@ test.describe("performance budgets", () => {
     // A 429 takes the same path as an answer (the gateway, x-region, the runtime and the limiter) and stops before the
     // database call, so its latency is the call's cost without verify_reference (issue 348).
     const limitedMs = runs.filter((r) => r.ok === null).map((r) => r.ms);
-    judgeEndpointP95("performance.verify_endpoint_p95_ms", "ms", ok, network, {
+    judgeP95("performance.verify_endpoint_p95_ms", "ms", ok, {
       failed: runs.filter((r) => r.ok === false).length, rate_limited: limited, p50_ms: spread(ok).p50_ms,
       rate_limited_latency: { ...spread(limitedMs), n: limitedMs.length }, edge_regions: regions, network_floor: network,
     });

@@ -65,20 +65,9 @@ fails when a budget has none.
 own time. `network_floor` is the p50/p95 of sequential GETs of Auth's health endpoint (no table) from the same client
 in the same run; its `edge` counts the edge location that answered (cf-ray's suffix), which shows where the client
 sat, and `failed` the GETs that did not answer. `network_floor_under_load` is taken right after the RPC samples with
-the same number in flight, not at the same moment. Hosted Edge Functions run in the region nearest the caller, not
-the database's (Supabase, "Regional invocations"), so a client far from eu-central-1 also measures the function's hop back to the database; `edge_regions`
-shows where they ran.
-
-**How the latency budgets are judged** (founder decision on #314, 26 Nov). The staging budgets are judged from an EU
-vantage point. A job on an EU or self-hosted runner in the EU declares `LOAD_VANTAGE=eu`, and its budgets are judged on
-the p95 of the samples as measured. GitHub's hosted runners are not in the EU, so a `staging` run without it judges
-`rpc_p95_ms`, `verify_endpoint_p95_ms` and `board_300_recipes_p95_ms` on endpoint time: the p95 less the floor's p50
-(`network_floor` for the RPCs and verify, `web_floor` for the board). That takes the typical distance off every
-sample; the floor's p95 would take off more than distance. The record keeps `raw_p95_ms` and `floor_subtracted_ms`,
-and the report's note says how the budget was judged. A run with no floor withholds the budget, never judges it on a
-guess. The budgets and profiles are unchanged. The `local` and `ci` profiles run next to the stack and are judged on
-the samples as measured. LCP, extraction and check completion are not network round trips to an endpoint and are
-always judged as measured. Every other field in the detail is reported, never judged.
+the same number in flight, not at the same moment. Hosted Edge Functions run in the region nearest the caller, not the database's (Supabase, "Regional
+invocations"), so a client far from eu-central-1 also measures the function's hop back to the database; `edge_regions`
+shows where they ran. Neither changes a status: a budget is judged on the samples alone.
 
 Profiles live in config/load/profiles.yaml. `local` is full size against `supabase start`, the worker and the web's
 production build (scripts/load/run.sh starts them, as scripts/ci/e2e.sh does). `ci` is reduced, in ci.yml's `load`
