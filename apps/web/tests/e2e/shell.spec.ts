@@ -165,14 +165,14 @@ test.describe("workspace shell", () => {
       (await service.schema("app").from("audit_events").select("id", { count: "exact", head: true }).in("workspace_id", [north, south])).count;
     const before = await audit();
     await signIn(context, ann, baseURL!);
-    const { errors } = await open(page, `/w/${north}/library/terms`);
+    const { errors } = await open(page, `/w/${north}/library/suppliers`);
     const writes: string[] = [];
     page.on("request", (request) => {
       if (request.method() !== "GET") writes.push(`${request.method()} ${request.url()}`);
     });
     await switcher(page).click();
     await entries(page).filter({ hasText: SOUTH }).click();
-    await expect(page).toHaveURL(new RegExp(`/w/${south}/library/terms$`));
+    await expect(page).toHaveURL(new RegExp(`/w/${south}/library/suppliers$`));
     await expect(switcher(page)).toContainText(SOUTH);
     expect(writes).toEqual([]);
     expect(await audit()).toBe(before);
@@ -295,14 +295,14 @@ test.describe("workspace shell", () => {
       await tabs.getByRole("button", { name: "More" }).click();
       const dialog = page.getByRole("dialog", { name: "Every section" });
       await expect(dialog).toBeVisible();
-      await dialog.getByRole("link", { name: "Term register" }).click();
-      await expect(page).toHaveURL(new RegExp(`/w/${north}/library/terms$`));
+      await dialog.getByRole("link", { name: "Suppliers" }).click();
+      await expect(page).toHaveURL(new RegExp(`/w/${north}/library/suppliers$`));
       await expect(dialog).toBeHidden();
 
       // The switcher sits in the top bar.
       await page.locator("[data-workspace-switcher] > button:visible").click();
       await page.locator("[data-workspace-list] a:visible", { hasText: SOUTH }).click();
-      await expect(page).toHaveURL(new RegExp(`/w/${south}/library/terms$`));
+      await expect(page).toHaveURL(new RegExp(`/w/${south}/library/suppliers$`));
       expect(errors).toEqual([]);
     });
   });

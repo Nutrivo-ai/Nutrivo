@@ -40,6 +40,11 @@ nothing.
 - **Recorded as proposals.** Routes and roles are not written down elsewhere, so they are proposals. They are listed
   with the other open questions (Q1 to Q5 in the file's header) for G4.
 - **Gate G4.** The founders approve the inventory; from then on it is the frontend's target.
+- **Launch scope (25 Nov 2026, abnutrivo, after the launch audit on #85).** Five screens that were still placeholders
+  move to `scope: later`: Certificates (S-NV2-009), Ingredients & formulas (S-NV2-011), Term register (S-NV2-012),
+  Monitoring & alerts (S-NV2-015) and Jurisdiction tree (S-NV2-019). Their routes and rail entries are removed, so no
+  customer reaches a placeholder; their designs and baselines stay for when they are built. Five others are built
+  before launch as T-1108 to T-1112: Home, the product page, Settings overview, Check in progress and Exports.
 
 ## 3 · Demo data identical to the design (T-013)
 The mock data inside the design files' component scripts (Halden Pet Nutrition: its people, recipes, markets, artwork,
