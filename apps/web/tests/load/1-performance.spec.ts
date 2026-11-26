@@ -86,10 +86,14 @@ test.describe("performance budgets", () => {
     // service. x-vercel-cache shows it was not answered from the CDN ("none" locally).
     const floor: number[] = [];
     const cache: Record<string, number> = {};
+    let floorFailed = 0;
     for (let i = 0; i < 20; i++) {
       const started = performance.now();
       const res = await context.request.get("/api/health").catch(() => null);
-      if (!res?.ok()) continue;
+      if (!res?.ok()) {
+        floorFailed++;
+        continue;
+      }
       floor.push(performance.now() - started);
       const hit = res.headers()["x-vercel-cache"] ?? "none";
       cache[hit] = (cache[hit] ?? 0) + 1;
@@ -99,7 +103,7 @@ test.describe("performance budgets", () => {
     const scaled = profile.recipes === 300 ? undefined : `profile ${profile.name} seeds ${profile.recipes} recipes, not 300: reported, not comparable`;
     judgeP95("performance.board_300_recipes_p95_ms", "ms", ok, {
       recipes: profile.recipes, failed: runs.length - ok.length, p50_ms: spread(ok).p50_ms, vercel_regions: vercel,
-      web_floor: { ...spread(floor), n: floor.length, cache },
+      web_floor: { ...spread(floor), n: floor.length, failed: floorFailed, concurrency: 1, cache },
     }, scaled, !scaled);
     expect(runs.length - ok.length, "every board load rendered the grid").toBe(0);
   });
