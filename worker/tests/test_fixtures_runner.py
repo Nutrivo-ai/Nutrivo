@@ -282,7 +282,8 @@ def test_default_dirs_are_the_repository_fixtures():
 
 
 def test_pg_store_reads_members_fixtures_and_shapes_of_a_released_ruleset(pg):
-    """Synthetic reference rows, inserted and rolled back in one transaction: nothing is left behind."""
+    """Synthetic reference rows, inserted and rolled back in one transaction: nothing is left behind. Proposed
+    fixtures are never read (#360): B's only fixture is proposed, so B has none, and A's proposed one is not run."""
     with pg.transaction():
         person = pg.execute("insert into app.people (display_name) values ('T-206 test') returning id").fetchone()["id"]
         for key, shape in (("TEST.T206.A", "mandatory_particular"), ("TEST.T206.B", "prescribed_wording")):
@@ -295,7 +296,11 @@ def test_pg_store_reads_members_fixtures_and_shapes_of_a_released_ruleset(pg):
         pg.execute("insert into ref.ruleset_members (ruleset_version, rule_key, version)"
                    " values ('t206-test', 'TEST.T206.A', 1), ('t206-test', 'TEST.T206.B', 1)")
         pg.execute("""insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)
-                      values ('TEST.T206.A', 1, 'absent on sv', '{"panel": {"language": "sv"}}', 'failed')""")
+                      values ('TEST.T206.A', 1, 'absent on sv', '{"panel": {"language": "sv"}}', 'failed'),
+                             ('TEST.T206.A', 1, 'only proposed', '{"panel": {"language": "sv"}}', 'passed'),
+                             ('TEST.T206.B', 1, 'only proposed', '{"panel": {"language": "sv"}}', 'passed')""")
+        pg.execute("update ref.rule_fixtures set status = 'confirmed', decided_by = %s, decided_at = now() "
+                   "where rule_key = 'TEST.T206.A' and name = 'absent on sv'", (person,))
         store = fr.PgFixtureStore(pg)
         assert store.members("t206-test") == [fr.Member("TEST.T206.A", 1, "mandatory_particular"),
                                               fr.Member("TEST.T206.B", 1, "prescribed_wording")]
