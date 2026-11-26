@@ -6,16 +6,38 @@ tag that a repository admin creates on a commit already on `main`; the database 
 a restore drill before any customer data; and Stripe runs in live mode only after gate G8 (T-705).
 Every name below is canonical (`config/secrets.yaml`). Doors stay closed until §7.
 
+## 0. Where production stands (26 Nov 2026)
+Done by a founder in the browser on 25–26 Nov 2026 (#365). No value is written here; every secret is in Infisical.
+
+| Area | Done | Still open |
+|---|---|---|
+| Supabase | Organisation on **Pro**, spend cap on, no add-ons. `nutrivo-prod` created: ref `remlouoeznyoyfxxhbyx`, eu-central-1, Micro, database empty. Confirm email on, TOTP on, Queues (`pgmq`) on and **not** exposed through the Data API, `pg_cron` on. Site URL and redirect URLs: `https://nutrivo.ai` and `https://nutrivo.ai/**`. Auth email through SES SMTP (below). Access token "nutrivo-prod deploy": this project only, organisation settings none | PITR (§6, stage 2). Exposed schemas `app` and `ref`, and the "Before User Created" hook: both need the schema the first release creates (§5). Google and Microsoft providers (§4) |
+| Old project | "Nutrivo.ai", ref `vjoklurplnegrdfofqvu`, **eu-west-1 (Ireland)**, created 11 Aug 2026, no tables: **paused**. It is not production and never was: Ireland is outside D-02 | Delete it once nobody needs its few Auth accounts |
+| Infisical | Project **Nutrivo prod** (ID `d2231d37-57ca-4660-8790-f87307a199bf`), one environment, slug `prod`, on app.infisical.com. 35 names: every staging name except `STAGING_DOMAIN` (staging only) and the three `STRIPE_*`. Secret sync to Render `nutrivo-worker-prod` (auto-sync on, Infisical wins on import, auto-redeploy off) | `NUTRIVO_ENV` must read `prod` (§3). `STRIPE_*` test keys (§3). Vercel sync: at the first release. Identity `github-actions-prod` (§2). Region: US or EU, a founder decides before the identity exists |
+| AWS | IAM user `nutrivo-prod-worker` (no console; the staging worker's policy: Bedrock invoke on EU profiles only, SES send in eu-central-1 only), one access key in Infisical. SES eu-central-1 has production access; `nutrivo.ai` and `noreply@nutrivo.ai` verified | — |
+| Render | Background worker `nutrivo-worker-prod` (Docker, `worker/Dockerfile`, Frankfurt, auto-deploy off), 0.5 CPU / 512 MB, 1 instance | Plan: `render.yaml` says `standard` with 2 instances, and the deployed worker runs ClamAV (§1). Its first deploy predates its variables; the first release redeploys it |
+| Vercel | Nothing changed. Project `nutrivo` serves `nutrivo.ai` (primary); `www.nutrivo.ai` redirects to it | — |
+| Observability | Staging and production **share** the Sentry projects (`nutrivo-web`, `nutrivo-worker`, functions DSN), the PostHog project and the Langfuse project, told apart by environment (D-33) | PostHog events carry no environment yet (#365) |
+
+**Supabase Auth email (SMTP).** Both Supabase projects send Auth email (confirmations, sign-in links, password resets)
+through SES in eu-central-1, not Supabase's built-in mailer, which sends 2 an hour:
+- `nutrivo-prod`: sender `Nutrivo <noreply@nutrivo.ai>`, IAM user `nutrivo-prod-supabase-smtp`.
+- `nutrivo-staging`: sender `Nutrivo Staging <noreply@nutrivo.ai>`, IAM user `nutrivo-staging-supabase-smtp`.
+- Both use host `email-smtp.eu-central-1.amazonaws.com`, port 587, and the IAM group `AWSSESSendingGroupDoNotRename` (`ses:SendRawEmail`). The SMTP credentials live only in each Supabase project's Auth settings.
+- The Auth email rate limit is 30 an hour on both projects, not `supabase/config.toml`'s local 2.
+
 ## 1. Accounts that must work first
-- **Supabase:** the production project `nutrivo-prod` (ref `vjoklurplnegrdfofqvu`, eu-central-1) on a paid plan
-  with physical backups, because PITR needs both (docs/runbooks/restore-drill.md).
+- **Supabase:** the production project `nutrivo-prod` (ref `remlouoeznyoyfxxhbyx`, eu-central-1) in the organisation
+  on Pro, because PITR needs a paid plan (docs/runbooks/restore-drill.md). Not `vjoklurplnegrdfofqvu`: that is the
+  paused Ireland project (§0).
 - **AWS:** the production IAM identity has Bedrock invoke on the EU inference profiles, `bedrock:GetInferenceProfile`
   and `bedrock:GetAccountDataRetention` (read only), and SES send. Bedrock data retention is **none** in every EU
   Region (D-11). SES has **production access** for the sending domain; in the sandbox it only sends to verified
   addresses, so invitations and reports would not reach customers.
 - **Vercel:** production deploys to the existing project `nutrivo` (team Nutrivoai). Staging has its own project,
   `nutrivo-staging` (#19, docs/22 §4), so nothing on `nutrivo` is shared with staging any more.
-- **Render:** a worker service `nutrivo-worker-prod` in Frankfurt (`render.yaml`).
+- **Render:** a worker service `nutrivo-worker-prod` in Frankfurt (`render.yaml`). The deployed worker scans uploads
+  with ClamAV (`SCAN_MODE=clamav`, docs/16), so give it the blueprint's plan (`standard`, 2 GB) rather than 512 MB.
 
 ## 2. Create the resources
 | Service | Create | Notes |
@@ -36,9 +58,10 @@ The same names and sources as staging (docs/23 §3), from the production account
 | `SUPABASE_*`, `DATABASE_URL` | From `nutrivo-prod` (Project Settings → API; Connect → session pooler) |
 | `VERCEL_PROJECT_ID` | The **`nutrivo`** project's ID, never `nutrivo-staging`'s |
 | `RENDER_WORKER_SERVICE_ID` | `nutrivo-worker-prod`'s `srv-…` |
-| `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` | **Test mode until G8.** At G8 (T-705) a founder swaps in the live keys and the live webhook's signing secret, with Smart Retries off and the events docs/08 lists |
-| `SENTRY_DSN_FUNCTIONS` | The production `stripe-webhook` function's DSN (staging has its own) |
-| `APP_BASE_URL` | The production web URL, https |
+| `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` | **Test mode until G8**, and needed before the first release: `scripts/deploy/function-secrets.sh` refuses a release without a `whsec_…` secret. The webhook is a test-mode endpoint for `https://remlouoeznyoyfxxhbyx.supabase.co/functions/v1/stripe-webhook` with the events docs/23 §3 lists. At G8 (T-705) a founder swaps in the live keys and the live webhook's signing secret, with Smart Retries off and the events docs/08 lists |
+| `SENTRY_DSN_FUNCTIONS` | The functions' DSN. Staging and production share it (D-33); the functions tag events with `NUTRIVO_ENV` |
+| `APP_BASE_URL` | The production web URL, https: `https://nutrivo.ai` (no trailing slash) |
+| `NUTRIVO_ENV` | `prod`, exactly. The worker refuses any value but `local`, `dev`, `ci`, `staging` or `prod`, and the Render sync puts Infisical's value above `render.yaml`'s |
 | `SYNTHETIC_USER_EMAIL`, `SYNTHETIC_USER_PASSWORD` | A synthetic account on a business domain (D-27) |
 | `SYNTHETIC_VERIFY_REF` | Optional: a report of the synthetic workspace, once one exists (scripts/synthetic/check.py) |
 | `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET` | The `github-actions-prod` identity's |
@@ -51,7 +74,9 @@ run it through the `doctor` workflow (§5).
 - **Auth → Providers:** Google and Microsoft (organizations tenant) with the production OAuth apps; email confirmation
   on. **Auth → Hooks:** "Before User Created" (D-27, T-109).
 - **Auth → URL configuration:** the site URL and redirect URLs are the production web URL only.
-- **Auth → Rate limits:** the values in `supabase/config.toml` (`[auth.rate_limit]`, T-1103).
+- **Auth → Rate limits:** the values in `supabase/config.toml` (`[auth.rate_limit]`, T-1103), except email: 30 an
+  hour through SES SMTP (§0), where `config.toml`'s 2 is for the local mailer.
+- **Auth → SMTP:** SES in eu-central-1 (§0).
 - **API:** exposed schemas `app`, `ref` and `public` only; "Automatically expose new tables" **off**; no
   `pgmq_public` (D-26). The doctor's `supabase-grants` check proves it.
 - **Add-ons → Point in time recovery:** on, with a retention (docs/runbooks/restore-drill.md, "Before the first drill").
@@ -61,7 +86,8 @@ run it through the `doctor` workflow (§5).
    (`github-actions-prod`) and the variable `INFISICAL_PROJECT_ID` (the prod project's ID). Tags `v*` only are
    created by repository admins (`.github/rulesets/release-tags.json`).
 2. Actions → **doctor** → Run workflow with `prod` and `all` ticked, `strict` not ticked. It runs read-only for prod.
-   Every name must be present; only the checks that need a first deploy may skip.
+   Every name must be present; only the checks that need a first deploy may skip. `pitr` fails until PITR is on
+   (§6), which is expected before stage 2.
 3. Settings → Variables → **`PRODUCTION_DEPLOY_ENABLED`** = `true`.
 4. Create the first tag on a commit already on `main` (for example `v0.1.0`): GitHub → Releases → Draft a new release
    → new tag on `main`. `release-production` pushes the migrations, sets the functions' secrets, deploys the
@@ -71,7 +97,10 @@ run it through the `doctor` workflow (§5).
    - The release's doctor runs **with** its write checks (Sentry, Langfuse, PostHog and Bedrock round-trips), so a
      release proves production data reaches them (docs/21, item 5). #10 (ENV-13) asked for `--readonly` here; a founder
      decides which holds (raised on #79).
-5. Run **doctor** again with `prod`, `all` and `strict`. Link that run on T-1101's issue.
+5. After the first release, in `nutrivo-prod`: add `app` and `ref` to the exposed schemas (keeping `public`, with
+   "Automatically expose new tables" off), and enable Authentication → Hooks → "Before User Created" →
+   `private.before_user_created_hook` (D-27). Both need the schema the release created.
+6. Run **doctor** again with `prod`, `all` and `strict`. Link that run on T-1101's issue.
 
 ## 6. Before any customer data (G7)
 1. **Restore drill:** the first one, by docs/runbooks/restore-drill.md. Its Sentry cron monitor `restore-drill-prod`

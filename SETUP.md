@@ -37,13 +37,13 @@ Create everything under Sunny Ventures AB. Store every key in Infisical, never i
 | # | Service | Create | Settings that matter |
 |---|---|---|---|
 | 1 | GitHub | Private repository `nutrivo-ai/Nutrivo` in the `nutrivo-ai` organisation, on the GitHub Team plan | Everything in docs/22-github-and-team.md: `main` takes only pull requests with green CI, merged by a founder's Claude Code session (D-24); environments `staging` and `production`; production deploys only from a `v*` tag the owner creates. |
-| 2 | Supabase | Organisation; projects `nutrivo-staging` and `nutrivo-prod` | Region **Central EU (Frankfurt)**. Prod on Pro. API → Exposed schemas: add `app` and `ref`. Auth → email confirmations on, MFA (TOTP) on. Integrations → Queues on. Database → Extensions → pg_cron on. Save the project refs, keys and database passwords in Infisical. |
+| 2 | Supabase | Organisation (on Pro); projects `nutrivo-staging` and `nutrivo-prod` (ref `remlouoeznyoyfxxhbyx`) | Region **Central EU (Frankfurt)**. API → Exposed schemas: add `app` and `ref` (on a new project, after the first deploy creates them). Auth → email confirmations on, MFA (TOTP) on, SMTP through SES eu-central-1 (D-33). Integrations → Queues on, not exposed through the Data API. Database → Extensions → pg_cron on. Save the project refs, keys and database passwords in Infisical. Production's state: docs/24 §0. |
 | 3 | AWS | Account; region eu-central-1 | Bedrock → request access to the Anthropic Claude models. SES → verify `mail.nutrivo.ai` and request production access. IAM user `nutrivo-worker` limited to Bedrock invoke and SES send. |
 | 4 | Stripe | Account for Sunny Ventures AB (VAT SE559429715101) | Stay in test mode. Turn on Stripe Tax with your Swedish registration, and the customer portal. Do not create products by hand: milestone 7 does it from code. |
 | 5 | Vercel | Team on Pro (Hobby is for non-commercial use) | Link the repository after milestone 0; root `apps/web`; function region Frankfurt. |
 | 6 | Render | Workspace | The background worker is created in milestone 0 (T-010, the staging pipeline), region Frankfurt. |
 | 7 | Sentry, PostHog, Langfuse | One project each | Choose the EU data region in each (Langfuse EU is cloud.langfuse.com). |
-| 8 | Infisical | Project `nutrivo`, environments dev / staging / prod | Connect to Vercel, Render and GitHub Actions later. `config/env.example` lists every variable. |
+| 8 | Infisical | One project per environment, each with a single environment: dev (`.infisical.json`), staging, prod ("Nutrivo prod") (docs/22 §3) | Connect to Vercel, Render and GitHub Actions later. `config/env.example` lists every variable. |
 | 9 | DNS | `app.nutrivo.ai` → Vercel; `mail.nutrivo.ai` → SES | Add SPF, DKIM and DMARC for mail. |
 | 10 | Claude | Your seat in the Claude Team workspace "Nutrivo.ai" | Used by Claude Code via `/login`. |
 
