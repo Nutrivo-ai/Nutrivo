@@ -126,20 +126,39 @@ export function p95By(samples: { label: string; ms: number }[]): Record<string, 
   return Object.fromEntries(Object.entries(by).map(([k, v]) => [k, roundTo(percentile(v, 95), 0.1)]));
 }
 
+export type Floor = { p50_ms: number | null; p95_ms: number | null; n: number; concurrency: number; edge: Record<string, number> };
+
 /**
- * The network floor between the load client and the Supabase API: sequential GETs of Auth's health endpoint, which
- * touches no table. A latency sample is this floor plus the work under test, so the report shows how much of a p95 is
- * distance (a runner in another region than the project) rather than the endpoint. Reported only, never judged.
+ * The network floor between the load client and the Supabase API: GETs of Auth's health endpoint, which touches no
+ * table. A latency sample is this floor plus the work under test, so the report shows how much of a p95 is distance (a
+ * runner in another region than the project) rather than the endpoint. With `concurrency` above 1 the GETs go out the
+ * way the load test calls, so a p95 under load can be read against the floor under the same requests in flight (issue
+ * 348). `edge` counts the edge location that answered (cf-ray's suffix, e.g. SEA or IAD; "none" on the local stack),
+ * which shows where the client sat. Reported only, never judged.
  */
-export async function networkFloor(base: string, anon: string, n = 20): Promise<{ p50_ms: number | null; p95_ms: number | null; n: number }> {
-  const xs: number[] = [];
-  for (let i = 0; i < n; i++) {
+export async function networkFloor(base: string, anon: string, n = 20, concurrency = 1): Promise<Floor> {
+  const edge: Record<string, number> = {};
+  const runs = await pool(n, concurrency, async () => {
     const started = performance.now();
     const res = await fetch(`${base.replace(/\/$/, "")}/auth/v1/health`, { headers: { apikey: anon } }).catch(() => null);
     await res?.arrayBuffer().catch(() => null);
-    if (res?.ok) xs.push(performance.now() - started);
-  }
-  return { p50_ms: roundTo(percentile(xs, 50), 0.1), p95_ms: roundTo(percentile(xs, 95), 0.1), n: xs.length };
+    const pop = edgeOf(res?.headers.get("cf-ray"));
+    edge[pop] = (edge[pop] ?? 0) + 1;
+    return res?.ok ? performance.now() - started : null;
+  });
+  const xs = runs.filter((x): x is number => x !== null);
+  return { ...spread(xs), n: xs.length, concurrency, edge };
+}
+
+/** The edge location in a cf-ray header ("8f1c2d3e4a5b6c7d-SEA" is SEA); "none" without one. */
+export function edgeOf(ray: string | null | undefined): string {
+  const m = /-([A-Z]{3})$/.exec(ray ?? "");
+  return m ? m[1] : "none";
+}
+
+/** p50 and p95 of samples in ms, to 0.1 ms; null for none. */
+export function spread(samples: number[]): { p50_ms: number | null; p95_ms: number | null } {
+  return { p50_ms: roundTo(percentile(samples, 50), 0.1), p95_ms: roundTo(percentile(samples, 95), 0.1) };
 }
 
 function roundTo(n: number | null, step: number) {
