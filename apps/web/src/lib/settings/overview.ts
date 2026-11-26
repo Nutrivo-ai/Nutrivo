@@ -9,7 +9,7 @@ import type { Database } from "@/lib/database.types";
 import { plans } from "../../../../../config/pricing";
 import { isLive, isPaidPlan } from "@/lib/billing/plans";
 import type { Usage } from "@/lib/billing/read";
-import { ROLE_TITLE, isActive, relativeTime, seatCount, type InvitationRow, type MemberRow, type PeopleData } from "./people";
+import { ROLE_TITLE, isActive, relativeTime, type InvitationRow, type MemberRow, type PeopleData } from "./people";
 
 type Client = SupabaseClient<Database>;
 
@@ -34,6 +34,8 @@ export type PlanFacts =
       recipesIncluded: number | null;
       /** Editor seats the plan includes, add-ons counted; null means no seat check (D-21). */
       editorSeats: number | null;
+      /** Editor seats in use, from app.live_billable_counts (BE-33), as Plan and allowance counts them. */
+      editorSeatsUsed: number;
       regions: string[];
       /** Checks run this calendar month (UTC), app.checks rows read under RLS: shown, never metered. */
       checksThisMonth: number;
@@ -51,9 +53,10 @@ export type OverviewData = {
 };
 
 /**
- * The plan's figures as Plan and allowance (S-BIL-001) reads them, so the two pages agree: the subscription mirror's
- * seats and recipes (add-ons counted) only while it is live on a paid plan, falling back to the plan's own figures;
- * otherwise the workspace is on the free allowance, with no recipe or seat check (D-21).
+ * The plan's recipe and seat figures as Plan and allowance (S-BIL-001) reads them, so the two pages agree on them: the
+ * subscription mirror's seats and recipes (add-ons counted) only while it is live on a paid plan, falling back to the
+ * plan's own figures; otherwise the workspace is on the free allowance, with no recipe or seat check (D-21). Regions are
+ * the workspace's entitled regions, which the free allowance has too (its live counts list none as bought).
  */
 export function planFacts(usage: Usage, regions: string[], checksThisMonth: number): Extract<PlanFacts, { kind: "read" }> {
   const s = usage.subscription;
@@ -62,8 +65,10 @@ export function planFacts(usage: Usage, regions: string[], checksThisMonth: numb
   return {
     plan: live ? s!.plan : usage.plan,
     recipes: usage.counts.recipes,
-    recipesIncluded: live ? (s!.recipesIncluded ?? own?.recipes ?? null) : null,
+    // A plan with no recipe limit (Advanced) has none whatever the mirror holds, as Plan and allowance reads it.
+    recipesIncluded: live && own?.recipes !== null ? (s!.recipesIncluded ?? own?.recipes ?? null) : null,
     editorSeats: live ? (s!.editorSeats ?? own?.editors ?? null) : null,
+    editorSeatsUsed: usage.counts.editorSeats,
     regions,
     checksThisMonth,
     kind: "read",
@@ -188,13 +193,12 @@ const planName = (key: string) => plans.find((p) => p.key === key)?.name ?? key;
 const ofLimit = (used: number, limit: number | null, what: string) =>
   limit === null ? `${num(used)} · no ${what} limit` : `${num(used)} of ${num(limit)}`;
 
-/** The plan card's rows: what D-03 sells, never metered checks included. Seats used are the active members' (BE-33). */
-export function planLines(plan: Extract<PlanFacts, { kind: "read" }>, members: MemberRow[], now: Date): { k: string; v: string }[] {
-  const seats = seatCount(members, plan.editorSeats, now);
+/** The plan card's rows: what D-03 sells, never metered checks included. */
+export function planLines(plan: Extract<PlanFacts, { kind: "read" }>): { k: string; v: string }[] {
   return [
     { k: "Plan", v: planName(plan.plan) },
     { k: "Recipes", v: ofLimit(plan.recipes, plan.recipesIncluded, "recipe") },
-    { k: "Editor seats", v: `${ofLimit(seats.used, seats.seats, "seat")} · viewers free` },
+    { k: "Editor seats", v: `${ofLimit(plan.editorSeatsUsed, plan.editorSeats, "seat")} · viewers free` },
     { k: "Regions", v: plan.regions.length ? plan.regions.join(" · ") : "None" },
     { k: "Checks this month", v: `${num(plan.checksThisMonth)} · unmetered` },
   ];

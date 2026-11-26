@@ -49,7 +49,7 @@ export default async function Page({ params }: PageProps<"/w/[workspace]/setting
     let plan: PlanFacts = { kind: "no-billing" };
     if (billing.ok) {
       const [usage, checksThisMonth] = await Promise.all([readUsage(supabase, workspace), readChecksThisMonth(supabase, workspace, now)]);
-      // The regions the workspace holds (app.workspaces.entitled_regions); the free allowance counts none as bought.
+      // Regions are the workspace's entitled regions: the live counts list none as bought on the free allowance.
       plan = planFacts(usage, regions, checksThisMonth);
     } else if (billing.reason === "error") {
       throw new Error(`billing context failed: ${billing.code ?? "error"}`);
@@ -69,7 +69,7 @@ export default async function Page({ params }: PageProps<"/w/[workspace]/setting
           people: personLines(data.people.members, data.grants, now),
           invitations: pendingInvitations(data.people.invitations, now),
           workspace: workspaceLines(data.ruleset, data.marketsInReach),
-          plan: data.plan.kind === "read" ? { kind: "read", lines: planLines(data.plan, data.people.members, now) } : { kind: "no-billing" },
+          plan: data.plan.kind === "read" ? { kind: "read", lines: planLines(data.plan) } : { kind: "no-billing" },
         }}
       />
     </Screen>

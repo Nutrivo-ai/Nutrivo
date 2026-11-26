@@ -223,8 +223,8 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
     version (the latest released), Markets enabled (the nodes in the entitled regions, linking Coverage & confidence)
     and Signing policy PER MARKET. The design's Tenancy model and Term register version rows are not built;
   - the Plan card shows what D-03 sells (#352): plan, recipes and editor seats against their limits with viewers free,
-    regions, and checks this month, unmetered. Seats and recipes follow Plan and allowance's rule, so the two pages
-    agree: the subscription's figures (add-ons counted) only while it is live on a paid plan, else the plan's own; a
+    regions (the entitled ones, which the free allowance holds too), and checks this month, unmetered. Seats and
+    recipes follow Plan and allowance's rule and its live counts, so the two pages agree on them: the subscription's figures (add-ons counted) only while it is live on a paid plan, else the plan's own; a
     workspace on the free allowance has no recipe or seat check (D-21). It is read only by an internal admin of the whole workspace
     (`app.billing_context`); any other admin is told who manages the plan. The design's "Portfolio, not activity"
     figures (products × jurisdiction nodes) contradict D-03 and are not built. The card's text is `accent-700`, where

@@ -60,12 +60,16 @@ describe("Settings & roles overview (S-NV2-017)", () => {
   });
 
   it("[T-1110] the plan card shows what D-03 sells and never meters checks", () => {
-    const team = [member("a", "admin"), member("b", "editor"), member("c", "viewer"), member("d", "viewer")];
-    const lines = planLines(
-      { kind: "read", plan: "standard", recipes: 12, recipesIncluded: 30, editorSeats: 5, regions: ["EU"], checksThisMonth: 1412 },
-      team,
-      NOW,
-    );
+    const lines = planLines({
+      kind: "read",
+      plan: "standard",
+      recipes: 12,
+      recipesIncluded: 30,
+      editorSeats: 5,
+      editorSeatsUsed: 2,
+      regions: ["EU"],
+      checksThisMonth: 1412,
+    });
     expect(lines).toEqual([
       { k: "Plan", v: "Standard" },
       { k: "Recipes", v: "12 of 30" },
@@ -73,11 +77,16 @@ describe("Settings & roles overview (S-NV2-017)", () => {
       { k: "Regions", v: "EU" },
       { k: "Checks this month", v: "1 412 · unmetered" },
     ]);
-    const advanced = planLines(
-      { kind: "read", plan: "advanced", recipes: 140, recipesIncluded: null, editorSeats: null, regions: ["EU"], checksThisMonth: 0 },
-      team,
-      NOW,
-    );
+    const advanced = planLines({
+      kind: "read",
+      plan: "advanced",
+      recipes: 140,
+      recipesIncluded: null,
+      editorSeats: null,
+      editorSeatsUsed: 2,
+      regions: ["EU"],
+      checksThisMonth: 0,
+    });
     expect(advanced[1]).toEqual({ k: "Recipes", v: "140 · no recipe limit" });
     expect(advanced[2]).toEqual({ k: "Editor seats", v: "2 · no seat limit · viewers free" });
   });
@@ -109,11 +118,14 @@ describe("Settings & roles overview (S-NV2-017)", () => {
     // Cancelled and back on Free: no recipe or seat check, never the stale mirror (D-21).
     const ended = planFacts(usage(sub("canceled"), "free"), ["EU"], 3);
     expect(ended).toMatchObject({ plan: "free", recipesIncluded: null, editorSeats: null, regions: ["EU"], checksThisMonth: 3 });
-    expect(planLines(ended, [member("a", "admin"), member("b", "editor")], NOW).slice(0, 3)).toEqual([
+    expect(planLines(ended).slice(0, 3)).toEqual([
       { k: "Plan", v: "Free" },
       { k: "Recipes", v: "12 · no recipe limit" },
       { k: "Editor seats", v: "2 · no seat limit · viewers free" },
     ]);
+    // Advanced has no recipe limit, whatever the mirror holds; seats used come from the live counts.
+    const advanced = planFacts(usage(sub("active", { plan: "advanced", recipesIncluded: 25, editorSeats: null }), "advanced"), ["EU"], 0);
+    expect(advanced).toMatchObject({ recipesIncluded: null, editorSeats: null, editorSeatsUsed: 2 });
     // Never subscribed.
     expect(planFacts(usage(null, "free"), ["EU"], 0)).toMatchObject({ plan: "free", recipesIncluded: null, editorSeats: null });
   });
