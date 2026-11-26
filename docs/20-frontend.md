@@ -235,6 +235,33 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
   (the workspace error boundary); no-permission below admin, with nothing read.
 - **Tests** (`tests/e2e/settings-overview.spec.ts`): every state, axe, the no-dead-controls crawl, and both section
   headings against the S-NV2-017 baseline; the wording in `src/lib/settings/overview.test.ts`.
+- **S-NV2-018 Exports** at `/w/[workspace]/exports` (T-1112, I01 and O03), role viewer, in the Nutrivo 2.0 shell
+  under the header "Reports of Check and the full export" (the design's "Two artefacts, and the packs your team works
+  from" names packs that are not built). Only what a contract backs is drawn:
+  - "The export rule" keeps four claims the report and the export make true: Stamped (reference, ruleset version,
+    artwork hash and issue time on the report's face), Bounded (section 05 Not assessed always present), Traceable
+    (the insert-only `app.reports` row against product and market), Free to take (the full export on every plan,
+    BE-44). The design's "term register version" and "who generated it" are not on the report's face, reports are not
+    contractually unmetered, and "Sent from the report" is S-NV2-026's, so those are not drawn;
+  - "Artefacts": the Report of Check card (sections as `label_report.v2` prints them) and the full export card, which
+    is S-WSS-004's `FullExport` (T-804) for an admin and one line saying an admin requests it for anyone else;
+  - "Reports of Check": one row per product × market × printed language, from the latest of the workspace's last 500
+    checks (100 rows at most), with the report state: issued (reference, issue time, Download the PDF, a 5-minute link
+    Storage signs under the person's session, so `private.can_read_object` keeps it to the person's own workspace,
+    product and market), preparing (the page re-reads itself every 10 s), failed (said as is, no retry: #188 default
+    3), or none (Generate the report through `app.request_report` for an editor-class role; a viewer is told an editor
+    can generate it, #188 default 2). Older reports of a product stay on its Export, send, share screen.
+  - Not built, no contract behind them on this screen: the Certificate of Check card (I03, after launch), the five
+    working packs (action plan, portfolio board, obligation register and its ICS, design envelope, dossier pack), the
+    "Never exported" box, the per-plan notes, and the Compliance Worker panel. The card text is `accent-700` where the
+    design draws `accent-800` and `accent-900`, which are not Cobalt tokens.
+- **States.** Loaded; empty (no checked label: an EmptyState linking Add a product for an editor-class role); loading
+  (`loading.tsx`); error (the workspace error boundary); no-permission (a person with no seat gets the workspace's
+  NoAccess; below admin, the export card has no controls).
+- **Tests** (`tests/e2e/exports-screen.spec.ts`): I01.main, I01.must.1, O03.main and O03.must.1 on this screen, the
+  viewer, another workspace's admin (no signed link, no row, no job), empty, axe on every state, the no-dead-controls
+  crawl, and the Report of Check card title against the S-NV2-018 baseline; the row model in
+  `src/lib/exports/reports.test.ts`.
 
 ## 6 · Performance
 Lighthouse budgets on the public pages (LCP under 2.5 s); a 1.5 s budget for the board with 300 recipes
