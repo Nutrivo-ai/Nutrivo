@@ -208,7 +208,7 @@ export async function readAcceptedRules(db: Db): Promise<AcceptedRule[]> {
   return [...latest.values()];
 }
 
-// ─── #360 · proposed fixtures, confirmed or rejected by the accepting person ───────────────────────
+// ─── incident 360 · proposed fixtures, confirmed or rejected by the accepting person ───────────────────────
 export type ProposedFixture = {
   id: string;
   name: string;
@@ -341,7 +341,7 @@ export async function readDraft(db: Db, draftId: string): Promise<DraftDetail> {
   const keys = memberRows.map((m) => m.rule_key);
   const [rules, fixtures, gaps] = await Promise.all([
     keys.length ? ref.from("rules").select("rule_key, title, domain, node_id").in("rule_key", keys) : Promise.resolve({ data: [], error: null }),
-    // Confirmed fixtures only (#360): a proposed fixture counts for nothing until a person confirms it.
+    // Confirmed fixtures only (incident 360): a proposed fixture counts for nothing until a person confirms it.
     keys.length
       ? ref.from("rule_fixtures").select("rule_key, version, expected_outcome").in("rule_key", keys).eq("status", "confirmed")
       : Promise.resolve({ data: [], error: null }),

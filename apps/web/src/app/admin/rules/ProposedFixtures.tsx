@@ -7,7 +7,7 @@ import type { FixtureReview, ProposedFixture } from "@/lib/admin/reads";
 import { fixtureSummary } from "@/lib/admin/model";
 import { decideFixture } from "../actions";
 
-// #360 (docs/12 Thursday, docs/13): `nutrivo fixtures draft` proposes passed, failed and withheld fixtures for each
+// incident 360 (docs/12 Thursday, docs/13): `nutrivo fixtures draft` proposes passed, failed and withheld fixtures for each
 // accepted rule version, built from its own params and linked accepted terms and checked by the engine. The
 // accepting person confirms or rejects each one here (app.decide_rule_fixture, staff at aal2). Only confirmed fixtures
 // count for complete coverage (BE-10), the release gate (K05) and `nutrivo fixtures run`.
@@ -93,7 +93,7 @@ function FixtureRow({ fixture, ruleKey, version, said, setSaid }: {
   );
 }
 
-/** Proposed fixtures per accepted rule version, each confirmed or rejected by the person (#360). */
+/** Proposed fixtures per accepted rule version, each confirmed or rejected by the person (incident 360). */
 export function ProposedFixtures({ reviews }: { reviews: FixtureReview[] }) {
   const [said, setSaid] = useState<Said>(null);
   return (

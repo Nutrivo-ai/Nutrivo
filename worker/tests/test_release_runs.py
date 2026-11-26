@@ -217,14 +217,20 @@ def _synthetic_draft(conn):
             ("printed", "Testparti: 42", "sv", "passed", None),
             ("absent", "Sammansättning", "sv", "failed", {"findings": [{"rule_key": "TEST.T210.A"}]}),
             ("no language", "Testparti: 42", "und", "withheld", {"reason": "data_missing"})):
-        conn.execute("""insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, expected,
-                                                    status)
-                        values ('TEST.T210.A', 1, %s, %s::jsonb, %s, %s::jsonb, 'confirmed')""",
+        conn.execute("""insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, expected)
+                        values ('TEST.T210.A', 1, %s, %s::jsonb, %s, %s::jsonb)""",
                      (name, json.dumps({"panel": {"language": lang, "text_objects": [{"text": text}]}, "node": node}),
                       outcome, json.dumps(expected) if expected else None))
+    _decide(conn, person)
     _as_staff(conn)
     conn.execute("select app.create_ruleset_draft(%s, 'T-210 synthetic draft')", (DRAFT,))
     conn.execute("select app.set_draft_member(%s, 'TEST.T210.A', 1)", (DRAFT,))
+
+
+def _decide(conn, person) -> None:
+    """Inserted proposed, then confirmed by a person, as app.decide_rule_fixture records it (#360)."""
+    conn.execute("update ref.rule_fixtures set status = 'confirmed', decided_by = %s, decided_at = now() "
+                 "where rule_key = 'TEST.T210.A' and status = 'proposed'", (person,))
 
 
 def _run_and_record(conn) -> fr.Report:
@@ -259,8 +265,13 @@ def test_pg_a_fixture_changed_after_the_run_closes_the_gate(pg):
     with pg.transaction():
         _synthetic_draft(pg)
         _run_and_record(pg)
-        pg.execute("update ref.rule_fixtures set input = input || '{\"note\": \"changed\"}' "
-                   "where rule_key = 'TEST.T210.A' and name = 'absent'")
+        # A confirmed fixture never changes (#360): it is replaced by a corrected one, decided again, at the same count.
+        old = pg.execute("delete from ref.rule_fixtures where rule_key = 'TEST.T210.A' and name = 'absent' "
+                         "returning input, expected_outcome, expected").fetchone()
+        pg.execute("""insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, expected)
+                      values ('TEST.T210.A', 1, 'absent, corrected', %s::jsonb, %s, %s::jsonb)""",
+                   (json.dumps({**old["input"], "note": "changed"}), old["expected_outcome"], json.dumps(old["expected"])))
+        _decide(pg, pg.execute("select id from app.people where user_id = %s", (STAFF_USER,)).fetchone()["id"])
         with pytest.raises(psycopg.Error) as err, pg.transaction():
             pg.execute("select app.release_ruleset(%s)", (DRAFT,))
         assert err.value.sqlstate == "P0039" and "changed after the latest fixture run" in str(err.value)

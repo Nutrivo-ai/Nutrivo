@@ -204,12 +204,14 @@ A fixture is `proposed`, `confirmed` or `rejected` (`status`, with `proposed_by`
 - for a version being tested (`private.version_tested`), so for complete coverage (BE-10, P0010) and the release
   (P0039);
 - for the fixture count a run must reach (`private.ruleset_draft_fixture_count`);
-- for the draft digest (`private.ruleset_draft_digest`). Confirming or rejecting a fixture therefore makes an earlier
-  run stale;
+- for the draft digest (`private.ruleset_draft_digest`). Confirming a fixture therefore makes an earlier run stale;
 - for `nutrivo fixtures run`, where a member whose fixtures are all still proposed is withheld `no_fixtures`.
 
-Rows written before #360 were written by hand and count as confirmed. A new row is proposed unless it says
-otherwise. A decision is final: proposed → confirmed or rejected, once (22023 otherwise). Authenticated users read
+Rows written before #360 were written by hand and count as confirmed. A trigger holds every writer to the review,
+the service role included (22023 otherwise):
+- every new row is inserted proposed;
+- it leaves proposed only for confirmed or rejected, naming the person and the time;
+- a decided row's content and decision never change, so a correction is a new row, proposed and decided again. Authenticated users read
 confirmed fixtures and staff read all of them (RLS, as `ref.rule_versions`). Clients have no write grant.
 
 **Drafting.** `nutrivo fixtures draft [--rule <key>] [--dry-run]` (`nutrivo_worker.fixtures_draft`) proposes the

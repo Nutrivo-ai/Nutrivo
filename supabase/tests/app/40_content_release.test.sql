@@ -4,7 +4,7 @@
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = extensions, public;
-select plan(69);
+select plan(70);
 set local client_min_messages = warning;
 
 -- ─── Staff (Sam) and a non-staff member (Nina) ──────────────────────────────────────────────────────
@@ -157,16 +157,22 @@ select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
                  '[K05.must.1] no release while a member has no fixtures');
 reset role;
 
-insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, status) values
-  ('TEST.T204.A', 1, 'synthetic passed', '{"panel":"synthetic"}', 'passed', 'confirmed'),
-  ('TEST.T204.B', 1, 'synthetic passed', '{"panel":"synthetic"}', 'passed', 'confirmed');
+insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome) values
+  ('TEST.T204.A', 1, 'synthetic passed', '{"panel":"synthetic"}', 'passed'),
+  ('TEST.T204.B', 1, 'synthetic passed', '{"panel":"synthetic"}', 'passed');
+-- Decided by Sam, as app.decide_rule_fixture records it (#360): inserted proposed, then confirmed with a person.
+update ref.rule_fixtures set status = 'confirmed', decided_by = '10000000-0000-4000-8204-0000000000a1', decided_at = now()
+where status = 'proposed' and rule_key like 'TEST.T204.%';
 set local role authenticated;
 select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
                  '[K05.must.1] no release while a member lacks failed and withheld fixtures');
 reset role;
-insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, status)
-select k, 1, 'synthetic ' || o, '{"panel":"synthetic"}', o, 'confirmed'
+insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)
+select k, 1, 'synthetic ' || o, '{"panel":"synthetic"}', o
 from unnest(array['TEST.T204.A','TEST.T204.B']) k cross join unnest(array['failed','withheld']) o;
+-- Decided by Sam, as app.decide_rule_fixture records it (#360): inserted proposed, then confirmed with a person.
+update ref.rule_fixtures set status = 'confirmed', decided_by = '10000000-0000-4000-8204-0000000000a1', decided_at = now()
+where status = 'proposed' and rule_key like 'TEST.T204.%';
 
 set local role authenticated;
 select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
@@ -189,8 +195,11 @@ select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
 reset role;
 insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
 values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), true, private.ruleset_draft_fixture_count('2026.90-a'), 'test');
-insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, status)
-values ('TEST.T204.A', 1, 'synthetic withheld, unreadable', '{"panel":"unreadable"}', 'withheld', 'confirmed');
+insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)
+values ('TEST.T204.A', 1, 'synthetic withheld, unreadable', '{"panel":"unreadable"}', 'withheld');
+-- Decided by Sam, as app.decide_rule_fixture records it (#360): inserted proposed, then confirmed with a person.
+update ref.rule_fixtures set status = 'confirmed', decided_by = '10000000-0000-4000-8204-0000000000a1', decided_at = now()
+where status = 'proposed' and rule_key like 'TEST.T204.%';
 set local role authenticated;
 select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
                  '[K05.must.1] a passing run is stale once a fixture changes after it');
@@ -206,9 +215,17 @@ select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039', null,
 reset role;
 insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
 values ('2026.90-a', private.ruleset_draft_digest('2026.90-a'), true, private.ruleset_draft_fixture_count('2026.90-a'), 'test');
--- Same number of fixtures, different content: only the digest can tell.
-update ref.rule_fixtures set input = '{"panel":"synthetic, changed"}'
-where rule_key = 'TEST.T204.B' and version = 1 and expected_outcome = 'failed';
+-- A confirmed fixture's content never changes (#360); a correction is a new fixture, decided again.
+select throws_ok($$update ref.rule_fixtures set input = '{"panel":"synthetic, changed"}'
+                   where rule_key = 'TEST.T204.B' and version = 1 and expected_outcome = 'failed'$$,
+                 '22023', null, '[#360] a confirmed fixture''s content cannot be rewritten');
+-- Same number of fixtures, different content: the fixture is replaced by a corrected one. Only the digest can tell.
+delete from ref.rule_fixtures where rule_key = 'TEST.T204.B' and version = 1 and expected_outcome = 'failed';
+insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)
+values ('TEST.T204.B', 1, 'synthetic failed, corrected', '{"panel":"synthetic, changed"}', 'failed');
+-- Decided by Sam, as app.decide_rule_fixture records it (#360): inserted proposed, then confirmed with a person.
+update ref.rule_fixtures set status = 'confirmed', decided_by = '10000000-0000-4000-8204-0000000000a1', decided_at = now()
+where status = 'proposed' and rule_key like 'TEST.T204.%';
 set local role authenticated;
 select throws_ok($$select app.release_ruleset('2026.90-a')$$, 'P0039',
                  'K05: members or fixtures changed after the latest fixture run; run the fixtures again',
@@ -291,9 +308,12 @@ select app.create_ruleset_draft('2026.90-b');
 select app.set_draft_member('2026.90-b', 'TEST.T204.A', 3);
 select app.set_draft_member('2026.90-b', 'TEST.T204.B', 2);
 reset role;
-insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, status)
-select k, v, 'synthetic ' || o, '{"panel":"synthetic"}', o, 'confirmed'
+insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)
+select k, v, 'synthetic ' || o, '{"panel":"synthetic"}', o
 from (values ('TEST.T204.A', 3), ('TEST.T204.B', 2)) as m(k, v) cross join unnest(array['passed','failed','withheld']) o;
+-- Decided by Sam, as app.decide_rule_fixture records it (#360): inserted proposed, then confirmed with a person.
+update ref.rule_fixtures set status = 'confirmed', decided_by = '10000000-0000-4000-8204-0000000000a1', decided_at = now()
+where status = 'proposed' and rule_key like 'TEST.T204.%';
 insert into ref.fixture_runs (draft_id, digest, passed, rule_fixtures_ran, runner)
 values ('2026.90-b', private.ruleset_draft_digest('2026.90-b'), true, private.ruleset_draft_fixture_count('2026.90-b'), 'test');
 set local role authenticated;

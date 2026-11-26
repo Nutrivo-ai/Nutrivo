@@ -102,7 +102,7 @@ export async function relinkRule(ruleKey: string, shape: string, form: FormData)
   );
 }
 
-// #360: the accepting person confirms or rejects a fixture `nutrivo fixtures draft` proposed. Only confirmed fixtures
+// incident 360: the accepting person confirms or rejects a fixture `nutrivo fixtures draft` proposed. Only confirmed fixtures
 // count for BE-10 and the release gate, so the coverage page is revalidated too.
 export async function decideFixture(fixtureId: string, decision: "confirm" | "reject", note: string | null) {
   return run<Json>(

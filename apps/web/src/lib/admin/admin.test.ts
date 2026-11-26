@@ -121,7 +121,7 @@ describe("[T-211] term links per rule shape (D-31)", () => {
   });
 });
 
-describe("a proposed fixture, as the accepting person reads it (#360)", () => {
+describe("a proposed fixture, as the accepting person reads it (incident 360)", () => {
   const node = { id: "EU-SE", languages: ["sv"], region: "EU" };
   it("gives the panel's language, the printed text verbatim and the market", () => {
     const s = fixtureSummary(

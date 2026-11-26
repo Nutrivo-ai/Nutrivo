@@ -503,9 +503,19 @@ test.describe("@local-only /admin content console", () => {
     const member = await staff.db.schema("app").rpc("set_draft_member", { p_draft: draft, p_rule_key: LINKED, p_version: 2 });
     expect(member.error).toBeNull();
     const fixtures = await admin().schema("ref").from("rule_fixtures").insert(
-      (["passed", "failed", "withheld"] as const).map((o) => ({ rule_key: LINKED, version: 2, name: `TEST ${o} ${run}`, input: { test: o }, expected_outcome: o, status: "confirmed" })),
+      (["passed", "failed", "withheld"] as const).map((o) => ({ rule_key: LINKED, version: 2, name: `TEST ${o} ${run}`, input: { test: o }, expected_outcome: o })),
     );
     if (fixtures.error) throw fixtures.error;
+    // Decided by the staff person, as app.decide_rule_fixture records it (incident 360): only confirmed ones count.
+    const me = await admin().schema("app").from("people").select("id").eq("user_id", staff.userId).single();
+    const confirmed = await admin()
+      .schema("ref")
+      .from("rule_fixtures")
+      .update({ status: "confirmed", decided_by: me.data!.id, decided_at: new Date().toISOString() })
+      .eq("rule_key", LINKED)
+      .eq("version", 2)
+      .eq("status", "proposed");
+    if (confirmed.error) throw confirmed.error;
     await page.goto(`/admin/coverage?draft=${draft}&node=EU-FI`);
     const cell = page.locator('[data-coverage="EU-FI:mandatory_particulars"]');
     await cell.getByLabel("State").selectOption("complete");

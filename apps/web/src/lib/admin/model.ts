@@ -54,7 +54,7 @@ export function releaseBlockers(detail: { members: DraftMember[]; latestRun: Fix
   return out;
 }
 
-// ─── #360 · a proposed fixture, as the accepting person reads it ──────────────────────────────────
+// ─── incident 360 · a proposed fixture, as the accepting person reads it ──────────────────────────────────
 export type FixtureSummary = {
   /** The panel's language, or that the extraction could not tell it ('und'). */
   language: string;

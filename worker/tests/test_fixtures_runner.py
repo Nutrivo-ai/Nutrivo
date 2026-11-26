@@ -295,13 +295,12 @@ def test_pg_store_reads_members_fixtures_and_shapes_of_a_released_ruleset(pg):
         pg.execute("insert into ref.ruleset_versions (id) values ('t206-test')")
         pg.execute("insert into ref.ruleset_members (ruleset_version, rule_key, version)"
                    " values ('t206-test', 'TEST.T206.A', 1), ('t206-test', 'TEST.T206.B', 1)")
-        pg.execute("""insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, status)
-                      values ('TEST.T206.A', 1, 'absent on sv', '{"panel": {"language": "sv"}}', 'failed',
-                              'confirmed'),
-                             ('TEST.T206.A', 1, 'only proposed', '{"panel": {"language": "sv"}}', 'passed',
-                              'proposed'),
-                             ('TEST.T206.B', 1, 'only proposed', '{"panel": {"language": "sv"}}', 'passed',
-                              'proposed')""")
+        pg.execute("""insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)
+                      values ('TEST.T206.A', 1, 'absent on sv', '{"panel": {"language": "sv"}}', 'failed'),
+                             ('TEST.T206.A', 1, 'only proposed', '{"panel": {"language": "sv"}}', 'passed'),
+                             ('TEST.T206.B', 1, 'only proposed', '{"panel": {"language": "sv"}}', 'passed')""")
+        pg.execute("update ref.rule_fixtures set status = 'confirmed', decided_by = %s, decided_at = now() "
+                   "where rule_key = 'TEST.T206.A' and name = 'absent on sv'", (person,))
         store = fr.PgFixtureStore(pg)
         assert store.members("t206-test") == [fr.Member("TEST.T206.A", 1, "mandatory_particular"),
                                               fr.Member("TEST.T206.B", 1, "prescribed_wording")]

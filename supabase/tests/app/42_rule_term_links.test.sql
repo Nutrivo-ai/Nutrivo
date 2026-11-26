@@ -140,10 +140,12 @@ select throws_ok($$select app.relink_rule('TEST.T209.PW', '{"detect":{"term_keys
 select lives_ok($$select app.create_ruleset_draft('2026.92-t209', 'synthetic')$$, '[T-209] a draft is started');
 select lives_ok($$select app.set_draft_member('2026.92-t209', 'TEST.T209.MP', 1)$$, '[T-209] the linked rule is a member');
 reset role;
-insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome, status) values
-  ('TEST.T209.MP', 1, 'synthetic passed', '{"panel":"synthetic"}', 'passed', 'confirmed'),
-  ('TEST.T209.MP', 1, 'synthetic failed', '{"panel":"synthetic"}', 'failed', 'confirmed'),
-  ('TEST.T209.MP', 1, 'synthetic withheld', '{"panel":"synthetic"}', 'withheld', 'confirmed');
+insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome) values
+  ('TEST.T209.MP', 1, 'synthetic passed', '{"panel":"synthetic"}', 'passed'),
+  ('TEST.T209.MP', 1, 'synthetic failed', '{"panel":"synthetic"}', 'failed'),
+  ('TEST.T209.MP', 1, 'synthetic withheld', '{"panel":"synthetic"}', 'withheld');
+update ref.rule_fixtures set status = 'confirmed', decided_by = '10000000-0000-4000-8209-0000000000a1', decided_at = now()
+where rule_key = 'TEST.T209.MP' and status = 'proposed';   -- decided by a person (#360)
 create temp table digests as select private.ruleset_draft_digest('2026.92-t209') as before;
 set local role authenticated;
 select throws_ok($$select app.set_draft_coverage('2026.92-t209', 'EU-FI', 'mandatory_particulars', 'complete')$$,

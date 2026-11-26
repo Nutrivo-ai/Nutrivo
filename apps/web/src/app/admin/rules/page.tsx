@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Rule review queue · Nutrivo" };
 // app.accept_candidate: params, article and excerpt come only from the extraction they choose; the person adds what
 // the extraction does not hold (title, shape, domain and node for a new rule key, applicability, effect, dates, and the
 // term links, D-31). Accepted rules are re-linked below the queue (app.relink_rule, T-211), and their proposed fixtures
-// are confirmed or rejected there (app.decide_rule_fixture, #360).
+// are confirmed or rejected there (app.decide_rule_fixture, incident 360).
 export default async function RulesPage() {
   const db = await staffReader();
   const [candidates, nodes, terms, rules, fixtures] = await Promise.all([
