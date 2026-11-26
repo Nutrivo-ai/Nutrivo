@@ -175,7 +175,8 @@ export function buildMarkets(rows: MarketsRows): MarketsModel {
     const older = markets.filter((n) => latest(n).length > 0 && !!rows.currentRuleset && n.ruleset_version !== rows.currentRuleset).length;
     const day = new Date(last.at).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
     const notes = [
-      `${day} against ruleset ${last.ruleset_version}. ${current ? "Current." : "Superseded."}`,
+      // With no released ruleset to compare against, neither Current nor Superseded can be said.
+      `${day} against ruleset ${last.ruleset_version}.${rows.currentRuleset ? (current ? " Current." : " Superseded.") : ""}`,
       current && older ? `${plural(older, "market")} ${older === 1 ? "was" : "were"} checked against an older ruleset.` : "",
       unchecked ? `${plural(unchecked, "market")} ${unchecked === 1 ? "has" : "have"} no check yet.` : "",
     ];

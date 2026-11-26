@@ -110,6 +110,8 @@ describe("S-MOB-002 one recipe, its markets", () => {
     });
     const superseded = buildMarkets(design({ currentRuleset: "2026.11-a" }));
     expect(superseded.checked).toMatchObject({ current: false, body: "2 September 2026 against ruleset 2026.08-b. Superseded." });
+    const unknown = buildMarkets(design({ currentRuleset: null }));
+    expect(unknown.checked).toMatchObject({ current: false, body: "2 September 2026 against ruleset 2026.08-b." });
     const mixed = buildMarkets(
       design({
         nodes: [node("EU-DE", "clear"), node("EU-FR", "action", { open_actions: 2, ruleset_version: "2026.05-a" }), node("US-TX", "not_assessed", { last_check_job_id: null })],
