@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Check in progress · mobile states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Instrument+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ffffff}
+a{color:#2f5eff}a:hover{color:#1f49d9}
+:focus-visible{outline:2px solid #2f5eff;outline-offset:2px}
+@keyframes nvpulse{0%,100%{opacity:1}50%{opacity:.35}}
+.nv-live{animation:nvpulse 1.2s ease-in-out infinite}
+@media (prefers-reduced-motion: reduce){.nv-live{animation:none}}
+</style>
+</helmet>
+<div style="width:2270px;height:884px;box-sizing:border-box;padding:0 40px;display:flex;gap:40px;font-family:'Instrument Sans',system-ui,sans-serif;color:#101216;background:#ffffff">
+<sc-for list="{{phones}}" as="p" hint-placeholder-count="5">
+<div style="width:390px;display:flex;flex-direction:column;gap:10px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">{{p.label}}</span>
+<div style="width:390px;height:844px;border:1px solid #dde0e6;border-radius:16px;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column">
+<div style="display:flex;align-items:center;gap:4px;padding:6px 8px;border-bottom:1px solid #dde0e6">
+<a href="#" aria-label="Back to Salmon and Rice Adult 12 kg" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#101216" stroke-width="1.6" aria-hidden="true"><path d="M12.5 4l-6 6 6 6"></path></svg></a>
+<span style="font-size:15px;font-weight:600">Salmon &amp; Rice Adult 12 kg</span>
+</div>
+<div style="padding:20px 16px;display:flex;flex-direction:column;gap:16px">
+<div role="status" aria-live="polite" style="display:flex;flex-direction:column;gap:6px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">Label check · {{p.eyebrow}}</span>
+<h1 style="margin:0;font-size:24px;line-height:1.2;font-weight:600">{{p.headline}}</h1>
+<p style="margin:0;font-size:15px;line-height:1.45;color:#5f6570">{{p.sub}}</p>
+</div>
+
+<sc-if value="{{p.isSlow}}" hint-placeholder-val="{{false}}"><div style="border:1px solid #dde0e6;border-radius:8px;background:#f4f5f7;padding:12px;font-size:14px;line-height:1.4">The check keeps running if you leave this page.</div></sc-if>
+
+<ol style="list-style:none;margin:0;padding:0;border:1px solid #dde0e6;border-radius:10px">
+<sc-for list="{{p.steps}}" as="s" hint-placeholder-count="4">
+<li style="display:flex;gap:12px;padding:14px;border-top:1px solid #dde0e6">
+<span style="flex:0 0 20px">
+<sc-if value="{{s.done}}" hint-placeholder-val="{{true}}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#101216" stroke-width="1.6" role="img" aria-label="Done"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8.2l2 2 4-4.2"></path></svg></sc-if>
+<sc-if value="{{s.active}}" hint-placeholder-val="{{false}}"><svg class="nv-live" width="18" height="18" viewBox="0 0 16 16" role="img" aria-label="In progress"><circle cx="8" cy="8" r="6.5" fill="none" stroke="#2f5eff" stroke-width="1.6"></circle><circle cx="8" cy="8" r="3" fill="#2f5eff"></circle></svg></sc-if>
+<sc-if value="{{s.waiting}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#5f6570" stroke-width="1.4" stroke-dasharray="2 2" role="img" aria-label="Waiting"><circle cx="8" cy="8" r="6.5"></circle></svg></sc-if>
+<sc-if value="{{s.failed}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="#101216" stroke-width="1.6" role="img" aria-label="Stopped"><circle cx="8" cy="8" r="6.5"></circle><path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8"></path></svg></sc-if>
+</span>
+<div style="flex:1;display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between;gap:8px"><span style="font-size:14px;font-weight:600;color:{{s.color}}">{{s.name}}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:{{s.color}};white-space:nowrap">{{s.detail}}</span></div>
+<sc-if value="{{s.isMarkets}}" hint-placeholder-val="{{false}}"><div aria-hidden="true" style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px"><sc-for list="{{p.bars}}" as="b" hint-placeholder-count="5"><div class="{{b.cls}}" style="height:6px;border-radius:3px;background:{{b.bg}}"></div></sc-for></div></sc-if>
+</div>
+</li>
+</sc-for>
+</ol>
+
+<sc-if value="{{p.isFinished}}" hint-placeholder-val="{{false}}">
+<div style="display:flex;flex-wrap:wrap;gap:6px;font-size:13px">
+<span style="display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:6px;background:#fdf0dd;color:#9e5600;font-weight:600"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.8l6.6 12H1.4z"></path><path d="M8 6.5v3.2M8 11.6v.4"></path></svg>Action needed · 1 open</span>
+<span style="display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:6px;background:#e6f2ec;color:#0f7a4d;font-weight:600"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8.2l2 2 4-4.2"></path></svg>Label clear · 4</span>
+<span style="display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:6px;background:#f1f2f4;color:#5f6570;font-weight:600"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8h6"></path></svg>Not assessed · NO</span>
+</div>
+<a href="#" style="font-size:15px;font-weight:600;min-height:44px;border-radius:8px;background:#2f5eff;color:#ffffff;text-decoration:none;display:flex;align-items:center;justify-content:center">Open Fix mode</a>
+<span style="font-size:13px;color:#5f6570;text-align:center">Opening Fix mode…</span>
+</sc-if>
+
+<sc-if value="{{p.isFailed}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="display:flex;flex-direction:column;gap:10px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570">[failure reason from job] · [check id]</span>
+<button style="font:inherit;font-size:15px;font-weight:600;min-height:44px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff">Retry check</button>
+</div>
+</sc-if>
+
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570">{{p.stamp}}</span>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2270,"height":884}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const copy = {
+      queued: ['Queued', 'Queued', 'Waiting for the engine to start.', 'Queued at [job timestamp]'],
+      running: ['Running', 'Checking the label', '3 of 5 market and language checks done.', 'Started [job timestamp]'],
+      slow: ['Running · slow', 'Still checking', 'Taking longer than usual. 4 of 5 checks done.', 'Started [job timestamp]'],
+      finished: ['Finished', 'Checked in [n] seconds', '5 of 5 checks done. 1 open item on the German panel.', 'Finished [job timestamp]'],
+      failed: ['Failed', 'Check failed', 'Stopped at 2 of 5. No results were saved from this run.', 'Failed [job timestamp]']
+    };
+    const ink = '#101216', grey = '#5f6570';
+    const phones = ['queued', 'running', 'slow', 'finished', 'failed'].map((st) => {
+      const n = { queued: 0, running: 3, slow: 4, finished: 5, failed: 2 }[st];
+      const live = st === 'running' || st === 'slow';
+      const mk = (name, s, detail, extra) => Object.assign({ name, detail, done: s === 'done', active: s === 'active', waiting: s === 'waiting', failed: s === 'failed', color: s === 'waiting' ? grey : ink }, extra);
+      const pre = st === 'queued' ? 'waiting' : 'done';
+      const c = copy[st];
+      return {
+        label: c[0], eyebrow: c[0], headline: c[1], sub: c[2], stamp: c[3],
+        isSlow: st === 'slow', isFinished: st === 'finished', isFailed: st === 'failed',
+        steps: [
+          mk('Label read', pre, pre === 'done' ? 'Read' : ''),
+          mk('Panels and languages', pre, pre === 'done' ? '5 · 5' : ''),
+          mk('Markets and languages', st === 'queued' ? 'waiting' : live ? 'active' : st === 'failed' ? 'failed' : 'done', n + ' of 5', { isMarkets: true }),
+          mk('Result', st === 'finished' ? 'done' : 'waiting', st === 'finished' ? '[n] s' : '')
+        ],
+        bars: [0, 1, 2, 3, 4].map((i) => ({ bg: i < n ? ink : (i === n && live) ? '#2f5eff' : '#dde0e6', cls: (i === n && live) ? 'nv-live' : '' }))
+      };
+    });
+    return { phones };
+  }
+}
+</script>
+</body>
+</html>

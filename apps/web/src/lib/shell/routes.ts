@@ -51,7 +51,7 @@ export const WORKSPACE_ROUTES: WorkspaceRoute[] = [
   { route: "/w/[workspace]/library/coverage/[node]", screens: ["S-NV2-021"], title: "Coverage node", crumb: "Jurisdictions", role: "viewer" },
   { route: "/w/[workspace]/products/new", screens: ["S-NV2-022"], title: "Add a product", crumb: "Products", role: "editor" },
   { route: "/w/[workspace]/products/discontinued", screens: ["S-NV2-023"], title: "Discontinued", crumb: "Products", role: "viewer" },
-  { route: "/w/[workspace]/products/[product]/checks/[check]", screens: ["S-NV2-024"], title: "Check in progress", crumb: "Running a check", role: "viewer" },
+  { route: "/w/[workspace]/products/[product]/checks/[check]", screens: ["S-NV2-024", "S-CHK-001", "S-CHK-002", "S-CHK-003", "S-CHK-004", "S-CHK-005", "S-CHK-006"], title: "Check in progress", crumb: "Running a check", role: "viewer" },
   { route: "/w/[workspace]/products/[product]/artwork/[artwork]", screens: ["S-NV2-025"], title: "Artwork we cannot read", crumb: "Running a check", role: "viewer" },
   { route: "/w/[workspace]/products/[product]/report/send", screens: ["S-NV2-026"], title: "Export, send, share", crumb: "Artefacts", role: "editor" },
   { route: "/w/[workspace]/alerts", screens: ["S-MIS-001", "S-MOB-006"], title: "Alerts inbox", crumb: "Operations", role: "viewer" },
