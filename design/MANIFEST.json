@@ -280,6 +280,66 @@
    "path": "product/Nutrivo Today - Mobile States.dc.html",
    "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
    "size": 9347
+  },
+  {
+   "path": "product/Nutrivo Fix Mode.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 23808
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Mobile States.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 14102
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - All Clear.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 23814
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Superseded.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 23829
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Older Ruleset.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 23814
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Extraction Failed.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 23820
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Model Abstained.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 23820
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Rechecking.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 23829
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Never Checked.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 23813
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Loading.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 23819
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Error.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 23813
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - No Permission.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 23816
   }
  ]
 }
