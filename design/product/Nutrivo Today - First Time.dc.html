@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Today · first-time workspace</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Instrument+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ffffff}
+a{color:#2f5eff}a:hover{color:#1f49d9}
+:focus-visible{outline:2px solid #2f5eff;outline-offset:2px}
+</style>
+</helmet>
+<div style="font-family:'Instrument Sans',system-ui,sans-serif;color:#101216;display:flex;flex-wrap:wrap;min-height:100vh;background:#ffffff">
+<nav aria-label="Main" style="flex:1 1 232px;max-width:232px;border-right:1px solid #dde0e6;padding:24px 16px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
+<div style="font-weight:700;font-size:18px;padding:0 8px">Nutrivo</div>
+<div style="display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid #dde0e6;border-radius:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.06em">Workspace</span><span style="font-size:14px;font-weight:600">Halden Pet Nutrition</span></div>
+<div style="display:flex;flex-direction:column;gap:2px;font-size:14px">
+<a href="#" aria-current="page" style="text-decoration:none;color:#101216;background:#f4f5f7;font-weight:600;padding:9px 12px;border-radius:6px">Today</a>
+<a href="#" style="text-decoration:none;color:#101216;padding:9px 12px">Products</a>
+<a href="#" style="text-decoration:none;color:#101216;padding:9px 12px">Markets</a>
+<a href="#" style="text-decoration:none;color:#101216;padding:9px 12px">Documents</a>
+<a href="#" style="text-decoration:none;color:#101216;padding:9px 12px">Rules &amp; coverage</a>
+<a href="#" style="text-decoration:none;color:#101216;padding:9px 12px">Settings</a>
+</div>
+</nav>
+<main style="flex:999 1 640px;min-width:0;padding:40px 48px 64px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
+<header style="display:flex;flex-direction:column;gap:6px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">Today</span>
+<h1 style="margin:0;font-size:32px;font-weight:600;letter-spacing:-0.015em">Halden Pet Nutrition</h1>
+</header>
+
+<section aria-labelledby="start-h" style="border:1px solid #dde0e6;border-radius:12px;display:flex;flex-wrap:wrap;overflow:hidden">
+<div style="flex:1 1 480px;padding:48px;display:flex;flex-direction:column;gap:20px;box-sizing:border-box">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">First step</span>
+<h2 id="start-h" style="margin:0;font-size:28px;line-height:1.2;font-weight:600;letter-spacing:-0.01em">Upload a label to see what needs you</h2>
+<p style="margin:0;font-size:16px;line-height:1.55;color:#5f6570;max-width:520px">Nutrivo checks each printed language panel against encoded EU feed law for each market, and shows the rule and citation behind every result.</p>
+<div style="display:flex;flex-wrap:wrap;gap:10px">
+<button style="font:inherit;font-size:15px;font-weight:600;padding:12px 20px;min-height:44px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff;cursor:pointer">Upload a label</button>
+<button style="font:inherit;font-size:15px;font-weight:500;padding:12px 20px;min-height:44px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;color:#101216;cursor:pointer">Try the sample label</button>
+</div>
+</div>
+<div style="flex:1 1 420px;background:#f4f5f7;padding:40px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;justify-content:center">
+<div role="img" aria-label="Placeholder for a real pack photo of the sample label" style="height:180px;border:1px dashed #dde0e6;border-radius:10px;background:#ffffff;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570">[sample pack photo · Salmon &amp; Rice Adult 12 kg]</div>
+<ol style="margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;font-size:14px">
+<li style="display:flex;gap:10px"><span style="font-family:'IBM Plex Mono',monospace;color:#5f6570">01</span>Upload the label artwork</li>
+<li style="display:flex;gap:10px"><span style="font-family:'IBM Plex Mono',monospace;color:#5f6570">02</span>Choose markets and the language panels printed</li>
+<li style="display:flex;gap:10px"><span style="font-family:'IBM Plex Mono',monospace;color:#5f6570">03</span>Get results per panel: Label clear, Action needed or Not assessed</li>
+</ol>
+</div>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>
