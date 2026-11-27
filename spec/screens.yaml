@@ -78,6 +78,177 @@ screens:
     data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps]
     states: [loaded, empty, loading, error, no-permission]
     baseline: apps/web/tests/visual/baselines/S-NV2-003.png
+    notes: ["Its page content is superseded by Fix mode (S-FIX-001, D-33, T-1114)."]
+  # ── Fix mode (D-33, T-1114): claude.ai Design artifact ToKmnp78mwU6P1UFgpVHM4, 27 Nov 2026 ─────────────────────────────
+  - id: S-FIX-001
+    title: Label report as Fix mode
+    kind: app
+    design: "product/Nutrivo Fix Mode.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded, empty, loading, error, no-permission]
+    baseline: apps/web/tests/visual/baselines/S-FIX-001.png
+    notes: ["The label's panels with state chips and numbered pins beside the checklist headed 'N fixes left before [markets] are label clear'; pin and finding select each other (aria-pressed); zoom 50 to 150 percent.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-002
+    title: Fix mode on a phone, every state
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Mobile States.dc.html"
+    state: {}
+    element: {css: 'div[style*="width: 5200px"]', nth: 0}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [390]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded, empty, loading, error, no-permission]
+    baseline: apps/web/tests/visual/baselines/S-FIX-002.png
+    notes: ["The checklist only; View label opens the artwork full screen with its pins.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-003
+    title: Fix mode, all label clear
+    kind: moment
+    design: "product/Nutrivo Fix Mode - All Clear.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-FIX-003.png
+    notes: ["Not assessed is still listed.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-004
+    title: Fix mode, superseded
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Superseded.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-FIX-004.png
+    notes: ["Read-only: a newer check of the product and market exists.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-005
+    title: Fix mode, older ruleset
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Older Ruleset.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-FIX-005.png
+    notes: ["Re-check calls app.request_check against the latest released ruleset.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-006
+    title: Fix mode, a panel not read
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Extraction Failed.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-FIX-006.png
+    notes: ["Retry reading calls app.retry_extraction; the other panels' results stay.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-007
+    title: Fix mode, a model judgement abstained
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Model Abstained.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-FIX-007.png
+    notes: ["Abstention is withheld and shows as Not assessed, never passed (non-negotiable 6).", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-008
+    title: Fix mode, re-checking after a revision
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Rechecking.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-FIX-008.png
+    notes: ["The banner links to Check in progress (S-CHK-001).", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-009
+    title: Fix mode, never checked
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Never Checked.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [empty]
+    baseline: apps/web/tests/visual/baselines/S-FIX-009.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-010
+    title: Fix mode, loading
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Loading.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loading]
+    baseline: apps/web/tests/visual/baselines/S-FIX-010.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-011
+    title: Fix mode, error
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Error.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [error]
+    baseline: apps/web/tests/visual/baselines/S-FIX-011.png
+    notes: ["The request id is the response's, never a made-up one.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-012
+    title: Fix mode, no permission
+    kind: moment
+    design: "product/Nutrivo Fix Mode - No Permission.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [no-permission]
+    baseline: apps/web/tests/visual/baselines/S-FIX-012.png
+    notes: ["No 'Request access': it has no flow behind it.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
   - id: S-NV2-004
     title: Brief & formula
     kind: app
