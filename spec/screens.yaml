@@ -118,6 +118,163 @@ screens:
     data: [app.product_nodes, app.rollup_state, ref.jurisdictions]
     states: [loaded, empty, loading, error, no-permission]
     baseline: apps/web/tests/visual/baselines/S-NV2-006.png
+    notes: ["Its page content is superseded by the product matrix (S-MTX-001, D-33, T-1113)."]
+  # ── Board as the product matrix (D-33, T-1113): claude.ai Design artifact ToKmnp78mwU6P1UFgpVHM4, 27 Nov 2026 ──────────
+  - id: S-MTX-001
+    title: Board as the product matrix
+    kind: app
+    design: "product/Nutrivo Board.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loaded, empty, loading, error, no-permission]
+    baseline: apps/web/tests/visual/baselines/S-MTX-001.png
+    notes: ["Products by markets with sticky headers (role=grid, roving tabindex, arrow keys, Home and End, Enter opens), market and state filters, comfortable and compact density, and the legend. The frame shows the focus ring on one cell.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-002
+    title: Board on a phone, every state
+    kind: moment
+    design: "product/Nutrivo Board - Mobile States.dc.html"
+    state: {}
+    element: {css: 'div[style*="width: 3480px"]', nth: 0}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [390]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loaded, empty, loading, error, no-permission]
+    baseline: apps/web/tests/visual/baselines/S-MTX-002.png
+    notes: ["One product per card with its markets listed; tapping a market opens what its desktop cell opens.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-003
+    title: Board, a product never checked
+    kind: moment
+    design: "product/Nutrivo Board - Never Checked.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-MTX-003.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-004
+    title: Board, a market outside the plan
+    kind: moment
+    design: "product/Nutrivo Board - Outside Plan.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-MTX-004.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-005
+    title: Board, filtered
+    kind: moment
+    design: "product/Nutrivo Board - Filtered.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-MTX-005.png
+    notes: ["'Showing n of N products · Clear filters' while a filter is on.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-006
+    title: Board, compact
+    kind: moment
+    design: "product/Nutrivo Board - Compact.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-MTX-006.png
+    notes: ["Compact is 40 px rows on one line; comfortable stays the default.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-007
+    title: Board at 50 products by 30 markets
+    kind: moment
+    design: "product/Nutrivo Board - Scale.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-MTX-007.png
+    notes: ["Proves the sticky headers. Most of its columns are Not assessed because only four markets are encoded at launch: accurate, and not for marketing.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-008
+    title: Board, no products yet
+    kind: moment
+    design: "product/Nutrivo Board - Empty.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [empty]
+    baseline: apps/web/tests/visual/baselines/S-MTX-008.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-009
+    title: Board, loading
+    kind: moment
+    design: "product/Nutrivo Board - Loading.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loading]
+    baseline: apps/web/tests/visual/baselines/S-MTX-009.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-010
+    title: Board, error
+    kind: moment
+    design: "product/Nutrivo Board - Error.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [error]
+    baseline: apps/web/tests/visual/baselines/S-MTX-010.png
+    notes: ["The error reference is the response's request id, never a made-up one.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-011
+    title: Board, no permission
+    kind: moment
+    design: "product/Nutrivo Board - No Permission.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [no-permission]
+    baseline: apps/web/tests/visual/baselines/S-MTX-011.png
+    notes: ["No 'Request access': it has no flow behind it.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
   - id: S-NV2-007
     title: Product × node
     kind: app
