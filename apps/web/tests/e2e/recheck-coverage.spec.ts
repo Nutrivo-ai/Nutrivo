@@ -11,6 +11,7 @@ import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { REPO_ROOT } from "../visual/screens";
 import { expectLikeBaseline, type Region } from "./support/baseline";
+import { allResultSets } from "./support/fix";
 import { admin, haveStack, person, signIn, workspace, type Person } from "./support/people";
 import { axe, maxDiffPixelRatio, watch } from "./support/public";
 
@@ -231,8 +232,11 @@ test.describe("re-check a revision, and coverage per product", () => {
     const [, v2] = await versionsOf(productId);
     expect(v2.version).toBe(2);
     await expect(page.locator("[data-pinned]")).toContainText(`artwork ${short(v2.file_sha256)}`);
-    await expect(page.getByRole("group", { name: "Language" }).getByRole("button")).toHaveCount(MARKETS.length * 3);
-    await expect(page.locator('[data-region="markets"] [data-node]').filter({ hasText: "Clear" })).toHaveCount(0);
+    // Fix mode (T-1114): each market shows the revision's three printed panels, each its own check; none is clear.
+    const sets = await allResultSets(page);
+    expect(sets).toHaveLength(MARKETS.length * 3);
+    await expect(page.locator('[data-panel-state="clear"]')).toHaveCount(0);
+    await expect(page.locator("[data-banner]")).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 

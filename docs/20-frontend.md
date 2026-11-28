@@ -291,6 +291,47 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
   kicker against the S-MOB-002 baseline (the other parts name the design's recipe or fill the width, spec/screens.yaml
   Q2). The shaping is in `src/lib/products/markets.test.ts`.
 
+### Built in T-1114: the label report as Fix mode (`apps/web/src/components/report/FixMode.tsx`, `apps/web/src/lib/report/fix.ts`)
+- **S-FIX-001 to S-FIX-013** at `/w/[workspace]/products/[product]/report` (D-33), page content only inside the built
+  rail; it replaces S-NV2-003's content. A Market switch (buttons at 1600 px, a select at 390 px) picks a market. The
+  label's panels are the checks of that market's latest check job, one `app.checks` row per printed panel, so each panel
+  is its own result set (D07.must.1). Each panel is drawn to scale from its `app.text_objects`. There is no rendered
+  artwork image yet, so the drawing is the extracted text where it was printed. Pins sit at the finding's text object, or
+  at its `bbox_mm`. Only the panels in one of the market's `ref.jurisdictions.languages` carry a state chip; the others
+  read "Not a German-language panel".
+- **Checklist.** Fixes first, panel by panel. A fix with no place on the artwork heads its group as "Missing from this
+  panel" and outlines the panel. Then everything Not assessed, each linked to its coverage gap, or reading "No coverage
+  gap recorded" with its reason code (#46 q4, reported to Sentry). Every item shows its rule_key, its citation and its
+  real provenance value. A model call adds its confidence and "model abstained" (S-FIX-007); an abstention is withheld,
+  so it reads Not assessed. Printed text is quoted from the panel's text object with `lang` set to the panel's language.
+  The heading counts open fixes and Not assessed items, never a score. It says "before X is label clear" only when
+  nothing is withheld, and reads "X is label clear" only when the engine's `label_state` is clear and nothing is open or
+  withheld. Otherwise it reads a grey "X: not assessed" (S-FIX-013).
+- **Copy required term (D-31).** The finding's rule version (`rule_version`, else the ruleset's member) gives its links:
+  `term_key` for prescribed_wording, `detect.term_keys` for mandatory_particular. The accepted `ref.term_entries` in the
+  panel's language are read for those keys, pinned to the check's ruleset first, else unpinned, as the engine reads them.
+  The button appears only when exactly one wording results. Otherwise the item reads "No accepted wording · see the rule
+  and citation", and Upload revision is its one primary action. Threshold and character-height rules judge printed
+  text, so they offer nothing to copy. No wording is ever composed or translated.
+- **Banners, one at a time.** A check job of the product queued or running: "Revision uploaded." (or "A check is
+  running." on the same artwork) with View check in progress (S-FIX-008). `?job=<check job id>` opens an older result
+  read-only: "A newer result exists." with Open it, and no Upload revision (S-FIX-004). A check against a ruleset other
+  than the latest released one: "Re-check against …", which calls `app.request_check` and opens Check in progress (editors
+  only, S-FIX-005).
+- **Not built, and why.** Retry reading (S-FIX-006): `app.retry_extraction` re-queues only a failed extract job, so it
+  cannot re-read one panel of a succeeded extraction. An unreadable panel shows "Couldn’t read this panel" and the upload
+  of a revision instead (question on #368). Assign and Send to expert are release 1.5. Mark-as-done does not exist: pins
+  clear only through a new check. Download report (PDF) opens Export, send, share (S-NV2-026), where the stored PDF
+  downloads. The ruleset chip in the header still opens the product's coverage (D09, #55 q2).
+- **States.** Loaded; never checked (Run check for an editor when an artwork exists, and Upload a label); loading
+  (`report/loading.tsx`, S-FIX-010); error (S-FIX-011, with the response's own `x-request-id`); no permission (S-FIX-012:
+  RLS returns no product; a product that does not exist reads the same, with no Request access).
+- **Tests:** `src/lib/report/fix.test.ts` holds the model: D07.main, D07.must.1, D07.must.2, D08.main, D08.must.2, Copy
+  required term, and every heading and banner. `tests/e2e/report.spec.ts` runs a real check through the worker for
+  D07.main, D07.must.1, D07.must.2, D08.main, D08.must.1 and D08.must.2, plus never checked, no access, axe and the
+  no-dead-controls crawl. `tests/e2e/support/fix.ts` reads result sets the same way at both widths. Not yet compared:
+  the S-FIX baseline regions, because no run has measured their coordinates.
+
 ## 6 · Performance
 Lighthouse budgets on the public pages (LCP under 2.5 s); a 1.5 s budget for the board with 300 recipes
 (spec/nfr.yaml).

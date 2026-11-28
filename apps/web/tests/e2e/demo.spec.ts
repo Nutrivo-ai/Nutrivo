@@ -19,6 +19,7 @@ import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { REPO_ROOT } from "../visual/screens";
 import { RENDER_ARGS } from "../visual/render";
+import { checklist, chooseMarket, fixReport, marketsOf, panelChecks } from "./support/fix";
 import { admin, haveStack, person, signIn, workspace, type Person } from "./support/people";
 import { sql } from "./support/sql";
 import { axe, watch } from "./support/public";
@@ -111,8 +112,6 @@ async function expectNothingClear(productId: string, jobId: string) {
 }
 
 const card = (page: Page) => page.locator("[data-artwork-card]").filter({ visible: true });
-const tabs = (page: Page) => page.getByRole("group", { name: "Language" }).getByRole("button");
-const findingsPanel = (page: Page) => page.locator('[data-region="findings"]');
 
 test.describe("@demo @local-only the demo path", () => {
   test.skip(!haveStack(), "needs the local Supabase stack and the worker: run through scripts/ci/e2e.sh (make e2e)");
@@ -170,22 +169,25 @@ test.describe("@demo @local-only the demo path", () => {
 
     // 4 · The label report: one result set per market × printed panel, every market Not assessed, every Not assessed
     // linked to its gap, pinned to the empty ruleset.
+    // The label report as Fix mode (T-1114): a market at a time, each market's panels its own checks.
     await page.goto(`/w/${ws}/products/${productId}/report`);
-    await expect(page.locator('[data-screen="S-NV2-003"] [data-region="report"]')).toBeVisible();
-    const tiles = page.locator('[data-region="markets"] [data-node]');
-    await expect(tiles).toHaveCount(MARKETS.length);
-    await expect(tiles.locator('[data-glyph="not_assessed"]')).toHaveCount(MARKETS.length);
-    await expect(tiles.filter({ hasText: "Clear" })).toHaveCount(0);
-    await expect(page.getByText(`RULESET ${EMPTY_RULESET} · current`)).toBeVisible();
-    await expect(tabs(page)).toHaveCount(checks.length);
-    for (let i = 0; i < checks.length; i++) {
-      await tabs(page).nth(i).click();
-      const rows = findingsPanel(page).locator("[data-finding-state]");
+    await expect(fixReport(page)).toBeVisible();
+    expect(await marketsOf(page)).toHaveLength(MARKETS.length);
+    await expect(page.locator("[data-pinned]")).toContainText(`ruleset ${EMPTY_RULESET}`);
+    let sets = 0;
+    for (const node of await marketsOf(page)) {
+      await chooseMarket(page, node);
+      sets += (await panelChecks(page)).length;
+      // Nothing reads label clear against the empty ruleset: the heading is grey Not assessed.
+      await expect(checklist(page).getByRole("heading", { level: 2 })).toHaveAttribute("data-heading-tone", "not_assessed");
+      await expect(checklist(page)).not.toContainText("is label clear");
+      const rows = checklist(page).locator("[data-finding-state]");
       await expect(rows.first()).toBeVisible();
-      await expect(findingsPanel(page).locator('[data-finding-state="action"]')).toHaveCount(0);
-      await expect(findingsPanel(page).locator('[data-finding-state="not_assessed"]')).toHaveCount(await rows.count());
-      await expect(findingsPanel(page).locator("[data-gap-id] a").first()).toHaveAttribute("href", new RegExp(`^/w/${ws}/library/coverage/`));
+      await expect(checklist(page).locator('[data-finding-state="action"]')).toHaveCount(0);
+      await expect(checklist(page).locator('[data-finding-state="not_assessed"]')).toHaveCount(await rows.count());
+      await expect(checklist(page).locator("[data-gap-id] a").first()).toHaveAttribute("href", new RegExp(`^/w/${ws}/library/coverage/`));
     }
+    expect(sets).toBe(checks.length);
     await axe(page);
 
     // 5 · The report PDF for the German panel's check. Gap: app.request_report and the download button are not written

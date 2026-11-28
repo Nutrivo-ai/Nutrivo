@@ -10,6 +10,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
 import { expectLikeBaseline, type Region } from "./support/baseline";
+import { allResultSets, fixReport } from "./support/fix";
 import { admin, haveStack, person, signIn, workspace, type Person } from "./support/people";
 import { axe, maxDiffPixelRatio, watch } from "./support/public";
 
@@ -134,7 +135,6 @@ async function latestChecks(productId: string) {
 // The route streams behind w/[workspace]/loading.tsx: wait for the screen's own region before reading it.
 const markets = (page: Page) => page.locator('main[data-screen="S-MOB-002"] [data-region="markets"]').filter({ visible: true });
 const row = (page: Page, node: string) => markets(page).locator(`li[data-node="${node}"]`);
-const tabs = (page: Page) => page.getByRole("group", { name: "Language" }).getByRole("button");
 
 // S-MOB-002 at 390 px, compared where the part depends neither on width nor on the design's own recipe: the Checked
 // kicker, from its own top-left corner. The recipe kicker names a flavour that is stored nowhere, the title counts the
@@ -253,7 +253,7 @@ for (const viewport of [
       await page.goto(`/w/${ws}/products/${productId}`);
       await markets(page).getByRole("link", { name: "Every finding, on the label report" }).click();
       await expect(page).toHaveURL(new RegExp(`/products/${productId}/report$`));
-      await expect(page.locator('[data-screen="S-NV2-003"] [data-region="report"]')).toBeVisible();
+      await expect(fixReport(page)).toBeVisible();
       await expect(page.locator('[data-region="findings"] [data-finding-state="not_assessed"]').first()).toBeVisible();
       expect(errors).toEqual([]);
     });
@@ -265,9 +265,10 @@ for (const viewport of [
       await signIn(context, viewer, baseURL!);
       await page.goto(`/w/${ws}/products/${productId}`);
       await markets(page).getByRole("link", { name: "Every finding, on the label report" }).click();
-      await expect(tabs(page)).toHaveCount(db.checks.length);
-      const ids = await tabs(page).evaluateAll((els) => els.map((e) => e.getAttribute("data-check-id")));
-      expect(new Set(ids)).toEqual(new Set(db.checks.map((c) => c.id)));
+      // Fix mode (T-1114): each market shows one panel per check of its latest job, each its own result set.
+      await expect(fixReport(page)).toBeVisible();
+      const sets = await allResultSets(page);
+      expect(sets.map((s) => s.checkId).sort()).toEqual(db.checks.map((c) => c.id).sort());
     });
 
     test(`[D07.must.2] [T-1109] ${w} px: every Not assessed market opens a verdict that links to its gap`, async ({ page, context, baseURL }) => {
