@@ -3,7 +3,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { ProgressView } from "@/lib/checks/inProgress";
-import { CheckProgressView } from "./CheckInProgress";
+import { CheckProgressView, terminalLabel } from "./CheckInProgress";
 
 const WS = "20000000-0000-4000-8111-00000000000a";
 const PR = "20000000-0000-4000-8111-00000000000b";
@@ -88,5 +88,14 @@ describe("Check in progress view (S-NV2-024)", () => {
     expect(render({ kind: "stalled" })).toContain("This is taking longer than usual");
     expect(render({ kind: "stalled" })).toContain(">Check again<");
     expect(render({ kind: "unreadable" })).toContain("Progress cannot be read just now");
+  });
+
+  it("[D04.must.1] a withheld check asked again still says Withheld", () => {
+    expect(terminalLabel("withheld", true)).toMatch(/^Withheld · nothing could be assessed · already checked/);
+    expect(terminalLabel("withheld", false)).toBe("Withheld · nothing could be assessed");
+    expect(terminalLabel("done", true)).toBe("Already checked · this revision, ruleset and scope");
+    expect(terminalLabel("done", false)).toBe("Checked");
+    const html = render({ kind: "withheld", checks: 1, clear: 0, action: 0, notAssessed: 1, again: true });
+    expect(html).toContain("Withheld · nothing could be assessed · already checked");
   });
 });

@@ -149,7 +149,7 @@ export function CheckProgressView({
             className="border border-ink py-[18px] px-[20px]"
           >
             <p className={label}>
-              {view.again ? "Already checked · this revision, ruleset and scope" : view.kind === "done" ? "Checked" : "Withheld · nothing could be assessed"}
+              {terminalLabel(view.kind, view.again)}
             </p>
             <h2 id="check-scope" className="mt-[8px] mb-0 font-head text-[24px] font-semibold leading-[1.15]">
               {scope}
@@ -216,6 +216,13 @@ export function CheckProgressView({
       </div>
     </div>
   );
+}
+
+/** The finished card's label: withheld is always named, also when the same check was asked again. */
+export function terminalLabel(kind: "done" | "withheld", again: boolean): string {
+  const again_ = "Already checked · this revision, ruleset and scope";
+  if (kind === "withheld") return again ? `Withheld · nothing could be assessed · ${again_.toLowerCase()}` : "Withheld · nothing could be assessed";
+  return again ? again_ : "Checked";
 }
 
 const resultSets = (n: number) => `${n} result set${n === 1 ? "" : "s"}`;

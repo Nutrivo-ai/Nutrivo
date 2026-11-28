@@ -128,9 +128,11 @@ test.describe("S-NV2-024 Check in progress", () => {
     await expect(page).toHaveURL(new RegExp(`/w/${ws}/products/${seeded.productId}/checks/[0-9a-f-]{36}$`));
     const jobId = page.url().split("/").pop()!;
     // The job is the one app.request_check queued for this product.
-    const job = await admin().schema("app").from("jobs").select("kind, product_id, node_ids").eq("id", jobId).single();
+    const job = await admin().schema("app").from("jobs").select("kind, product_id, node_ids, payload").eq("id", jobId).single();
     if (job.error) throw job.error;
-    expect(job.data).toEqual({ kind: "check", product_id: seeded.productId, node_ids: MARKETS });
+    expect({ kind: job.data.kind, product_id: job.data.product_id, node_ids: job.data.node_ids }).toEqual({ kind: "check", product_id: seeded.productId, node_ids: MARKETS });
+    // The request id Run the check sent travels with the job, where this page reads it for its Sentry events (docs/17).
+    expect((job.data.payload as { request_id?: unknown }).request_id).toEqual(expect.any(String));
     await expect(page.getByRole("heading", { level: 2, name: "Salmon & Rice Adult 12 kg · 2 nodes · 1 language" })).toBeVisible();
     // The worker finishes it; on the empty ruleset every result is withheld (D04.must.1), and the page says so.
     await expect(region(page)).toHaveAttribute("data-progress", "withheld", { timeout: STEP_MS });

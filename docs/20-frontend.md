@@ -257,7 +257,9 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
   gap, an unavailable model or an unreadable panel can each withhold), and links the report, where each has its reason;
   with no result set written it says so; it stays. Failed: the plain reason (P0003 no released ruleset) and Back to upload &
   scope. Stalled past the lease and an unreadable first read: "taking longer than usual" / "cannot be read", with Check
-  again. The header pins the job's ruleset; the crumb follows the state.
+  again. The header pins the job's ruleset; the crumb follows the state. A withheld check asked again still says
+  Withheld. The job's `payload.request_id` (stamped by `private.enqueue` from Run the check's `x-request-id`) tags the
+  watcher's and the stalled state's Sentry events (docs/17).
 - **States.** Loaded (queued, running, done, withheld, failed, stalled); loading (`loading.tsx`); error (the workspace
   error boundary for a read failure, the unreadable state for the watcher); no-permission as above.
 - **Tests** (`tests/e2e/check-progress.spec.ts`): the real check from Run the check to the report (`D04.main`), each
