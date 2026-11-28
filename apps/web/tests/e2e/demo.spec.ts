@@ -159,7 +159,9 @@ test.describe("@demo @local-only the demo path", () => {
     // 3 · Run the check, from Upload & scope's closing bar (T-505), which calls app.request_check.
     await page.getByRole("link", { name: "← Back to upload & scope" }).click();
     await page.locator("[data-run-check]").getByRole("button", { name: "Run the check" }).click();
-    await expect(page.locator("[data-run-check] [data-check-done]")).toBeVisible({ timeout: STEP_MS });
+    // It is followed on Check in progress (S-NV2-024, T-1111) to its terminal state.
+    await expect(page).toHaveURL(/\/checks\/[0-9a-f-]{36}$/);
+    await expect(page.locator("[data-check-terminal]")).toBeVisible({ timeout: STEP_MS });
     const job = await admin().schema("app").from("product_nodes").select("last_check_job_id").eq("product_id", productId).limit(1).single();
     if (job.error) throw job.error;
     const checkJob = job.data.last_check_job_id as string;
