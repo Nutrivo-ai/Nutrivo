@@ -76,8 +76,19 @@ run it through the `doctor` workflow (§5).
 ## 6. Before any customer data (G7)
 1. **Restore drill:** the first one, by docs/runbooks/restore-drill.md. Its Sentry cron monitor `restore-drill-prod`
    then expects one a month.
-2. **Synthetic monitoring:** Settings → Variables → `SYNTHETIC_ENABLED` = `true`. `synthetic.yml` checks production
-   every 15 minutes inside the Sentry monitor `synthetic-smoke-prod` (T-1102). docs/21 item 4 asks for 7 green days.
+2. **Synthetic monitoring:** before launch the firewall's "pre-launch: app closed" rule (§7) sends `/sign-in` to the
+   pilot page, so the check needs its own way through first:
+   1. Generate a long random value (for example `openssl rand -hex 32`) and store it in Infisical prod as
+      `SYNTHETIC_BYPASS_TOKEN`. `scripts/synthetic/check.py` sends it in the `x-nutrivo-synthetic` header to the
+      app's own paths only (`/api/health`, `/sign-in`), never to Supabase, and never prints it.
+   2. Vercel → `nutrivo` → Firewall → a custom rule named "synthetic bypass", placed **above** the pre-launch rules:
+      if request header `x-nutrivo-synthetic` equals that value, then **Bypass**. Publish.
+   3. Actions → `synthetic` → Run workflow: all three paths must be ok.
+   4. Then Settings → Variables → `SYNTHETIC_ENABLED` = `true`. `synthetic.yml` checks production every 15 minutes
+      inside the Sentry monitor `synthetic-smoke-prod` (T-1102). docs/21 item 4 asks for 7 green days.
+
+   The rule can stay after launch: it only lets through what is then open to everyone anyway. Rotating the value means
+   changing it in Infisical and in the rule together.
 3. **Alerts reach named people:** each Sentry monitor and alert rule notifies a named founder (docs/17).
 
 ## 7. Opening the doors (at launch, after G6, G8 and G9)

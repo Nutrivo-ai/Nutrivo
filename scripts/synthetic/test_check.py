@@ -37,6 +37,39 @@ def run(fake, env=ENV):
     return code, lines
 
 
+class FirewallBypass(unittest.TestCase):
+    """Before launch the pre-launch firewall rule sends /sign-in to the pilot page; the bypass header gets through."""
+
+    def test_app_paths_carry_the_bypass_header(self):
+        fake = Fake()
+        code, lines = run(fake, {**ENV, "SYNTHETIC_BYPASS_TOKEN": "bypass-x"})
+        self.assertEqual(code, 0, lines)
+        self.assertEqual(fake.calls[0][1].get("x-nutrivo-synthetic"), "bypass-x")   # /api/health
+        self.assertEqual(fake.calls[1][1].get("x-nutrivo-synthetic"), "bypass-x")   # /sign-in
+
+    def test_supabase_never_gets_the_bypass_header(self):
+        fake = Fake()
+        run(fake, {**ENV, "SYNTHETIC_BYPASS_TOKEN": "bypass-x"})
+        self.assertNotIn("x-nutrivo-synthetic", fake.calls[2][1])
+
+    def test_no_header_without_the_secret(self):
+        fake = Fake()
+        run(fake)
+        self.assertNotIn("x-nutrivo-synthetic", fake.calls[0][1])
+
+    def test_the_token_is_never_printed(self):
+        pilot = (200, HTML, b"<html><h1>Join the pilot</h1></html>")
+        code, lines = run(Fake(**{"/sign-in": pilot}), {**ENV, "SYNTHETIC_BYPASS_TOKEN": "bypass-x"})
+        self.assertEqual(code, 1)
+        self.assertFalse(any("bypass-x" in l for l in lines), lines)
+
+    def test_the_pilot_page_without_the_secret_says_why(self):
+        pilot = (200, HTML, b"<html><h1>Join the pilot</h1></html>")
+        code, lines = run(Fake(**{"/sign-in": pilot}))
+        self.assertEqual(code, 1)
+        self.assertTrue(any("no SYNTHETIC_BYPASS_TOKEN" in l for l in lines), lines)
+
+
 class SyntheticCheck(unittest.TestCase):
     def test_all_paths_pass(self):
         fake = Fake()
