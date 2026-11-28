@@ -6,6 +6,9 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { parse } from "yaml";
 import { REPO_ROOT } from "../../visual/screens";
+import { edgeOf, percentile, roundTo, spread } from "./stats";
+
+export { edgeOf, percentile, spread };
 
 export type Status = "met" | "exceeded" | "withheld" | "staging_only";
 
@@ -41,13 +44,6 @@ export function budget(key: string): number {
   const value = nfr[section]?.[name];
   if (typeof value !== "number") throw new Error(`spec/nfr.yaml has no budget ${key}`);
   return value;
-}
-
-/** Nearest-rank percentile (the value at or below which p% of samples fall); null for no samples. */
-export function percentile(samples: number[], p: number): number | null {
-  if (!samples.length) return null;
-  const sorted = [...samples].sort((a, b) => a - b);
-  return sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1))];
 }
 
 export type Result = {
@@ -126,24 +122,29 @@ export function p95By(samples: { label: string; ms: number }[]): Record<string, 
   return Object.fromEntries(Object.entries(by).map(([k, v]) => [k, roundTo(percentile(v, 95), 0.1)]));
 }
 
+export type Floor = { p50_ms: number | null; p95_ms: number | null; n: number; failed: number; concurrency: number; edge: Record<string, number> };
+
 /**
- * The network floor between the load client and the Supabase API: sequential GETs of Auth's health endpoint, which
- * touches no table. A latency sample is this floor plus the work under test, so the report shows how much of a p95 is
- * distance (a runner in another region than the project) rather than the endpoint. Reported only, never judged.
+ * The network floor between the load client and the Supabase API: GETs of Auth's health endpoint, which touches no
+ * table. A latency sample is this floor plus the work under test, so the report shows how much of a p95 is distance (a
+ * runner in another region than the project) rather than the endpoint. With `concurrency` above 1 the GETs go out the
+ * way the load test calls, so a p95 under load can be read against the floor under the same requests in flight (issue
+ * 348). `edge` counts the edge location that answered (cf-ray's suffix, e.g. SEA or IAD; "none" on the local stack),
+ * which shows where the client sat. Reported only, never judged.
  */
-export async function networkFloor(base: string, anon: string, n = 20): Promise<{ p50_ms: number | null; p95_ms: number | null; n: number }> {
-  const xs: number[] = [];
-  for (let i = 0; i < n; i++) {
+export async function networkFloor(base: string, anon: string, n = 20, concurrency = 1): Promise<Floor> {
+  const edge: Record<string, number> = {};
+  const runs = await pool(n, concurrency, async () => {
     const started = performance.now();
     const res = await fetch(`${base.replace(/\/$/, "")}/auth/v1/health`, { headers: { apikey: anon } }).catch(() => null);
     await res?.arrayBuffer().catch(() => null);
-    if (res?.ok) xs.push(performance.now() - started);
-  }
-  return { p50_ms: roundTo(percentile(xs, 50), 0.1), p95_ms: roundTo(percentile(xs, 95), 0.1), n: xs.length };
-}
-
-function roundTo(n: number | null, step: number) {
-  return n == null ? null : Math.round(n / step) / Math.round(1 / step);
+    if (!res?.ok) return null;
+    const pop = edgeOf(res.headers.get("cf-ray")); // only answers that count in n, so edge adds up to n
+    edge[pop] = (edge[pop] ?? 0) + 1;
+    return performance.now() - started;
+  });
+  const xs = runs.filter((x): x is number => x !== null);
+  return { ...spread(xs), n: xs.length, failed: runs.length - xs.length, concurrency, edge };
 }
 
 /** Appends one request outcome to reports/load/requests.jsonl (read by the availability tests). */

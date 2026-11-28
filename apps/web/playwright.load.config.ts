@@ -5,6 +5,7 @@ import { defineConfig, devices } from "@playwright/test";
 // One worker, files in name order: 1-performance makes the load, 2-operations reads what it recorded.
 export default defineConfig({
   testDir: "./tests/load",
+  testMatch: "*.spec.ts", // support/*.test.ts are vitest unit tests of the helpers (vitest.config.mts), not load tests
   workers: 1,
   fullyParallel: false,
   retries: 0, // a budget is measured once per run: a retry would hide a slow sample

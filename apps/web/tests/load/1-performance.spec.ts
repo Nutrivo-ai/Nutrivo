@@ -9,7 +9,7 @@ import { expect, test } from "@playwright/test";
 import { PUBLIC_ROUTES, SEGMENTS, segmentHref } from "../../src/lib/public/links";
 import { FUNCTION_REGION } from "../../src/lib/public/region";
 import { haveStack, signIn } from "../e2e/support/people";
-import { judgeP95, networkFloor, OUT, outcome, p95By, pool, profile, timed, withhold } from "./support/budgets";
+import { judgeP95, networkFloor, OUT, outcome, p95By, pool, profile, spread, timed, withhold } from "./support/budgets";
 import { finished, issuedReport, loadWorkspace, product, registerArtwork, type LoadWorkspace } from "./support/seed";
 
 const EXTRACT_TIMEOUT_MS = 10 * 60_000;
@@ -50,9 +50,15 @@ test.describe("performance budgets", () => {
       return { ...r, label: name };
     });
     const ok = runs.filter((r) => r.ok);
-    const network = await networkFloor(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+    const base = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const network = await networkFloor(base, anon);
+    // The same floor with as many requests in flight as the RPCs had: what distance alone costs at this concurrency,
+    // so the part of the p95 that is our own work is the p95 less this, not less the sequential floor (issue 348).
+    const underLoad = await networkFloor(base, anon, Math.min(profile.rpc_calls, 10 * profile.concurrency), profile.concurrency);
     judgeP95("performance.rpc_p95_ms", "ms", ok.map((r) => r.ms), {
-      calls: calls.map(([n]) => n), failed: errors, concurrency: profile.concurrency, p95_by_call: p95By(ok), network_floor: network,
+      calls: calls.map(([n]) => n), failed: errors, concurrency: profile.concurrency, p50_ms: spread(ok.map((r) => r.ms)).p50_ms,
+      p95_by_call: p95By(ok), network_floor: network, network_floor_under_load: underLoad,
     });
     expect(errors, "every RPC answered").toEqual({});
   });
@@ -64,17 +70,41 @@ test.describe("performance budgets", () => {
     const url = `/w/${load.ws}/board`;
     // One warm-up load, so a cold server's first compile of the route is not counted.
     await context.request.get(url);
+    // Where Vercel answered: x-vercel-id is "<edge>::<function region>::<id>" ("none" locally), so a run shows whether the
+    // board rendered in fra1, next to the database (issue 348).
+    const vercel: Record<string, number> = {};
     const runs = await pool(profile.board_loads, Math.min(profile.concurrency, 4), () =>
       timed("app", async () => {
         const res = await context.request.get(url);
         const html = await res.text();
+        const where = (res.headers()["x-vercel-id"] ?? "").split("::").slice(0, -1).join("::") || "none";
+        vercel[where] = (vercel[where] ?? 0) + 1;
         return res.status() === 200 && html.includes('data-region="grid"') && html.includes("Load recipe 001");
       }),
     );
+    // The web's own floor from this client: /api/health is rendered per request in the board's region and calls no
+    // service. x-vercel-cache shows it was not answered from the CDN ("none" locally).
+    const floor: number[] = [];
+    const cache: Record<string, number> = {};
+    let floorFailed = 0;
+    for (let i = 0; i < 20; i++) {
+      const started = performance.now();
+      const res = await context.request.get("/api/health").catch(() => null);
+      if (!res?.ok()) {
+        floorFailed++;
+        continue;
+      }
+      floor.push(performance.now() - started);
+      const hit = res.headers()["x-vercel-cache"] ?? "none";
+      cache[hit] = (cache[hit] ?? 0) + 1;
+    }
     await context.close();
     const ok = runs.filter((r) => r.ok).map((r) => r.ms);
     const scaled = profile.recipes === 300 ? undefined : `profile ${profile.name} seeds ${profile.recipes} recipes, not 300: reported, not comparable`;
-    judgeP95("performance.board_300_recipes_p95_ms", "ms", ok, { recipes: profile.recipes, failed: runs.length - ok.length }, scaled, !scaled);
+    judgeP95("performance.board_300_recipes_p95_ms", "ms", ok, {
+      recipes: profile.recipes, failed: runs.length - ok.length, p50_ms: spread(ok).p50_ms, vercel_regions: vercel,
+      web_floor: { ...spread(floor), n: floor.length, failed: floorFailed, concurrency: 1, cache },
+    }, scaled, !scaled);
     expect(runs.length - ok.length, "every board load rendered the grid").toBe(0);
   });
 
@@ -164,8 +194,12 @@ test.describe("performance budgets", () => {
     for (const r of runs) if (r.ok !== null) outcome("verify", r.ok);
     const ok = runs.filter((r) => r.ok).map((r) => r.ms);
     const network = await networkFloor(base, anon);
+    // A 429 takes the same path as an answer (the gateway, x-region, the runtime and the limiter) and stops before the
+    // database call, so its latency is the call's cost without verify_reference (issue 348).
+    const limitedMs = runs.filter((r) => r.ok === null).map((r) => r.ms);
     judgeP95("performance.verify_endpoint_p95_ms", "ms", ok, {
-      failed: runs.filter((r) => r.ok === false).length, rate_limited: limited, edge_regions: regions, network_floor: network,
+      failed: runs.filter((r) => r.ok === false).length, rate_limited: limited, p50_ms: spread(ok).p50_ms,
+      rate_limited_latency: { ...spread(limitedMs), n: limitedMs.length }, edge_regions: regions, network_floor: network,
     });
     expect(runs.filter((r) => r.ok === false).length, "every verification answered current").toBe(0);
   });

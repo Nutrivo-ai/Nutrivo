@@ -49,12 +49,12 @@ fails when a budget has none.
 
 | Budget | How it is measured | Where |
 |---|---|---|
-| `performance.rpc_p95_ms` | p95 of five RPCs (`rollup_state`, `live_billable_counts`, `billing_context`, `set_intended_claims`, `set_formula_lines`) under a member's session, `concurrency` in flight. The record's detail adds each RPC's p95 (`p95_by_call`) and the `network_floor` | tests/load/1-performance |
-| `performance.board_300_recipes_p95_ms` | p95 of `/w/<ws>/board`, server-rendered, for a workspace of `recipes` products in `markets_per_recipe` EU markets: the board's first page, 50 rows (since issue 311 the board pages its rows), with the stats and filters over every product. A pass does not mean 300 rows render in budget | tests/load/1-performance |
+| `performance.rpc_p95_ms` | p95 of five RPCs (`rollup_state`, `live_billable_counts`, `billing_context`, `set_intended_claims`, `set_formula_lines`) under a member's session, `concurrency` in flight. The record's detail adds the p50, each RPC's p95 (`p95_by_call`), the `network_floor` and the `network_floor_under_load` (the same floor with `concurrency` requests in flight) | tests/load/1-performance |
+| `performance.board_300_recipes_p95_ms` | p95 of `/w/<ws>/board`, server-rendered, for a workspace of `recipes` products in `markets_per_recipe` EU markets: the board's first page, 50 rows (since issue 311 the board pages its rows), with the stats and filters over every product. A pass does not mean 300 rows render in budget. The detail adds the p50, `vercel_regions` (from `x-vercel-id`: the edge and the region that rendered) and `web_floor` (GETs of `/api/health`, rendered per request and calling no service; sequential; it records `failed`, and its `cache` counts `x-vercel-cache`, which should never be HIT) | tests/load/1-performance |
 | `performance.search_300_recipes_p95_ms` | Withheld `not_built`: search (F02, BE-41) is after launch | tests/load/1-performance |
 | `performance.extraction_10_pages_p95_s` | A ten-page artwork (the synthetic labels joined) uploaded and registered; the extract job's created_at to its terminal update | tests/load/1-performance |
 | `performance.check_completion_p95_s` | `request_check` on that artwork; the check job's created_at to its terminal update | tests/load/1-performance |
-| `performance.verify_endpoint_p95_ms` | p95 of the `verify` Edge Function for an issued reference, paced under its per-instance limit; 429s counted apart. Each call sends `x-region: eu-central-1`, as the app does (src/lib/public/region.ts), so the function runs next to the database wherever the load client is. The detail adds `edge_regions` (the `x-sb-edge-region` each answer came from) and the `network_floor` | tests/load/1-performance |
+| `performance.verify_endpoint_p95_ms` | p95 of the `verify` Edge Function for an issued reference, paced under its per-instance limit; 429s counted apart. Each call sends `x-region: eu-central-1`, as the app does (src/lib/public/region.ts), so the function runs next to the database wherever the load client is. The detail adds the p50, `edge_regions` (the `x-sb-edge-region` each answer came from), the `network_floor` and `rate_limited_latency`: a 429 takes the same path and stops before the database call, so it is the call's cost without `verify_reference` | tests/load/1-performance |
 | `performance.public_pages_lcp_s` | p95 of Largest Contentful Paint over the public pages and a verification page, each in a fresh browser context (1366 × 768, no throttling) | tests/load/1-performance |
 | `availability.*_monthly_percent` | Stand-in: the load run's own success ratio per service. The monthly figure needs 30 days of the synthetic monitor (#83 Q5) | tests/load/2-operations |
 | `cost.model_cost_per_check_eur_p95` | Sum of `app.model_calls.cost_eur` per check job of the run; withheld while `cost_eur` is unpriced (#17) | tests/load/2-operations |
@@ -63,9 +63,12 @@ fails when a budget has none.
 
 **Reading a latency p95.** Each sample is measured at the load client, so it is the network floor plus the endpoint's
 own time. `network_floor` is the p50/p95 of sequential GETs of Auth's health endpoint (no table) from the same client
-in the same run. Hosted Edge Functions run in the region nearest the caller, not the database's (Supabase, "Regional
-invocations"), so a client far from eu-central-1 also measures the function's hop back to the database; `edge_regions`
-shows where they ran. Neither changes a status: a budget is judged on the samples alone.
+in the same run; its `edge` counts the edge location that answered (cf-ray's suffix), which shows where the client
+sat, and `failed` the GETs that did not answer. `network_floor_under_load` is taken right after the RPC samples with
+the same number in flight, not at the same moment. Hosted Edge Functions run in the region nearest the caller, not
+the database's (Supabase, "Regional invocations"), so a client far from eu-central-1 also measures the function's hop
+back to the database; `edge_regions` shows where they ran. Neither changes a status: a budget is judged on the samples
+alone.
 
 Profiles live in config/load/profiles.yaml. `local` is full size against `supabase start`, the worker and the web's
 production build (scripts/load/run.sh starts them, as scripts/ci/e2e.sh does). `ci` is reduced, in ci.yml's `load`
