@@ -55,8 +55,10 @@ run it through the `doctor` workflow (§5).
 - **API** (now Integrations → Data API → Settings): exposed schemas `app`, `ref` and `public` only;
   "Automatically expose new tables" **off**; no `pgmq_public` (D-26), and no `graphql_public`, which a new project
   exposes by default (the app uses REST only). Set this **before the first release**: the release's doctor reads `ref`
-  through the API and fails without it, so the release rolls back (v0.1.0, 28 Nov 2026, #389). The doctor's
-  `supabase-grants` check proves it.
+  through the API and fails without it, so the release rolls back (v0.1.0, 28 Nov 2026, #389). What the doctor proves:
+  its `supabase` check that `ref` answers through the API (406 when it is not exposed), and its `supabase-grants` check
+  that `anon` and `authenticated` have no table writes in `app` or `ref` and that `pgmq_public` does not exist. No check
+  reads the exposed-schema list itself, so that `graphql_public` stays off is this list's to keep.
 - **Auth → Hooks:** the Before User Created hook is a dashboard setting, not a migration: the release creates the
   function `private.before_user_created_hook`, but Supabase calls it only once the hook is set (Hooks → Before User
   Created → Postgres → schema `private`, that function). Set it right after the first release, before any sign-up.
