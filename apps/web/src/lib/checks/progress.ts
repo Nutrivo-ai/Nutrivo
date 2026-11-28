@@ -11,5 +11,5 @@ type Db = SupabaseClient<Database>;
 // the fallbacks in lib/jobs/watch.ts (T-305).
 export function useCheckJob(db: Db, jobId: string | null, opts: { requestId?: string; generation?: number } = {}) {
   const state = useJob(db, jobId ? { id: jobId } : null, { area: "check", ...opts });
-  return { view: describeCheckJob(state.row), error: state.error, stalled: state.stalled };
+  return { view: describeCheckJob(state.row), row: state.row, error: state.error, stalled: state.stalled };
 }

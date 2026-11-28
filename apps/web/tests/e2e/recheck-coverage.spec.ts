@@ -147,12 +147,18 @@ async function allowanceOf(ws: string) {
 const short = (sha: string) => `${sha.slice(0, 4)}…${sha.slice(-4)}`;
 const bar = (page: Page) => page.locator("[data-run-check]");
 
-/** Runs the check from the bar and waits for the job to finish on screen. */
+/** Runs the check from the bar, follows it on Check in progress (S-NV2-024, T-1111) and waits for it to finish. */
 async function runFromBar(page: Page) {
   await expect(bar(page).getByRole("button", { name: "Run the check" })).toBeEnabled();
   await bar(page).getByRole("button", { name: "Run the check" }).click();
-  await expect(bar(page).locator("[data-check-done]")).toBeVisible({ timeout: STEP_MS });
-  await expect(bar(page).getByRole("link", { name: "Open the report" })).toBeVisible();
+  await expect(page).toHaveURL(/\/checks\/[0-9a-f-]{36}$/);
+  await expect(page.locator("[data-check-terminal]")).toBeVisible({ timeout: STEP_MS });
+  await expect(page.getByRole("link", { name: "Open the report" })).toBeVisible();
+}
+
+/** Back to Upload & scope from Check in progress. */
+async function backToScope(page: Page, ws: string, product: string) {
+  await page.goto(`/w/${ws}/products/${product}/check`);
 }
 
 // Design baselines at 1600 px, where this task has the data (#55). S-NV2-002: the bar's button. The button's left edge
@@ -199,6 +205,7 @@ test.describe("re-check a revision, and coverage per product", () => {
 
     // The first check, of version 1.
     await runFromBar(page);
+    await backToScope(page, ws, productId);
     first = await checksOf(productId);
     expect(first.checks).toHaveLength(MARKETS.length);
     const [v1] = await versionsOf(productId);
@@ -217,7 +224,7 @@ test.describe("re-check a revision, and coverage per product", () => {
     await page.reload();
     await expect(bar(page).getByRole("heading", { level: 2 })).toHaveText("1 product × 2 jurisdiction nodes × 3 languages, answered in one pass");
     await runFromBar(page);
-    await bar(page).getByRole("link", { name: "Open the report" }).click();
+    await page.getByRole("link", { name: "Open the report" }).click();
     await expect(page).toHaveURL(new RegExp(`/w/${ws}/products/${productId}/report$`));
 
     // The report reads the revision's check: one set per market × printed panel, pinned to the new artwork.
@@ -390,7 +397,7 @@ test.describe("re-check a revision, and coverage per product", () => {
     await runFromBar(page);
     expect(errors).toEqual([]);
 
-    // The job names only EU-DE, and the editor reads it under RLS (the T-409 jobs policy): that is how the bar finished.
+    // The job names only EU-DE, and the editor reads it under RLS (the T-409 jobs policy): that is how Check in progress finished.
     const jobs = await service.from("jobs").select("id, node_ids, payload").eq("kind", "check").eq("product_id", product);
     if (jobs.error) throw jobs.error;
     expect(jobs.data.map((j) => j.node_ids)).toEqual([["EU-DE"]]);
