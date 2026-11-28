@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Board · mobile states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Instrument+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ffffff}
+a{color:#2f5eff}a:hover{color:#1f49d9}
+:focus-visible{outline:2px solid #2f5eff;outline-offset:2px}
+</style>
+</helmet>
+<div style="width:3480px;height:884px;box-sizing:border-box;padding:0 40px;display:flex;gap:40px;font-family:'Instrument Sans',system-ui,sans-serif;color:#101216;background:#ffffff">
+<sc-for list="{{phones}}" as="p" hint-placeholder-count="8">
+<div style="width:390px;display:flex;flex-direction:column;gap:10px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">{{p.label}}</span>
+<div style="width:390px;height:844px;border:1px solid #dde0e6;border-radius:16px;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column">
+<div style="padding:18px 16px 12px;display:flex;flex-direction:column;gap:4px;border-bottom:1px solid #dde0e6">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">Board</span>
+<h1 style="margin:0;font-size:22px;font-weight:600">Products and markets</h1>
+<sc-if value="{{p.tools}}" hint-placeholder-val="{{true}}">
+<div role="group" aria-label="State filter" style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+<sc-for list="{{p.chips}}" as="f" hint-placeholder-count="3"><button aria-pressed="{{f.pressed}}" style="font:inherit;font-size:13px;font-weight:500;padding:6px 12px;min-height:36px;border-radius:999px;border:1px solid {{f.border}};background:{{f.bg}};color:#101216">{{f.label}}</button></sc-for>
+</div>
+<sc-if value="{{p.filtered}}" hint-placeholder-val="{{false}}"><span style="font-size:13px;color:#5f6570;margin-top:4px">Showing 3 of 6 products · <a href="#">Clear</a></span></sc-if>
+</sc-if>
+</div>
+
+<div style="padding:12px 16px;display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{p.cards}}" as="c" hint-placeholder-count="2">
+<section style="border:1px solid #dde0e6;border-radius:10px;overflow:hidden">
+<div style="padding:12px 14px;display:flex;flex-direction:column;gap:2px;background:#f4f5f7">
+<h2 style="margin:0;font-size:15px;font-weight:600">{{c.name}}</h2>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570">{{c.kind}} · {{c.summary}}</span>
+</div>
+<ul style="list-style:none;margin:0;padding:0">
+<sc-for list="{{c.rows}}" as="r" hint-placeholder-count="5">
+<li style="border-top:1px solid #dde0e6;background:{{r.bg}}">
+<a href="#" aria-label="{{r.aria}}" style="display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 14px;box-sizing:border-box;text-decoration:none;color:#101216">
+<span style="flex:0 0 74px;display:flex;flex-direction:column"><span style="font-size:13px;font-weight:600;color:{{r.nameColor}}">{{r.market}}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570">{{r.code}}</span></span>
+<span style="flex:1;display:flex;flex-direction:column;gap:3px;align-items:flex-start">
+<sc-if value="{{r.isClear}}" hint-placeholder-val="{{true}}"><span style="display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border-radius:6px;background:#e6f2ec;color:#0f7a4d;font-size:12px;font-weight:600"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8.2l2 2 4-4.2"></path></svg>Label clear</span></sc-if>
+<sc-if value="{{r.isAction}}" hint-placeholder-val="{{false}}"><span style="display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border-radius:6px;background:#fdf0dd;color:#9e5600;font-size:12px;font-weight:600"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 1.8l6.6 12H1.4z"></path><path d="M8 6.5v3.2M8 11.6v.4"></path></svg>Action needed · {{r.open}}</span></sc-if>
+<sc-if value="{{r.isNone}}" hint-placeholder-val="{{false}}"><span style="display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border-radius:6px;background:#f1f2f4;color:#5f6570;font-size:12px;font-weight:600;text-decoration:underline"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8h6"></path></svg>Not assessed</span></sc-if>
+<sc-if value="{{r.isNever}}" hint-placeholder-val="{{false}}"><span style="font-size:12px;color:#5f6570">Not checked yet</span></sc-if>
+<sc-if value="{{r.locked}}" hint-placeholder-val="{{false}}"><span style="font-size:12px;color:#5f6570">Not in your plan · <span style="color:#2f5eff;text-decoration:underline">Upgrade</span></span></sc-if>
+<sc-if value="{{r.blocked}}" hint-placeholder-val="{{false}}"><span style="display:inline-flex;align-items:center;gap:5px;padding:1px 7px;border-radius:6px;background:#fbe8e7;color:#b3251f;font-size:11px;font-weight:600"><svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M3.5 12.5l9-9"></path></svg>Blocked · registration expired</span></sc-if>
+<sc-if value="{{r.showReg}}" hint-placeholder-val="{{true}}"><span style="font-size:11px;color:{{r.regColor}}"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5f6570">REG </span>{{r.regGlyph}} {{r.reg}}</span></sc-if>
+</span>
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#5f6570" stroke-width="1.5" aria-hidden="true"><path d="M6 3.5l4.5 4.5L6 12.5"></path></svg>
+</a>
+</li>
+</sc-for>
+</ul>
+</section>
+</sc-for>
+
+<sc-if value="{{p.loading}}" hint-placeholder-val="{{false}}">
+<div aria-busy="true" style="display:flex;flex-direction:column;gap:12px"><sc-for list="{{skel}}" as="s" hint-placeholder-count="3"><div style="border:1px solid #dde0e6;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px"><div style="height:14px;width:70%;border-radius:4px;background:#f4f5f7"></div><div style="height:10px;width:45%;border-radius:4px;background:#f4f5f7"></div><div style="height:28px;border-radius:6px;background:#f4f5f7"></div><div style="height:28px;border-radius:6px;background:#f4f5f7"></div><div style="height:28px;border-radius:6px;background:#f4f5f7"></div></div></sc-for><span role="status" style="font-size:14px;color:#5f6570">Loading the board…</span></div>
+</sc-if>
+<sc-if value="{{p.error}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="border:1px solid #dde0e6;border-radius:10px;padding:20px;background:#f4f5f7;display:flex;flex-direction:column;gap:10px"><h2 style="margin:0;font-size:18px;font-weight:600">The board didn’t load</h2><p style="margin:0;font-size:15px;line-height:1.5;color:#5f6570">Nothing has changed in your results.</p><button style="font:inherit;font-size:15px;font-weight:600;min-height:44px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff">Try again</button></div>
+</sc-if>
+<sc-if value="{{p.noperm}}" hint-placeholder-val="{{false}}">
+<div style="border:1px solid #dde0e6;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:10px"><h2 style="margin:0;font-size:18px;font-weight:600;line-height:1.3">You don’t have access to this workspace’s board</h2><p style="margin:0;font-size:15px;line-height:1.5;color:#5f6570">A workspace admin can give you access.</p></div>
+</sc-if>
+<sc-if value="{{p.empty}}" hint-placeholder-val="{{false}}">
+<div style="border:1px solid #dde0e6;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:12px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">No products yet</span><h2 style="margin:0;font-size:20px;font-weight:600;line-height:1.25">Add a product to see it against every market</h2><button style="font:inherit;font-size:15px;font-weight:600;min-height:44px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff">Add a product</button><button style="font:inherit;font-size:15px;font-weight:500;min-height:44px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;color:#101216">Upload a label</button></div>
+</sc-if>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":3480,"height":884}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const P = [
+      ['Salmon & Rice Adult 12 kg', 'Dog · complete feed'], ['Lamb & Potato Senior 6 kg', 'Dog · complete feed'],
+      ['Indoor Cat Chicken 2 kg', 'Cat · complete feed'], ['Kitten Chicken & Turkey 400 g', 'Cat · complete feed'],
+      ['Duck Training Treats 150 g', 'Dog · treat'], ['Joint Support Mixer 400 g', 'Dog · complementary feed'],
+      ['Senior Cat Salmon 1.5 kg', 'Cat · complete feed', 'never']
+    ];
+    const M = [['Sweden', 'SE'], ['Denmark', 'DK'], ['Finland', 'FI'], ['Germany', 'DE'], ['Norway', 'NO', 'none']];
+    const action = { '0DE': 2, '1DE': 1, '2SE': 1 };
+    const regBase = { SE: 'Registered', DK: 'Not required', FI: 'Registered', DE: 'Registered', NO: 'Unknown' };
+    const regOver = { '3SE': 'Unknown', '5SE': 'Unknown', '2FI': 'Unknown', '5DE': 'Unknown', '4FI': 'Expired' };
+    const glyph = { Registered: '✓', 'Not registered': '○', Expired: '◷', 'Not required': '–', Unknown: '?' };
+    const card = (pi, markets) => {
+      const p = P[pi];
+      const rows = markets.map((m) => {
+        const locked = m[2] === 'locked', none = m[2] === 'none', never = p[2] === 'never';
+        const open = action[pi + m[1]];
+        const reg = regOver[pi + m[1]] || regBase[m[1]] || 'Unknown';
+        const blocked = reg === 'Expired';
+        const kind = locked ? 'locked' : never ? 'never' : none ? 'none' : open ? 'action' : 'clear';
+        return {
+          market: m[0], code: m[1], isClear: kind === 'clear', isAction: kind === 'action', isNone: kind === 'none', isNever: kind === 'never', locked,
+          open: open + ' open', blocked, showReg: !locked && !blocked, reg, regGlyph: glyph[reg], regColor: (reg === 'Unknown' || reg === 'Not required') ? '#5f6570' : '#101216',
+          bg: locked ? '#f4f5f7' : '#ffffff', nameColor: locked ? '#5f6570' : '#101216',
+          aria: m[0] + ': ' + ({ locked: 'Not in your plan', never: 'Not checked yet', none: 'Not assessed', action: 'Action needed, ' + open + ' open', clear: 'Label clear' })[kind] + (locked ? '' : '. Registration: ' + (blocked ? 'Blocked, expired' : reg))
+        };
+      });
+      const nAct = rows.filter((r) => r.isAction).length, nBlk = rows.filter((r) => r.blocked).length;
+      const parts = [];
+      if (nAct) parts.push(nAct + (nAct === 1 ? ' market' : ' markets') + ' with open items');
+      if (nBlk) parts.push(nBlk + ' blocked');
+      return { name: p[0], kind: p[1], summary: p[2] === 'never' ? 'Not checked yet' : parts.length ? parts.join(' · ') : 'No open items', rows };
+    };
+    const chips = (on) => [['action', 'Action needed'], ['none', 'Not assessed'], ['blocked', 'Blocked']].map((d) => ({ label: d[1], pressed: on === d[0] ? 'true' : 'false', bg: on === d[0] ? '#eef2ff' : '#ffffff', border: on === d[0] ? '#2f5eff' : '#dde0e6' }));
+    const base = (label, extra) => Object.assign({ label, tools: true, chips: chips(null), cards: [], filtered: false }, extra);
+    return {
+      skel: [1, 2, 3],
+      phones: [
+        base('Loaded', { cards: [card(0, M), card(1, M), card(4, M)] }),
+        base('Product not checked yet', { cards: [card(6, M), card(0, M)] }),
+        base('Market outside the plan', { cards: [card(0, M.concat([['Netherlands', 'NL', 'locked']])), card(1, M)] }),
+        base('Filtered: Action needed', { chips: chips('action'), filtered: true, cards: [card(0, M), card(1, M), card(2, M)] }),
+        base('Empty', { tools: false, empty: true }),
+        base('Loading', { tools: false, loading: true }),
+        base('Error', { tools: false, error: true }),
+        base('No permission', { tools: false, noperm: true })
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

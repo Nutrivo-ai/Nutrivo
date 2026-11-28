@@ -39,7 +39,7 @@ export const WORKSPACE_ROUTES: WorkspaceRoute[] = [
   { route: "/w/[workspace]/products/[product]/report", screens: ["S-NV2-003", "S-FIX-001", "S-FIX-002", "S-FIX-003", "S-FIX-004", "S-FIX-005", "S-FIX-006", "S-FIX-007", "S-FIX-008", "S-FIX-009", "S-FIX-010", "S-FIX-011", "S-FIX-012", "S-FIX-013"], title: "Label report", crumb: "Check your label", role: "viewer" },
   { route: "/w/[workspace]/briefs/[product]", screens: ["S-NV2-004"], title: "Brief & formula", crumb: "New product", role: "editor" },
   { route: "/w/[workspace]/briefs/[product]/envelope", screens: ["S-NV2-005"], title: "Design envelope", crumb: "New product", role: "viewer" },
-  { route: "/w/[workspace]/board", screens: ["S-NV2-006", "S-MIS-003", "S-MOB-001"], title: "Board", crumb: "Portfolio", role: "viewer" },
+  { route: "/w/[workspace]/board", screens: ["S-NV2-006", "S-MIS-003", "S-MOB-001", "S-MTX-001", "S-MTX-002", "S-MTX-003", "S-MTX-004", "S-MTX-005", "S-MTX-006", "S-MTX-007", "S-MTX-008", "S-MTX-009", "S-MTX-010", "S-MTX-011"], title: "Board", crumb: "Portfolio", role: "viewer" },
   { route: "/w/[workspace]/products/[product]/nodes/[node]", screens: ["S-NV2-007", "S-MOB-003"], title: "Product × node", crumb: "Portfolio", role: "viewer" },
   { route: "/w/[workspace]/obligations", screens: ["S-NV2-008"], title: "Obligations", crumb: "Portfolio", role: "viewer" },
   { route: "/w/[workspace]/documents", screens: ["S-NV2-010"], title: "Documents", crumb: "Portfolio", role: "viewer" },

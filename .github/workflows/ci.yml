@@ -60,7 +60,7 @@ jobs:
         with: { version: 2.120.0 }
       - run: bash scripts/ci/supabase-start.sh start -x studio,logflare,vector,supavisor,imgproxy,edge-runtime,realtime
       - run: sudo apt-get update && sudo apt-get install -y ghostscript poppler-utils fonts-dejavu-core
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
       - run: cd worker && uv sync
       - run: cd worker && uv run python ../fixtures/synth/generate.py --out ../fixtures/synth/out
       - run: cd worker && uv run ruff check . && mkdir -p ../reports && uv run pytest -q -rs --junitxml=../reports/worker.xml
@@ -105,7 +105,7 @@ jobs:
         uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with: { version: 2.120.0 }
       - if: steps.app.outputs.ready == 'true'
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
       - if: steps.app.outputs.ready == 'true'
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with: { version: 10 }
@@ -150,7 +150,7 @@ jobs:
         uses: supabase/setup-cli@689adcfb80d947100a1eab127289b97d1fb07b13 # v3.2.0
         with: { version: 2.120.0 }
       - if: steps.app.outputs.ready == 'true'
-        uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
       - if: steps.app.outputs.ready == 'true'
         uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
         with: { version: 10 }
@@ -186,7 +186,7 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with: { pattern: reports-*, path: report-attempts }
       - run: python3 scripts/conformance/latest_attempt.py report-attempts reports
-      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
       # A PR or merge group is held to the base's baseline as well as its own, so it cannot shrink it. On main, none.
       - env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
