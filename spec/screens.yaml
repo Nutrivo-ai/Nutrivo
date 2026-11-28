@@ -51,7 +51,7 @@ screens:
     data: [app.product_nodes, app.rollup_state, app.alerts]
     states: [loaded, empty, loading, error, no-permission]
     baseline: apps/web/tests/visual/baselines/S-NV2-001.png
-    notes: ["Start screen ('Where do you want to begin?'); no workflow names it."]
+    notes: ["Start screen ('Where do you want to begin?'); no workflow names it.", "Its page content is superseded by Today (S-TDY-001, D-33, T-1108); it stays the reference for the rail and header (tests/e2e/shell.spec.ts), which keep the built menu (founder, 27 Nov 2026)."]
   - id: S-NV2-002
     title: Upload & scope
     kind: app
@@ -358,7 +358,93 @@ screens:
     data: [app.jobs, app.checks, app.check_findings]
     states: [loaded, loading, error, no-permission]
     baseline: apps/web/tests/visual/baselines/S-NV2-024.png
-    notes: ["Progress arrives over Realtime on app.jobs (docs/04)."]
+    notes: ["Progress arrives over Realtime on app.jobs (docs/04).", "Superseded by Check in progress (S-CHK-001 to 006, D-33, T-1115) once T-1115 is built."]
+  # ── Check in progress (D-33, T-1115): claude.ai Design artifact ToKmnp78mwU6P1UFgpVHM4, 27 Nov 2026 ─────────────
+  - id: S-CHK-001
+    title: Check in progress, running
+    kind: app
+    design: "product/Nutrivo Check in Progress.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/checks/[check]
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D01, D04]
+    data: [app.jobs, app.artwork_panels, app.checks, app.check_findings]
+    states: [loaded, loading, error, no-permission]
+    baseline: apps/web/tests/visual/baselines/S-CHK-001.png
+    notes: ["Running: steps done, active (pulses; off under prefers-reduced-motion) or waiting; status announced through role=status.", "Build notes (27 Nov 2026): keep the built rail; the design's own menu is not built.", "The engine checks every printed panel in every market (handlers/check.py: market x panel), so the job's total is markets x panels (4 x 5 = 20 for the demo), not one panel per market. Progress is drawn per market (one segment each, done, active or waiting) from the job's live `progress.checks` count against that total; no percentage. Naming the market-and-panel pair being checked needs a per-check event (backend request); until then counts only.", "The languages found come from app.artwork_panels.language of the extraction, which the screen can already read: not a backend request.", "Slow means running past spec/nfr.yaml check_completion_p95_s (120 s). The job runs in the worker, so it keeps running when the person leaves the page. A failed run saves nothing: checks and findings are written in one transaction at the end. Retry check requests a new check (app.request_check).", "Times come from the job's own timestamps. Only markets the product targets are listed; the design's Norway is an illustration. The failure reason needs a readable outcome code on the failed job (backend request); until then the error shows the job reference only."]
+  - id: S-CHK-002
+    title: Check in progress, queued
+    kind: moment
+    design: "product/Nutrivo Check in Progress - Queued.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/checks/[check]
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D01, D04]
+    data: [app.jobs, app.artwork_panels, app.checks, app.check_findings]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-CHK-002.png
+    notes: ["Build notes (27 Nov 2026): keep the built rail; the design's own menu is not built.", "The engine checks every printed panel in every market (handlers/check.py: market x panel), so the job's total is markets x panels (4 x 5 = 20 for the demo), not one panel per market. Progress is drawn per market (one segment each, done, active or waiting) from the job's live `progress.checks` count against that total; no percentage. Naming the market-and-panel pair being checked needs a per-check event (backend request); until then counts only.", "The languages found come from app.artwork_panels.language of the extraction, which the screen can already read: not a backend request.", "Slow means running past spec/nfr.yaml check_completion_p95_s (120 s). The job runs in the worker, so it keeps running when the person leaves the page. A failed run saves nothing: checks and findings are written in one transaction at the end. Retry check requests a new check (app.request_check).", "Times come from the job's own timestamps. Only markets the product targets are listed; the design's Norway is an illustration. The failure reason needs a readable outcome code on the failed job (backend request); until then the error shows the job reference only."]
+  - id: S-CHK-003
+    title: Check in progress, slow
+    kind: moment
+    design: "product/Nutrivo Check in Progress - Slow.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/checks/[check]
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D01, D04]
+    data: [app.jobs, app.artwork_panels, app.checks, app.check_findings]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-CHK-003.png
+    notes: ["Build notes (27 Nov 2026): keep the built rail; the design's own menu is not built.", "The engine checks every printed panel in every market (handlers/check.py: market x panel), so the job's total is markets x panels (4 x 5 = 20 for the demo), not one panel per market. Progress is drawn per market (one segment each, done, active or waiting) from the job's live `progress.checks` count against that total; no percentage. Naming the market-and-panel pair being checked needs a per-check event (backend request); until then counts only.", "The languages found come from app.artwork_panels.language of the extraction, which the screen can already read: not a backend request.", "Slow means running past spec/nfr.yaml check_completion_p95_s (120 s). The job runs in the worker, so it keeps running when the person leaves the page. A failed run saves nothing: checks and findings are written in one transaction at the end. Retry check requests a new check (app.request_check).", "Times come from the job's own timestamps. Only markets the product targets are listed; the design's Norway is an illustration. The failure reason needs a readable outcome code on the failed job (backend request); until then the error shows the job reference only."]
+  - id: S-CHK-004
+    title: Check in progress, finished
+    kind: moment
+    design: "product/Nutrivo Check in Progress - Finished.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/checks/[check]
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D01, D04]
+    data: [app.jobs, app.artwork_panels, app.checks, app.check_findings]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-CHK-004.png
+    notes: ["Finished: Checked in n seconds, then on to Fix mode by itself (straight there under reduced motion); the result chips are per market from the check's own results.", "Build notes (27 Nov 2026): keep the built rail; the design's own menu is not built.", "The engine checks every printed panel in every market (handlers/check.py: market x panel), so the job's total is markets x panels (4 x 5 = 20 for the demo), not one panel per market. Progress is drawn per market (one segment each, done, active or waiting) from the job's live `progress.checks` count against that total; no percentage. Naming the market-and-panel pair being checked needs a per-check event (backend request); until then counts only.", "The languages found come from app.artwork_panels.language of the extraction, which the screen can already read: not a backend request.", "Slow means running past spec/nfr.yaml check_completion_p95_s (120 s). The job runs in the worker, so it keeps running when the person leaves the page. A failed run saves nothing: checks and findings are written in one transaction at the end. Retry check requests a new check (app.request_check).", "Times come from the job's own timestamps. Only markets the product targets are listed; the design's Norway is an illustration. The failure reason needs a readable outcome code on the failed job (backend request); until then the error shows the job reference only."]
+  - id: S-CHK-005
+    title: Check in progress, failed
+    kind: moment
+    design: "product/Nutrivo Check in Progress - Failed.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/checks/[check]
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D01, D04]
+    data: [app.jobs, app.artwork_panels, app.checks, app.check_findings]
+    states: [error]
+    baseline: apps/web/tests/visual/baselines/S-CHK-005.png
+    notes: ["Failed: role=alert, Retry check and Back to product.", "Build notes (27 Nov 2026): keep the built rail; the design's own menu is not built.", "The engine checks every printed panel in every market (handlers/check.py: market x panel), so the job's total is markets x panels (4 x 5 = 20 for the demo), not one panel per market. Progress is drawn per market (one segment each, done, active or waiting) from the job's live `progress.checks` count against that total; no percentage. Naming the market-and-panel pair being checked needs a per-check event (backend request); until then counts only.", "The languages found come from app.artwork_panels.language of the extraction, which the screen can already read: not a backend request.", "Slow means running past spec/nfr.yaml check_completion_p95_s (120 s). The job runs in the worker, so it keeps running when the person leaves the page. A failed run saves nothing: checks and findings are written in one transaction at the end. Retry check requests a new check (app.request_check).", "Times come from the job's own timestamps. Only markets the product targets are listed; the design's Norway is an illustration. The failure reason needs a readable outcome code on the failed job (backend request); until then the error shows the job reference only."]
+  - id: S-CHK-006
+    title: Check in progress on a phone, every state
+    kind: moment
+    design: "product/Nutrivo Check in Progress - Mobile.dc.html"
+    state: {}
+    element: {css: 'div[style*="width: 2270px"]', nth: 0}
+    route: /w/[workspace]/products/[product]/checks/[check]
+    role: viewer
+    scope: build
+    viewports: [390]
+    workflows: [D01, D04]
+    data: [app.jobs, app.artwork_panels, app.checks, app.check_findings]
+    states: [loaded, error]
+    baseline: apps/web/tests/visual/baselines/S-CHK-006.png
+    notes: ["Build notes (27 Nov 2026): keep the built rail; the design's own menu is not built.", "The engine checks every printed panel in every market (handlers/check.py: market x panel), so the job's total is markets x panels (4 x 5 = 20 for the demo), not one panel per market. Progress is drawn per market (one segment each, done, active or waiting) from the job's live `progress.checks` count against that total; no percentage. Naming the market-and-panel pair being checked needs a per-check event (backend request); until then counts only.", "The languages found come from app.artwork_panels.language of the extraction, which the screen can already read: not a backend request.", "Slow means running past spec/nfr.yaml check_completion_p95_s (120 s). The job runs in the worker, so it keeps running when the person leaves the page. A failed run saves nothing: checks and findings are written in one transaction at the end. Retry check requests a new check (app.request_check).", "Times come from the job's own timestamps. Only markets the product targets are listed; the design's Norway is an illustration. The failure reason needs a readable outcome code on the failed job (backend request); until then the error shows the job reference only."]
   - id: S-NV2-025
     title: Artwork we cannot read
     kind: app
@@ -1466,3 +1552,104 @@ screens:
     states: [rendered]
     baseline: apps/web/tests/visual/baselines/S-DOC-003.png
     notes: ["Nutrivo 2.0 Exports lists the action plan as XLSX and CSV; this document is the PDF form. Which forms ship is open."]
+  # ── Today (D-33, T-1108): claude.ai Design artifact ToKmnp78mwU6P1UFgpVHM4, 27 Nov 2026 ─────────────────────────
+  - id: S-TDY-001
+    title: Today
+    kind: app
+    design: "product/Nutrivo Today.dc.html"
+    state: {}
+    route: /w/[workspace]
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: []
+    data: [app.product_nodes, app.rollup_state, app.check_findings, app.supplier_documents, app.alerts]
+    states: [loaded, empty, loading, error, no-permission]
+    baseline: apps/web/tests/visual/baselines/S-TDY-001.png
+    notes: ["The workspace's open items ranked: blocked registration, label findings, expiring documents, rule changes; one primary action each (Open registration, Open fix, Request document, Re-check). The briefing slot stays empty and there are no time estimates before release 1.5.", "Build notes (founder, 27 Nov 2026): keep the built rail and rename its Home entry to Today; the design's own menu is not built.", "Market cards count registration per product (for example '5 of 6 registered', '1 expired', 'Unknown for 2'), never one word for a whole market.", "Finding rows show their real provenance (deterministic_rule, model_judgement, authored_definition, not_assessed); document, registration and rule-change rows are not findings and show no provenance tag. Citations, dates and supplier names come from the engine and the data, never from the design's demo strings.", "Only markets the workspace's products target are listed; the design's Norway only illustrates Not assessed."]
+  - id: S-TDY-002
+    title: Today on a phone
+    kind: app
+    design: "product/Nutrivo Today - Mobile.dc.html"
+    state: {}
+    element: {css: 'div[style*="width: 390px"]', nth: 0}
+    route: /w/[workspace]
+    role: viewer
+    scope: build
+    viewports: [390]
+    workflows: []
+    data: [app.product_nodes, app.rollup_state, app.check_findings, app.supplier_documents, app.alerts]
+    states: [loaded, empty, loading, error, no-permission]
+    baseline: apps/web/tests/visual/baselines/S-TDY-002.png
+    notes: ["The list only, one action per row.", "Build notes (founder, 27 Nov 2026): keep the built rail and rename its Home entry to Today; the design's own menu is not built.", "Market cards count registration per product (for example '5 of 6 registered', '1 expired', 'Unknown for 2'), never one word for a whole market.", "Finding rows show their real provenance (deterministic_rule, model_judgement, authored_definition, not_assessed); document, registration and rule-change rows are not findings and show no provenance tag. Citations, dates and supplier names come from the engine and the data, never from the design's demo strings.", "Only markets the workspace's products target are listed; the design's Norway only illustrates Not assessed."]
+  - id: S-TDY-003
+    title: Today, nothing open
+    kind: moment
+    design: "product/Nutrivo Today - Nothing Open.dc.html"
+    state: {}
+    route: /w/[workspace]
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: []
+    data: [app.product_nodes, app.rollup_state, app.check_findings, app.supplier_documents, app.alerts]
+    states: [empty]
+    baseline: apps/web/tests/visual/baselines/S-TDY-003.png
+    notes: ["Counts of products that are label clear per market; Not assessed markets still shown.", "Build notes (founder, 27 Nov 2026): keep the built rail and rename its Home entry to Today; the design's own menu is not built.", "Market cards count registration per product (for example '5 of 6 registered', '1 expired', 'Unknown for 2'), never one word for a whole market.", "Finding rows show their real provenance (deterministic_rule, model_judgement, authored_definition, not_assessed); document, registration and rule-change rows are not findings and show no provenance tag. Citations, dates and supplier names come from the engine and the data, never from the design's demo strings.", "Only markets the workspace's products target are listed; the design's Norway only illustrates Not assessed."]
+  - id: S-TDY-004
+    title: Today, first-time workspace
+    kind: moment
+    design: "product/Nutrivo Today - First Time.dc.html"
+    state: {}
+    route: /w/[workspace]
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: []
+    data: [app.products]
+    states: [empty]
+    baseline: apps/web/tests/visual/baselines/S-TDY-004.png
+    notes: ["Build only 'Upload a label': 'Try the sample label' has no flow until the /try sandbox in release 1.5 (founder, 27 Nov 2026).", "The pack photo placeholder needs a real photo of the sample pack."]
+  - id: S-TDY-005
+    title: Today on the free plan
+    kind: moment
+    design: "product/Nutrivo Today - Free Plan.dc.html"
+    state: {}
+    route: /w/[workspace]
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: []
+    data: [app.product_nodes, app.rollup_state, app.check_findings, app.supplier_documents, app.alerts]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-TDY-005.png
+    notes: ["A Free plan tag and See plans; no allowance numbers until D-34 is decided.", "Build notes (founder, 27 Nov 2026): keep the built rail and rename its Home entry to Today; the design's own menu is not built.", "Market cards count registration per product (for example '5 of 6 registered', '1 expired', 'Unknown for 2'), never one word for a whole market.", "Finding rows show their real provenance (deterministic_rule, model_judgement, authored_definition, not_assessed); document, registration and rule-change rows are not findings and show no provenance tag. Citations, dates and supplier names come from the engine and the data, never from the design's demo strings.", "Only markets the workspace's products target are listed; the design's Norway only illustrates Not assessed."]
+  - id: S-TDY-006
+    title: Today, loading, error and no permission
+    kind: moment
+    design: "product/Nutrivo Today - States.dc.html"
+    state: {}
+    route: /w/[workspace]
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: []
+    data: []
+    states: [loading, error, no-permission]
+    baseline: apps/web/tests/visual/baselines/S-TDY-006.png
+    notes: ["The error shows the request id from the response, never a made-up one.", "No permission: 'Request access' has no flow behind it; build the shell's existing no-permission state without that button (no dead controls)."]
+  - id: S-TDY-007
+    title: Today on a phone, every state
+    kind: moment
+    design: "product/Nutrivo Today - Mobile States.dc.html"
+    state: {}
+    element: {css: 'div[style*="width: 2740px"]', nth: 0}
+    route: /w/[workspace]
+    role: viewer
+    scope: build
+    viewports: [390]
+    workflows: []
+    data: [app.product_nodes, app.rollup_state, app.check_findings, app.supplier_documents, app.alerts]
+    states: [empty, loading, error, no-permission]
+    baseline: apps/web/tests/visual/baselines/S-TDY-007.png
+    notes: ["Six phones side by side: nothing open, first time, free plan, open items, loading and error, no permission.", "As S-TDY-004 and S-TDY-006: no 'Try the sample label' and no 'Request access' in 1.0.", "Build notes (founder, 27 Nov 2026): keep the built rail and rename its Home entry to Today; the design's own menu is not built.", "Market cards count registration per product (for example '5 of 6 registered', '1 expired', 'Unknown for 2'), never one word for a whole market.", "Finding rows show their real provenance (deterministic_rule, model_judgement, authored_definition, not_assessed); document, registration and rule-change rows are not findings and show no provenance tag. Citations, dates and supplier names come from the engine and the data, never from the design's demo strings.", "Only markets the workspace's products target are listed; the design's Norway only illustrates Not assessed."]

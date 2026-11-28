@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Today · nothing open</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Instrument+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ffffff}
+a{color:#2f5eff}a:hover{color:#1f49d9}
+:focus-visible{outline:2px solid #2f5eff;outline-offset:2px}
+</style>
+</helmet>
+<div style="font-family:'Instrument Sans',system-ui,sans-serif;color:#101216;display:flex;flex-wrap:wrap;min-height:100vh;background:#ffffff">
+<nav aria-label="Main" style="flex:1 1 232px;max-width:232px;border-right:1px solid #dde0e6;padding:24px 16px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
+<div style="font-weight:700;font-size:18px;padding:0 8px">Nutrivo</div>
+<div style="display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid #dde0e6;border-radius:8px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.06em">Workspace</span><span style="font-size:14px;font-weight:600">Halden Pet Nutrition</span></div>
+<div style="display:flex;flex-direction:column;gap:2px;font-size:14px">
+<a href="#" aria-current="page" style="text-decoration:none;color:#101216;background:#f4f5f7;font-weight:600;padding:9px 12px;border-radius:6px">Today</a>
+<a href="#" style="text-decoration:none;color:#101216;padding:9px 12px">Products</a>
+<a href="#" style="text-decoration:none;color:#101216;padding:9px 12px">Markets</a>
+<a href="#" style="text-decoration:none;color:#101216;padding:9px 12px">Documents</a>
+<a href="#" style="text-decoration:none;color:#101216;padding:9px 12px">Rules &amp; coverage</a>
+<a href="#" style="text-decoration:none;color:#101216;padding:9px 12px">Settings</a>
+</div>
+</nav>
+<main style="flex:999 1 640px;min-width:0;padding:40px 48px 64px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
+<header style="display:flex;flex-direction:column;gap:6px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">Today · Thu 26 Nov</span>
+<h1 style="margin:0;font-size:32px;font-weight:600;letter-spacing:-0.015em">Halden Pet Nutrition</h1>
+</header>
+<section aria-label="Briefing, coming in a later release" style="border:1px dashed #dde0e6;border-radius:10px;padding:14px 18px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">Briefing · reserved slot</section>
+
+<section aria-labelledby="calm-h" style="border:1px solid #dde0e6;border-radius:12px;padding:40px 40px;display:flex;flex-wrap:wrap;gap:32px;align-items:center;justify-content:space-between">
+<div style="display:flex;flex-direction:column;gap:10px;max-width:640px">
+<h2 id="calm-h" style="margin:0;font-size:24px;font-weight:600">Nothing open</h2>
+<p style="margin:0;font-size:16px;line-height:1.5;color:#101216">No blocked registrations, label findings, expiring documents or rule changes need you today.</p>
+<p style="margin:0;font-size:16px;line-height:1.5;color:#5f6570">6 products are label clear in 4 markets. Norway is not assessed yet.</p>
+</div>
+<div style="display:flex;gap:8px">
+<button style="font:inherit;font-size:14px;font-weight:500;padding:10px 16px;min-height:44px;border:1px solid #dde0e6;background:#ffffff;color:#101216;border-radius:8px;cursor:pointer">Upload a label</button>
+</div>
+</section>
+
+<section aria-labelledby="mk-h" style="display:flex;flex-direction:column;gap:12px">
+<h2 id="mk-h" style="margin:0;font-size:16px;font-weight:600">Label state by market</h2>
+<div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">
+<sc-for list="{{markets}}" as="m" hint-placeholder-count="5">
+<div style="border:1px solid #dde0e6;border-radius:10px;padding:14px 16px;background:#f4f5f7;display:flex;flex-direction:column;gap:8px">
+<span style="font-size:15px;font-weight:600">{{m.name}}</span>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570">{{m.panel}}</span>
+<div>
+<sc-if value="{{m.isClear}}" hint-placeholder-val="{{true}}"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:6px;background:#e6f2ec;color:#0f7a4d;font-size:13px;font-weight:600"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8.2l2 2 4-4.2"></path></svg>Label clear · {{m.count}}</span></sc-if>
+<sc-if value="{{m.isNone}}" hint-placeholder-val="{{false}}"><a href="#" style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:6px;background:#f1f2f4;color:#5f6570;font-size:13px;font-weight:600"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8h6"></path></svg>Not assessed · coverage gap</a></sc-if>
+</div>
+<span style="font-size:13px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.06em">Registration </span>{{m.reg}}</span>
+</div>
+</sc-for>
+</div>
+</section>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      markets: [
+        { name: 'Sweden', panel: 'Swedish panel', isClear: true, count: '6 products', reg: 'Registered' },
+        { name: 'Denmark', panel: 'Danish panel', isClear: true, count: '6 products', reg: 'Not required' },
+        { name: 'Finland', panel: 'Finnish panel', isClear: true, count: '6 products', reg: 'Registered' },
+        { name: 'Germany', panel: 'German panel', isClear: true, count: '6 products', reg: 'Registered' },
+        { name: 'Norway', panel: 'No accepted rules', isNone: true, reg: 'Unknown' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
