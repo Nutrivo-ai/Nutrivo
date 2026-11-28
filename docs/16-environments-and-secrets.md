@@ -10,7 +10,9 @@
 - **Structure.** One Infisical project per environment, each holding a single environment (`dev`, `staging` or
   `prod`): Infisical's Viewer role reads every environment of its project, so this is how an identity reads exactly one
   (docs/22 §3). `.infisical.json` holds the dev project's id. `config/secrets.yaml` lists every required name: where
-  it must exist, what uses it, and which doctor check proves it.
+  it must exist, what uses it, and which doctor check proves it. One deliberate exception: `SUPABASE_DRILL_ACCESS_TOKEN`
+  is not in it or in Infisical. It is made per restore drill, scoped to the drill's copy, set as a GitHub `production`
+  environment secret that only `restore-drill.yml` reads, and deleted after the drill (docs/runbooks/restore-drill.md).
 - **Machine identities** (universal auth), each a Viewer of its one project and nothing else (docs/22 §3):
   - `claude-dev`: reads dev. Every person's Claude Code on the web environment holds its client id and their own
     client secret as `INFISICAL_CLIENT_ID` / `INFISICAL_CLIENT_SECRET`; the session start hook exchanges them for
