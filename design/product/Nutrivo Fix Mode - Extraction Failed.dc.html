@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Fix mode (extract) · Salmon &amp; Rice Adult 12 kg</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Instrument+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ffffff}
+a{color:#2f5eff}a:hover{color:#1f49d9}
+:focus-visible{outline:2px solid #2f5eff;outline-offset:2px}
+</style>
+</helmet>
+<div style="font-family:'Instrument Sans',system-ui,sans-serif;color:#101216;background:#ffffff;min-height:100vh;display:flex;flex-direction:column">
+
+<header style="padding:20px 32px 16px;border-bottom:1px solid #dde0e6;display:flex;flex-wrap:wrap;gap:14px 24px;align-items:center;justify-content:space-between">
+<div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+<nav aria-label="Breadcrumb" style="font-size:13px;color:#5f6570;display:flex;gap:8px"><a href="#">Products</a><span aria-hidden="true">/</span><span aria-current="page">Label report</span></nav>
+<div style="display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px"><h1 style="margin:0;font-size:24px;font-weight:600;letter-spacing:-0.01em">Salmon &amp; Rice Adult 12 kg</h1><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570">Dog · complete feed</span></div>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570">{{pinLine}}</span>
+</div>
+<div role="group" aria-label="Market" style="display:flex;border:1px solid #dde0e6;border-radius:8px;overflow:hidden">
+<sc-for list="{{markets}}" as="m" hint-placeholder-count="4"><button aria-pressed="{{m.pressed}}" onClick="{{m.pick}}" style="font:inherit;font-size:14px;font-weight:500;padding:8px 14px;min-height:40px;border:0;border-left:1px solid #dde0e6;background:{{m.bg}};color:#101216;cursor:pointer">{{m.name}} <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570">{{m.code}}</span></button></sc-for>
+</div>
+<div style="display:flex;gap:8px">
+<button style="font:inherit;font-size:14px;font-weight:500;padding:10px 16px;min-height:44px;border:1px solid #dde0e6;background:#ffffff;color:#101216;border-radius:8px;cursor:pointer">Download report (PDF)</button>
+<sc-if value="{{canEdit}}" hint-placeholder-val="{{true}}"><button style="font:inherit;font-size:14px;font-weight:600;padding:10px 16px;min-height:44px;border:0;background:#2f5eff;color:#ffffff;border-radius:8px;cursor:pointer">Upload revision</button></sc-if>
+</div>
+</header>
+
+<sc-if value="{{banner}}" hint-placeholder-val="{{false}}">
+<div role="status" style="margin:16px 32px 0;padding:12px 16px;border:1px solid #dde0e6;border-radius:10px;background:#f4f5f7;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between">
+<span style="font-size:14px"><strong style="font-weight:600">{{bannerTitle}}</strong> {{bannerText}}</span>
+<sc-if value="{{bannerIsButton}}" hint-placeholder-val="{{false}}"><button style="font:inherit;font-size:14px;font-weight:600;padding:8px 14px;min-height:40px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff;cursor:pointer">{{bannerAction}}</button></sc-if>
+<sc-if value="{{bannerIsLink}}" hint-placeholder-val="{{false}}"><a href="#" style="font-size:14px;font-weight:600">{{bannerAction}}</a></sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{showReport}}" hint-placeholder-val="{{true}}">
+<div style="flex:1;display:flex;flex-wrap:wrap;gap:24px;padding:20px 32px 40px;align-items:flex-start">
+
+<section aria-label="Label artwork" style="flex:1 1 680px;min-width:0;display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">Label · back panel · 5 language panels</span>
+<div role="group" aria-label="Zoom" style="display:flex;gap:4px;align-items:center">
+<button aria-label="Zoom out" onClick="{{zoomOut}}" style="font:inherit;width:36px;height:36px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;cursor:pointer">−</button>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;width:52px;text-align:center">{{zoomLabel}}</span>
+<button aria-label="Zoom in" onClick="{{zoomIn}}" style="font:inherit;width:36px;height:36px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;cursor:pointer">+</button>
+<button onClick="{{fit}}" style="font:inherit;font-size:13px;padding:0 12px;height:36px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;cursor:pointer">Fit</button>
+</div>
+</div>
+<div style="border:1px solid #dde0e6;border-radius:10px;background:#f4f5f7;padding:24px;overflow:auto;max-height:780px">
+<div style="transform:scale({{zoom}});transform-origin:top left;width:640px;background:#ffffff;border:1px solid #dde0e6;border-radius:4px;padding:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;box-shadow:0 1px 2px rgba(16,18,22,.06)">
+<sc-for list="{{panels}}" as="p" hint-placeholder-count="4">
+<div style="position:relative;border:{{p.border}};border-radius:4px;padding:10px 12px 14px;min-height:300px;display:flex;flex-direction:column;gap:7px;background:{{p.bg}}">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500">{{p.code}}</span>
+<sc-if value="{{p.hasChip}}" hint-placeholder-val="{{true}}"><span style="display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:5px;background:{{p.chipBg}};color:{{p.chipFg}};font-size:11px;font-weight:600;white-space:nowrap">{{p.chipGlyph}} {{p.chip}}</span></sc-if><sc-if value="{{p.notJudged}}" hint-placeholder-val="{{false}}"><span style="font-size:11px;color:#5f6570;white-space:nowrap">{{p.notLine}}</span></sc-if>
+</div>
+<sc-if value="{{p.failed}}" hint-placeholder-val="{{false}}">
+<div style="flex:1;display:flex;flex-direction:column;gap:10px;align-items:flex-start;justify-content:center;padding:12px">
+<span style="font-size:14px;font-weight:600">Couldn’t read this panel</span>
+<span style="font-size:12px;color:#5f6570;line-height:1.4">{{p.failNote}}</span>
+<button style="font:inherit;font-size:13px;font-weight:600;padding:8px 12px;min-height:36px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;cursor:pointer">Retry reading</button>
+</div>
+</sc-if>
+<sc-if value="{{p.ok}}" hint-placeholder-val="{{true}}">
+<span lang="{{p.lang}}" style="font-size:15px;font-weight:700;letter-spacing:-0.01em">{{p.heading}}</span>
+<sc-for list="{{p.lines}}" as="l" hint-placeholder-count="7">
+<div style="display:flex;align-items:center;gap:6px;min-height:14px">
+<sc-if value="{{l.isBar}}" hint-placeholder-val="{{true}}"><div aria-hidden="true" style="height:7px;width:{{l.w}};border-radius:2px;background:#dde0e6"></div></sc-if>
+<sc-if value="{{l.isText}}" hint-placeholder-val="{{false}}"><span lang="{{p.lang}}" style="font-size:11px;line-height:1.35;padding:1px 3px;border-radius:3px;outline:{{l.ring}}">{{l.text}}</span></sc-if>
+<sc-if value="{{l.hasPin}}" hint-placeholder-val="{{false}}"><button aria-label="{{l.pinAria}}" aria-pressed="{{l.pinPressed}}" onClick="{{l.select}}" style="flex:0 0 auto;width:24px;height:24px;border-radius:999px;border:0;background:{{l.pinBg}};color:#ffffff;font:600 12px 'IBM Plex Mono',monospace;cursor:pointer;box-shadow:{{l.pinShadow}}">{{l.pin}}</button></sc-if>
+</div>
+</sc-for>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570">[label artwork image] · panel outlines and pins drawn over it</span>
+</section>
+
+<section aria-labelledby="todo-h" style="flex:1 1 520px;max-width:600px;min-width:0;display:flex;flex-direction:column;gap:16px">
+<div style="display:flex;flex-direction:column;gap:4px">
+<h2 id="todo-h" style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.01em;color:{{headColor}};display:flex;align-items:center;gap:8px"><sc-if value="{{headNA}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" role="img" aria-label="Not assessed"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8h6"></path></svg></sc-if>{{heading}}</h2>
+<span style="font-size:14px;color:#5f6570">{{headingSub}}</span>
+</div>
+
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="1">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #dde0e6;padding-bottom:6px"><h3 style="margin:0;font-size:15px;font-weight:600">{{g.title}}</h3><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;background:#fdf0dd;color:#9e5600;font-size:12px;font-weight:600"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 1.8l6.6 12H1.4z"></path><path d="M8 6.5v3.2M8 11.6v.4"></path></svg>{{g.chip}}</span></div>
+<sc-for list="{{g.items}}" as="f" hint-placeholder-count="2">
+<article aria-labelledby="{{f.hid}}" style="border:1px solid {{f.border}};box-shadow:{{f.shadow}};border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;background:#ffffff;">
+<div style="display:flex;align-items:center;gap:10px">
+<sc-if value="{{f.hasPin}}" hint-placeholder-val="{{true}}"><span aria-hidden="true" style="width:24px;height:24px;border-radius:999px;background:#9e5600;color:#ffffff;font:600 12px 'IBM Plex Mono',monospace;display:inline-flex;align-items:center;justify-content:center">{{f.pin}}</span></sc-if>
+<sc-if value="{{f.missing}}" hint-placeholder-val="{{false}}"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:2px 7px;border:1px dashed #9e5600;border-radius:4px;color:#9e5600">Missing from this panel · not on the artwork</span></sc-if>
+<span style="font-size:12px;color:#5f6570">{{f.panel}}</span>
+</div>
+<h4 id="{{f.hid}}" style="margin:0"><button aria-pressed="{{f.pressed}}" onClick="{{f.select}}" style="font:inherit;font-size:15px;font-weight:600;line-height:1.35;text-align:left;border:0;background:none;padding:0;color:#101216;cursor:pointer">{{f.what}}</button></h4>
+<sc-if value="{{f.hasPrinted}}" hint-placeholder-val="{{false}}"><div style="display:flex;flex-direction:column;gap:3px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5f6570;text-transform:uppercase;letter-spacing:0.06em">Printed on the label · {{f.langName}}</span><q lang="{{f.lang}}" style="font-size:14px;background:#f4f5f7;border-radius:6px;padding:6px 10px;quotes:none">{{f.printed}}</q></div></sc-if>
+<div style="display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570"><span>{{f.rule}}</span><span>{{f.cite}}</span><span style="padding:1px 6px;border:1px solid #dde0e6;border-radius:4px;color:#101216">{{f.prov}}</span></div>
+<sc-if value="{{f.showActions}}" hint-placeholder-val="{{true}}">
+<div style="display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding-top:4px;min-height:44px">
+<sc-if value="{{f.hasCopy}}" hint-placeholder-val="{{false}}"><button style="font:inherit;font-size:14px;font-weight:600;padding:9px 14px;min-height:40px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff;cursor:pointer">Copy required term</button><span style="font-size:14px"><span lang="de" style="font-family:'IBM Plex Mono',monospace;font-weight:500;padding:2px 6px;background:#eef2ff;border-radius:4px">{{f.term}}</span> <span style="font-size:12px;color:#5f6570">{{f.termLang}} · accepted term register</span></span></sc-if>
+<sc-if value="{{f.noCopy}}" hint-placeholder-val="{{false}}"><span style="font-size:13px;color:#5f6570">No accepted wording · see the rule and citation</span></sc-if>
+<sc-if value="{{f.hasCopy}}" hint-placeholder-val="{{false}}"><button style="font:inherit;font-size:14px;font-weight:500;padding:9px 14px;min-height:40px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;color:#101216;cursor:pointer">Upload revision</button></sc-if>
+<sc-if value="{{f.noCopy}}" hint-placeholder-val="{{true}}"><button style="font:inherit;font-size:14px;font-weight:600;padding:9px 14px;min-height:40px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff;cursor:pointer">Upload revision</button></sc-if>
+</div>
+</sc-if>
+</article>
+</sc-for>
+</div>
+</sc-for>
+
+<sc-if value="{{extractRow}}" hint-placeholder-val="{{false}}">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border:1px dashed #5f6570;border-radius:8px"><span style="font-size:14px"><strong style="font-weight:600">FI · Finnish panel.</strong> Couldn’t read this panel.</span><button style="font:inherit;font-size:13px;font-weight:600;padding:8px 12px;min-height:36px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;cursor:pointer">Retry reading</button></div>
+</sc-if>
+
+<sc-if value="{{hasNA}}" hint-placeholder-val="{{true}}">
+<div style="display:flex;flex-direction:column;gap:10px">
+<div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #dde0e6;padding-bottom:6px"><h3 style="margin:0;font-size:15px;font-weight:600">Not assessed</h3><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;background:#f1f2f4;color:#5f6570;font-size:12px;font-weight:600">— {{naCount}}</span></div>
+<sc-for list="{{na}}" as="n" hint-placeholder-count="1">
+<article style="border:1px solid {{n.border}};box-shadow:{{n.shadow}};border-radius:10px;padding:12px 16px;display:flex;flex-direction:column;gap:6px;background:#ffffff;">
+<div style="display:flex;align-items:center;gap:10px"><span aria-hidden="true" style="width:24px;height:24px;border-radius:999px;background:#5f6570;color:#ffffff;font:600 12px 'IBM Plex Mono',monospace;display:inline-flex;align-items:center;justify-content:center">{{n.pin}}</span><span style="font-size:12px;color:#5f6570">{{n.panel}}</span></div>
+<button aria-pressed="{{n.pressed}}" onClick="{{n.select}}" style="font:inherit;font-size:14px;font-weight:600;text-align:left;border:0;background:none;padding:0;color:#101216;cursor:pointer">{{n.what}}</button>
+<q lang="{{n.lang}}" style="font-size:14px;background:#f4f5f7;border-radius:6px;padding:6px 10px;quotes:none">{{n.printed}}</q>
+<div style="display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;font-size:13px"><a href="#">{{n.link}}</a><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;padding:1px 6px;border:1px solid #dde0e6;border-radius:4px">{{n.prov}}</span></div>
+</article>
+</sc-for>
+</div>
+</sc-if>
+</section>
+</div>
+</sc-if>
+
+<sc-if value="{{isNever}}" hint-placeholder-val="{{false}}">
+<div style="margin:32px;border:1px solid #dde0e6;border-radius:12px;padding:48px;display:flex;flex-direction:column;gap:14px;align-items:flex-start;max-width:720px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">Not checked yet</span>
+<h2 style="margin:0;font-size:26px;font-weight:600">This product has no check yet</h2>
+<p style="margin:0;font-size:16px;line-height:1.5;color:#5f6570">Run a check on its current artwork, or upload a label first.</p>
+<div style="display:flex;gap:10px"><button style="font:inherit;font-size:15px;font-weight:600;padding:12px 20px;min-height:44px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff;cursor:pointer">Run check</button><button style="font:inherit;font-size:15px;font-weight:500;padding:12px 20px;min-height:44px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;color:#101216;cursor:pointer">Upload a label</button></div>
+</div>
+</sc-if>
+
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+<div aria-busy="true" style="display:flex;gap:24px;padding:20px 32px">
+<div style="flex:1 1 680px;height:640px;border-radius:10px;background:#f4f5f7"></div>
+<div style="flex:1 1 520px;max-width:600px;display:flex;flex-direction:column;gap:12px"><div style="height:24px;width:70%;border-radius:6px;background:#f4f5f7"></div><div style="height:150px;border-radius:10px;background:#f4f5f7"></div><div style="height:150px;border-radius:10px;background:#f4f5f7"></div><span role="status" style="font-size:14px;color:#5f6570">Loading the label report…</span></div>
+</div>
+</sc-if>
+<sc-if value="{{isError}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="margin:32px;border:1px solid #dde0e6;border-radius:10px;padding:40px;background:#f4f5f7;display:flex;flex-direction:column;gap:12px;max-width:640px">
+<h2 style="margin:0;font-size:20px;font-weight:600">The label report didn’t load</h2>
+<p style="margin:0;font-size:15px;line-height:1.5;color:#5f6570">Nothing has changed in this result. This page couldn’t reach it.</p>
+<div><button style="font:inherit;font-size:14px;font-weight:600;padding:10px 16px;min-height:44px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff;cursor:pointer">Try again</button></div>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570">Request id · [request id]</span>
+</div>
+</sc-if>
+<sc-if value="{{isNoPerm}}" hint-placeholder-val="{{false}}">
+<div style="margin:32px;border:1px solid #dde0e6;border-radius:10px;padding:40px;display:flex;flex-direction:column;gap:12px;max-width:640px">
+<h2 style="margin:0;font-size:20px;font-weight:600">You don’t have access to this label report</h2>
+<p style="margin:0;font-size:15px;line-height:1.5;color:#5f6570">A workspace admin can give you access to this product.</p>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["loaded","clear","notassessed","superseded","older","extract","abstain","never","rechecking","loading","error","noperm"],"default":"extract"},"$preview":{"width":1600,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'extract';
+    const st = this.state || {};
+    const market = st.market ?? (v === 'abstain' ? 'SE' : 'DE');
+    const ACC = '#2f5eff';
+    const readOnly = v === 'superseded';
+    const extract = v === 'extract';
+    const pick = (id) => () => this.setState({ sel: id });
+    const M = { SE: ['Sweden', 'SV', 'Swedish'], DK: ['Denmark', 'DA', 'Danish'], FI: ['Finland', 'FI', 'Finnish'], DE: ['Germany', 'DE', 'German'] };
+    const mName = M[market][0], judged = M[market][1], jLang = M[market][2];
+    // findings and Not assessed items, by panel
+    const withFixes = ['loaded', 'superseded', 'older', 'extract', 'rechecking'].indexOf(v) >= 0;
+    const ALL_F = withFixes ? [
+      { id: 'f1', missing: true, panel: 'DE', lang: 'de', langName: 'German', what: 'Type of feed is missing from the German panel', copy: 'Alleinfuttermittel' },
+      { id: 'f2', pin: '1', panel: 'DE', lang: 'de', langName: 'German', what: 'Additive printed without its identification number', printed: 'Ernährungsphysiologische Zusatzstoffe: Vitamin D3' }
+    ] : [];
+    const ALL_NA = [];
+    if (v !== 'clear') ALL_NA.push({ id: 'n1', pin: withFixes ? '2' : '1', panel: 'DE', lang: 'de', langName: 'German', what: 'Claim', printed: 'Reich an Omega-3 für ein gesundes Fell', prov: 'Not assessed' });
+    if (v === 'abstain') ALL_NA.push({ id: 'n2', pin: '3', panel: 'SV', lang: 'sv', langName: 'Swedish', what: 'Claim · the model abstained, so this is not assessed', printed: 'Naturliga ingredienser', prov: 'Model judgement · confidence [low] · abstained' });
+    const F = ALL_F.filter((f) => f.panel === judged), NA = ALL_NA.filter((n) => n.panel === judged);
+    const sel = st.sel ?? (F[0] ? F[0].id : NA[0] ? NA[0].id : '');
+    const P = [['DE', 'de', 'German', 'Lachs & Reis Adult'], ['SV', 'sv', 'Swedish', 'Lax & ris Adult'], ['DA', 'da', 'Danish', 'Laks & ris Adult'], ['FI', 'fi', 'Finnish', 'Lohi & riisi Adult'], ['EN', 'en', 'English', 'Salmon & Rice Adult']];
+    const bar = (w) => ({ isBar: true, w });
+    const pinLine = (f, kind) => ({ isText: true, text: f.printed, ring: sel === f.id ? '2px solid ' + ACC : 'none', hasPin: true, pin: f.pin, select: pick(f.id), pinBg: kind === 'a' ? '#9e5600' : '#5f6570', pinShadow: sel === f.id ? '0 0 0 3px #ffffff, 0 0 0 5px ' + ACC : 'none', pinPressed: sel === f.id ? 'true' : 'false', pinAria: (kind === 'a' ? 'Finding ' : 'Not assessed item ') + f.pin + ': ' + f.what });
+    const panels = P.map((p) => {
+      const code = p[0], isJ = code === judged, failed = extract && code === 'FI';
+      const lines = [bar('92%'), bar('80%'), bar('86%')];
+      if (isJ) {
+        F.filter((f) => f.pin).forEach((f) => lines.push(pinLine(f, 'a')));
+        NA.forEach((n) => lines.push(pinLine(n, 'n')));
+      }
+      lines.push(bar('74%'), bar('88%'), bar('60%'), bar('82%'));
+      const open = F.length, nNa = NA.length;
+      const chip = failed ? ['Couldn’t read', '#f1f2f4', '#5f6570', '!'] : open ? ['Action needed · ' + open + ' open', '#fdf0dd', '#9e5600', '!'] : nNa ? ['Not assessed', '#f1f2f4', '#5f6570', '–'] : ['Label clear', '#e6f2ec', '#0f7a4d', '✓'];
+      const missingHere = isJ && F.some((f) => f.missing);
+      return {
+        code: code + ' · ' + p[2], lang: p[1], heading: p[3], lines, failed, ok: !failed,
+        hasChip: isJ || failed, notJudged: !isJ && !failed, notLine: 'Not a ' + jLang + '-language panel',
+        chip: chip[0], chipBg: chip[1], chipFg: chip[2], chipGlyph: chip[3],
+        failNote: code === judged ? mName + ' can’t be checked until this panel is read.' : 'Retry to read it for its own market.',
+        border: missingHere ? (sel === 'f1' ? '2px solid ' + ACC : '2px dashed #9e5600') : failed ? '1px dashed #5f6570' : '1px solid #dde0e6', bg: failed ? '#f4f5f7' : '#ffffff'
+      };
+    });
+    const card = (f) => ({ hid: 'h-' + f.id, select: pick(f.id), pressed: sel === f.id ? 'true' : 'false', border: sel === f.id ? ACC : '#dde0e6', shadow: sel === f.id ? '0 0 0 1px ' + ACC : 'none' });
+    const jp = P.find((p) => p[0] === judged);
+    const items = F.map((f) => Object.assign(card(f), {
+      hasPin: !!f.pin, pin: f.pin, missing: !!f.missing, panel: judged + ' · ' + jp[2] + ' panel', what: f.what, hasPrinted: !!f.printed, printed: f.printed, lang: f.lang, langName: f.langName,
+      rule: '[rule key]', cite: '[regulation · article]', prov: 'Rule', showActions: !readOnly, hasCopy: !!f.copy, noCopy: !f.copy, term: f.copy, termLang: 'German'
+    }));
+    const groups = items.length ? [{ title: judged + ' · ' + jp[2] + ' panel', chip: 'Action needed · ' + items.length + ' open', items }] : [];
+    const na = NA.map((n) => Object.assign(card(n), { pin: n.pin, panel: n.panel + ' · ' + n.langName + ' panel', what: n.what, printed: n.printed, lang: n.lang, link: 'Not yet in the accepted rulebook · coverage gap', prov: n.prov }));
+    const nF = F.length, nN = NA.length;
+    let heading, sub, headNA = false;
+    if (nF && nN) { heading = nF + ' fixes left in ' + mName + ' · ' + nN + ' not assessed'; sub = 'Findings on the ' + jLang + ' panel come first. Pins on the label match the numbers here.'; }
+    else if (nF) { heading = nF + ' fixes left before ' + mName + ' is label clear'; sub = 'Pins on the label match the numbers here.'; }
+    else if (nN) { heading = mName + ': not assessed'; headNA = true; sub = 'No fixes left. ' + nN + (nN === 1 ? ' item isn’t' : ' items aren’t') + ' covered by an accepted rule yet.'; }
+    else { heading = mName + ' is label clear'; sub = 'No fixes left. Every ' + jLang + '-language panel checked for ' + mName + '.'; }
+    const banners = {
+      superseded: ['A newer result exists.', 'This one is read-only.', 'Open it', 'link'],
+      older: ['Checked against ruleset [version].', 'The current ruleset is [current version].', 'Re-check against [current version]', 'button'],
+      rechecking: ['Revision uploaded.', 'The new artwork is being checked. Pins turn clear only when that check passes.', 'View check in progress', 'link']
+    }[v];
+    const report = ['loaded', 'clear', 'notassessed', 'superseded', 'older', 'extract', 'abstain', 'rechecking'].indexOf(v) >= 0;
+    const zoom = st.zoom ?? 1;
+    const zs = (z) => () => this.setState({ zoom: Math.round(Math.min(1.5, Math.max(0.5, z)) * 100) / 100 });
+    return {
+      pinLine: v === 'never' ? 'Not checked yet' : 'Pinned to ruleset [version] · artwork [short hash] · checked [date]',
+      markets: ['SE', 'DK', 'FI', 'DE'].map((c) => ({ name: M[c][0], code: c, pressed: c === market ? 'true' : 'false', bg: c === market ? '#f4f5f7' : '#ffffff', pick: () => this.setState({ market: c, sel: null }) })),
+      canEdit: !readOnly && report, banner: !!banners, bannerTitle: banners ? banners[0] : '', bannerText: banners ? banners[1] : '', bannerAction: banners ? banners[2] : '',
+      bannerIsButton: !!banners && banners[3] === 'button', bannerIsLink: !!banners && banners[3] === 'link',
+      showReport: report, isNever: v === 'never', isLoading: v === 'loading', isError: v === 'error', isNoPerm: v === 'noperm',
+      panels, groups, na, naCount: nN, hasNA: nN > 0, extractRow: extract,
+      heading, headingSub: sub, headNA, headColor: headNA ? '#5f6570' : '#101216',
+      zoom, zoomLabel: Math.round(zoom * 100) + '%', zoomIn: zs(zoom + 0.25), zoomOut: zs(zoom - 0.25), fit: () => this.setState({ zoom: 1 })
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -380,6 +380,71 @@
    "path": "product/Nutrivo Board.dc.html",
    "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
    "size": 26744
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - All Clear.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 25580
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Error.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 25579
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Extraction Failed.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 25586
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Loading.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 25585
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Mobile States.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 14548
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Model Abstained.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 25586
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Never Checked.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 25579
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - No Permission.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 25582
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Not Assessed.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 25598
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Older Ruleset.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 25580
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Rechecking.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 25595
+  },
+  {
+   "path": "product/Nutrivo Fix Mode - Superseded.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 25595
+  },
+  {
+   "path": "product/Nutrivo Fix Mode.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 25574
   }
  ]
 }

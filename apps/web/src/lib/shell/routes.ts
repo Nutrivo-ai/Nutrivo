@@ -36,7 +36,7 @@ export type WorkspaceRoute = {
 export const WORKSPACE_ROUTES: WorkspaceRoute[] = [
   { route: "/w/[workspace]", screens: ["S-NV2-001", "S-ONB-007", "S-TDY-001", "S-TDY-002", "S-TDY-003", "S-TDY-004", "S-TDY-005", "S-TDY-006", "S-TDY-007"], title: "Home", crumb: "Start", role: "viewer" },
   { route: "/w/[workspace]/products/[product]/check", screens: ["S-NV2-002", "S-PLN-004", "S-PLN-005"], title: "Upload & scope", crumb: "Check your label", role: "editor" },
-  { route: "/w/[workspace]/products/[product]/report", screens: ["S-NV2-003"], title: "Label report", crumb: "Check your label", role: "viewer" },
+  { route: "/w/[workspace]/products/[product]/report", screens: ["S-NV2-003", "S-FIX-001", "S-FIX-002", "S-FIX-003", "S-FIX-004", "S-FIX-005", "S-FIX-006", "S-FIX-007", "S-FIX-008", "S-FIX-009", "S-FIX-010", "S-FIX-011", "S-FIX-012", "S-FIX-013"], title: "Label report", crumb: "Check your label", role: "viewer" },
   { route: "/w/[workspace]/briefs/[product]", screens: ["S-NV2-004"], title: "Brief & formula", crumb: "New product", role: "editor" },
   { route: "/w/[workspace]/briefs/[product]/envelope", screens: ["S-NV2-005"], title: "Design envelope", crumb: "New product", role: "viewer" },
   { route: "/w/[workspace]/board", screens: ["S-NV2-006", "S-MIS-003", "S-MOB-001", "S-MTX-001", "S-MTX-002", "S-MTX-003", "S-MTX-004", "S-MTX-005", "S-MTX-006", "S-MTX-007", "S-MTX-008", "S-MTX-009", "S-MTX-010", "S-MTX-011"], title: "Board", crumb: "Portfolio", role: "viewer" },
