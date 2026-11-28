@@ -641,7 +641,7 @@ screens:
     data: [edge:verify, public.verify_reference]
     states: [loaded, loading, error]
     baseline: apps/web/tests/visual/baselines/S-NV2-027.png
-    notes: ["Drawn inside the app shell; the public page has no rail. How much of the frame the route compares against is open."]
+    notes: ["Drawn inside the app shell; the public page has no rail. How much of the frame the route compares against is open.", "Its page content is superseded by /verify (S-WEB-003 to 009, D-33, T-1116)."]
   - id: S-NV2-028
     title: Supplier portal
     kind: public
@@ -1395,6 +1395,134 @@ screens:
     notes: ["The EmptyState and ErrorState components every screen uses (docs/20 §5)."]
 
   # ── Public surfaces (T-603) ──────────────────────────────────────────────────────────────────────────────────
+  # Public site and /verify (D-33, T-1116): claude.ai Design artifact ToKmnp78mwU6P1UFgpVHM4, 27 Nov 2026
+  - id: S-WEB-001
+    title: Public home
+    kind: public
+    design: "public/Nutrivo Site.dc.html"
+    state: {}
+    route: /
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [P01, P02]
+    data: [public.coverage_snapshot]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-WEB-001.png
+    notes: ["Hero with three language panels of the demo pack, how it works, what Not assessed means, the verifiable report, a pricing teaser and the footer (Status, DPA, Sub-processors, Privacy, Imprint, Contact).", "Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-002
+    title: Public home and /verify on a phone
+    kind: public
+    design: "public/Nutrivo Site - Mobile States.dc.html"
+    state: {}
+    element: {css: 'div[style*="width: 3480px"]', nth: 0}
+    route: /
+    role: anon
+    scope: build
+    viewports: [390]
+    workflows: [P01, I04]
+    data: [public.coverage_snapshot, edge:verify]
+    states: [loaded, loading, error]
+    baseline: apps/web/tests/visual/baselines/S-WEB-002.png
+    notes: ["The hero stacks and its panels become a scroll-snap carousel whose dots are buttons; reduced motion jumps instead of scrolling.", "Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-003
+    title: Verify a report
+    kind: public
+    design: "public/Nutrivo Verify.dc.html"
+    state: {}
+    route: /verify
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [I04]
+    data: [edge:verify]
+    states: [empty]
+    baseline: apps/web/tests/visual/baselines/S-WEB-003.png
+    notes: ["The form posts to /verify/[ref]; the input is monospaced, with no autocomplete or spellcheck, and its help line is linked by aria-describedby.", "Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-004
+    title: Verify, current
+    kind: public
+    design: "public/Nutrivo Verify - Verified.dc.html"
+    state: {}
+    route: /verify/[ref]
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [I04]
+    data: [edge:verify, public.verify_reference]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-WEB-004.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-005
+    title: Verify, superseded
+    kind: public
+    design: "public/Nutrivo Verify - Superseded.dc.html"
+    state: {}
+    route: /verify/[ref]
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [I04]
+    data: [edge:verify, public.verify_reference]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-WEB-005.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-006
+    title: Verify, no verified report
+    kind: public
+    design: "public/Nutrivo Verify - Not Found.dc.html"
+    state: {}
+    route: /verify/[ref]
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [I04]
+    data: [edge:verify, public.verify_reference]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-WEB-006.png
+    notes: ["The function answers exactly {status: unknown} for a missing or malformed reference: no guess, no close match.", "Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-007
+    title: Verify, too many attempts
+    kind: public
+    design: "public/Nutrivo Verify - Rate Limited.dc.html"
+    state: {}
+    route: /verify/[ref]
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [I04]
+    data: [edge:verify]
+    states: [error]
+    baseline: apps/web/tests/visual/baselines/S-WEB-007.png
+    notes: ["The function's 429 with Retry-After.", "Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-008
+    title: Verify, unavailable
+    kind: public
+    design: "public/Nutrivo Verify - Unavailable.dc.html"
+    state: {}
+    route: /verify/[ref]
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [I04]
+    data: [edge:verify]
+    states: [error]
+    baseline: apps/web/tests/visual/baselines/S-WEB-008.png
+    notes: ["The function's 503.", "Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-009
+    title: Verify, loading
+    kind: public
+    design: "public/Nutrivo Verify - Loading.dc.html"
+    state: {}
+    route: /verify/[ref]
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [I04]
+    data: [edge:verify]
+    states: [loading]
+    baseline: apps/web/tests/visual/baselines/S-WEB-009.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
   - id: S-LND-001
     title: Landing page
     kind: public
@@ -1408,7 +1536,7 @@ screens:
     data: [public.coverage_snapshot]
     states: [loaded, error]
     baseline: apps/web/tests/visual/baselines/S-LND-001.png
-    notes: ["Animated: the baseline is the first frame after load. Invented claims are removed when built (D-19). See Q5."]
+    notes: ["Animated: the baseline is the first frame after load. Invented claims are removed when built (D-19). See Q5.", "Its page content is superseded by the public home (S-WEB-001, D-33, T-1116)."]
   - id: S-PRC-001
     title: Pricing page
     kind: public

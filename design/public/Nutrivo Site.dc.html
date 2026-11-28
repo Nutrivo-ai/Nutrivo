@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Nutrivo · Check your pet food label for every EU market</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Instrument+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ffffff}
+a{color:#2f5eff}a:hover{color:#1f49d9}
+:focus-visible{outline:2px solid #2f5eff;outline-offset:2px}
+</style>
+</helmet>
+<div style="font-family:'Instrument Sans',system-ui,sans-serif;color:#101216;background:#ffffff">
+
+<header style="border-bottom:1px solid #dde0e6">
+<div style="max-width:1280px;margin:0 auto;padding:16px 40px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
+<a href="#" style="font-weight:700;font-size:20px;letter-spacing:-0.01em;color:#101216;text-decoration:none">Nutrivo</a>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 28px;font-size:15px">
+<a href="#" style="color:#101216;text-decoration:none">Pricing</a>
+<a href="#" style="color:#101216;text-decoration:none">Verify a report</a>
+<a href="#" style="color:#101216;text-decoration:none;padding:9px 16px;border:1px solid #dde0e6;border-radius:8px">Sign in</a>
+</nav>
+</div>
+</header>
+
+<main>
+<section aria-labelledby="hero-h" style="max-width:1280px;margin:0 auto;padding:88px 40px 72px;display:flex;flex-wrap:wrap;gap:56px;align-items:center">
+<div style="flex:1 1 480px;display:flex;flex-direction:column;gap:24px">
+<h1 id="hero-h" style="margin:0;font-size:52px;line-height:1.08;font-weight:600;letter-spacing:-0.025em">Check your pet food label for every EU market, in every language. Every finding cited.</h1>
+<p style="margin:0;font-size:19px;line-height:1.5;color:#5f6570;max-width:540px">Nutrivo checks each printed language panel against encoded EU feed law for each market, and shows the rule and citation behind every result.</p>
+<div style="display:flex;flex-wrap:wrap;gap:12px">
+<a href="#" style="flex:0 0 220px;text-align:center;font-size:16px;font-weight:600;padding:14px 20px;border-radius:8px;background:#2f5eff;color:#ffffff;text-decoration:none">Check a label free</a>
+<a href="#" style="flex:0 0 220px;text-align:center;font-size:16px;font-weight:600;padding:14px 20px;border-radius:8px;background:#101216;color:#ffffff;text-decoration:none">See pricing</a>
+</div>
+</div>
+
+<figure style="flex:1 1 560px;margin:0;display:flex;flex-direction:column;gap:10px">
+<div style="background:#f4f5f7;border:1px solid #dde0e6;border-radius:14px;padding:28px">
+<div role="img" aria-label="Demo pack, back label with three language panels. German panel: Action needed, 2 open. Swedish panel: Label clear. Finnish panel: Label clear." style="background:#ffffff;border:1px solid #dde0e6;border-radius:6px;padding:14px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;box-shadow:0 1px 2px rgba(16,18,22,.06)">
+<sc-for list="{{panels}}" as="p" hint-placeholder-count="3">
+<div style="border:{{p.border}};border-radius:4px;padding:10px;display:flex;flex-direction:column;gap:7px;min-height:280px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px">{{p.code}}</span>
+<span style="align-self:flex-start;display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:5px;background:{{p.bg}};color:{{p.fg}};font-size:12px;font-weight:600">
+<sc-if value="{{p.isAction}}" hint-placeholder-val="{{false}}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 1.8l6.6 12H1.4z"></path><path d="M8 6.5v3.2M8 11.6v.4"></path></svg></sc-if>
+<sc-if value="{{p.isClear}}" hint-placeholder-val="{{true}}"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8.2l2 2 4-4.2"></path></svg></sc-if>
+{{p.chip}}</span>
+<span lang="{{p.lang}}" style="font-size:14px;font-weight:700">{{p.heading}}</span>
+<div style="height:6px;width:92%;background:#dde0e6;border-radius:2px"></div><div style="height:6px;width:78%;background:#dde0e6;border-radius:2px"></div><div style="height:6px;width:86%;background:#dde0e6;border-radius:2px"></div><div style="height:6px;width:64%;background:#dde0e6;border-radius:2px"></div><div style="height:6px;width:88%;background:#dde0e6;border-radius:2px"></div><div style="height:6px;width:72%;background:#dde0e6;border-radius:2px"></div>
+</div>
+</sc-for>
+</div>
+</div>
+<figcaption style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570">Checked in [n] seconds · demo data</figcaption>
+</figure>
+</section>
+
+<section aria-labelledby="how-h" style="background:#f4f5f7;border-top:1px solid #dde0e6;border-bottom:1px solid #dde0e6">
+<div style="max-width:1280px;margin:0 auto;padding:72px 40px;display:flex;flex-direction:column;gap:32px">
+<h2 id="how-h" style="margin:0;font-size:32px;font-weight:600;letter-spacing:-0.015em">How it works</h2>
+<ol style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px">
+<li style="background:#ffffff;border:1px solid #dde0e6;border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:10px"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#5f6570">01</span><h3 style="margin:0;font-size:20px;font-weight:600">Upload the artwork</h3><p style="margin:0;font-size:15px;line-height:1.5;color:#5f6570">Each language panel is found and read, then checked for every market you sell in.</p></li>
+<li style="background:#ffffff;border:1px solid #dde0e6;border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:10px"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#5f6570">02</span><h3 style="margin:0;font-size:20px;font-weight:600">Fix what’s open, with the rule and citation</h3><p style="margin:0;font-size:15px;line-height:1.5;color:#5f6570">Every finding names its rule, its regulation and article, and where it sits on the label.</p></li>
+<li style="background:#ffffff;border:1px solid #dde0e6;border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:10px"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#5f6570">03</span><h3 style="margin:0;font-size:20px;font-weight:600">Send a report anyone can verify</h3><p style="margin:0;font-size:15px;line-height:1.5;color:#5f6570">Each report carries a reference that a retailer can check online.</p></li>
+</ol>
+</div>
+</section>
+
+<section aria-labelledby="na-h" style="max-width:1280px;margin:0 auto;padding:80px 40px;display:flex;flex-wrap:wrap;gap:48px;align-items:center">
+<div style="flex:1 1 480px;display:flex;flex-direction:column;gap:14px">
+<h2 id="na-h" style="margin:0;font-size:32px;font-weight:600;letter-spacing:-0.015em">What “Not assessed” means</h2>
+<p style="margin:0;font-size:19px;line-height:1.5">When no accepted rule covers something yet, we say Not assessed and show the gap. We never guess.</p>
+</div>
+<div style="flex:1 1 480px;border:1px solid #dde0e6;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">EN · English panel · demo data</span>
+<q lang="en" style="font-size:16px;background:#f4f5f7;border-radius:6px;padding:8px 12px;quotes:none">Rich in omega-3 for a healthy coat</q>
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
+<span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:6px;background:#f1f2f4;color:#5f6570;font-size:14px;font-weight:600"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8h6"></path></svg>Not assessed</span>
+<a href="#" style="font-size:14px">Not yet in the accepted rulebook · see the coverage gap</a>
+</div>
+</div>
+</section>
+
+<section aria-labelledby="ver-h" style="background:#f4f5f7;border-top:1px solid #dde0e6;border-bottom:1px solid #dde0e6">
+<div style="max-width:1280px;margin:0 auto;padding:80px 40px;display:flex;flex-wrap:wrap;gap:56px;align-items:center">
+<div style="flex:1 1 520px;background:#ffffff;border:1px solid #dde0e6;border-radius:6px;padding:32px;display:flex;flex-direction:column;gap:14px;box-shadow:0 1px 2px rgba(16,18,22,.06)">
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px">
+<div style="display:flex;flex-direction:column;gap:4px"><span style="font-weight:700;font-size:16px">Nutrivo · Label report</span><span style="font-size:14px;color:#5f6570">Sample report · demo data</span></div>
+<div role="img" aria-label="QR code placeholder linking to nutrivo.ai/verify" style="width:96px;height:96px;border:1px dashed #5f6570;border-radius:4px;display:flex;align-items:center;justify-content:center;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5f6570">[QR code]</div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;font-size:13px">
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5f6570;text-transform:uppercase">Reference</span><span style="font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:500">[reference]</span></div>
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5f6570;text-transform:uppercase">Issued</span><span>[date]</span></div>
+<div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5f6570;text-transform:uppercase">Ruleset</span><span>[version]</span></div>
+</div>
+<div style="border-top:1px solid #dde0e6;padding-top:12px;display:flex;flex-direction:column;gap:8px">
+<div style="height:7px;width:90%;background:#dde0e6;border-radius:2px"></div><div style="height:7px;width:76%;background:#dde0e6;border-radius:2px"></div><div style="height:7px;width:84%;background:#dde0e6;border-radius:2px"></div>
+</div>
+</div>
+<div style="flex:1 1 440px;display:flex;flex-direction:column;gap:14px">
+<h2 id="ver-h" style="margin:0;font-size:32px;font-weight:600;letter-spacing:-0.015em">A report anyone can verify</h2>
+<p style="margin:0;font-size:19px;line-height:1.5">A retailer enters the reference at nutrivo.ai/verify and sees whether it’s current.</p>
+<a href="#" style="font-size:16px;font-weight:600">Verify a report</a>
+</div>
+</div>
+</section>
+
+<section aria-labelledby="price-h" style="max-width:1280px;margin:0 auto;padding:80px 40px;display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:12px"><h2 id="price-h" style="margin:0;font-size:32px;font-weight:600;letter-spacing:-0.015em">Pricing</h2><a href="#" style="font-size:16px;font-weight:600">See pricing</a></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;max-width:880px">
+<div style="border:1px solid #dde0e6;border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:10px"><h3 style="margin:0;font-size:20px;font-weight:600">Free</h3><span style="font-size:28px;font-weight:600">[price]</span><span style="font-size:15px;color:#5f6570">[allowance]</span></div>
+<div style="border:1px solid #dde0e6;border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:10px"><h3 style="margin:0;font-size:20px;font-weight:600">Starter</h3><span style="font-size:28px;font-weight:600">[price]</span><span style="font-size:15px;color:#5f6570">[allowance]</span></div>
+</div>
+</section>
+</main>
+
+<footer style="border-top:1px solid #dde0e6">
+<div style="max-width:1280px;margin:0 auto;padding:32px 40px 48px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;align-items:center">
+<span style="font-weight:700">Nutrivo</span>
+<nav aria-label="Footer" style="display:flex;flex-wrap:wrap;gap:8px 24px;font-size:14px">
+<a href="#" style="color:#5f6570">Status</a><a href="#" style="color:#5f6570">DPA</a><a href="#" style="color:#5f6570">Sub-processors</a><a href="#" style="color:#5f6570">Privacy</a><a href="#" style="color:#5f6570">Imprint</a><a href="#" style="color:#5f6570">Contact</a>
+</nav>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1600,"height":2400}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const clear = { chip: 'Label clear', bg: '#e6f2ec', fg: '#0f7a4d', isClear: true, border: '1px solid #dde0e6' };
+    return {
+      panels: [
+        { code: 'DE · German', lang: 'de', heading: 'Lachs & Reis Adult', chip: 'Action needed · 2 open', bg: '#fdf0dd', fg: '#9e5600', isAction: true, border: '2px dashed #9e5600' },
+        Object.assign({ code: 'SV · Swedish', lang: 'sv', heading: 'Lax & ris Adult' }, clear),
+        Object.assign({ code: 'FI · Finnish', lang: 'fi', heading: 'Lohi & riisi Adult' }, clear)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
