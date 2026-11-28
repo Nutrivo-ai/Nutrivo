@@ -37,11 +37,11 @@ a drill is a missed one. On the 2nd, a scheduled run of the same workflow also o
    - run SQL: `POST /v1/projects/{ref}/database/query` (read-only checks, and the one `cron.unschedule` write);
    - delete projects: `DELETE /v1/projects/{ref}` (the copy, after a passing drill).
    GitHub → Settings → Environments → `production` → set the secret `SUPABASE_DRILL_ACCESS_TOKEN` to it.
-4. Actions → `restore-drill` → Run workflow, with the copy's ref and the point in time.
-5. Afterwards, revoke the token in Supabase. The script refuses to start without it, and refuses it when it is the
-   prod deploy token; prod itself is only ever read, with the deploy token, and the guard still refuses prod's ref and
-   name, another organisation, another region and any project older than 48 hours.
-6. The workflow does the following:
+4. Actions → `restore-drill` → Run workflow, with the copy's ref and the point in time. The script refuses to start
+   without the drill token, and refuses it when it is the prod deploy token; prod itself is only ever read, with the
+   deploy token, and the guard still refuses prod's ref and name, another organisation, another region and any
+   project older than 48 hours.
+5. The workflow does the following:
    - It refuses to run unless a repository admin started it.
    - It refuses any project that is not a fresh drill copy: never prod's ref or name, the same organisation,
      eu-central-1, created in the last 48 hours.
@@ -58,8 +58,10 @@ a drill is a missed one. On the 2nd, a scheduled run of the same workflow also o
      labelled `restore-drill`.
    - When the drill fails it keeps the copy and opens an issue labelled `restore-drill` and `needs-human`.
    - When the start is refused (not a repository admin), nothing is recorded.
-7. After a failed drill, read the failures, fix the cause, and delete the copy by hand (Supabase → project →
+6. After a failed drill, read the failures, fix the cause, and delete the copy by hand (Supabase → project →
    Settings → Delete project).
+7. Once the run has finished, passed or failed: revoke the drill token in Supabase (Account → Access Tokens) and
+   delete the `SUPABASE_DRILL_ACCESS_TOKEN` environment secret, so neither outlives the drill.
 
 The issue holds counts and timestamps, never row data.
 

@@ -38,8 +38,8 @@ class FakeApi:
         }
         self.rows.update(over.pop("rows", {}))
         self.delete_status = over.pop("delete_status", 200)
-        self.flaky = over.pop("flaky", [])
-        self.tokens = []  # (ref, method, token) per call  # statuses or exceptions answered before the real answer
+        self.flaky = over.pop("flaky", [])  # statuses or exceptions answered before the real answer
+        self.tokens = []  # (ref, method, token) per call
 
     def __call__(self, method, url, token, data=None, timeout=60):
         self.calls.append((method, url, data))
