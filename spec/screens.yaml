@@ -78,6 +78,191 @@ screens:
     data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps]
     states: [loaded, empty, loading, error, no-permission]
     baseline: apps/web/tests/visual/baselines/S-NV2-003.png
+    notes: ["Its page content is superseded by Fix mode (S-FIX-001, D-33, T-1114)."]
+  # ── Fix mode (D-33, T-1114): claude.ai Design artifact ToKmnp78mwU6P1UFgpVHM4, 27 Nov 2026 ─────────────────────────────
+  - id: S-FIX-001
+    title: Label report as Fix mode
+    kind: app
+    design: "product/Nutrivo Fix Mode.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded, empty, loading, error, no-permission]
+    baseline: apps/web/tests/visual/baselines/S-FIX-001.png
+    notes: ["The label's panels beside the checklist; only the selected market's language panels carry a state chip, the others read 'Not a [language]-language panel'. The heading counts fixes and Not assessed items ('2 fixes left in Germany · 1 not assessed') and says 'before Germany is label clear' only when nothing is Not assessed; pin and finding select each other (aria-pressed); zoom 50 to 150 percent.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-002
+    title: Fix mode on a phone, every state
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Mobile States.dc.html"
+    state: {}
+    element: {css: 'div[style*="width: 5630px"]', nth: 0}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [390]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded, empty, loading, error, no-permission]
+    baseline: apps/web/tests/visual/baselines/S-FIX-002.png
+    notes: ["The checklist only; View label opens the artwork full screen with its pins.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-003
+    title: Fix mode, all label clear
+    kind: moment
+    design: "product/Nutrivo Fix Mode - All Clear.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-FIX-003.png
+    notes: ["Only when nothing is open and nothing is Not assessed for the market.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-004
+    title: Fix mode, superseded
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Superseded.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-FIX-004.png
+    notes: ["Read-only: a newer check of the product and market exists.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-005
+    title: Fix mode, older ruleset
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Older Ruleset.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-FIX-005.png
+    notes: ["Re-check calls app.request_check against the latest released ruleset.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-006
+    title: Fix mode, a panel not read
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Extraction Failed.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-FIX-006.png
+    notes: ["Retry reading calls app.retry_extraction; the other panels' results stay.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-007
+    title: Fix mode, a model judgement abstained
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Model Abstained.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-FIX-007.png
+    notes: ["Abstention is withheld and shows as Not assessed, never passed (non-negotiable 6).", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-008
+    title: Fix mode, re-checking after a revision
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Rechecking.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-FIX-008.png
+    notes: ["The banner links to Check in progress (S-CHK-001).", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-009
+    title: Fix mode, never checked
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Never Checked.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [empty]
+    baseline: apps/web/tests/visual/baselines/S-FIX-009.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-010
+    title: Fix mode, loading
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Loading.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loading]
+    baseline: apps/web/tests/visual/baselines/S-FIX-010.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-011
+    title: Fix mode, error
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Error.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [error]
+    baseline: apps/web/tests/visual/baselines/S-FIX-011.png
+    notes: ["The request id is the response's, never a made-up one.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-012
+    title: Fix mode, no permission
+    kind: moment
+    design: "product/Nutrivo Fix Mode - No Permission.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [no-permission]
+    baseline: apps/web/tests/visual/baselines/S-FIX-012.png
+    notes: ["No 'Request access': it has no flow behind it.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
+  - id: S-FIX-013
+    title: Fix mode, not assessed
+    kind: moment
+    design: "product/Nutrivo Fix Mode - Not Assessed.dc.html"
+    state: {}
+    route: /w/[workspace]/products/[product]/report
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [D07, D08]
+    data: [app.checks, app.check_findings, app.text_objects, app.artwork_panels, ref.coverage_gaps, ref.term_entries]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-FIX-013.png
+    notes: ["Nothing open, but an item is Not assessed, so the market reads Not assessed in grey, never Label clear (docs/05: label_state is not_assessed when anything was withheld).", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail. Rule keys, citations, the ruleset version, the artwork hash, dates and confidence come from the engine and the data, never from the design's placeholders; the label is the product's own artwork with pins placed from check_findings.bbox_mm.", "Each finding shows its real provenance value (deterministic_rule, model_judgement with its confidence, authored_definition, not_assessed) and its rule_key or gap_id. Printed text is quoted from the panel's text objects with lang set to the panel's language, never translated.", "Copy required term appears only for an accepted ref.term_entries wording in the panel's language; otherwise 'No accepted wording · see the rule and citation' and Upload revision is the finding's primary action (one primary action per item).", "A finding with no bbox_mm (something missing) has no pin: it heads its panel's group as 'Missing from this panel' and outlines the panel.", "Pins and findings clear only through a new check of a new artwork version; there is no mark-as-done. Assign and Send to expert are not built before release 1.5.", "A panel that is not assessable (docs/06 failure codes) withholds every rule that reads its text, so its markets cannot read Label clear until it is read again (engine, docs/05)."]
   - id: S-NV2-004
     title: Brief & formula
     kind: app
@@ -118,6 +303,163 @@ screens:
     data: [app.product_nodes, app.rollup_state, ref.jurisdictions]
     states: [loaded, empty, loading, error, no-permission]
     baseline: apps/web/tests/visual/baselines/S-NV2-006.png
+    notes: ["Its page content is superseded by the product matrix (S-MTX-001, D-33, T-1113)."]
+  # ── Board as the product matrix (D-33, T-1113): claude.ai Design artifact ToKmnp78mwU6P1UFgpVHM4, 27 Nov 2026 ──────────
+  - id: S-MTX-001
+    title: Board as the product matrix
+    kind: app
+    design: "product/Nutrivo Board.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loaded, empty, loading, error, no-permission]
+    baseline: apps/web/tests/visual/baselines/S-MTX-001.png
+    notes: ["Products by markets with sticky headers (role=grid, roving tabindex, arrow keys, Home and End, Enter opens), market and state filters, comfortable and compact density, and the legend. The frame shows the focus ring on one cell.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-002
+    title: Board on a phone, every state
+    kind: moment
+    design: "product/Nutrivo Board - Mobile States.dc.html"
+    state: {}
+    element: {css: 'div[style*="width: 3480px"]', nth: 0}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [390]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loaded, empty, loading, error, no-permission]
+    baseline: apps/web/tests/visual/baselines/S-MTX-002.png
+    notes: ["One product per card with its markets listed; tapping a market opens what its desktop cell opens.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-003
+    title: Board, a product never checked
+    kind: moment
+    design: "product/Nutrivo Board - Never Checked.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-MTX-003.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-004
+    title: Board, a market outside the plan
+    kind: moment
+    design: "product/Nutrivo Board - Outside Plan.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-MTX-004.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-005
+    title: Board, filtered
+    kind: moment
+    design: "product/Nutrivo Board - Filtered.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-MTX-005.png
+    notes: ["'Showing n of N products · Clear filters' while a filter is on.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-006
+    title: Board, compact
+    kind: moment
+    design: "product/Nutrivo Board - Compact.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-MTX-006.png
+    notes: ["Compact is 40 px rows on one line; comfortable stays the default.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-007
+    title: Board at 50 products by 30 markets
+    kind: moment
+    design: "product/Nutrivo Board - Scale.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-MTX-007.png
+    notes: ["Proves the sticky headers. Most of its columns are Not assessed because only four markets are encoded at launch: accurate, and not for marketing.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-008
+    title: Board, no products yet
+    kind: moment
+    design: "product/Nutrivo Board - Empty.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [empty]
+    baseline: apps/web/tests/visual/baselines/S-MTX-008.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-009
+    title: Board, loading
+    kind: moment
+    design: "product/Nutrivo Board - Loading.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [loading]
+    baseline: apps/web/tests/visual/baselines/S-MTX-009.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-010
+    title: Board, error
+    kind: moment
+    design: "product/Nutrivo Board - Error.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [error]
+    baseline: apps/web/tests/visual/baselines/S-MTX-010.png
+    notes: ["The error reference is the response's request id, never a made-up one.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
+  - id: S-MTX-011
+    title: Board, no permission
+    kind: moment
+    design: "product/Nutrivo Board - No Permission.dc.html"
+    state: {}
+    route: /w/[workspace]/board
+    role: viewer
+    scope: build
+    viewports: [1600]
+    workflows: [F01, F04]
+    data: [app.product_nodes, app.checks, app.check_findings, ref.jurisdictions, ref.coverage_gaps]
+    states: [no-permission]
+    baseline: apps/web/tests/visual/baselines/S-MTX-011.png
+    notes: ["No 'Request access': it has no flow behind it.", "Build notes (review, 27 Nov 2026, founder's go-ahead): page content only, inside the built rail; the design's demo names and registration values are illustrative, never built as data.", "Each cell keeps two lines, never merged: the label line from app.product_nodes.label_state (Label clear; Action needed with the count of open findings of that market's latest check; Not assessed, linking its coverage gap) and the registration line from registration_state. When display_state is blocked (registration not_registered or expired, docs/03) the red Blocked chip, naming which, replaces the registration line; the label line stays.", "'Not checked yet' means no check of the product reached that market (no ruleset_version on its product_nodes row). It is grey text, not a state, and the cell opens the product page (S-MOB-002); a grid click never queues a check.", "Columns are the markets of the workspace's product_nodes. A product not sold in a column's market gets an empty, inert cell ('Not a market for this product' to screen readers). A column outside the plan appears only for a market a product still holds outside the workspace's entitled_regions: disabled cells, Upgrade in the header.", "The old board's region roll-up cells are not in the matrix: the region roll-up stays on S-MOB-002 and board_rollup's product_state on S-MOB-001. T-1113 updates the board paragraph of docs/04 with the build.", "Add a product and Upload a label show only to people who may create products (private.can_create_product); viewers get neither, so no dead controls.", "Counts only: 'n of m products label clear' per column, where m counts the products checked in that market; row summaries count markets. No score or percentage."]
   - id: S-NV2-007
     title: Product × node
     kind: app
@@ -484,7 +826,7 @@ screens:
     data: [edge:verify, public.verify_reference]
     states: [loaded, loading, error]
     baseline: apps/web/tests/visual/baselines/S-NV2-027.png
-    notes: ["Drawn inside the app shell; the public page has no rail. How much of the frame the route compares against is open."]
+    notes: ["Drawn inside the app shell; the public page has no rail. How much of the frame the route compares against is open.", "Its page content is superseded by /verify (S-WEB-003 to 009, D-33, T-1116)."]
   - id: S-NV2-028
     title: Supplier portal
     kind: public
@@ -1238,6 +1580,134 @@ screens:
     notes: ["The EmptyState and ErrorState components every screen uses (docs/20 §5)."]
 
   # ── Public surfaces (T-603) ──────────────────────────────────────────────────────────────────────────────────
+  # Public site and /verify (D-33, T-1116): claude.ai Design artifact ToKmnp78mwU6P1UFgpVHM4, 27 Nov 2026
+  - id: S-WEB-001
+    title: Public home
+    kind: public
+    design: "public/Nutrivo Site.dc.html"
+    state: {}
+    route: /
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [P01, P02]
+    data: [public.coverage_snapshot]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-WEB-001.png
+    notes: ["Hero with three language panels of the demo pack, how it works, what Not assessed means, the verifiable report, a pricing teaser and the footer (Status, DPA, Sub-processors, Privacy, Imprint, Contact).", "Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-002
+    title: Public home and /verify on a phone
+    kind: public
+    design: "public/Nutrivo Site - Mobile States.dc.html"
+    state: {}
+    element: {css: 'div[style*="width: 3480px"]', nth: 0}
+    route: /
+    role: anon
+    scope: build
+    viewports: [390]
+    workflows: [P01, I04]
+    data: [public.coverage_snapshot, edge:verify]
+    states: [loaded, loading, error]
+    baseline: apps/web/tests/visual/baselines/S-WEB-002.png
+    notes: ["The hero stacks and its panels become a scroll-snap carousel whose dots are buttons; reduced motion jumps instead of scrolling.", "Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-003
+    title: Verify a report
+    kind: public
+    design: "public/Nutrivo Verify.dc.html"
+    state: {}
+    route: /verify
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [I04]
+    data: [edge:verify]
+    states: [empty]
+    baseline: apps/web/tests/visual/baselines/S-WEB-003.png
+    notes: ["The form posts to /verify/[ref]; the input is monospaced, with no autocomplete or spellcheck, and its help line is linked by aria-describedby.", "Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-004
+    title: Verify, current
+    kind: public
+    design: "public/Nutrivo Verify - Verified.dc.html"
+    state: {}
+    route: /verify/[ref]
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [I04]
+    data: [edge:verify, public.verify_reference]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-WEB-004.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-005
+    title: Verify, superseded
+    kind: public
+    design: "public/Nutrivo Verify - Superseded.dc.html"
+    state: {}
+    route: /verify/[ref]
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [I04]
+    data: [edge:verify, public.verify_reference]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-WEB-005.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-006
+    title: Verify, no verified report
+    kind: public
+    design: "public/Nutrivo Verify - Not Found.dc.html"
+    state: {}
+    route: /verify/[ref]
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [I04]
+    data: [edge:verify, public.verify_reference]
+    states: [loaded]
+    baseline: apps/web/tests/visual/baselines/S-WEB-006.png
+    notes: ["The function answers exactly {status: unknown} for a missing or malformed reference: no guess, no close match.", "Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-007
+    title: Verify, too many attempts
+    kind: public
+    design: "public/Nutrivo Verify - Rate Limited.dc.html"
+    state: {}
+    route: /verify/[ref]
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [I04]
+    data: [edge:verify]
+    states: [error]
+    baseline: apps/web/tests/visual/baselines/S-WEB-007.png
+    notes: ["The function's 429 with Retry-After.", "Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-008
+    title: Verify, unavailable
+    kind: public
+    design: "public/Nutrivo Verify - Unavailable.dc.html"
+    state: {}
+    route: /verify/[ref]
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [I04]
+    data: [edge:verify]
+    states: [error]
+    baseline: apps/web/tests/visual/baselines/S-WEB-008.png
+    notes: ["The function's 503.", "Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
+  - id: S-WEB-009
+    title: Verify, loading
+    kind: public
+    design: "public/Nutrivo Verify - Loading.dc.html"
+    state: {}
+    route: /verify/[ref]
+    role: anon
+    scope: build
+    viewports: [1600]
+    workflows: [I04]
+    data: [edge:verify]
+    states: [loading]
+    baseline: apps/web/tests/visual/baselines/S-WEB-009.png
+    notes: ["Build notes (review, 27 Nov 2026, founder's go-ahead): the hero shows real engine output on demo data only (D-33); the placeholders [n], [reference], [date], [version], [price], [allowance] and [QR code] are filled from the engine, the report and config/pricing.ts, never invented. No proof bar, logos or testimonials until real ones exist.", "/verify shows only what the verify function returns: status, issue date, ruleset version and whether Not assessed items existed; never the product, company or markets. Superseded means a rule the report relied on changed after it was issued (app.supersede_for_rule_diff), so its copy reads 'The rules behind this report have changed since it was issued. It was current when issued.', not 'A newer result exists'.", "The reference is printed in the footer of every page of the report (worker/src/nutrivo_worker/reporting/label_report_v2.py) and the report carries no QR code yet, so the help line reads 'The reference is printed in the footer of every page of the report.' and the sample report shows no QR code until the report has one."]
   - id: S-LND-001
     title: Landing page
     kind: public
@@ -1251,7 +1721,7 @@ screens:
     data: [public.coverage_snapshot]
     states: [loaded, error]
     baseline: apps/web/tests/visual/baselines/S-LND-001.png
-    notes: ["Animated: the baseline is the first frame after load. Invented claims are removed when built (D-19). See Q5."]
+    notes: ["Animated: the baseline is the first frame after load. Invented claims are removed when built (D-19). See Q5.", "Its page content is superseded by the public home (S-WEB-001, D-33, T-1116)."]
   - id: S-PRC-001
     title: Pricing page
     kind: public

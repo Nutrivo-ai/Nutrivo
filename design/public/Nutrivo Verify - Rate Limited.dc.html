@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Verify (ratelimit) · Nutrivo</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Instrument+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ffffff}
+a{color:#2f5eff}a:hover{color:#1f49d9}
+:focus-visible{outline:2px solid #2f5eff;outline-offset:2px}
+</style>
+</helmet>
+<div style="font-family:'Instrument Sans',system-ui,sans-serif;color:#101216;background:#ffffff;min-height:100vh;display:flex;flex-direction:column">
+<header style="border-bottom:1px solid #dde0e6">
+<div style="max-width:1280px;margin:0 auto;padding:16px 40px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px">
+<a href="#" style="font-weight:700;font-size:20px;color:#101216;text-decoration:none">Nutrivo</a>
+<nav aria-label="Main" style="display:flex;flex-wrap:wrap;align-items:center;gap:8px 28px;font-size:15px">
+<a href="#" style="color:#101216;text-decoration:none">Pricing</a>
+<a href="#" aria-current="page" style="color:#101216;text-decoration:none;font-weight:600">Verify a report</a>
+<a href="#" style="color:#101216;text-decoration:none;padding:9px 16px;border:1px solid #dde0e6;border-radius:8px">Sign in</a>
+</nav>
+</div>
+</header>
+
+<main style="flex:1;width:100%;max-width:720px;margin:0 auto;padding:72px 32px 80px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px">
+<div style="display:flex;flex-direction:column;gap:10px">
+<h1 style="margin:0;font-size:40px;font-weight:600;letter-spacing:-0.02em">Verify a report</h1>
+<p style="margin:0;font-size:17px;line-height:1.5;color:#5f6570">Check whether a Nutrivo label report is current. No account needed.</p>
+</div>
+
+<form onSubmit="{{submit}}" style="display:flex;flex-direction:column;gap:8px">
+<label for="ref" style="font-size:15px;font-weight:600">Report reference</label>
+<div style="display:flex;flex-wrap:wrap;gap:10px">
+<input id="ref" name="ref" value="{{refValue}}" onChange="{{onRef}}" aria-describedby="ref-help" autocomplete="off" spellcheck="false" style="flex:1 1 320px;font-family:'IBM Plex Mono',monospace;font-size:17px;padding:12px 14px;min-height:48px;box-sizing:border-box;border:1px solid #5f6570;border-radius:8px;color:#101216">
+<button type="submit" style="flex:0 0 140px;font:inherit;font-size:16px;font-weight:600;min-height:48px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff;cursor:pointer">Verify</button>
+</div>
+<span id="ref-help" style="font-size:14px;color:#5f6570">The reference is printed at the top of every report, next to its QR code.</span>
+</form>
+
+<sc-if value="{{hasResult}}" hint-placeholder-val="{{false}}">
+<section aria-live="polite" aria-labelledby="res-h" style="border:1px solid #dde0e6;border-radius:12px;padding:28px;display:flex;flex-direction:column;gap:16px;background:{{resBg}}">
+<div style="display:flex;gap:14px;align-items:flex-start">
+<span style="flex:0 0 28px;padding-top:2px">
+<sc-if value="{{isVerified}}" hint-placeholder-val="{{false}}"><svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="#101216" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8.2l2 2 4-4.2"></path></svg></sc-if>
+<sc-if value="{{isSuperseded}}" hint-placeholder-val="{{false}}"><svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="#101216" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M8 4.5V8l2.5 1.5"></path></svg></sc-if>
+<sc-if value="{{isNeutral}}" hint-placeholder-val="{{false}}"><svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="#101216" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M8 4.8v4M8 10.8v.4"></path></svg></sc-if>
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}"><svg width="28" height="28" viewBox="0 0 16 16" fill="none" stroke="#5f6570" stroke-width="1.4" stroke-dasharray="2 2" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle></svg></sc-if>
+</span>
+<div style="display:flex;flex-direction:column;gap:6px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">{{eyebrow}}</span>
+<h2 id="res-h" role="{{resRole}}" style="margin:0;font-size:24px;line-height:1.25;font-weight:600">{{title}}</h2>
+<sc-if value="{{hasSub}}" hint-placeholder-val="{{false}}"><p style="margin:0;font-size:16px;line-height:1.5;color:#5f6570">{{sub}}</p></sc-if>
+</div>
+</div>
+<sc-if value="{{hasFields}}" hint-placeholder-val="{{false}}">
+<dl style="margin:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;border-top:1px solid #dde0e6;padding-top:16px">
+<div style="display:flex;flex-direction:column;gap:2px"><dt style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase">Reference</dt><dd style="margin:0;font-family:'IBM Plex Mono',monospace;font-size:15px">[reference]</dd></div>
+<div style="display:flex;flex-direction:column;gap:2px"><dt style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase">Issued</dt><dd style="margin:0;font-size:15px">[date]</dd></div>
+<div style="display:flex;flex-direction:column;gap:2px"><dt style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase">Ruleset</dt><dd style="margin:0;font-size:15px">[version]</dd></div>
+</dl>
+<sc-if value="{{listsNA}}" hint-placeholder-val="{{false}}"><span style="align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:6px;background:#f1f2f4;color:#5f6570;font-size:14px;font-weight:600"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8h6"></path></svg>Lists items not assessed</span></sc-if>
+</sc-if>
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}"><div aria-busy="true" style="display:flex;flex-direction:column;gap:8px"><div style="height:12px;width:60%;border-radius:4px;background:#f4f5f7"></div><div style="height:12px;width:40%;border-radius:4px;background:#f4f5f7"></div></div></sc-if>
+</section>
+<p style="margin:0;font-size:14px;line-height:1.5;color:#5f6570">Nutrivo reports are generated automatically. They’re not a certificate, an authority’s decision or legal advice.</p>
+</sc-if>
+</main>
+
+<footer style="border-top:1px solid #dde0e6">
+<div style="max-width:1280px;margin:0 auto;padding:28px 40px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px;align-items:center">
+<span style="font-weight:700">Nutrivo</span>
+<nav aria-label="Footer" style="display:flex;flex-wrap:wrap;gap:8px 24px;font-size:14px"><a href="#" style="color:#5f6570">Status</a><a href="#" style="color:#5f6570">DPA</a><a href="#" style="color:#5f6570">Sub-processors</a><a href="#" style="color:#5f6570">Privacy</a><a href="#" style="color:#5f6570">Imprint</a><a href="#" style="color:#5f6570">Contact</a></nav>
+</div>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["entry","verified","superseded","notfound","ratelimit","unavailable","loading"],"default":"ratelimit"},"$preview":{"width":1600,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = this.state || {};
+    const v = st.v ?? (this.props.variant ?? 'ratelimit');
+    const R = {
+      verified: ['Verified', 'This report is current', '', true, true],
+      superseded: ['Superseded', 'A newer result exists', 'This report was current when issued.', true, false],
+      notfound: ['No verified report', 'We can’t find a report with this reference', 'Check the code and try again.', false, false],
+      ratelimit: ['Too many attempts', 'Try again in a minute', '', false, false],
+      unavailable: ['Service unavailable', 'Verification is unavailable right now', 'Try again shortly. Status is shown on the status page.', false, false],
+      loading: ['Checking', 'Checking the reference…', '', false, false]
+    }[v];
+    return {
+      refValue: st.ref ?? (v === 'entry' ? '' : '[reference]'),
+      onRef: (e) => this.setState({ ref: e.target.value }),
+      submit: (e) => { e.preventDefault(); this.setState({ v: 'verified' }); },
+      hasResult: !!R, eyebrow: R ? R[0] : '', title: R ? R[1] : '', sub: R ? R[2] : '', hasSub: !!(R && R[2]),
+      hasFields: !!(R && R[3]), listsNA: !!(R && R[4]),
+      isVerified: v === 'verified', isSuperseded: v === 'superseded', isNeutral: ['notfound', 'ratelimit', 'unavailable'].indexOf(v) >= 0, isLoading: v === 'loading',
+      resRole: ['notfound', 'ratelimit', 'unavailable'].indexOf(v) >= 0 ? 'alert' : 'status',
+      resBg: v === 'loading' ? '#ffffff' : '#ffffff'
+    };
+  }
+}
+</script>
+</body>
+</html>
