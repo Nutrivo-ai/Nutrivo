@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Board (compact) · Halden Pet Nutrition</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Instrument+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ffffff}
+a{color:#2f5eff}a:hover{color:#1f49d9}
+:focus-visible{outline:2px solid #2f5eff;outline-offset:2px}
+.nv-cell:focus-visible{outline:2px solid #2f5eff !important;outline-offset:-2px}
+.nv-cell:hover{background:#f4f5f7 !important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</helmet>
+<div style="font-family:'Instrument Sans',system-ui,sans-serif;color:#101216;background:#ffffff;min-height:100vh;box-sizing:border-box;padding:32px 40px 48px;display:flex;flex-direction:column;gap:20px">
+
+<header style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px">
+<div style="display:flex;flex-direction:column;gap:6px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">Board</span>
+<h1 style="margin:0;font-size:30px;font-weight:600;letter-spacing:-0.015em">Products and markets</h1>
+<p style="margin:0;font-size:15px;color:#5f6570">{{subline}}</p>
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button style="font:inherit;font-size:14px;font-weight:500;padding:10px 16px;min-height:44px;border:1px solid #dde0e6;background:#ffffff;color:#101216;border-radius:8px;cursor:pointer">Add a product</button>
+<button style="font:inherit;font-size:14px;font-weight:500;padding:10px 16px;min-height:44px;border:1px solid #dde0e6;background:#ffffff;color:#101216;border-radius:8px;cursor:pointer">Upload a label</button>
+</div>
+</header>
+
+<sc-if value="{{showTools}}" hint-placeholder-val="{{true}}">
+<div role="toolbar" aria-label="Filters and density" style="display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:10px 0;border-top:1px solid #dde0e6;border-bottom:1px solid #dde0e6">
+<label style="display:flex;align-items:center;gap:8px;font-size:14px">Market
+<select value="{{market}}" onChange="{{onMarket}}" style="font:inherit;font-size:14px;padding:8px 10px;min-height:40px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;color:#101216">
+<option value="all">All markets</option>
+<sc-for list="{{marketOptions}}" as="o" hint-placeholder-count="5"><option value="{{o.code}}">{{o.name}} · {{o.code}}</option></sc-for>
+</select>
+</label>
+<div role="group" aria-label="State" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+<span style="font-size:14px;margin-right:2px">State</span>
+<sc-for list="{{chips}}" as="f" hint-placeholder-count="3">
+<button aria-pressed="{{f.pressed}}" onClick="{{f.toggle}}" style="font:inherit;font-size:13px;font-weight:500;padding:6px 12px;min-height:36px;border-radius:999px;border:1px solid {{f.border}};background:{{f.bg}};color:#101216;cursor:pointer">{{f.label}}</button>
+</sc-for>
+</div>
+<sc-if value="{{isFiltered}}" hint-placeholder-val="{{false}}"><span style="font-size:14px;color:#5f6570">Showing {{shownCount}} of {{totalCount}} products · <a href="#" onClick="{{clear}}">Clear filters</a></span></sc-if>
+<div role="group" aria-label="Density" style="margin-left:auto;display:flex;border:1px solid #dde0e6;border-radius:8px;overflow:hidden">
+<button aria-pressed="{{comfyPressed}}" onClick="{{setComfy}}" style="font:inherit;font-size:13px;padding:8px 12px;min-height:36px;border:0;background:{{comfyBg}};color:#101216;cursor:pointer">Comfortable</button>
+<button aria-pressed="{{compactPressed}}" onClick="{{setCompact}}" style="font:inherit;font-size:13px;padding:8px 12px;min-height:36px;border:0;border-left:1px solid #dde0e6;background:{{compactBg}};color:#101216;cursor:pointer">Compact</button>
+</div>
+</div>
+</sc-if>
+
+<sc-if value="{{showGrid}}" hint-placeholder-val="{{true}}">
+<div ref="{{setBox}}" style="border:1px solid #dde0e6;border-radius:10px;overflow:auto;max-height:{{boxMax}}">
+<div role="grid" aria-label="Products by market" aria-rowcount="{{ariaRows}}" aria-colcount="{{ariaCols}}" ref="{{setGrid}}" onKeyDown="{{onKey}}" style="display:flex;flex-direction:column;min-width:100%;width:max-content">
+
+<div role="row" style="display:grid;grid-template-columns:{{cols}};position:sticky;top:0;z-index:3;background:#ffffff;border-bottom:1px solid #dde0e6">
+<div role="columnheader" style="position:sticky;left:0;z-index:4;background:#ffffff;padding:{{headPad}};border-right:1px solid #dde0e6;display:flex;align-items:flex-end;font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.06em">Product</div>
+<sc-for list="{{markets}}" as="m" hint-placeholder-count="5">
+<div role="columnheader" style="padding:{{headPad}};display:flex;flex-direction:column;gap:3px;background:{{m.headBg}};border-left:1px solid #dde0e6">
+<div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:14px;font-weight:600;color:{{m.nameColor}}">{{m.name}}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570">{{m.code}}</span></div>
+<sc-if value="{{m.locked}}" hint-placeholder-val="{{false}}"><span style="font-size:12px;color:#5f6570">Not in your plan · <a href="#">Upgrade</a></span></sc-if>
+<sc-if value="{{m.none}}" hint-placeholder-val="{{false}}"><a href="#" style="font-size:12px;color:#5f6570">Not assessed · coverage gap</a></sc-if>
+<sc-if value="{{m.plain}}" hint-placeholder-val="{{true}}"><span style="font-size:12px;color:#5f6570">{{m.summary}}</span></sc-if>
+</div>
+</sc-for>
+</div>
+
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+<div role="row" style="display:grid;grid-template-columns:{{cols}};border-bottom:1px solid #dde0e6">
+<div role="rowheader" title="{{r.tip}}" style="position:sticky;left:0;z-index:1;background:#ffffff;padding:{{rowPad}};border-right:1px solid #dde0e6;display:flex;flex-direction:column;gap:3px;justify-content:center;min-width:0;overflow:hidden">
+<span style="display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{r.name}}</span>
+<sc-if value="{{showRowMeta}}" hint-placeholder-val="{{true}}"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{r.kind}}</span>
+<span style="font-size:12px;color:{{r.sumColor}};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{r.summary}}</span></sc-if>
+<sc-if value="{{compact}}" hint-placeholder-val="{{false}}"><span class="sr">{{r.tip}}</span></sc-if>
+</div>
+<sc-for list="{{r.cells}}" as="c" hint-placeholder-count="5">
+<div role="gridcell" style="border-left:1px solid #dde0e6;background:{{c.bg}};min-width:0">
+<sc-if value="{{c.inert}}" hint-placeholder-val="{{false}}"><div style="min-height:{{cellMin}};height:100%;box-sizing:border-box;padding:{{cellPad}};display:flex;align-items:center;color:#9aa0aa;font-size:13px"><span aria-hidden="true">–</span><span class="sr">Not a market for this product</span></div></sc-if>
+<sc-if value="{{c.active}}" hint-placeholder-val="{{true}}"><button class="nv-cell" data-cell="{{c.id}}" tabIndex="{{c.tab}}" aria-label="{{c.aria}}" disabled="{{c.locked}}" style="font:inherit;color:inherit;text-align:left;border:0;background:transparent;width:100%;height:100%;min-height:{{cellMin}};box-sizing:border-box;padding:{{cellPad}};display:flex;flex-direction:{{cellDir}};align-items:{{cellAlign}};gap:{{cellGap}};cursor:pointer;border-radius:4px;outline:{{c.ring}};outline-offset:-2px">
+<sc-if value="{{c.isClear}}" hint-placeholder-val="{{true}}"><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;background:#e6f2ec;color:#0f7a4d;font-size:13px;font-weight:600;white-space:nowrap"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8.2l2 2 4-4.2"></path></svg>Label clear</span></sc-if>
+<sc-if value="{{c.isAction}}" hint-placeholder-val="{{false}}"><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;background:#fdf0dd;color:#9e5600;font-size:13px;font-weight:600;white-space:nowrap"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 1.8l6.6 12H1.4z"></path><path d="M8 6.5v3.2M8 11.6v.4"></path></svg>Action needed · {{c.open}}</span></sc-if>
+<sc-if value="{{c.isNone}}" hint-placeholder-val="{{false}}"><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;background:#f1f2f4;color:#5f6570;font-size:13px;font-weight:600;white-space:nowrap;text-decoration:underline"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8h6"></path></svg>Not assessed</span></sc-if>
+<sc-if value="{{c.isNever}}" hint-placeholder-val="{{false}}"><span style="font-size:13px;color:#5f6570;white-space:nowrap">Not checked yet</span></sc-if>
+<sc-if value="{{c.locked}}" hint-placeholder-val="{{false}}"><span style="font-size:13px;color:#5f6570">–</span></sc-if>
+<sc-if value="{{c.blocked}}" hint-placeholder-val="{{false}}"><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;background:#fbe8e7;color:#b3251f;font-size:12px;font-weight:600;white-space:nowrap"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M3.5 12.5l9-9"></path></svg>{{blockedText}}</span></sc-if>
+<sc-if value="{{c.showReg}}" hint-placeholder-val="{{true}}"><sc-if value="{{regFull}}" hint-placeholder-val="{{true}}"><span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;color:{{c.regColor}};white-space:nowrap"><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.06em;color:#5f6570">REG</span><span aria-hidden="true" style="font-family:'IBM Plex Mono',monospace;font-size:11px;width:12px;text-align:center">{{c.regGlyph}}</span>{{c.reg}}</span></sc-if><sc-if value="{{compact}}" hint-placeholder-val="{{false}}"><span title="{{c.regTitle}}" aria-hidden="true" style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:{{c.regColor}};width:14px;text-align:center">{{c.regGlyph}}</span></sc-if></sc-if>
+</button></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div aria-label="Legend" style="display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;font-size:13px;color:#101216">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.06em">Label</span>
+<span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;background:#e6f2ec;color:#0f7a4d;font-weight:600"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8.2l2 2 4-4.2"></path></svg>Label clear</span>
+<span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;background:#fdf0dd;color:#9e5600;font-weight:600"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 1.8l6.6 12H1.4z"></path><path d="M8 6.5v3.2M8 11.6v.4"></path></svg>Action needed · n open</span>
+<span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;background:#f1f2f4;color:#5f6570;font-weight:600"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8h6"></path></svg>Not assessed (links to coverage gap)</span>
+<span style="color:#5f6570">Not checked yet (no check run)</span>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.06em;margin-left:12px">Registration</span>
+<span>✓ Registered</span><span style="color:#5f6570">– Not required</span><span style="color:#5f6570">? Unknown</span>
+<span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;background:#fbe8e7;color:#b3251f;font-weight:600"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M3.5 12.5l9-9"></path></svg>Blocked (registration blocks sale)</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isLoading}}" hint-placeholder-val="{{false}}">
+<div aria-busy="true" style="border:1px solid #dde0e6;border-radius:10px;overflow:hidden">
+<sc-for list="{{skel}}" as="s" hint-placeholder-count="7"><div style="display:grid;grid-template-columns:300px repeat(5,minmax(0,1fr));border-bottom:1px solid #dde0e6"><div style="padding:18px 20px;border-right:1px solid #dde0e6;display:flex;flex-direction:column;gap:8px"><div style="height:12px;width:70%;border-radius:4px;background:#f4f5f7"></div><div style="height:10px;width:45%;border-radius:4px;background:#f4f5f7"></div></div><sc-for list="{{skel5}}" as="k" hint-placeholder-count="5"><div style="padding:18px 16px;border-left:1px solid #dde0e6"><div style="height:20px;width:100px;border-radius:6px;background:#f4f5f7"></div></div></sc-for></div></sc-for>
+</div>
+<span role="status" style="font-size:14px;color:#5f6570">Loading the board…</span>
+</sc-if>
+
+<sc-if value="{{isError}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="border:1px solid #dde0e6;border-radius:10px;padding:40px;background:#f4f5f7;display:flex;flex-direction:column;gap:12px;max-width:640px">
+<h2 style="margin:0;font-size:20px;font-weight:600">The board didn’t load</h2>
+<p style="margin:0;font-size:15px;line-height:1.5;color:#5f6570">Nothing has changed in your results. This page couldn’t reach them.</p>
+<div><button style="font:inherit;font-size:14px;font-weight:600;padding:10px 16px;min-height:44px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff;cursor:pointer">Try again</button></div>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570">Error reference · [request id]</span>
+</div>
+</sc-if>
+
+<sc-if value="{{isNoPerm}}" hint-placeholder-val="{{false}}">
+<div style="border:1px solid #dde0e6;border-radius:10px;padding:40px;display:flex;flex-direction:column;gap:12px;max-width:640px">
+<h2 style="margin:0;font-size:20px;font-weight:600">You don’t have access to this workspace’s board</h2>
+<p style="margin:0;font-size:15px;line-height:1.5;color:#5f6570">A workspace admin can give you access to its products and markets.</p>
+</div>
+</sc-if>
+
+<sc-if value="{{isEmpty}}" hint-placeholder-val="{{false}}">
+<div style="border:1px solid #dde0e6;border-radius:12px;padding:56px 48px;display:flex;flex-direction:column;gap:16px;align-items:flex-start">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">No products yet</span>
+<h2 style="margin:0;font-size:26px;font-weight:600;letter-spacing:-0.01em">Add a product to see it against every market</h2>
+<p style="margin:0;font-size:16px;line-height:1.5;color:#5f6570;max-width:560px">Each product gets a row, each market it targets a column, with the label state and registration in every cell.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+<button style="font:inherit;font-size:15px;font-weight:600;padding:12px 20px;min-height:44px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff;cursor:pointer">Add a product</button>
+<button style="font:inherit;font-size:15px;font-weight:500;padding:12px 20px;min-height:44px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;color:#101216;cursor:pointer">Upload a label</button>
+</div>
+</div>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["loaded","never","plan","filtered","compact","scale","loading","error","noperm","empty"],"default":"compact"},"$preview":{"width":1600,"height":760}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const v = this.props.variant ?? 'compact';
+    const st0 = this.state || {};
+    const st = Object.assign({}, st0, { fr: st0.fr ?? 0, fc: st0.fc ?? 3 });
+    const compact = st.compact ?? (v === 'compact' || v === 'scale');
+    const filter = st.filter ?? (v === 'filtered' ? 'action' : null);
+    const market = st.market ?? 'all';
+    let products = [
+      ['Salmon & Rice Adult 12 kg', 'Dog · complete feed'], ['Lamb & Potato Senior 6 kg', 'Dog · complete feed'],
+      ['Indoor Cat Chicken 2 kg', 'Cat · complete feed'], ['Kitten Chicken & Turkey 400 g', 'Cat · complete feed'],
+      ['Duck Training Treats 150 g', 'Dog · treat'], ['Joint Support Mixer 400 g', 'Dog · complementary feed']
+    ];
+    let markets = [['Sweden', 'SE'], ['Denmark', 'DK'], ['Finland', 'FI'], ['Germany', 'DE'], ['Norway', 'NO', 'none']];
+    if (v === 'never') products.push(['Senior Cat Salmon 1.5 kg', 'Cat · complete feed', 'never']);
+    if (v === 'plan') markets.push(['Netherlands', 'NL', 'locked']);
+    if (v === 'scale') {
+      const extra = [['Austria','AT'],['Belgium','BE'],['Bulgaria','BG'],['Croatia','HR'],['Cyprus','CY'],['Czechia','CZ'],['Estonia','EE'],['France','FR'],['Greece','GR'],['Hungary','HU'],['Iceland','IS'],['Ireland','IE'],['Italy','IT'],['Latvia','LV'],['Lithuania','LT'],['Luxembourg','LU'],['Malta','MT'],['Netherlands','NL'],['Poland','PL'],['Portugal','PT'],['Romania','RO'],['Slovakia','SK'],['Slovenia','SI'],['Spain','ES'],['Switzerland','CH']];
+      markets = markets.concat(extra.map((m) => [m[0], m[1], 'none']));
+      const sp = [['Dog', ['Salmon & Rice', 'Lamb & Potato', 'Chicken & Oats', 'Turkey & Barley', 'Duck & Pea', 'Beef & Sweet Potato', 'White Fish & Rice']], ['Cat', ['Chicken', 'Salmon', 'Turkey', 'Duck', 'Ocean Fish', 'Rabbit']]];
+      const stage = ['Adult', 'Senior', 'Puppy', 'Light', 'Sensitive'];
+      const out = [];
+      let i = 0;
+      while (out.length < 50) {
+        const s = sp[i % 2], r = s[1][i % s[1].length], g = stage[Math.floor(i / 3) % stage.length];
+        const size = s[0] === 'Dog' ? ['12 kg', '6 kg', '2 kg'][i % 3] : ['2 kg', '400 g', '1.5 kg'][i % 3];
+        const name = (s[0] === 'Cat' && g === 'Puppy' ? 'Kitten' : g) + ' ' + r + ' ' + size;
+        if (!out.find((p) => p[0] === name)) out.push([name, s[0] + ' · complete feed']);
+        i++;
+      }
+      products = products.concat(out.slice(0, 44));
+    }
+    const action = { '0DE': 2, '1DE': 1, '2SE': 1 };
+    const notSold = { '5DK': 1 };
+    if (v === 'scale') { action['9DE'] = 2; action['14SE'] = 1; action['23FI'] = 1; action['31DK'] = 1; action['40DE'] = 1; }
+    const regBase = { SE: 'Registered', DK: 'Not required', FI: 'Registered', DE: 'Registered', NO: 'Unknown' };
+    const regOver = { '3SE': 'Unknown', '5SE': 'Unknown', '2FI': 'Unknown', '5DE': 'Unknown', '4FI': 'Expired' };
+    const glyph = { Registered: '✓', 'Not registered': '○', Expired: '◷', 'Not required': '–', Unknown: '?' };
+    const muted = { 'Not required': 1, Unknown: 1 };
+    const self = this;
+    const cellOf = (pi, p, m) => {
+      const code = m[1], locked = m[2] === 'locked', none = m[2] === 'none', never = p[2] === 'never';
+      if (notSold[pi + code]) return { kind: 'notsold', inert: true, labelText: 'Not a market for this product', locked: false, reg: '' };
+      const open = action[pi + code];
+      const reg = locked ? '' : (regOver[pi + code] || regBase[code] || 'Unknown');
+      const blocked = reg === 'Expired' && code === 'FI';
+      const kind = locked ? 'locked' : never ? 'never' : none ? 'none' : open ? 'action' : 'clear';
+      const labelText = { locked: 'Not in your plan', never: 'Not checked yet', none: 'Not assessed', action: 'Action needed, ' + open + ' open', clear: 'Label clear' }[kind];
+      return { kind, open, reg, blocked, labelText, locked };
+    };
+    const allRows = products.map((p, pi) => ({ p, pi, cells: markets.map((m) => cellOf(pi, p, m)) }));
+    const keep = allRows.filter((r) => !filter || r.cells.some((c) => (filter === 'action' && c.kind === 'action') || (filter === 'none' && c.kind === 'none') || (filter === 'blocked' && c.blocked)));
+    const mIdx = markets.map((m, i) => i).filter((i) => market === 'all' || markets[i][1] === market);
+    const shownMarkets = mIdx.map((i) => markets[i]);
+    const demoRing = v === 'loaded';
+    st.fr = Math.max(0, Math.min(st.fr, keep.length - 1)); st.fc = Math.max(0, Math.min(st.fc, shownMarkets.length - 1));
+    const rows = keep.map((r, ri) => {
+      const nAct = r.cells.filter((c) => c.kind === 'action').length, nBlk = r.cells.filter((c) => c.blocked).length;
+      const never = r.p[2] === 'never';
+      const parts = [];
+      if (nAct) parts.push(nAct + (nAct === 1 ? ' market' : ' markets') + ' with open items');
+      if (nBlk) parts.push(nBlk + ' blocked');
+      const summary = never ? 'Not checked yet' : parts.length ? parts.join(' · ') : 'No open items';
+      return {
+        name: r.p[0], kind: r.p[1], summary, tip: r.p[1] + ' · ' + summary, sumColor: parts.length ? '#101216' : '#5f6570',
+        cells: mIdx.map((mi, ci) => {
+          const c = r.cells[mi], m = markets[mi];
+          const focused = ri === st.fr && ci === st.fc;
+          return {
+            id: ri + '-' + ci, tab: focused ? 0 : -1, locked: c.locked, inert: !!c.inert, active: !c.inert, regTitle: 'Registration: ' + c.reg,
+            isClear: c.kind === 'clear', isAction: c.kind === 'action', isNone: c.kind === 'none', isNever: c.kind === 'never',
+            open: c.open + ' open', blocked: c.blocked, showReg: !c.locked && !c.blocked && !c.inert, reg: c.reg, regGlyph: glyph[c.reg] || '?',
+            regColor: muted[c.reg] ? '#5f6570' : '#101216', bg: c.locked ? '#f4f5f7' : '#ffffff',
+            ring: demoRing && focused ? '2px solid #2f5eff' : 'none',
+            aria: r.p[0] + ', ' + m[0] + ': ' + c.labelText + (c.locked ? '' : '. Registration: ' + (c.blocked ? 'Blocked, expired' : c.reg) + (c.kind === 'none' ? '. Open coverage gap' : c.kind === 'never' ? '. Run a check' : '. Open in Fix mode'))
+          };
+        })
+      };
+    });
+    const marketsOut = shownMarkets.map((m) => {
+      const mi = markets.indexOf(m);
+      const clear = allRows.filter((r) => r.cells[mi].kind === 'clear').length;
+      const checked = allRows.filter((r) => r.cells[mi].kind !== 'never' && r.cells[mi].kind !== 'notsold').length;
+      const locked = m[2] === 'locked', none = m[2] === 'none';
+      return { name: m[0], code: m[1], locked, none, plain: !locked && !none, summary: clear + ' of ' + checked + ' products label clear', headBg: locked ? '#f4f5f7' : '#ffffff', nameColor: locked ? '#5f6570' : '#101216' };
+    });
+    const tog = (k) => () => this.setState({ filter: filter === k ? false : k, fr: 0, fc: 0 });
+    const chipDef = [['action', 'Action needed'], ['none', 'Not assessed'], ['blocked', 'Blocked']];
+    const wide = shownMarkets.length > 5;
+    const col = compact ? (v === 'scale' ? 196 : 160) : (wide ? 200 : 212);
+    const gridOn = ['loaded', 'never', 'plan', 'filtered', 'compact', 'scale'].indexOf(v) >= 0;
+    return {
+      subline: 'Halden Pet Nutrition · ' + products.length + ' products · ' + markets.length + ' markets',
+      showTools: gridOn, showGrid: gridOn, isLoading: v === 'loading', isError: v === 'error', isNoPerm: v === 'noperm', isEmpty: v === 'empty',
+      skel: [1, 2, 3, 4, 5, 6], skel5: [1, 2, 3, 4, 5],
+      markets: marketsOut, rows, marketOptions: markets.filter((m) => m[2] !== 'locked').map((m) => ({ code: m[1], name: m[0] })), market,
+      compact, showRowMeta: !compact, regFull: !compact, blockedText: compact ? 'Blocked' : 'Blocked · registration expired',
+      cols: (compact || wide ? '260px' : '300px') + ' repeat(' + shownMarkets.length + ', minmax(' + col + 'px, 1fr))',
+      ariaRows: rows.length + 1, ariaCols: shownMarkets.length + 1,
+      headPad: compact ? '8px 12px' : '14px 16px', rowPad: compact ? '6px 14px' : '14px 20px',
+      cellPad: compact ? '6px 8px' : '12px 16px', cellDir: compact ? 'row' : 'column', cellAlign: compact ? 'center' : 'flex-start', cellGap: compact ? '6px' : '6px', cellMin: compact ? '40px' : '72px',
+      boxMax: v === 'scale' ? '620px' : 'none',
+      chips: chipDef.map((d) => ({ label: d[1], pressed: filter === d[0] ? 'true' : 'false', toggle: tog(d[0]), bg: filter === d[0] ? '#eef2ff' : '#ffffff', border: filter === d[0] ? '#2f5eff' : '#dde0e6' })),
+      isFiltered: !!filter || market !== 'all', shownCount: rows.length, totalCount: products.length,
+      clear: (e) => { e.preventDefault(); this.setState({ filter: false, market: 'all' }); },
+      onMarket: (e) => this.setState({ market: e.target.value, fc: 0 }),
+      comfyPressed: compact ? 'false' : 'true', compactPressed: compact ? 'true' : 'false', comfyBg: compact ? '#ffffff' : '#f4f5f7', compactBg: compact ? '#f4f5f7' : '#ffffff',
+      setComfy: () => this.setState({ compact: false }), setCompact: () => this.setState({ compact: true }),
+      setGrid: (el) => { self.grid = el; },
+      setBox: (el) => { if (el && v === 'scale' && !self.scrolled) { self.scrolled = true; setTimeout(() => { el.scrollTop = 560; el.scrollLeft = 1400; }, 300); } },
+      onKey: (e) => {
+        const maxR = rows.length - 1, maxC = shownMarkets.length - 1;
+        let r = st.fr, c = st.fc;
+        if (e.key === 'ArrowDown') r = Math.min(maxR, r + 1); else if (e.key === 'ArrowUp') r = Math.max(0, r - 1);
+        else if (e.key === 'ArrowRight') c = Math.min(maxC, c + 1); else if (e.key === 'ArrowLeft') c = Math.max(0, c - 1);
+        else if (e.key === 'Home') c = 0; else if (e.key === 'End') c = maxC; else return;
+        e.preventDefault();
+        const dr = r - st.fr, dc = c - st.fc;
+        const inert = (rr, cc) => rows[rr] && rows[rr].cells[cc] && rows[rr].cells[cc].inert;
+        while (inert(r, c) && (dr || dc)) { const nr = r + Math.sign(dr), nc = c + Math.sign(dc); if (nr < 0 || nr > maxR || nc < 0 || nc > maxC) { r = st.fr; c = st.fc; break; } r = nr; c = nc; }
+        if (inert(r, c)) { r = st.fr; c = st.fc; }
+        this.setState({ fr: r, fc: c }, () => { const b = self.grid && self.grid.querySelector('[data-cell="' + r + '-' + c + '"]'); if (b) b.focus(); });
+      }
+    };
+  }
+}
+</script>
+</body>
+</html>
