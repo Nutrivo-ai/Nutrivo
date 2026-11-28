@@ -280,6 +280,51 @@
    "path": "product/Nutrivo Today - Mobile States.dc.html",
    "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
    "size": 9347
+  },
+  {
+   "path": "public/Nutrivo Site.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 13247
+  },
+  {
+   "path": "public/Nutrivo Site - Mobile States.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 15922
+  },
+  {
+   "path": "public/Nutrivo Verify.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 8947
+  },
+  {
+   "path": "public/Nutrivo Verify - Verified.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 8955
+  },
+  {
+   "path": "public/Nutrivo Verify - Superseded.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 8961
+  },
+  {
+   "path": "public/Nutrivo Verify - Not Found.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 8955
+  },
+  {
+   "path": "public/Nutrivo Verify - Rate Limited.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 8958
+  },
+  {
+   "path": "public/Nutrivo Verify - Unavailable.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 8964
+  },
+  {
+   "path": "public/Nutrivo Verify - Loading.dc.html",
+   "artifact": "https://claude.ai/artifact/ToKmnp78mwU6P1UFgpVHM4",
+   "size": 8952
   }
  ]
 }
