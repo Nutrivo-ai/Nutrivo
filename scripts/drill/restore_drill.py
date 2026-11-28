@@ -16,10 +16,11 @@ It prints counts and timestamps, never row data or a secret. Everything goes thr
 tokens from the production environment:
   - SUPABASE_ACCESS_TOKEN, the deploy token scoped to nutrivo-prod, for the reads on prod (its project record and
     read-only queries);
-  - SUPABASE_DRILL_ACCESS_TOKEN, a separate token scoped to the organisation's other projects, for every call on the
-    copy, the delete included. A restore copy gets a new ref, so the prod-scoped token cannot reach it (#392), and the
-    prod token is never widened for the drill.
-The drill token needs, on the organisation that holds nutrivo-prod: read projects (GET /v1/projects/{ref}), run SQL
+  - SUPABASE_DRILL_ACCESS_TOKEN, made per drill and scoped to the copy's project only, for every call on the copy, the
+    delete included. A restore copy gets a new ref, so the prod-scoped token cannot reach it (#392), and the prod
+    token is never widened for the drill. It is a GitHub production environment secret that only restore-drill.yml
+    reads, never an Infisical value, so no other production job loads it; it is revoked after the drill.
+The drill token needs, on the copy only: read projects (GET /v1/projects/{ref}), run SQL
 (POST /v1/projects/{ref}/database/query, read-only and the one cron.unschedule write) and delete projects
 (DELETE /v1/projects/{ref}). The copy and prod stay in Supabase's EU region.
 """

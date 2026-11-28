@@ -100,6 +100,20 @@ class Tokens(unittest.TestCase):
         self.assertEqual([tok for ref, m, tok in fake.tokens if m == "DELETE"], ["sbp_drill"])
         self.assertEqual([ref for ref, m, _ in fake.tokens if m == "DELETE"], [COPY])
 
+    def test_a_drill_token_without_access_to_the_copy_refuses_and_deletes_nothing(self):
+        """#392's failure: the copy answers 403 to the token that calls it. Exit 1, copy kept."""
+        class Forbidden(FakeApi):
+            def __call__(self, method, url, token, data=None, timeout=60):
+                if f"/projects/{COPY}" in url and token == "sbp_drill":
+                    self.calls.append((method, url, data))
+                    self.tokens.append((COPY, method, token))
+                    return 403, b"{}"
+                return super().__call__(method, url, token, data, timeout)
+        fake = Forbidden()
+        with self.assertRaisesRegex(rd.DrillError, "403"):
+            run(fake)
+        self.assertEqual(fake.deletes(), [])
+
     def test_main_needs_the_drill_token(self):
         env = {"SUPABASE_ACCESS_TOKEN": "sbp_prod", "SUPABASE_PROJECT_REF": PROD}
         with mock.patch.object(rd, "E", env.get), mock.patch("sys.stderr"):

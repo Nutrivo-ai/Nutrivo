@@ -14,17 +14,12 @@ dashboard. The checks after the restore are scripted: `.github/workflows/restore
    physical backups on.
 2. Run Actions → `doctor` → env `prod`. The `pitr` check must be green. `release-production` also runs it after every
    deploy, and a release fails it while PITR is off.
-3. Create the drill token (#392). The deploy token `SUPABASE_ACCESS_TOKEN` is scoped to `nutrivo-prod` only, and a
-   restore copy gets a new ref, so the drill reaches the copy with its own token and never widens the prod one.
-   Supabase → Account → Access Tokens → a scoped token named `nutrivo-restore-drill`, resource access on the
-   organisation that holds `nutrivo-prod`, with only what the drill calls:
-   - read projects: `GET /v1/projects/{ref}` (the guard, and waiting for the copy to be healthy);
-   - run SQL: `POST /v1/projects/{ref}/database/query` (read-only checks, and the one `cron.unschedule` write);
-   - delete projects: `DELETE /v1/projects/{ref}` (the copy, after a passing drill).
-   Store it in Infisical `Nutrivo prod` / `prod` as `SUPABASE_DRILL_ACCESS_TOKEN`. The script refuses to start without
-   it, and refuses it when it is the same token as `SUPABASE_ACCESS_TOKEN`. Prod itself is only ever read, with the
-   deploy token; the guard still refuses prod's ref and name, another organisation, another region and any project
-   older than 48 hours.
+3. Know the drill token (#392). The deploy token `SUPABASE_ACCESS_TOKEN` is scoped to `nutrivo-prod` only and is never
+   widened; a restore copy gets a new ref, so each drill reaches its copy with a token of its own, made per drill in
+   step 3 of "Each month". It is never stored in Infisical: Infisical's prod environment is loaded into every
+   production job (release, synthetic every 15 minutes, Sentry alerts), and a token that can delete a project does not
+   belong there. It lives only as the GitHub `production` environment secret `SUPABASE_DRILL_ACCESS_TOKEN`, which only
+   `restore-drill.yml` reads.
 
 ## Each month
 Do the drill in the first two weeks of the month. The drill checks in to the Sentry cron monitor `restore-drill-prod`
@@ -35,8 +30,18 @@ a drill is a missed one. On the 2nd, a scheduled run of the same workflow also o
 1. Supabase → `nutrivo-prod` → Database → Backups → **Restore to a New Project**. Choose a point in time a few hours
    back and note it in UTC. The copy stays in eu-central-1 and is billed while it exists.
 2. Wait until the new project is up, then copy its ref from the project URL.
-3. Actions → `restore-drill` → Run workflow, with the copy's ref and the point in time.
-4. The workflow then does the following:
+3. Make the drill token for this copy: Supabase → Account → Access Tokens → a scoped token named
+   `nutrivo-restore-drill-<date>`, with resource access on **the copy's project only** (never the organisation, never
+   `nutrivo-prod`), the shortest expiry offered, and only what the drill calls:
+   - read projects: `GET /v1/projects/{ref}` (the guard, and waiting for the copy to be healthy);
+   - run SQL: `POST /v1/projects/{ref}/database/query` (read-only checks, and the one `cron.unschedule` write);
+   - delete projects: `DELETE /v1/projects/{ref}` (the copy, after a passing drill).
+   GitHub → Settings → Environments → `production` → set the secret `SUPABASE_DRILL_ACCESS_TOKEN` to it.
+4. Actions → `restore-drill` → Run workflow, with the copy's ref and the point in time.
+5. Afterwards, revoke the token in Supabase. The script refuses to start without it, and refuses it when it is the
+   prod deploy token; prod itself is only ever read, with the deploy token, and the guard still refuses prod's ref and
+   name, another organisation, another region and any project older than 48 hours.
+6. The workflow does the following:
    - It refuses to run unless a repository admin started it.
    - It refuses any project that is not a fresh drill copy: never prod's ref or name, the same organisation,
      eu-central-1, created in the last 48 hours.
@@ -53,7 +58,7 @@ a drill is a missed one. On the 2nd, a scheduled run of the same workflow also o
      labelled `restore-drill`.
    - When the drill fails it keeps the copy and opens an issue labelled `restore-drill` and `needs-human`.
    - When the start is refused (not a repository admin), nothing is recorded.
-5. After a failed drill, read the failures, fix the cause, and delete the copy by hand (Supabase → project →
+7. After a failed drill, read the failures, fix the cause, and delete the copy by hand (Supabase → project →
    Settings → Delete project).
 
 The issue holds counts and timestamps, never row data.
