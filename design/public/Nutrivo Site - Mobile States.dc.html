@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Website and /verify · mobile</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Instrument+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ffffff}
+a{color:#2f5eff}a:hover{color:#1f49d9}
+:focus-visible{outline:2px solid #2f5eff;outline-offset:2px}
+.nv-snap{scrollbar-width:none}.nv-snap::-webkit-scrollbar{display:none}
+</style>
+</helmet>
+<div style="width:3480px;box-sizing:border-box;padding:0 40px;display:flex;gap:40px;align-items:flex-start;font-family:'Instrument Sans',system-ui,sans-serif;color:#101216;background:#ffffff">
+
+<div style="width:390px;display:flex;flex-direction:column;gap:10px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">Home · full page</span>
+<div style="width:390px;border:1px solid #dde0e6;border-radius:16px;overflow:hidden;box-sizing:border-box">
+<header style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px 6px 16px;border-bottom:1px solid #dde0e6"><span style="font-weight:700;font-size:18px">Nutrivo</span><div style="display:flex;align-items:center;gap:4px"><a href="#" style="font-size:14px;color:#101216;text-decoration:none;padding:12px 8px">Sign in</a><button aria-label="Open menu: Pricing, Verify a report" style="width:44px;height:44px;border:0;background:none;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#101216" stroke-width="1.6" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14"></path></svg></button></div></header>
+
+<section style="padding:32px 16px 28px;display:flex;flex-direction:column;gap:18px">
+<h1 style="margin:0;font-size:31px;line-height:1.12;font-weight:600;letter-spacing:-0.02em">Check your pet food label for every EU market, in every language. Every finding cited.</h1>
+<p style="margin:0;font-size:16px;line-height:1.5;color:#5f6570">Each printed language panel is checked against encoded EU feed law for each market, with the rule and citation behind every result.</p>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px">
+<a href="#" style="text-align:center;font-size:15px;font-weight:600;padding:13px 8px;border-radius:8px;background:#2f5eff;color:#ffffff;text-decoration:none">Check a label free</a>
+<a href="#" style="text-align:center;font-size:15px;font-weight:600;padding:13px 8px;border-radius:8px;background:#101216;color:#ffffff;text-decoration:none">See pricing</a>
+</div>
+<figure style="margin:0;display:flex;flex-direction:column;gap:10px">
+<div ref="{{setTrack}}" onScroll="{{onScroll}}" class="nv-snap" role="region" aria-roledescription="carousel" aria-label="Demo pack, three language panels" style="display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -16px;padding:4px 16px">
+<sc-for list="{{panels}}" as="p" hint-placeholder-count="3">
+<div role="group" aria-roledescription="slide" aria-label="{{p.aria}}" style="flex:0 0 300px;scroll-snap-align:center;background:#f4f5f7;border:1px solid #dde0e6;border-radius:12px;padding:14px">
+<div style="background:#ffffff;border:{{p.border}};border-radius:4px;padding:12px;display:flex;flex-direction:column;gap:8px;min-height:240px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px">{{p.code}}</span>
+<span style="align-self:flex-start;display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:5px;background:{{p.bg}};color:{{p.fg}};font-size:13px;font-weight:600"><sc-if value="{{p.isAction}}" hint-placeholder-val="{{false}}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M8 1.8l6.6 12H1.4z"></path><path d="M8 6.5v3.2M8 11.6v.4"></path></svg></sc-if><sc-if value="{{p.isClear}}" hint-placeholder-val="{{true}}"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8.2l2 2 4-4.2"></path></svg></sc-if>{{p.chip}}</span>
+<span lang="{{p.lang}}" style="font-size:15px;font-weight:700">{{p.heading}}</span>
+<div style="height:6px;width:92%;background:#dde0e6;border-radius:2px"></div><div style="height:6px;width:78%;background:#dde0e6;border-radius:2px"></div><div style="height:6px;width:86%;background:#dde0e6;border-radius:2px"></div><div style="height:6px;width:64%;background:#dde0e6;border-radius:2px"></div><div style="height:6px;width:80%;background:#dde0e6;border-radius:2px"></div>
+</div>
+</div>
+</sc-for>
+</div>
+<div role="group" aria-label="Choose panel" style="display:flex;justify-content:center;gap:4px">
+<sc-for list="{{dots}}" as="d" hint-placeholder-count="3"><button aria-label="{{d.label}}" aria-current="{{d.current}}" onClick="{{d.go}}" style="width:32px;height:32px;border:0;background:none;display:flex;align-items:center;justify-content:center;cursor:pointer"><span style="width:8px;height:8px;border-radius:999px;background:{{d.bg}}"></span></button></sc-for>
+</div>
+<figcaption style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570;text-align:center">Checked in [n] seconds · demo data</figcaption>
+</figure>
+</section>
+
+<section style="background:#f4f5f7;border-top:1px solid #dde0e6;border-bottom:1px solid #dde0e6;padding:32px 16px;display:flex;flex-direction:column;gap:14px">
+<h2 style="margin:0;font-size:24px;font-weight:600">How it works</h2>
+<ol style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px">
+<li style="background:#ffffff;border:1px solid #dde0e6;border-radius:10px;padding:16px;display:flex;gap:12px"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#5f6570">01</span><span style="font-size:16px;font-weight:600">Upload the artwork</span></li>
+<li style="background:#ffffff;border:1px solid #dde0e6;border-radius:10px;padding:16px;display:flex;gap:12px"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#5f6570">02</span><span style="font-size:16px;font-weight:600">Fix what’s open, with the rule and citation</span></li>
+<li style="background:#ffffff;border:1px solid #dde0e6;border-radius:10px;padding:16px;display:flex;gap:12px"><span style="font-family:'IBM Plex Mono',monospace;font-size:13px;color:#5f6570">03</span><span style="font-size:16px;font-weight:600">Send a report anyone can verify</span></li>
+</ol>
+</section>
+
+<section style="padding:32px 16px;display:flex;flex-direction:column;gap:12px">
+<h2 style="margin:0;font-size:24px;font-weight:600">What “Not assessed” means</h2>
+<p style="margin:0;font-size:16px;line-height:1.5">When no accepted rule covers something yet, we say Not assessed and show the gap. We never guess.</p>
+<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:6px;background:#f1f2f4;color:#5f6570;font-size:14px;font-weight:600"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8h6"></path></svg>Not assessed</span><a href="#" style="font-size:14px">See the coverage gap</a></div>
+</section>
+
+<section style="background:#f4f5f7;border-top:1px solid #dde0e6;border-bottom:1px solid #dde0e6;padding:32px 16px;display:flex;flex-direction:column;gap:14px">
+<div style="background:#ffffff;border:1px solid #dde0e6;border-radius:6px;padding:16px;display:flex;justify-content:space-between;gap:12px">
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-weight:700;font-size:14px">Label report · sample</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:#5f6570">REFERENCE</span><span style="font-family:'IBM Plex Mono',monospace;font-size:14px">[reference]</span><span style="font-size:12px;color:#5f6570">Issued [date] · Ruleset [version]</span></div>
+<div role="img" aria-label="QR code placeholder" style="flex:0 0 72px;height:72px;border:1px dashed #5f6570;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:9px;color:#5f6570">[QR]</div>
+</div>
+<h2 style="margin:0;font-size:24px;font-weight:600">A report anyone can verify</h2>
+<p style="margin:0;font-size:16px;line-height:1.5">A retailer enters the reference at nutrivo.ai/verify and sees whether it’s current.</p>
+</section>
+
+<section style="padding:32px 16px;display:flex;flex-direction:column;gap:12px">
+<h2 style="margin:0;font-size:24px;font-weight:600">Pricing</h2>
+<div style="border:1px solid #dde0e6;border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:6px"><span style="font-size:17px;font-weight:600">Free</span><span style="font-size:22px;font-weight:600">[price]</span><span style="font-size:14px;color:#5f6570">[allowance]</span></div>
+<div style="border:1px solid #dde0e6;border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:6px"><span style="font-size:17px;font-weight:600">Starter</span><span style="font-size:22px;font-weight:600">[price]</span><span style="font-size:14px;color:#5f6570">[allowance]</span></div>
+<a href="#" style="font-size:16px;font-weight:600;padding:8px 0">See pricing</a>
+</section>
+
+<footer style="border-top:1px solid #dde0e6;padding:24px 16px 32px;display:flex;flex-direction:column;gap:12px"><span style="font-weight:700">Nutrivo</span><nav aria-label="Footer" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 12px;font-size:14px"><a href="#" style="color:#5f6570;padding:8px 0">Status</a><a href="#" style="color:#5f6570;padding:8px 0">DPA</a><a href="#" style="color:#5f6570;padding:8px 0">Sub-processors</a><a href="#" style="color:#5f6570;padding:8px 0">Privacy</a><a href="#" style="color:#5f6570;padding:8px 0">Imprint</a><a href="#" style="color:#5f6570;padding:8px 0">Contact</a></nav></footer>
+</div>
+</div>
+
+<sc-for list="{{verify}}" as="v" hint-placeholder-count="7">
+<div style="width:390px;display:flex;flex-direction:column;gap:10px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">/verify · {{v.label}}</span>
+<div style="width:390px;height:844px;border:1px solid #dde0e6;border-radius:16px;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column">
+<header style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px 6px 16px;border-bottom:1px solid #dde0e6"><span style="font-weight:700;font-size:18px">Nutrivo</span><button aria-label="Open menu" style="width:44px;height:44px;border:0;background:none;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#101216" stroke-width="1.6" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14"></path></svg></button></header>
+<div style="padding:28px 16px;display:flex;flex-direction:column;gap:16px">
+<h1 style="margin:0;font-size:28px;font-weight:600;letter-spacing:-0.015em">Verify a report</h1>
+<div style="display:flex;flex-direction:column;gap:6px">
+<label style="font-size:15px;font-weight:600">Report reference</label>
+<input value="{{v.ref}}" readonly style="font-family:'IBM Plex Mono',monospace;font-size:17px;padding:12px;min-height:48px;box-sizing:border-box;border:1px solid #5f6570;border-radius:8px;color:#101216">
+<span style="font-size:13px;color:#5f6570">Printed at the top of every report, next to its QR code.</span>
+<button style="font:inherit;font-size:16px;font-weight:600;min-height:48px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff;margin-top:4px">Verify</button>
+</div>
+<sc-if value="{{v.hasResult}}" hint-placeholder-val="{{true}}">
+<section role="{{v.role}}" style="border:1px solid #dde0e6;border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">{{v.eyebrow}}</span>
+<h2 style="margin:0;font-size:20px;line-height:1.25;font-weight:600">{{v.title}}</h2>
+<sc-if value="{{v.hasSub}}" hint-placeholder-val="{{false}}"><p style="margin:0;font-size:15px;line-height:1.45;color:#5f6570">{{v.sub}}</p></sc-if>
+<sc-if value="{{v.fields}}" hint-placeholder-val="{{false}}"><div style="display:flex;flex-direction:column;gap:4px;font-size:14px;border-top:1px solid #dde0e6;padding-top:10px"><span>Issued [date]</span><span>Ruleset [version]</span></div></sc-if>
+<sc-if value="{{v.na}}" hint-placeholder-val="{{false}}"><span style="align-self:flex-start;display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border-radius:6px;background:#f1f2f4;color:#5f6570;font-size:13px;font-weight:600"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8h6"></path></svg>Lists items not assessed</span></sc-if>
+</section>
+<p style="margin:0;font-size:13px;line-height:1.45;color:#5f6570">Nutrivo reports are generated automatically. They’re not a certificate, an authority’s decision or legal advice.</p>
+</sc-if>
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":3480,"height":2300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const st = this.state || {};
+    const idx = st.idx ?? 0;
+    const self = this;
+    const clear = { chip: 'Label clear', bg: '#e6f2ec', fg: '#0f7a4d', isClear: true, border: '1px solid #dde0e6' };
+    const panels = [
+      { code: 'DE · German', lang: 'de', heading: 'Lachs & Reis Adult', chip: 'Action needed · 2 open', bg: '#fdf0dd', fg: '#9e5600', isAction: true, border: '2px dashed #9e5600', aria: '1 of 3: German panel, Action needed, 2 open' },
+      Object.assign({ code: 'SV · Swedish', lang: 'sv', heading: 'Lax & ris Adult', aria: '2 of 3: Swedish panel, Label clear' }, clear),
+      Object.assign({ code: 'FI · Finnish', lang: 'fi', heading: 'Lohi & riisi Adult', aria: '3 of 3: Finnish panel, Label clear' }, clear)
+    ];
+    const r = (label, eyebrow, title, sub, fields, na, role) => ({ label, ref: '[reference]', hasResult: true, eyebrow, title, sub, hasSub: !!sub, fields, na, role });
+    return {
+      panels,
+      setTrack: (el) => { self.track = el; },
+      onScroll: (e) => { const i = Math.round(e.target.scrollLeft / 312); if (i !== idx) this.setState({ idx: i }); },
+      dots: panels.map((p, i) => ({ label: 'Show panel ' + (i + 1) + ' of 3', current: i === idx ? 'true' : 'false', bg: i === idx ? '#101216' : '#dde0e6', go: () => { this.setState({ idx: i }); if (self.track) self.track.scrollTo({ left: i * 312, behavior: (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'auto' : 'smooth' }); } })),
+      verify: [
+        { label: 'entry', ref: '', hasResult: false },
+        r('verified', 'Verified', 'This report is current', '', true, true, 'status'),
+        r('superseded', 'Superseded', 'A newer result exists', 'This report was current when issued.', true, false, 'status'),
+        r('not found', 'No verified report', 'We can’t find a report with this reference', 'Check the code and try again.', false, false, 'alert'),
+        r('too many attempts', 'Too many attempts', 'Try again in a minute', '', false, false, 'alert'),
+        r('unavailable', 'Service unavailable', 'Verification is unavailable right now', 'Try again shortly.', false, false, 'alert'),
+        r('loading', 'Checking', 'Checking the reference…', '', false, false, 'status')
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>
