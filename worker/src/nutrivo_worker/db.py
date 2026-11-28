@@ -209,14 +209,18 @@ class PgStore:
             """with r as (select * from app.reports where id = %s and workspace_id = %s),
                     c as (select c.* from app.checks c join r on c.id = any(r.check_ids)
                            where c.workspace_id = r.workspace_id)
-               select pr.name as product, r.ruleset_version, r.created_at as checked_at,
+               select pr.name as product, r.ruleset_version, (select max(c.at) from c) as checked_at,
                       (select count(distinct c.node_id) from c)::int as markets,
                       (select count(distinct c.panel_id) from c)::int as panels,
                       (select coalesce(sum(cardinality(c.passed_rule_keys)), 0) from c)::int as clear,
                       (select count(*) from app.check_findings f join c on c.id = f.check_id
                         where f.state = 'action')::int as action,
-                      (select count(*) from app.check_findings f join c on c.id = f.check_id
-                        where f.state = 'not_assessed')::int as not_assessed,
+                      ((select count(*) from app.check_findings f join c on c.id = f.check_id
+                         where f.state = 'not_assessed')
+                       + (select count(*) from c, unnest(c.withheld_rule_keys) k
+                           where not exists (select 1 from app.check_findings f
+                                              where f.check_id = c.id and f.state = 'not_assessed'
+                                                and f.rule_key = k)))::int as not_assessed,
                       (select count(*) from app.product_nodes pn
                         where pn.product_id = r.product_id and pn.display_state = 'blocked'
                           and pn.node_id in (select c.node_id from c))::int as blocked

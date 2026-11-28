@@ -26,6 +26,8 @@ insert into ref.rule_versions (rule_key, version, status, params, article_ref, s
    'new_obligation', '10000000-0000-4000-8197-0000000000a1', now());
 insert into ref.rule_fixtures (rule_key, version, name, input, expected_outcome)
 select 'TEST.T197.A', 1, 'synthetic ' || o, '{"panel":"synthetic"}', o from unnest(array['passed','failed','withheld']) o;
+update ref.rule_fixtures set status = 'confirmed', decided_by = '10000000-0000-4000-8197-0000000000a1', decided_at = now()
+where rule_key = 'TEST.T197.A' and status = 'proposed';    -- decided by a person (#360)
 
 select ok(not has_table_privilege('authenticated', 'ref.ruleset_seals', 'select')
           and not has_table_privilege('service_role', 'ref.ruleset_seals', 'insert')

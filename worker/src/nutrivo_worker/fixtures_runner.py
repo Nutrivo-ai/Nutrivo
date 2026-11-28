@@ -17,6 +17,10 @@ Labels (D-32): synthetic labels are never part of a run, because their wording i
 register (run_synthetic stays for the worker's own tests). Golden labels count once fixtures/golden holds GOLDEN_GATE
 of them; below that the report gives their count and leaves them out.
 
+Only confirmed fixtures are read (#360): a fixture `nutrivo fixtures draft` proposed counts once a person confirmed it
+in /admin/rules, as the release gate counts it (private.ruleset_draft_fixture_count). A member whose fixtures are all
+still proposed is withheld `no_fixtures`.
+
 Reads come from one repeatable-read, read-only transaction and fixtures/golden on disk. A draft run is then recorded
 as one ref.fixture_runs row (record_run), with the digest read in that same snapshot, so the release gate
 (app.release_ruleset, P0039) sees exactly what was judged."""
@@ -171,6 +175,7 @@ class PgFixtureStore:
                       rv.params, rv.applicability
                  from ref.ruleset_members m
                  join ref.rule_fixtures f on f.rule_key = m.rule_key and f.version = m.version
+                                         and f.status = 'confirmed'
                  join ref.rule_versions rv on rv.rule_key = m.rule_key and rv.version = m.version
                  join ref.rules r on r.rule_key = m.rule_key
                 where m.ruleset_version = %s order by f.rule_key, f.name, f.id""", (ruleset_version,)).fetchall()
@@ -215,6 +220,7 @@ class DraftFixtureStore:
                       rv.params, rv.applicability
                  from ref.ruleset_draft_members m
                  join ref.rule_fixtures f on f.rule_key = m.rule_key and f.version = m.version
+                                         and f.status = 'confirmed'
                  join ref.rule_versions rv on rv.rule_key = m.rule_key and rv.version = m.version
                  join ref.rules r on r.rule_key = m.rule_key
                 where m.draft_id = %s order by f.rule_key, f.name, f.id""", (draft_id,)).fetchall()

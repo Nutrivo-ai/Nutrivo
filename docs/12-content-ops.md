@@ -14,8 +14,10 @@ extraction plus acceptance by a person, with thresholds and prescribed terms ext
 
 ## Weekly rhythm
 Monday: source watch (J01) and the extraction batch for the week's targets. Tuesday–Wednesday: the accepting person
-works the review queue in /admin. Thursday: fixtures drafted for what was accepted, confirmed by the accepting
-person. Friday: release if every fixture passes; the coverage page updates itself.
+works the review queue in /admin. Thursday: fixtures drafted for what was accepted (`nutrivo fixtures draft`, the
+`fixtures` step of content-staging on staging), then confirmed or rejected one by one by the accepting person in
+/admin/rules (docs/05 §Proposed and confirmed, #360). Friday: `nutrivo fixtures run --draft <id>`, and release if every
+confirmed fixture passes; the coverage page updates itself.
 
 Source watch (J01, T-207):
 - `nutrivo sources watch --out watch.json` asks CELLAR, for each act in content/sources.yaml, which documents
@@ -41,7 +43,7 @@ Source watch (J01, T-207):
 - Term links (D-31): every term key the rule names is an accepted register entry for what the text requires, with an
   accepted entry in each language of the nodes it holds on. The choice of `scope` and `match` follows the text.
 - Dates: effective_from and any sell-through period are set where the act gives them.
-- Fixtures exist for passed, failed and withheld, and pass.
+- Fixtures for passed, failed and withheld are confirmed (a proposed one counts for nothing), and pass.
 
 ## Coverage honesty
 A node × domain becomes `complete` only when every rule the domain needs at launch scope is accepted and tested.
@@ -167,8 +169,8 @@ target × source. It never writes a rule.
   Until the second key has run, the candidate has `agree` null. The accept RPC must refuse such a candidate.
 - **Not extracted yet.** `claim_judgement` targets are skipped (`needs_claims_harness`; the harness itself is in place,
   docs/07, but no task yet extracts claim_judgement params), and so are
-  `additive_condition` targets (`needs_additive_register`, T-202). Drafting fixtures for the reviewer comes with
-  acceptance.
+  `additive_condition` targets (`needs_additive_register`, T-202). Fixtures for the reviewer are drafted after
+  acceptance by `nutrivo fixtures draft` (docs/05 §Proposed and confirmed).
 - **Idempotent.** There is one candidate per (source_id, rule key), under an advisory lock.
   - A candidate with both values gives `unchanged`, with no model call.
   - The first value is stored before the second key runs. A failed second key (for example `model_unavailable`) is
@@ -219,10 +221,11 @@ language's own stored text (BE-11). It never accepts, rejects or updates an entr
 Sessions hold only the dev identity, and staging's secrets are in the GitHub environment `staging` (docs/16), so the
 pipeline runs there as the `content-staging` workflow: a founder starts it from Actions → content-staging → Run
 workflow, on `main`. With `steps: all` it runs, in order, `nutrivo sources fetch`, `sources import additives` and
-`materials`, `content extract` (a second pass resumes any failed second key) and `content terms`; one step can be run
-alone, and `dry_run` writes nothing. Each command's JSON lines are kept as the run's `content-staging` artifact for
+`materials`, `content extract` (a second pass resumes any failed second key), `content terms` and `fixtures draft`
+(proposed fixtures for accepted versions, no model call, #360); one step can be run alone, and `dry_run` writes
+nothing. Each command's JSON lines are kept as the run's `content-staging` artifact for
 30 days, and the summaries appear on the run page. Every step is idempotent, so a rerun only adds what is missing.
-Nothing in it accepts, rejects or releases: that stays a person's click in /admin. Before the first run: staging is
+Nothing in it accepts, confirms, rejects or releases: that stays a person's click in /admin. Before the first run: staging is
 deployed with the migrations, and its Infisical project holds `DATABASE_URL`, `SUPABASE_URL`,
 `SUPABASE_SERVICE_ROLE_KEY` and the `BEDROCK_MODEL_*` values of docs/07 (`make doctor` from the `doctor` workflow).
 On the local stack on 14 Nov 2026 the whole sequence took about 11 minutes.
@@ -235,8 +238,8 @@ Staff (`app_metadata.nutrivo_staff`) act through RPCs; each needs the caller's p
   A candidate is refused until its second key has run, and a key that is not verbatim is refused. An extraction never
   carries links; each linked key must already have an accepted register entry.
 - **Re-link** an accepted rule with `app.relink_rule`: a new editorial version with the new links. A rule accepted
-  without links is withheld until then. The new version needs its own passed, failed and withheld fixtures, and it
-  reaches checks only through the next release.
+  without links is withheld until then. The new version needs its own confirmed passed, failed and withheld
+  fixtures (the next `nutrivo fixtures draft` proposes them), and it reaches checks only through the next release.
 - **Terms** are accepted or rejected with `app.decide_term`, only from the stored official text in the term's own
   language. The candidates come from `nutrivo content terms` (above).
 - **Coverage** is edited on a draft (`app.create_ruleset_draft`, `app.set_draft_member`, `app.set_draft_coverage`,
@@ -269,11 +272,15 @@ called under the person's own session, so the database names them as the decider
   the languages it has an accepted entry in. They are optional, and a rule without them is withheld. Below the queue,
   **Accepted rules: term links** lists each rule's latest accepted version with its links. "Change the term links"
   saves a new editorial version through `app.relink_rule`, which then needs its own fixtures and takes effect from
-  the next release. Refusals, P0048 included, show the database's reason.
+  the next release. Refusals, P0048 included, show the database's reason. Below it, **Accepted rules: proposed
+  fixtures** lists each version's proposed fixtures with their input (panel language, the text printed verbatim,
+  market, facts) and expected outcome, and which outcomes are already confirmed. Confirm and Reject call
+  `app.decide_rule_fixture` (#360). A refusal shows the database's reason, and an empty list says that nothing is
+  waiting.
 - **`/admin/coverage`**: start a draft, put accepted versions in it, open gaps, and set each node × domain. Complete is
   refused (P0010) until every member rule for it is accepted and tested. The release panel lists what blocks the
-  release (missing fixtures, no fixture run, a run that failed or judged too few) and shows the database's refusal as
-  it is. A draft's run is recorded by `nutrivo fixtures run --draft <id>` (T-210, docs/05 §The runner).
+  release (missing confirmed fixtures, no fixture run, a run that failed or judged too few) and shows the database's
+  refusal as it is. It counts confirmed fixtures only. A draft's run is recorded by `nutrivo fixtures run --draft <id>` (T-210, docs/05 §The runner).
 - **`/admin/glossary`**: the latest release's glossary, read only.
 
 ## Candidate targets

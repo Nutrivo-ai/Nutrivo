@@ -73,7 +73,7 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
 | Landing Page, Pricing Page, Coverage - public, FAQ and About, Segment Pages, Legal, Marketing Site | Statically rendered marketing routes; coverage from `public.coverage_snapshot()`; invented claims removed (D-19) | T-603 |
 | Email Templates | Worker HTML templates (Jinja2), with snapshot tests of rendered previews | T-105, T-602 |
 | Export - Label Report, Certificate of Check, Action Plan | WeasyPrint templates; each PDF page rendered to PNG and compared with its design baseline | T-405 |
-| Mobile | Responsive routes at 390 px: verdict reading, pack photo, alerts | T-507, T-902 |
+| Mobile | Responsive routes at 390 px: one recipe's markets, verdict reading, pack photo, alerts | T-1109, T-507, T-902 |
 | Empty and Error States | The shared EmptyState and ErrorState components used by every screen | T-101 |
 | Account Recovery, Onboarding Flow | Auth and onboarding routes | T-103, T-106 |
 | Workspace Settings, Plans and Checkout, Billing Settings | Settings and billing routes | T-107, T-108, T-703 |
@@ -210,6 +210,55 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
   link signed for 300 s by the `share` Edge Function on each click) and a link to `/verify/<ref>`. A revoked, expired,
   unknown or malformed link shows one identical Unknown card. `noindex`, `Referrer-Policy: no-referrer`; axe in
   `share.spec.ts` and `a11y.spec.ts`.
+
+### Built in T-1110: the Settings & roles overview (`apps/web/src/components/settings/Overview.tsx`, `apps/web/src/lib/settings/overview.ts`)
+- **S-NV2-017 Settings & roles** at `/w/[workspace]/settings`, the summary of Workspace Settings, in the Nutrivo 2.0
+  shell under the design's header ("Settings", "People, signing authority and workspace") with the ruleset chip:
+  - "People and roles": active members (`readPeople`, T-107) with their role (the four roles; the design's job titles
+    are stored nowhere), last activity, and signing authority from active `app.signing_grants` rows only, as market
+    codes, or None (BE-04: never implied by a role; an external person's None is drawn in the action colour, since
+    they can never hold one). Pending invitations are counted under the table; one past its expiry is lapsed, as People
+    and roles reads it, and is not counted;
+  - "Workspace": only the rows with data and a decision behind them (founder decision on #352, 26 Nov 2026): Ruleset
+    version (the latest released), Markets enabled (the nodes in the entitled regions, linking Coverage & confidence)
+    and Signing policy PER MARKET. The design's Tenancy model and Term register version rows are not built;
+  - the Plan card shows what D-03 sells (#352): plan, recipes and editor seats against their limits with viewers free,
+    regions (the entitled ones, which the free allowance holds too), and checks this month, unmetered. Seats and
+    recipes follow Plan and allowance's rule and its live counts, so the two pages agree on them: the subscription's figures (add-ons counted) only while it is live on a paid plan, else the plan's own; a
+    workspace on the free allowance has no recipe or seat check (D-21). It is read only by an internal admin of the whole workspace
+    (`app.billing_context`); any other admin is told who manages the plan. The design's "Portfolio, not activity"
+    figures (products × jurisdiction nodes) contradict D-03 and are not built. The card's text is `accent-700`, where
+    the design draws `accent-900` and `accent-800`, which are not Cobalt tokens.
+- **Links, no buttons.** Each section links the page that changes it: People and roles, Workspace, Audit log, Data and
+  retention, Your account, Plan and allowance.
+- **States.** Loaded; empty (the admin alone: an EmptyState linking People and roles); loading (`loading.tsx`); error
+  (the workspace error boundary); no-permission below admin, with nothing read.
+- **Tests** (`tests/e2e/settings-overview.spec.ts`): every state, axe, the no-dead-controls crawl, and both section
+  headings against the S-NV2-017 baseline; the wording in `src/lib/settings/overview.test.ts`.
+
+### Built in T-1109: one recipe, its markets (`apps/web/src/components/mobile/Markets.tsx`, `apps/web/src/lib/products/markets.ts`)
+- **S-MOB-002 One recipe, its markets** at `/w/[workspace]/products/[product]`, the product page the board's rows link
+  to, in the phone's three blocks. The recipe block shows life stage, species and format, then "Four markets" counting
+  the markets the person can read. The rows block groups markets by region, each group led by its region row, which is
+  `app.rollup_state(product, region)` as the database answers it (BE-15). Each market row is
+  `app.product_nodes.display_state` with its open actions ("1 open"). Every row shows its glyph and links to its
+  verdict (S-MOB-003). The Checked block gives the latest check's date and ruleset, current or superseded, and the
+  markets with no check yet, linking the label report (or Upload & scope when nothing has run). It renders at every
+  width: the phone's blocks at 390 px, a bordered column from `md` up, as the verdict does.
+- **Same rule as the verdict.** Clear only when the market's latest check job has checks, all clear; anything less is
+  Not assessed, so tapping a row never turns Clear into something else. A roll-up better than a market it covers is a
+  shape error, never shown.
+- **Departures from the design, with no data or contract behind them.** The phone chrome's "1 OF 3 MARKETS" is not
+  built: nothing says what it counts. The design draws no region row, yet its note says "US shows barred because Texas
+  does", so region rows carry the roll-up. "BARRED" reads "Blocked", the kit's word, as on S-MOB-003. The flavour in
+  the design's kicker ("chicken") is stored nowhere.
+- **States.** Loaded; never checked (every market Not assessed, Upload & scope); empty (no markets: an EmptyState
+  linking Upload & scope); loading (the workspace `loading.tsx`); error (the workspace error boundary); not found and no
+  permission (RLS returns no product: ProductNotFound, nothing of the product shown).
+- **Tests** (`tests/e2e/product-markets.spec.ts`, at 390 and 1600 px): F01.main, F01.must.1, D07.main, D07.must.1 and
+  D07.must.2, every state, axe, 44 px targets, no horizontal scroll, the no-dead-controls crawl, and the Checked
+  kicker against the S-MOB-002 baseline (the other parts name the design's recipe or fill the width, spec/screens.yaml
+  Q2). The shaping is in `src/lib/products/markets.test.ts`.
 
 ## 6 · Performance
 Lighthouse budgets on the public pages (LCP under 2.5 s); a 1.5 s budget for the board with 300 recipes

@@ -16,7 +16,11 @@
   nutrivo config   the resolved settings, secrets masked
   nutrivo fixtures run --ruleset <id> | --draft <id>
                    rule fixtures (and golden labels from 30) against a released ruleset, read only, or a draft, whose
-                   run is recorded in ref.fixture_runs for the release gate (exit 0 passed, 1 not, 2 error; D-32)"""
+                   run is recorded in ref.fixture_runs for the release gate (exit 0 passed, 1 not, 2 error; D-32)
+  nutrivo fixtures draft [--rule <key>] [--dry-run]
+                   proposed passed, failed and withheld fixtures for accepted rule versions, built from their own
+                   params and linked accepted terms and checked by the engine first; a person confirms them in
+                   /admin/rules (#360; exit 0 when nothing failed, 1 when a version failed)"""
 from __future__ import annotations
 
 import argparse
@@ -457,6 +461,31 @@ def cmd_fixtures_run(settings: Settings, args: argparse.Namespace) -> int:
     return 0 if report.passed else 1
 
 
+def cmd_fixtures_draft(settings: Settings, args: argparse.Namespace) -> int:
+    """Each version is its own transaction (lock, reads, inserts). stdout carries one JSON line per fixture and the
+    summary alone; logs go to stderr."""
+    import sentry_sdk
+
+    from . import fixtures_draft as fd
+    from .db import connect
+    from .logs import log_context
+
+    conn = connect(settings.require_database())
+    try:
+        with log_context(request_id=str(uuid.uuid4())), \
+                sentry_sdk.start_transaction(op="content", name="fixtures:draft") as txn:
+            txn.set_tag("dry_run", bool(args.dry_run))
+            results = fd.run(fd.PgDraftStore(conn), args.rule, dry_run=args.dry_run, transaction=conn.transaction)
+    finally:
+        conn.close()
+        observability.flush()
+    for r in results:
+        print(json.dumps(r.as_dict(), ensure_ascii=False))
+    counts = fd.summary(results)
+    print(json.dumps({"summary": counts}))
+    return 1 if counts.get("failed") else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="nutrivo", description="Nutrivo worker commands")
     sub = parser.add_subparsers(dest="command", metavar="command")
@@ -540,6 +569,9 @@ def main(argv: list[str] | None = None) -> int:
     fx_run.add_argument("--out", help="also write the JSON report to this file")
     fx_run.add_argument("--junit", help="also write a JUnit XML report to this file")
     fx_run.add_argument("--golden", default=str(GOLDEN_DIR), help="golden labels, read only (default fixtures/golden)")
+    fx_draft = fixtures.add_parser("draft", help="propose passed, failed and withheld fixtures for accepted versions")
+    fx_draft.add_argument("--rule", help="only this rule key")
+    fx_draft.add_argument("--dry-run", action="store_true", help="build and check against the engine; write nothing")
     args = parser.parse_args(argv)
     if not args.command or (args.command == "fixtures" and not args.fixtures_command):
         parser.print_help()
@@ -552,6 +584,8 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "fixtures":
         _start(settings, log_stream=sys.stderr)   # stdout carries the report only
         try:
+            if args.fixtures_command == "draft":
+                return cmd_fixtures_draft(settings, args)
             return cmd_fixtures_run(settings, args)
         except ConfigError as exc:
             print(f"nutrivo: configuration error: {exc}", file=sys.stderr)

@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Today · mobile states</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Instrument+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#ffffff}
+a{color:#2f5eff}a:hover{color:#1f49d9}
+:focus-visible{outline:2px solid #2f5eff;outline-offset:2px}
+</style>
+</helmet>
+<div style="width:2740px;height:844px;box-sizing:border-box;padding:0 40px;display:flex;gap:40px;font-family:'Instrument Sans',system-ui,sans-serif;color:#101216;background:#ffffff">
+<sc-for list="{{phones}}" as="p" hint-placeholder-count="6">
+<div style="width:390px;display:flex;flex-direction:column;gap:10px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">{{p.label}}</span>
+<div style="width:390px;height:812px;border:1px solid #dde0e6;border-radius:16px;overflow:hidden;box-sizing:border-box;display:flex;flex-direction:column">
+<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid #dde0e6"><span style="font-weight:700;font-size:17px">Nutrivo</span><button aria-label="Open menu" style="all:unset;width:44px;height:44px;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#101216" stroke-width="1.6" aria-hidden="true"><path d="M3 6h14M3 10h14M3 14h14"></path></svg></button></div>
+<div style="padding:20px 16px 0;display:flex;flex-direction:column;gap:4px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">Today</span><h1 style="margin:0;font-size:24px;font-weight:600">Halden Pet Nutrition</h1></div>
+<div style="padding:20px 16px;display:flex;flex-direction:column;gap:12px">
+
+<sc-if value="{{p.calm}}" hint-placeholder-val="{{false}}">
+<div style="border:1px solid #dde0e6;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:10px">
+<h2 style="margin:0;font-size:18px;font-weight:600">Nothing open</h2>
+<p style="margin:0;font-size:15px;line-height:1.5">6 products are label clear in 4 markets.</p>
+<span style="display:inline-flex;align-self:flex-start;align-items:center;gap:6px;padding:3px 9px;border-radius:6px;background:#e6f2ec;color:#0f7a4d;font-size:13px;font-weight:600"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8.2l2 2 4-4.2"></path></svg>Label clear · SE DK FI DE</span>
+<a href="#" style="display:inline-flex;align-self:flex-start;align-items:center;gap:6px;padding:3px 9px;border-radius:6px;background:#f1f2f4;color:#5f6570;font-size:13px;font-weight:600"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8h6"></path></svg>Not assessed · Norway</a>
+</div>
+</sc-if>
+
+<sc-if value="{{p.first}}" hint-placeholder-val="{{false}}">
+<div style="border:1px solid #dde0e6;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:12px">
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">First step</span>
+<h2 style="margin:0;font-size:20px;font-weight:600;line-height:1.25">Upload a label to see what needs you</h2>
+<p style="margin:0;font-size:15px;line-height:1.5;color:#5f6570">Each language panel is checked per market, with the rule and citation behind every result.</p>
+<button style="font:inherit;font-size:15px;font-weight:600;min-height:44px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff">Upload a label</button>
+<button style="font:inherit;font-size:15px;font-weight:500;min-height:44px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;color:#101216">Try the sample label</button>
+</div>
+</sc-if>
+
+<sc-if value="{{p.free}}" hint-placeholder-val="{{false}}">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.08em;padding:3px 8px;border:1px solid #dde0e6;border-radius:4px;background:#f4f5f7">Free plan</span><a href="#" style="font-size:14px;font-weight:500;padding:12px 0">See plans</a></div>
+<h2 style="margin:0;font-size:15px;font-weight:600">6 open items</h2>
+<div style="border:1px solid #dde0e6;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:6px;background:#fbe8e7;color:#b3251f;font-size:13px;font-weight:600"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.5"></circle><path d="M3.5 12.5l9-9"></path></svg>Blocked</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;padding:2px 7px;border:1px solid #dde0e6;border-radius:6px;background:#f4f5f7">FI</span></div>
+<span style="font-size:16px;font-weight:600">Registration expired in Finland</span>
+<span style="font-size:14px;font-weight:500">Duck Training Treats 150 g</span>
+<button style="font:inherit;font-size:15px;font-weight:600;min-height:44px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff">Open registration</button>
+</div>
+<div style="border:1px solid #dde0e6;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;justify-content:space-between"><span style="display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:6px;background:#fdf0dd;color:#9e5600;font-size:13px;font-weight:600"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 1.8l6.6 12H1.4z"></path><path d="M8 6.5v3.2M8 11.6v.4"></path></svg>Action needed</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;padding:2px 7px;border:1px solid #dde0e6;border-radius:6px;background:#f4f5f7">DE · German</span></div>
+<span style="font-size:16px;font-weight:600">Type of feed missing</span>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570">Reg. (EC) 767/2009 Art. 17(1)(a) · EU law</span>
+<button style="font:inherit;font-size:15px;font-weight:600;min-height:44px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff">Open fix</button>
+</div>
+</sc-if>
+
+<sc-if value="{{p.loading}}" hint-placeholder-val="{{false}}">
+<div aria-busy="true" style="display:flex;flex-direction:column;gap:12px">
+<sc-for list="{{skel}}" as="s" hint-placeholder-count="4"><div style="border:1px solid #dde0e6;border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:10px"><div style="width:110px;height:22px;border-radius:6px;background:#f4f5f7"></div><div style="height:14px;width:85%;border-radius:4px;background:#f4f5f7"></div><div style="height:12px;width:60%;border-radius:4px;background:#f4f5f7"></div><div style="height:44px;border-radius:8px;background:#f4f5f7"></div></div></sc-for>
+<span role="status" style="font-size:14px;color:#5f6570">Loading open items…</span>
+</div>
+</sc-if>
+
+<sc-if value="{{p.error}}" hint-placeholder-val="{{false}}">
+<div role="alert" style="border:1px solid #dde0e6;border-radius:10px;padding:20px;background:#f4f5f7;display:flex;flex-direction:column;gap:10px">
+<h2 style="margin:0;font-size:18px;font-weight:600">Open items didn’t load</h2>
+<p style="margin:0;font-size:15px;line-height:1.5;color:#5f6570">Nothing has changed in your results. This page couldn’t reach them.</p>
+<button style="font:inherit;font-size:15px;font-weight:600;min-height:44px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff">Try again</button>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570">Error reference · [request id]</span>
+</div>
+</sc-if>
+
+<sc-if value="{{p.noperm}}" hint-placeholder-val="{{false}}">
+<div style="border:1px solid #dde0e6;border-radius:10px;padding:20px;display:flex;flex-direction:column;gap:10px">
+<h2 style="margin:0;font-size:18px;font-weight:600;line-height:1.3">You don’t have access to this workspace’s results</h2>
+<p style="margin:0;font-size:15px;line-height:1.5;color:#5f6570">A workspace admin can give you access.</p>
+<button style="font:inherit;font-size:15px;font-weight:600;min-height:44px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff">Request access</button>
+</div>
+</sc-if>
+
+</div>
+</div>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":2740,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      skel: [1, 2, 3],
+      phones: [
+        { label: 'Nothing open', calm: true },
+        { label: 'First-time workspace', first: true },
+        { label: 'Free plan', free: true },
+        { label: 'Loading', loading: true },
+        { label: 'Error', error: true },
+        { label: 'No permission', noperm: true }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

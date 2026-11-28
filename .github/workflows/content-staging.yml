@@ -3,19 +3,20 @@ name: content-staging
 # Infisical identity, and staging's secrets live in the GitHub environment `staging`, which only jobs on main can read
 # (docs/16, docs/22 §3). So a founder runs this from Actions → content-staging → Run workflow. It runs the same commands
 # as the local stack, in order: fetch the official texts, import the additive register and the feed-material
-# catalogue, extract candidate rules (K01/K02), extract candidate terms. Every step writes reference data or
-# candidates only: nothing accepts, rejects or releases (non-negotiable 7); a person does that in /admin.
+# catalogue, extract candidate rules (K01/K02), extract candidate terms, then propose rule fixtures for accepted
+# versions (#360). Every step writes reference data, candidates or proposed fixtures only: nothing accepts, confirms,
+# rejects or releases (non-negotiable 7); a person does that in /admin.
 on:
   workflow_dispatch:
     inputs:
       steps:
         description: What to run
         type: choice
-        options: [all, fetch, import, extract, terms]
+        options: [all, fetch, import, extract, terms, fixtures]
         default: all
         required: true
       dry_run:
-        description: Fetch, extract and compare only; write nothing (extract and terms still call the model)
+        description: Fetch, extract, compare and draft only; write nothing (extract and terms still call the model)
         type: boolean
         default: false
 concurrency: { group: content-staging, cancel-in-progress: false }
@@ -78,6 +79,11 @@ jobs:
       - name: Extract candidate terms (K01/K02 for terms)
         if: env.STEPS == 'all' || env.STEPS == 'terms'
         run: uv run --frozen nutrivo content terms $DRY | tee -a ../content-staging.jsonl
+      - name: Propose rule fixtures for accepted versions (#360)
+        if: env.STEPS == 'all' || env.STEPS == 'fixtures'
+        # No model call: inputs come from each accepted version's params and its linked accepted terms, and each is
+        # stored as proposed only when the engine agrees. A person confirms or rejects them in /admin/rules.
+        run: uv run --frozen nutrivo fixtures draft $DRY | tee -a ../content-staging.jsonl
       - name: Summary
         if: ${{ !cancelled() }}
         working-directory: .

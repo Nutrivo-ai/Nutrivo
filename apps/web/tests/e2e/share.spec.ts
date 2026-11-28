@@ -258,14 +258,16 @@ test.describe("share a report (I02, S-NV2-026)", () => {
     await expect(card).not.toContainText(ref);
     await visitor.page.goto(`/share/${token}`);
     await expect(card).toHaveAttribute("data-status", "unknown");
-    const revokedText = await card.innerText();
+    // textContent, not innerText: innerText follows the CSS that is applied at that moment (uppercase labels, block
+    // breaks), so the same card read before and after its styles applied compared unequal (CI on PR 358).
+    const revokedText = await card.textContent();
     await axe(visitor.page);
     await visitor.page.goto(`/share/${"A".repeat(43)}`);
     await expect(card).toHaveAttribute("data-status", "unknown");
-    expect(await card.innerText()).toBe(revokedText);
+    expect(await card.textContent()).toBe(revokedText);
     await visitor.page.goto("/share/not-a-token");
     await expect(card).toHaveAttribute("data-status", "unknown");
-    expect(await card.innerText()).toBe(revokedText);
+    expect(await card.textContent()).toBe(revokedText);
 
     // The document still verifies: /verify/<ref> answers current for the same report.
     await visitor.page.goto(`/verify/${ref}`);
