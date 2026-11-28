@@ -1,6 +1,7 @@
 """Tests for the restore drill (T-1101): a fake Management API, no keys, no network.
 Run: python3 -m unittest discover -s scripts/drill -p 'test_*.py'"""
 import json, unittest
+from unittest import mock
 from datetime import datetime, timedelta, timezone
 
 import restore_drill as rd
@@ -38,9 +39,11 @@ class FakeApi:
         self.rows.update(over.pop("rows", {}))
         self.delete_status = over.pop("delete_status", 200)
         self.flaky = over.pop("flaky", [])  # statuses or exceptions answered before the real answer
+        self.tokens = []  # (ref, method, token) per call
 
     def __call__(self, method, url, token, data=None, timeout=60):
         self.calls.append((method, url, data))
+        self.tokens.append((url.split("/projects/")[1].split("/")[0], method, token))
         if self.flaky:
             f = self.flaky.pop(0)
             if isinstance(f, Exception):
@@ -72,9 +75,55 @@ def key_of(sql):
     return next(k for head, k in heads if sql.startswith(head))
 
 
+def apis(fake):
+    """The prod-scoped deploy token and the separate drill token, as main() builds them."""
+    return (rd.Api("sbp_prod", http_fn=fake, sleep=lambda s: None, now=lambda: NOW),
+            rd.Api("sbp_drill", http_fn=fake, sleep=lambda s: None, now=lambda: NOW))
+
+
 def run(fake, delete=True, **kw):
-    api = rd.Api("sbp_test", http_fn=fake, sleep=lambda s: None, now=lambda: NOW)
-    return rd.drill(api, COPY, PROD, POINT, delete=delete, **kw)
+    return rd.drill(*apis(fake), COPY, PROD, POINT, delete=delete, **kw)
+
+
+class Tokens(unittest.TestCase):
+    """#392: the prod deploy token is scoped to nutrivo-prod, so the copy is reached only with the drill token."""
+
+    def test_each_token_reaches_only_its_own_project(self):
+        fake = FakeApi()
+        run(fake)
+        self.assertEqual({tok for ref, _, tok in fake.tokens if ref == PROD}, {"sbp_prod"})
+        self.assertEqual({tok for ref, _, tok in fake.tokens if ref == COPY}, {"sbp_drill"})
+
+    def test_the_delete_uses_the_drill_token(self):
+        fake = FakeApi()
+        run(fake)
+        self.assertEqual([tok for ref, m, tok in fake.tokens if m == "DELETE"], ["sbp_drill"])
+        self.assertEqual([ref for ref, m, _ in fake.tokens if m == "DELETE"], [COPY])
+
+    def test_a_drill_token_without_access_to_the_copy_refuses_and_deletes_nothing(self):
+        """#392's failure: the copy answers 403 to the token that calls it. Exit 1, copy kept."""
+        class Forbidden(FakeApi):
+            def __call__(self, method, url, token, data=None, timeout=60):
+                if f"/projects/{COPY}" in url and token == "sbp_drill":
+                    self.calls.append((method, url, data))
+                    self.tokens.append((COPY, method, token))
+                    return 403, b"{}"
+                return super().__call__(method, url, token, data, timeout)
+        fake = Forbidden()
+        with self.assertRaisesRegex(rd.DrillError, "403"):
+            run(fake)
+        self.assertEqual(fake.deletes(), [])
+
+    def test_main_needs_the_drill_token(self):
+        env = {"SUPABASE_ACCESS_TOKEN": "sbp_prod", "SUPABASE_PROJECT_REF": PROD}
+        with mock.patch.object(rd, "E", env.get), mock.patch("sys.stderr"):
+            self.assertEqual(rd.main(["--drill-ref", COPY, "--restore-point", POINT.isoformat()]), 2)
+
+    def test_main_refuses_the_prod_token_as_drill_token(self):
+        env = {"SUPABASE_ACCESS_TOKEN": "sbp_prod", "SUPABASE_DRILL_ACCESS_TOKEN": "sbp_prod",
+               "SUPABASE_PROJECT_REF": PROD}
+        with mock.patch.object(rd, "E", env.get), mock.patch("sys.stderr"):
+            self.assertEqual(rd.main(["--drill-ref", COPY, "--restore-point", POINT.isoformat()]), 2)
 
 
 class Passes(unittest.TestCase):
@@ -119,9 +168,8 @@ class Passes(unittest.TestCase):
 
 class Guards(unittest.TestCase):
     def refuses(self, fake, pattern, ref=COPY):
-        api = rd.Api("sbp_test", http_fn=fake, sleep=lambda s: None, now=lambda: NOW)
         with self.assertRaisesRegex(rd.DrillError, pattern):
-            rd.drill(api, ref, PROD, POINT, delete=True)
+            rd.drill(*apis(fake), ref, PROD, POINT, delete=True)
         self.assertEqual(fake.deletes(), [])
         self.assertEqual(fake.queries(ref), [])
 
@@ -145,9 +193,8 @@ class Guards(unittest.TestCase):
 
     def test_never_healthy(self):
         fake = FakeApi(statuses=["RESTORING"])
-        api = rd.Api("sbp_test", http_fn=fake, sleep=lambda s: None, now=lambda: NOW)
         with self.assertRaisesRegex(rd.DrillError, "not ACTIVE_HEALTHY"):
-            rd.drill(api, COPY, PROD, POINT, wait_minutes=1, delete=True)
+            rd.drill(*apis(fake), COPY, PROD, POINT, wait_minutes=1, delete=True)
 
 
 class Fails(unittest.TestCase):

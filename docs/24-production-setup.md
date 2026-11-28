@@ -68,7 +68,8 @@ run it through the `doctor` workflow (§5).
 ## 5. GitHub
 1. Settings → Environments → **production**: the secrets `INFISICAL_CLIENT_ID` and `INFISICAL_CLIENT_SECRET`
    (`github-actions-prod`) and the variable `INFISICAL_PROJECT_ID` (the prod project's ID). Tags `v*` only are
-   created by repository admins (`.github/rulesets/release-tags.json`).
+   created by repository admins (`.github/rulesets/release-tags.json`). `SUPABASE_DRILL_ACCESS_TOKEN` is set here
+   only per drill and deleted after it (docs/runbooks/restore-drill.md), never in Infisical.
 2. Actions → **doctor** → Run workflow with `prod` and `all` ticked, `strict` not ticked. It runs read-only for prod.
    Every name must be present; only the checks that need a first deploy may skip.
 3. Settings → Variables → **`PRODUCTION_DEPLOY_ENABLED`** = `true`.

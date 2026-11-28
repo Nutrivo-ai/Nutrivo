@@ -68,9 +68,13 @@ jobs:
           env-slug: prod
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with: { node-version: 22 }
+      # SUPABASE_ACCESS_TOKEN (Infisical prod, scoped to nutrivo-prod) reads prod. SUPABASE_DRILL_ACCESS_TOKEN makes
+      # every call on the copy, the delete included (#392): a per-drill token scoped to the copy only, kept as a
+      # production environment secret that only this job reads, never in Infisical (docs/runbooks/restore-drill.md).
       - name: Drill
         id: drill
         env:
+          SUPABASE_DRILL_ACCESS_TOKEN: ${{ secrets.SUPABASE_DRILL_ACCESS_TOKEN }}
           DRILL_REF: ${{ inputs.drill_ref }}
           RESTORE_POINT: ${{ inputs.restore_point }}
         # Wrapped in a check-in to the Sentry monitor (DSN-authorised, like synthetic.yml): a failed drill is an error

@@ -60,7 +60,7 @@ what a person does around them.
 | Stripe webhooks failing | Sentry project `nutrivo-functions`; Stripe → Developers → Webhooks | Stripe retries failed deliveries; the daily monitor `stripe-reconcile` corrects the subscription mirror from the Stripe API (docs/08) |
 | Overload or rate-limit refusals | Sentry p95 alerts; customers seeing "Too many requests" (P0049 refusals are not sent to Sentry) | Limits are in the `private.rate_limits` table (docs/09, defaults pending #81); changing them is a reviewed migration, not a hand edit |
 | Staging deploy failed | The "Staging deploy failed" issue and its run | The autopilot works the issue; later merges' staging deploys are refused (they fail, they are not queued) until it is closed. A founder may run Actions → `deploy-staging` by hand to try a fix first (docs/22 §4) |
-| Restore drill failed | The drill's issue | [restore-drill.md](restore-drill.md) step 5 |
+| Restore drill failed | The drill's issue | [restore-drill.md](restore-drill.md) "Each month", step 6 |
 | Supabase, Vercel or Render down | The provider's status page | Nothing to deploy. Note it on the issue and tell customers if it lasts |
 
 ## 4 · Fixing forward
