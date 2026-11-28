@@ -1,11 +1,11 @@
-// S-NV2-006 Board (F01) and portfolio findings (F04): the reads, under the person's own session, so RLS decides what
-// any of them returns (a family- or market-scoped member sees only their products and markets). The board never
-// rolls a state up itself: region cells come from app.board_rollup(workspace) (BE-15), which answers
-// app.rollup_state(product, region) for every product × region on the board in one call (#56 Q5, incident issue 315).
+// S-MTX-001 Board as the product matrix (F01) and portfolio findings (F04): the reads, under the person's own session,
+// so RLS decides what any of them returns (a family- or market-scoped member sees only their products and markets).
+// The matrix rolls nothing up: each cell is one app.product_nodes row as stored (label_state, registration_state and
+// the generated display_state); a region's roll-up is the database's (app.rollup_state, BE-15), shown on S-MOB-002.
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import { inPlan, readPlan, regionName, type Plan } from "@/lib/plan/regions";
+import { buildPlan, inPlan, regionName, type Plan } from "@/lib/plan/regions";
 import type { GapRow } from "@/lib/report/model";
 import {
   buildBoard,
@@ -18,8 +18,6 @@ import {
   type BoardProductRow,
   type PortfolioFindingRow,
   type PortfolioFindings,
-  type RollupRow,
-  type RulesetRow,
 } from "./model";
 
 type Client = SupabaseClient<Database>;
@@ -62,6 +60,13 @@ export type BoardPage =
   | {
       kind: "loaded";
       board: BoardModel;
+      workspaceName: string;
+      /**
+       * Add a product and Upload a label show only to people who may create products: the conditions of
+       * private.can_create_product (an internal, unscoped admin, portfolio manager or editor), read from the person's
+       * own membership. Presentation only: create_product checks it again.
+       */
+      canCreate: boolean;
       /** outsidePlan: J04.must.1 (T-902), the regions whose findings are not shown because the plan does not hold them. */
       findings: (PortfolioFindings & { capped: boolean; outsidePlan: string[] }) | null;
     };
@@ -70,13 +75,48 @@ type BaseRows = {
   products: BoardProductRow[];
   nodes: BoardNodeRow[];
   jurisdictions: BoardJurisdictionRow[];
-  rulesets: RulesetRow[];
+  workspace: { name: string; entitled_regions: string[] | null } | null;
+  canCreate: boolean;
 };
+
+type MembershipRow = {
+  role: string;
+  is_external: boolean;
+  scope_family_ids: string[] | null;
+  scope_node_ids: string[] | null;
+  access_ends_at: string | null;
+};
+
+async function readCanCreate(supabase: Client, workspaceId: string): Promise<boolean> {
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return false;
+  const app = supabase.schema("app");
+  const person = ok("person", await app.from("people").select("id").eq("user_id", auth.user.id).maybeSingle());
+  if (!person) return false;
+  const m = ok(
+    "membership",
+    await app
+      .from("memberships")
+      .select("role, is_external, scope_family_ids, scope_node_ids, access_ends_at")
+      .eq("workspace_id", workspaceId)
+      .eq("person_id", person.id)
+      .is("ended_at", null)
+      .maybeSingle(),
+  ) as MembershipRow | null;
+  return (
+    !!m &&
+    ["admin", "portfolio_manager", "editor"].includes(m.role) &&
+    !m.is_external &&
+    m.scope_family_ids === null &&
+    m.scope_node_ids === null &&
+    (m.access_ends_at === null || new Date(m.access_ends_at) > new Date())
+  );
+}
 
 async function readBase(supabase: Client, workspaceId: string): Promise<BaseRows> {
   const app = supabase.schema("app");
   const ref = supabase.schema("ref");
-  const [products, nodes, jurisdictions, rulesets] = await Promise.all([
+  const [products, nodes, jurisdictions, workspace, canCreate] = await Promise.all([
     paged<BoardProductRow>("products", (from, to) =>
       app
         .from("products")
@@ -89,7 +129,7 @@ async function readBase(supabase: Client, workspaceId: string): Promise<BaseRows
     paged<BoardNodeRow>("markets", (from, to) =>
       app
         .from("product_nodes")
-        .select("product_id, node_id, display_state, ruleset_version, open_actions, last_check_job_id")
+        .select("product_id, node_id, label_state, registration_state, display_state, ruleset_version, open_actions, last_check_job_id")
         .eq("workspace_id", workspaceId)
         .order("product_id")
         .order("node_id")
@@ -98,28 +138,10 @@ async function readBase(supabase: Client, workspaceId: string): Promise<BaseRows
     paged<BoardJurisdictionRow>("jurisdictions", (from, to) =>
       ref.from("jurisdictions").select("id, name, parent_id, node_type").order("id").range(from, to),
     ),
-    paged<RulesetRow>("rulesets", (from, to) =>
-      ref.from("ruleset_versions").select("id, released_at").not("released_at", "is", null).order("id").range(from, to),
-    ),
+    app.from("workspaces").select("name, entitled_regions").eq("id", workspaceId).maybeSingle(),
+    readCanCreate(supabase, workspaceId),
   ]);
-  return { products, nodes, jurisdictions, rulesets };
-}
-
-/**
- * The region cells: app.board_rollup, which is app.rollup_state for every product × region the workspace's board shows,
- * read in one paged call instead of one call per pair. It reads the same products as readBase (not discontinued, under
- * RLS), so it runs alongside it.
- */
-async function readRollups(supabase: Client, workspaceId: string): Promise<RollupRow[]> {
-  const app = supabase.schema("app");
-  return paged<RollupRow>("roll-up", (from, to) =>
-    app
-      .rpc("board_rollup", { p_workspace: workspaceId })
-      .select("product_id, region_id, state")
-      .order("product_id")
-      .order("region_id")
-      .range(from, to),
-  );
+  return { products, nodes, jurisdictions, workspace: ok("workspace", workspace), canCreate };
 }
 
 /** F04: the open findings of each market's latest check job, with the coverage gaps they cite. */
@@ -176,19 +198,17 @@ async function readFindings(
 
 export async function readBoard(supabase: Client, workspaceId: string, filters: BoardFilters): Promise<BoardPage> {
   if (!UUID.test(workspaceId)) return { kind: "not-found" };
-  if (filters.view !== "findings") {
-    const [base, rollups] = await Promise.all([readBase(supabase, workspaceId), readRollups(supabase, workspaceId)]);
-    return { kind: "loaded", board: buildBoard({ workspaceId, ...base, filters, rollups }), findings: null };
-  }
-  // F04 (?view=findings) draws no region cells, so it reads no roll-up.
   const base = await readBase(supabase, workspaceId);
-  const rows = { workspaceId, ...base, filters };
-  const plan = await readPlan(supabase, workspaceId);
-  if (!plan) return { kind: "not-found" };
+  if (!base.workspace) return { kind: "not-found" };
+  const entitledRegions = base.workspace.entitled_regions ?? [];
+  const rows = { workspaceId, products: base.products, nodes: base.nodes, jurisdictions: base.jurisdictions, entitledRegions, filters };
+  const board = buildBoard(rows);
+  const common = { kind: "loaded" as const, board, workspaceName: base.workspace.name, canCreate: base.canCreate };
+  if (filters.view !== "findings") return { ...common, findings: null };
+  const plan = buildPlan(entitledRegions, base.jurisdictions);
   const read = await readFindings(supabase, base, plan);
   return {
-    kind: "loaded",
-    board: buildBoard({ ...rows, rollups: [] }),
-    findings: { ...buildFindings(rows, read.rows, read.gaps), capped: read.capped, outsidePlan: read.outsidePlan },
+    ...common,
+    findings: { ...buildFindings({ ...rows, filters: board.filters }, read.rows, read.gaps), capped: read.capped, outsidePlan: read.outsidePlan },
   };
 }

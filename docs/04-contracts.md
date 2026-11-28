@@ -35,12 +35,20 @@ a market it covers is an error, never shown. A market reads Clear only as S-MOB-
 all clear), so a row and the verdict it opens agree. It also reads `app.checks` of each latest job and the latest
 released `ref.ruleset_versions` to back Clear and pin the ruleset (non-negotiables 3 and 5).
 
-**How the board reads contract 3 (T-506).** S-NV2-006 shows each market cell as `app.product_nodes.display_state` and
-each region cell as `app.rollup_state(product, region)` for every product × region the product is sold in, as the
-database answers it; the web never rolls a state up. It reads them in one call, `app.board_rollup(p_workspace)`
-(#56 Q4/Q5, incident #315): security invoker, so the viewer's RLS decides the products and markets rolled up; one
-row per product × region with `state` (what `rollup_state` answers for that pair) and `product_state` (the product's
-worst state across its regions, for S-MOB-001), in the order blocked > action > not_assessed > clear (D-06).
+**How the board reads contract 3 (T-1113, the product matrix of D-33; first built in T-506).** S-MTX-001 reads
+`app.product_nodes` under RLS and shows each product × market as two lines that are never merged: the label line is
+`label_state` (Label clear, never a bare "Clear"; Action needed with `open_actions`; Not assessed, linking the market's
+coverage page) and the registration line is `registration_state` (Registered, Not required, Unknown; anything else
+reads Unknown). Only `display_state = blocked` (registration `not_registered` or `expired`) replaces the registration
+line, with a Blocked chip naming which; the label line stays, so an Unknown registration never reads clear. A row
+whose `ruleset_version` is null reads "Not checked yet" (no state) and opens the product page. Columns are the markets
+of the workspace's `product_nodes`; one whose region is not in `app.workspaces.entitled_regions` is drawn disabled,
+with Upgrade. The matrix has no region cells, so it rolls nothing up and reads no roll-up: the region roll-up,
+`app.rollup_state(product, region)`, is shown on S-MOB-002 (T-1109), and `app.board_rollup(p_workspace)` (#56 Q4/Q5,
+incident #315: security invoker; one row per product × region with `state` and `product_state`, the product's worst
+state across its regions, in the order blocked > action > not_assessed > clear, D-06) stays for S-MOB-001. Add a
+product and Upload a label are drawn only when the person's own `app.memberships` row meets the conditions of
+`private.can_create_product`; `create_product` checks them again.
 
 ## RPCs (writes go through these; more are added per milestone in the same pattern)
 | Function | Workflow | Notes |

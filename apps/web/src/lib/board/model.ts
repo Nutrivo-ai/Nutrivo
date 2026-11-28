@@ -1,14 +1,17 @@
-// S-NV2-006 Board (F01) and the portfolio findings on it (F04): the rows a workspace's products hold, read under RLS,
-// shaped into what the screen shows. Pure, so the must-holds are tested without a database:
-// - the model never computes a state. A market cell is app.product_nodes.display_state (BE-14: an unknown or lapsed
-//   registration never reads Clear); a region cell is app.rollup_state(product, region) as the database answered it
-//   (BE-15: a parent is never better than its worst child, computed in the database, F01.must.1);
-// - anything the vocabulary does not know, and a region whose roll-up was not read, is Not assessed, never Clear;
-// - a market a product is not sold in is no state at all, so it can never pass for Clear either;
+// S-MTX-001 Board as the product matrix (D-33, T-1113; F01) and the portfolio findings on it (F04): the rows a
+// workspace's products hold, read under RLS, shaped into what the screen shows. Pure, so the must-holds are tested
+// without a database:
+// - the model never computes a state. Each cell keeps two lines that are never merged: the label line is
+//   app.product_nodes.label_state (Label clear, Action needed with its open count, Not assessed) and the registration
+//   line is registration_state. Only display_state = blocked (registration not_registered or expired, docs/03)
+//   replaces the registration line, with the red Blocked chip naming which; the label line stays;
+// - a market no check has reached (no ruleset_version) is "Not checked yet", never a state;
+// - anything the vocabulary does not know is Not assessed (label) or Unknown (registration), never Clear;
+// - the matrix has no region roll-up: a parent's state is the database's (BE-15, F01.must.1), shown on S-MOB-002;
+// - a market a product is not sold in is an inert cell, and a market outside the plan a disabled one;
 // - discontinued products are not on the board (F01 step 3);
 // - a finding reads as in its label report (findingOf): only the latest check job of each market, an action with its
 //   rule, a withheld finding with its gap or the statement that none was recorded.
-import type { VerdictState } from "@/components/kit/states";
 import { findingOf, nodeCode, type FindingRow, type GapRow, type ReportFinding } from "@/lib/report/model";
 
 export type BoardProductRow = {
@@ -22,24 +25,26 @@ export type BoardProductRow = {
 export type BoardNodeRow = {
   product_id: string;
   node_id: string;
+  label_state: string | null;
+  registration_state: string | null;
   display_state: string | null;
   ruleset_version: string | null;
   open_actions: number;
   last_check_job_id: string | null;
 };
 export type BoardJurisdictionRow = { id: string; name: string; parent_id: string | null; node_type: string };
-export type RulesetRow = { id: string; released_at: string | null };
-/** app.rollup_state(product, region), one per product × region the product is sold in. */
-export type RollupRow = { product_id: string; region_id: string; state: string | null };
 
-export const STATE_FILTERS = ["action", "not_assessed", "stale"] as const;
+export const STATE_FILTERS = ["action", "not_assessed", "blocked"] as const;
 export type StateFilter = (typeof STATE_FILTERS)[number];
 export type BoardView = "board" | "findings";
+export type Density = "comfortable" | "compact";
 /** page: 1-based, set only past the first (founder decision 25 Nov 2026, issue 311: the board pages its rows). */
-export type BoardFilters = { state: StateFilter | null; species: string | null; view: BoardView; page?: number };
+export type BoardFilters = { state: StateFilter | null; market: string | null; density: Density; view: BoardView; page?: number };
 
 /** Rows on one page of the board. At 300 recipes the full grid was 2,400 cells and missed its budget (issue 311). */
 export const BOARD_PAGE = 50;
+
+const MARKET = /^[A-Za-z0-9]{1,8}(-[A-Za-z0-9]{1,12}){0,3}$/;
 
 /** The board's filters from the URL. Unknown values are ignored rather than guessed. */
 export function parseFilters(params: Record<string, string | string[] | undefined>): BoardFilters {
@@ -48,70 +53,127 @@ export function parseFilters(params: Record<string, string | string[] | undefine
     return typeof v === "string" ? v : null;
   };
   const state = one("state");
-  const species = one("species");
+  const market = one("market");
   const page = /^[1-9][0-9]{0,4}$/.test(one("page") ?? "") ? Number(one("page")) : 1;
   return {
     state: (STATE_FILTERS as readonly string[]).includes(state ?? "") ? (state as StateFilter) : null,
-    species: species && /^[a-z_]{1,32}$/.test(species) ? species : null,
+    market: market && MARKET.test(market) ? market : null,
+    density: one("density") === "compact" ? "compact" : "comfortable",
     view: one("view") === "findings" ? "findings" : "board",
     ...(page > 1 ? { page } : {}),
   };
 }
 
-/** The board's URL for a set of filters; null values are left out. */
+/** The board's URL for a set of filters; defaults are left out, so the plain board is /board. */
 export function boardHref(workspaceId: string, f: Partial<BoardFilters>): string {
   const q = new URLSearchParams();
   if (f.view === "findings") q.set("view", "findings");
+  if (f.market) q.set("market", f.market);
   if (f.state) q.set("state", f.state);
-  if (f.species) q.set("species", f.species);
+  if (f.density === "compact" && f.view !== "findings") q.set("density", "compact");
   if (f.page && f.page > 1 && f.view !== "findings") q.set("page", String(f.page));
   const s = q.toString();
   return `/w/${workspaceId}/board${s ? `?${s}` : ""}`;
 }
 
-export function asState(s: string | null | undefined): VerdictState {
-  if (s === "clear" || s === "action" || s === "not_assessed" || s === "blocked") return s;
-  return "not_assessed"; // anything the vocabulary does not know is withheld, never shown as a verdict
+// ── The two lines of a cell ──────────────────────────────────────────────────────────────────────────────────────
+
+/** The label line. "never": no check has reached this market; it is not a state. */
+export type LabelLine = "clear" | "action" | "not_assessed" | "never";
+
+export const LABEL_TEXT: Record<LabelLine, string> = {
+  clear: "Label clear", // never a bare "Clear" (D-33 rule 1)
+  action: "Action needed",
+  not_assessed: "Not assessed",
+  never: "Not checked yet",
+};
+
+export function labelOf(n: Pick<BoardNodeRow, "label_state" | "ruleset_version">): LabelLine {
+  if (!n.ruleset_version) return "never";
+  if (n.label_state === "clear" || n.label_state === "action") return n.label_state;
+  return "not_assessed"; // anything else is withheld, never shown as a verdict
 }
 
+export const REGISTRATIONS = ["registered", "not_required", "unknown", "not_registered", "expired"] as const;
+export type Registration = (typeof REGISTRATIONS)[number];
+
+export const REGISTRATION_TEXT: Record<Registration, string> = {
+  registered: "Registered",
+  not_required: "Not required",
+  unknown: "Unknown",
+  not_registered: "Not registered",
+  expired: "Expired",
+};
+
+/** The design's registration glyphs; always shown with the word, except in compact density, where the cell's label says it. */
+export const REGISTRATION_GLYPH: Record<Registration, string> = {
+  registered: "✓",
+  not_required: "–",
+  unknown: "?",
+  not_registered: "○",
+  expired: "◷",
+};
+
+export function registrationOf(s: string | null | undefined): Registration {
+  return (REGISTRATIONS as readonly string[]).includes(s ?? "") ? (s as Registration) : "unknown";
+}
+
+/** The registration that blocks sale, when display_state is blocked; null otherwise. */
+export function blockedBy(n: Pick<BoardNodeRow, "display_state" | "registration_state">): "expired" | "not_registered" | null {
+  if (n.display_state !== "blocked") return null;
+  return registrationOf(n.registration_state) === "expired" ? "expired" : "not_registered";
+}
+
+// ── The matrix ───────────────────────────────────────────────────────────────────────────────────────────────────
+
 export type BoardColumn = {
-  kind: "region" | "market";
   nodeId: string;
-  regionId: string;
-  /** "EU · DE" for a market, "EU" for a region. */
-  label: string;
+  /** "DE", the market's code within its region. */
+  code: string;
   name: string;
+  regionId: string;
+  /** Its region is outside the workspace's entitled_regions: disabled cells, Upgrade in the header. */
+  locked: boolean;
+  /** Products label clear in this market, of those a check reached here (every product, before filters). */
+  clear: number;
+  checked: number;
 };
-export type BoardGroup = { regionId: string; name: string; columns: BoardColumn[] };
 
-export type BoardCell = {
-  kind: "region" | "market";
+export type MarketCell = {
+  kind: "market";
   nodeId: string;
-  /** null: the product is not sold here, so there is no answer to show (never Clear). */
-  state: VerdictState | null;
-  /** Open actions (the design's "number in cell"); null for none. */
-  count: number | null;
-  href: string | null;
-  /** For a market: its ruleset is older than the latest release. */
-  stale: boolean;
+  label: LabelLine;
+  /** Open findings of the market's latest check, for Action needed; null for none. */
+  open: number | null;
+  registration: Registration;
+  blocked: "expired" | "not_registered" | null;
+  href: string;
+  /** What a screen reader hears for the cell, the design's wording. */
+  aria: string;
 };
-
-export type Freshness =
-  | { kind: "never"; version: null; note: string }
-  | { kind: "current" | "stale"; version: string; note: string };
+export type BoardCell =
+  | MarketCell
+  /** The product is not sold in this market: no answer at all. */
+  | { kind: "none"; nodeId: string }
+  /** The product is sold here, but the plan does not hold the market's region. */
+  | { kind: "locked"; nodeId: string; aria: string };
 
 export type BoardRow = {
   productId: string;
   name: string;
   meta: string;
+  summary: string;
+  /** The summary names something open (markets with open items, blocked). */
+  attention: boolean;
   href: string;
   cells: BoardCell[];
-  freshness: Freshness;
 };
 
 export type BoardModel = {
-  groups: BoardGroup[];
+  /** The columns shown (the market filter keeps one). */
   columns: BoardColumn[];
+  /** Every market column, for the market filter. */
+  markets: BoardColumn[];
   /** The rows the filters keep, on this page (BOARD_PAGE at most). */
   rows: BoardRow[];
   /** Rows the filters keep, on every page. */
@@ -123,10 +185,8 @@ export type BoardModel = {
   productCount: number;
   /** Markets the board has a column for. */
   marketCount: number;
-  stats: { unproven: number; stale: number };
-  currentRuleset: string | null;
-  species: string[];
   filters: BoardFilters;
+  filtered: boolean;
 };
 
 export type BoardRows = {
@@ -134,8 +194,8 @@ export type BoardRows = {
   products: BoardProductRow[];
   nodes: BoardNodeRow[];
   jurisdictions: BoardJurisdictionRow[];
-  rollups: RollupRow[];
-  rulesets: RulesetRow[];
+  /** app.workspaces.entitled_regions. */
+  entitledRegions: readonly string[];
   filters: BoardFilters;
 };
 
@@ -143,169 +203,134 @@ export function productHref(workspaceId: string, productId: string): string {
   return `/w/${workspaceId}/products/${productId}`;
 }
 
+/** The product × market verdict (S-NV2-007). */
 export function cellHref(workspaceId: string, productId: string, nodeId: string): string {
   return `/w/${workspaceId}/products/${productId}/nodes/${encodeURIComponent(nodeId)}`;
 }
 
-/** The latest released ruleset: what "current" means on the board. */
-export function currentRuleset(rulesets: RulesetRow[]): string | null {
-  const released = rulesets.filter((r) => r.released_at);
-  released.sort((a, b) => (b.released_at! < a.released_at! ? -1 : b.released_at! > a.released_at! ? 1 : 0));
-  return released[0]?.id ?? null;
+/** The market's coverage page (S-NV2-021), which lists its coverage gaps. */
+export function coverageHref(workspaceId: string, nodeId: string): string {
+  return `/w/${workspaceId}/library/coverage/${encodeURIComponent(nodeId)}`;
 }
 
-function isStale(n: BoardNodeRow, current: string | null): boolean {
-  return !!n.ruleset_version && !!current && n.ruleset_version !== current;
+export function upgradeHref(workspaceId: string): string {
+  return `/w/${workspaceId}/billing/plans`;
 }
 
-/** Markets grouped by their region, each group led by its region column (F01 steps 1 and 2; #56 question 1). */
-export function columnsOf(nodes: BoardNodeRow[], jurisdictions: BoardJurisdictionRow[]): BoardGroup[] {
-  const byId = new Map(jurisdictions.map((j) => [j.id, j]));
-  const regionOf = (id: string) => {
-    const j = byId.get(id);
-    return j?.parent_id ?? (j?.node_type === "region" ? j.id : null);
-  };
-  const markets = new Map<string, Set<string>>();
-  for (const n of nodes) {
-    const j = byId.get(n.node_id);
-    if (!j || j.node_type === "region") continue; // a region itself is read through its roll-up cell
-    const region = regionOf(n.node_id);
-    if (!region) continue;
-    if (!markets.has(region)) markets.set(region, new Set());
-    markets.get(region)!.add(n.node_id);
-  }
-  return [...markets.keys()].sort().map((regionId) => {
-    const region = byId.get(regionId);
-    const name = region?.name ?? regionId;
-    return {
-      regionId,
-      name,
-      columns: [
-        { kind: "region" as const, nodeId: regionId, regionId, label: regionId, name: `${name}, rolled up over the markets you can see` },
-        ...[...markets.get(regionId)!].sort().map((id) => ({
-          kind: "market" as const,
-          nodeId: id,
-          regionId,
-          label: `${regionId} · ${nodeCode(id)}`,
-          name: byId.get(id)?.name ?? id,
-        })),
-      ],
-    };
-  });
+/** Where a cell goes: Not checked yet to the product page, Not assessed to the coverage gaps, a verdict to its market. */
+function hrefOf(workspaceId: string, productId: string, nodeId: string, label: LabelLine): string {
+  if (label === "never") return productHref(workspaceId, productId);
+  if (label === "not_assessed") return coverageHref(workspaceId, nodeId);
+  return cellHref(workspaceId, productId, nodeId);
+}
+
+function regionOfNode(byId: Map<string, BoardJurisdictionRow>, id: string): string {
+  const j = byId.get(id);
+  return j?.parent_id ?? id;
 }
 
 function metaOf(p: BoardProductRow): string {
-  const who = [p.species, p.life_stage].filter(Boolean).join(", ");
-  return [p.format, who].filter(Boolean).join(" · ") || p.stage.replace(/_/g, " ");
+  const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+  const who = [p.species, p.life_stage].filter((s): s is string => !!s).map(cap).join(" · ");
+  return [who, p.format].filter(Boolean).join(" · ") || cap(p.stage.replace(/_/g, " "));
 }
 
-function freshnessOf(nodes: BoardNodeRow[], current: string | null, released: Map<string, string | null>): Freshness {
-  const checked = nodes.filter((n) => n.ruleset_version);
-  if (!checked.length) return { kind: "never", version: null, note: "never run" };
-  const notRun = nodes.length - checked.length;
-  const stale = checked.filter((n) => isStale(n, current));
-  if (stale.length) {
-    // The oldest ruleset any market was judged against is what the row is only as good as.
-    const oldest = stale
-      .map((n) => n.ruleset_version!)
-      .sort((a, b) => (released.get(a) ?? a).localeCompare(released.get(b) ?? b))[0];
-    return { kind: "stale", version: oldest, note: `stale · ${stale.length} of ${nodes.length} markets` };
-  }
-  return { kind: "current", version: checked[0].ruleset_version!, note: notRun ? `current · ${notRun} not run` : "current" };
+function marketCell(workspaceId: string, product: BoardProductRow, column: BoardColumn, n: BoardNodeRow): MarketCell {
+  const label = labelOf(n);
+  const open = label === "action" && n.open_actions > 0 ? n.open_actions : null;
+  const registration = registrationOf(n.registration_state);
+  const blocked = blockedBy(n);
+  const labelText = label === "action" && open ? `Action needed, ${open} open` : LABEL_TEXT[label];
+  const regText = blocked ? `Blocked, ${REGISTRATION_TEXT[blocked].toLowerCase()}` : REGISTRATION_TEXT[registration];
+  const next = label === "never" ? "Open the product" : label === "not_assessed" ? "Open coverage gap" : "Open the market";
+  return {
+    kind: "market",
+    nodeId: column.nodeId,
+    label,
+    open,
+    registration,
+    blocked,
+    href: hrefOf(workspaceId, product.id, column.nodeId, label),
+    aria: `${product.name}, ${column.name}: ${labelText}. Registration: ${regText}. ${next}`,
+  };
+}
+
+function summaryOf(cells: BoardCell[]): { summary: string; attention: boolean } {
+  const markets = cells.filter((c): c is MarketCell => c.kind === "market");
+  if (markets.length && markets.every((c) => c.label === "never")) return { summary: "Not checked yet", attention: false };
+  const action = markets.filter((c) => c.label === "action").length;
+  const blocked = markets.filter((c) => c.blocked).length;
+  const parts: string[] = [];
+  if (action) parts.push(`${action} ${action === 1 ? "market" : "markets"} with open items`);
+  if (blocked) parts.push(`${blocked} blocked`);
+  return parts.length ? { summary: parts.join(" · "), attention: true } : { summary: "No open items", attention: false };
+}
+
+function matches(cell: BoardCell, state: StateFilter): boolean {
+  if (cell.kind !== "market") return false;
+  if (state === "blocked") return cell.blocked !== null;
+  return cell.label === state;
 }
 
 export function buildBoard(rows: BoardRows): BoardModel {
   const { workspaceId, filters } = rows;
   const products = rows.products.filter((p) => p.stage !== "discontinued");
   const productIds = new Set(products.map((p) => p.id));
-  const nodes = rows.nodes.filter((n) => productIds.has(n.product_id));
-  const current = currentRuleset(rows.rulesets);
-  const released = new Map(rows.rulesets.map((r) => [r.id, r.released_at]));
-  const groups = columnsOf(nodes, rows.jurisdictions);
-  const columns = groups.flatMap((g) => g.columns);
-  const regionOf = new Map(columns.filter((c) => c.kind === "market").map((c) => [c.nodeId, c.regionId]));
-  const rollup = new Map(rows.rollups.map((r) => [`${r.product_id}|${r.region_id}`, r.state]));
-  const nodesOf = new Map<string, BoardNodeRow[]>();
-  for (const n of nodes) {
-    if (!nodesOf.has(n.product_id)) nodesOf.set(n.product_id, []);
-    nodesOf.get(n.product_id)!.push(n);
-  }
+  const byId = new Map(rows.jurisdictions.map((j) => [j.id, j]));
+  const entitled = new Set(rows.entitledRegions);
+  const nodes = rows.nodes.filter((n) => productIds.has(n.product_id) && byId.get(n.node_id)?.node_type !== "region");
+  const nodeOf = new Map(nodes.map((n) => [`${n.product_id}|${n.node_id}`, n]));
 
-  let unproven = 0;
-  let stale = 0;
-  const all: { row: BoardRow; product: BoardProductRow; marketStates: VerdictState[]; anyStale: boolean }[] = [];
-  for (const p of [...products].sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))) {
-    const own = nodesOf.get(p.id) ?? [];
-    const byNode = new Map(own.map((n) => [n.node_id, n]));
-    const marketStates: VerdictState[] = [];
-    const cells: BoardCell[] = columns.map((c) => {
-      if (c.kind === "market") {
-        const n = byNode.get(c.nodeId);
-        if (!n) return { kind: "market", nodeId: c.nodeId, state: null, count: null, href: null, stale: false };
-        const state = asState(n.display_state);
-        marketStates.push(state);
-        if (state === "not_assessed") unproven++;
-        const s = isStale(n, current);
-        if (s) stale++;
-        return {
-          kind: "market",
-          nodeId: c.nodeId,
-          state,
-          count: n.open_actions > 0 ? n.open_actions : null,
-          href: cellHref(workspaceId, p.id, c.nodeId),
-          stale: s,
-        };
-      }
-      const inRegion = own.filter((n) => regionOf.get(n.node_id) === c.regionId);
-      if (!inRegion.length) return { kind: "region", nodeId: c.nodeId, state: null, count: null, href: null, stale: false };
-      const actions = inRegion.reduce((sum, n) => sum + n.open_actions, 0);
+  // Columns are the markets of the workspace's product_nodes; one outside the plan comes last.
+  const markets: BoardColumn[] = [...new Set(nodes.map((n) => n.node_id))]
+    .map((nodeId) => {
+      const regionId = regionOfNode(byId, nodeId);
+      const here = nodes.filter((n) => n.node_id === nodeId);
       return {
-        kind: "region",
-        nodeId: c.nodeId,
-        // The database's roll-up as returned; one that was not read is withheld, never Clear.
-        state: asState(rollup.get(`${p.id}|${c.regionId}`)),
-        count: actions > 0 ? actions : null,
-        href: cellHref(workspaceId, p.id, c.nodeId),
-        stale: false,
+        nodeId,
+        code: nodeCode(nodeId),
+        name: byId.get(nodeId)?.name ?? nodeId,
+        regionId,
+        locked: !entitled.has(regionId),
+        clear: here.filter((n) => labelOf(n) === "clear").length,
+        checked: here.filter((n) => labelOf(n) !== "never").length,
+      };
+    })
+    .sort((a, b) => Number(a.locked) - Number(b.locked) || a.regionId.localeCompare(b.regionId) || a.code.localeCompare(b.code));
+  const market = filters.market && markets.some((m) => m.nodeId === filters.market && !m.locked) ? filters.market : null;
+  const columns = market ? markets.filter((m) => m.nodeId === market) : markets;
+
+  const all = [...products]
+    .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
+    .map((p) => {
+      const cellFor = (c: BoardColumn): BoardCell => {
+        const n = nodeOf.get(`${p.id}|${c.nodeId}`);
+        if (!n) return { kind: "none", nodeId: c.nodeId };
+        if (c.locked) return { kind: "locked", nodeId: c.nodeId, aria: `${p.name}, ${c.name}: Not in your plan` };
+        return marketCell(workspaceId, p, c, n);
+      };
+      const own = markets.map(cellFor);
+      const cells = market ? own.filter((c) => c.nodeId === market) : own;
+      return {
+        cells,
+        row: { productId: p.id, name: p.name, meta: metaOf(p), href: productHref(workspaceId, p.id), cells, ...summaryOf(own) },
       };
     });
-    all.push({
-      product: p,
-      marketStates,
-      anyStale: own.some((n) => isStale(n, current)),
-      row: {
-        productId: p.id,
-        name: p.name,
-        meta: metaOf(p),
-        href: productHref(workspaceId, p.id),
-        cells,
-        freshness: freshnessOf(own, current, released),
-      },
-    });
-  }
 
-  const kept = all.filter(({ product, marketStates, anyStale }) => {
-    if (filters.species && product.species !== filters.species) return false;
-    if (filters.state === "stale") return anyStale;
-    if (filters.state) return marketStates.includes(filters.state);
-    return true;
-  });
-
+  const kept = filters.state ? all.filter((r) => r.cells.some((c) => matches(c, filters.state!))) : all;
   const pages = Math.max(1, Math.ceil(kept.length / BOARD_PAGE));
   const page = Math.min(Math.max(1, filters.page ?? 1), pages);
   return {
-    groups,
     columns,
+    markets,
     rows: kept.slice((page - 1) * BOARD_PAGE, page * BOARD_PAGE).map((k) => k.row),
     matched: kept.length,
     page,
     pages,
     productCount: products.length,
-    marketCount: columns.filter((c) => c.kind === "market").length,
-    stats: { unproven, stale },
-    currentRuleset: current,
-    species: [...new Set(products.map((p) => p.species).filter((s): s is string => !!s))].sort(),
-    filters,
+    marketCount: markets.length,
+    filters: { ...filters, market },
+    filtered: !!filters.state || !!market,
   };
 }
 
@@ -342,14 +367,13 @@ export const FINDINGS_SHOWN = 100;
 export const FINDINGS_READ_CAP = 5000;
 
 export function buildFindings(
-  rows: Pick<BoardRows, "workspaceId" | "products" | "nodes" | "rulesets" | "filters" | "jurisdictions">,
+  rows: Pick<BoardRows, "workspaceId" | "products" | "nodes" | "filters" | "jurisdictions">,
   findings: PortfolioFindingRow[],
   gaps: GapRow[],
   limit = FINDINGS_SHOWN,
 ): PortfolioFindings {
   const { workspaceId, filters } = rows;
   const products = new Map(rows.products.filter((p) => p.stage !== "discontinued").map((p) => [p.id, p]));
-  const current = currentRuleset(rows.rulesets);
   const node = new Map(rows.nodes.map((n) => [`${n.product_id}|${n.node_id}`, n]));
   const parent = new Map(rows.jurisdictions.map((j) => [j.id, j.parent_id]));
   const gapMap = new Map(gaps.map((g) => [g.gap_id, g]));
@@ -360,8 +384,8 @@ export function buildFindings(
     const n = node.get(`${f.product_id}|${f.node_id}`);
     // Only the market's latest check job: an older job's result is never mixed in (as the label report reads it).
     if (!p || !n || !n.last_check_job_id || f.checks?.job_id !== n.last_check_job_id) return false;
-    if (filters.species && p.species !== filters.species) return false;
-    if (filters.state === "stale") return isStale(n, current);
+    if (filters.market && f.node_id !== filters.market) return false;
+    if (filters.state === "blocked") return blockedBy(n) !== null;
     if (filters.state) return f.state === filters.state;
     return true;
   });

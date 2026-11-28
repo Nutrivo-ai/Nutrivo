@@ -1,6 +1,11 @@
-import { ShellLoading } from "@/components/shell";
+import { BoardLoading } from "@/components/board/Board";
+import { Screen } from "@/components/shell";
 
-// S-NV2-006 while the board's products, markets and roll-ups are read.
+// S-MTX-009 while the board's products and markets are read: the grid's outline and "Loading the board…".
 export default function Loading() {
-  return <ShellLoading />;
+  return (
+    <Screen route="/w/[workspace]/board" crumb="Board" title="Products and markets">
+      <BoardLoading />
+    </Screen>
+  );
 }

@@ -90,14 +90,25 @@
 
   .kit-dialog::backdrop { background: color-mix(in srgb, var(--ink) 30%, transparent); }
 
-  /* Board grid (S-NV2-006): one short class per cell instead of the same utilities repeated on 2,400 cells at 300
-     recipes, which the HTML and the RSC payload both carry (issue 311, performance.board_300_recipes_p95_ms). Same rules. */
-  .bd-td { @apply border-b border-rule p-0 align-middle; }
-  .bd-edge { @apply border-l border-l-n200; }
-  .bd-edge-r { @apply border-l border-l-n300; }
-  .bd-none { @apply text-center; }
-  .bd-dot { @apply font-mono text-[10px] text-n400; }
-  .bd-a { @apply block no-underline hover:brightness-95; }
+  /* Board as the product matrix (S-MTX-001, T-1113): one short class per cell instead of the same utilities repeated
+     on 1,500 cells at 50 products by 30 markets, which the HTML and the RSC payload both carry (issue 311,
+     performance.board_300_recipes_p95_ms). [data-density="compact"] on the grid is the design's 40 px, one-line rows. */
+  .mx-row { @apply grid border-b border-rule; }
+  .mx-gc { @apply border-l border-rule min-w-0 bg-paper; }
+  .mx-gc[aria-disabled="true"] { @apply bg-panel; }
+  .mx-cell {
+    @apply flex flex-col items-start gap-[6px] w-full h-full min-h-[72px] py-[12px] px-[16px] rounded-[4px] text-ink no-underline;
+  }
+  .mx-cell:hover { @apply bg-panel text-ink; }
+  .mx-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .mx-inert { @apply flex items-center h-full min-h-[72px] py-[12px] px-[16px] text-n600 text-[13px]; }
+  .mx-chip { @apply inline-flex items-center gap-[5px] py-[2px] px-[8px] rounded-[6px] text-[13px] font-semibold whitespace-nowrap; }
+  .mx-reg { @apply inline-flex items-center gap-[5px] text-[12px] whitespace-nowrap; }
+  .mx-rh { @apply sticky left-0 z-[1] bg-paper py-[14px] px-[20px] border-r border-rule flex flex-col gap-[3px] justify-center min-w-0 overflow-hidden; }
+  [data-density="compact"] .mx-cell { @apply flex-row items-center min-h-[40px] py-[6px] px-[8px]; }
+  [data-density="compact"] .mx-inert { @apply min-h-[40px] py-[6px] px-[8px]; }
+  [data-density="compact"] .mx-rh { @apply py-[6px] px-[14px]; }
+  [data-density="compact"] .mx-chip { @apply text-[12px]; }
   .st-cell { @apply flex flex-col items-center justify-center gap-[5px] py-[10px] px-[4px]; }
   .st-count { @apply block font-mono text-[10px] leading-none min-h-[10px]; }
 }

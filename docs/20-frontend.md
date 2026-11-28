@@ -173,8 +173,45 @@ issue #22). `make db-reset` does not load it, because the gate tests assume an e
 - **Not built** (#56): the "Obligations with a date" tile, S-MOB-001 at 390 px (its data is `app.board_rollup`'s
   `product_state`), S-MIS-003's search and saved views (F02, LATER). At 300 recipes the full grid was ~4 MB of HTML;
   paged, the first page is ~0.6 MB (26 KB gzipped), about 275 ms locally against about 480 ms (issue 311).
-- **Tests** (`tests/e2e/board.spec.ts`): F01.main, F01.must.1, F04.main, the empty state, axe, the screen's links and
-  no buttons, and the legend against the S-NV2-006 baseline.
+- **Superseded by T-1113** (below): the page content is now the product matrix; the paging and the findings view stay.
+
+### Built in T-1113: the board as the product matrix (D-33; S-MTX-001 to 011)
+- **S-MTX-001** at `/w/[workspace]/board`, from `design/product/Nutrivo Board*.dc.html`, page content inside the built
+  rail (crumb "Board", title "Products and markets"): the subline (workspace · n products · m markets), Add a product
+  and Upload a label for people who may create products only, the toolbar (Market select, State chips Action needed /
+  Not assessed / Blocked, "Showing n of N products · Clear filters", Matrix / Open findings, Comfortable / Compact),
+  the grid and the legend. Every filter, the density and the view are in the URL, so they survive a reload or a shared
+  link; the market select navigates on change. Rows stay paged 50 a page (issue 311).
+- **The grid** is `role=grid`, server-rendered, with sticky headers and a sticky product column inside its own
+  scroller (`[data-region="matrix"]`, at most the viewport less the header, so the header row stays in view at 50 × 30).
+  `GridKeys` (client) adds a roving tabindex: one tab stop, arrows move to the next cell that can be opened (inert and
+  disabled cells are skipped), Home / End within the row (the product link is its first cell), Ctrl+Home / End the grid,
+  Enter follows the link. Each cell is two lines, never merged (docs/04 contract 3): the label chip and `REG` with the
+  registration's glyph and name, or the Blocked chip naming the registration. Not checked yet opens the product page;
+  Not assessed the market's coverage page (S-NV2-021); Action needed and Label clear the product × market (S-NV2-007).
+  A market not sold is an inert "–" ("Not a market for this product" to screen readers); one outside the plan is a
+  disabled cell, with "Not in your plan · Upgrade" (S-PLN-001) in its header. Column headers count "n of m products
+  label clear" (m: the products a check reached there); rows summarise markets with open items and blocked ones.
+- **Compact** (`?density=compact`, S-MTX-006): 40 px one-line rows, the registration as its glyph (its name in the
+  cell's label and title), row details for screen readers only. **Phone** (below `md`, S-MTX-002): one card per
+  product, a row per market it is sold in, opening what its desktop cell opens; the density switch is not drawn.
+- **States**: empty (S-MTX-008, the two links only for people who may create products), loading (`loading.tsx`,
+  S-MTX-009), error (S-MTX-010: a failed read shows "The board didn't load", Try again as a link to the same URL, and the
+  response's `x-request-id` as the reference, captured in Sentry with it), no permission (S-MTX-011, when the
+  workspace row is not readable; no Request access).
+- **Departures**: Fix mode (T-1114) is not built yet, so Label clear and Action needed cells open the product × market
+  verdict rather than Fix mode. The design's column header "Not assessed · coverage gap" (a market with nothing
+  encoded) is not drawn: no contract says when a whole market is unencoded, so every column in the plan shows its
+  count and each Not assessed cell links to the market's coverage page. The toolbar is a labelled group rather than
+  `role=toolbar`, because its controls are links and a select reached by Tab, not by arrows. The Open findings view
+  (F04) is a link in the toolbar, which the design does not draw; the board's species and Stale filters, stat tiles and
+  "Checked against" column are gone with the old frame.
+- **Tests**: `src/lib/board/model.test.ts` (the shaping), `src/components/board/Board.test.tsx` (every state rendered,
+  including Label clear beside Unknown and the error reference, which the local stack cannot reach), and
+  `tests/e2e/board.spec.ts`: F01.main (with the legend's Label clear chip against the S-MTX-001 baseline, its
+  coordinates measured in the design file itself), F01.must.1 (no region column; the row's product page reads
+  `app.rollup_state` as the viewer), F04.main, keyboard, compact, phone, empty, 50 × 30 sticky headers, paging, axe
+  and the no-dead-controls crawl.
 
 ### Built in T-1104: WCAG 2.2 AA across apps/web (`tests/e2e/a11y.spec.ts`, `tests/e2e/keyboard.spec.ts`)
 - **The sweep.** Every route in `src/app/**/page.tsx` is opened signed out, as a workspace admin with a product in four
