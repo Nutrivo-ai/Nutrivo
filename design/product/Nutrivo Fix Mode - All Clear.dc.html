@@ -24,7 +24,7 @@ a{color:#2f5eff}a:hover{color:#1f49d9}
 <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570">{{pinLine}}</span>
 </div>
 <div role="group" aria-label="Market" style="display:flex;border:1px solid #dde0e6;border-radius:8px;overflow:hidden">
-<sc-for list="{{markets}}" as="m" hint-placeholder-count="4"><button aria-pressed="{{m.pressed}}" style="font:inherit;font-size:14px;font-weight:500;padding:8px 14px;min-height:40px;border:0;border-left:1px solid #dde0e6;background:{{m.bg}};color:#101216;cursor:pointer">{{m.name}} <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570">{{m.code}}</span></button></sc-for>
+<sc-for list="{{markets}}" as="m" hint-placeholder-count="4"><button aria-pressed="{{m.pressed}}" onClick="{{m.pick}}" style="font:inherit;font-size:14px;font-weight:500;padding:8px 14px;min-height:40px;border:0;border-left:1px solid #dde0e6;background:{{m.bg}};color:#101216;cursor:pointer">{{m.name}} <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#5f6570">{{m.code}}</span></button></sc-for>
 </div>
 <div style="display:flex;gap:8px">
 <button style="font:inherit;font-size:14px;font-weight:500;padding:10px 16px;min-height:44px;border:1px solid #dde0e6;background:#ffffff;color:#101216;border-radius:8px;cursor:pointer">Download report (PDF)</button>
@@ -45,7 +45,7 @@ a{color:#2f5eff}a:hover{color:#1f49d9}
 
 <section aria-label="Label artwork" style="flex:1 1 680px;min-width:0;display:flex;flex-direction:column;gap:10px">
 <div style="display:flex;justify-content:space-between;align-items:center">
-<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">Label · back panel · 4 language panels</span>
+<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#5f6570;text-transform:uppercase;letter-spacing:0.08em">Label · back panel · 5 language panels</span>
 <div role="group" aria-label="Zoom" style="display:flex;gap:4px;align-items:center">
 <button aria-label="Zoom out" onClick="{{zoomOut}}" style="font:inherit;width:36px;height:36px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;cursor:pointer">−</button>
 <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;width:52px;text-align:center">{{zoomLabel}}</span>
@@ -59,12 +59,12 @@ a{color:#2f5eff}a:hover{color:#1f49d9}
 <div style="position:relative;border:{{p.border}};border-radius:4px;padding:10px 12px 14px;min-height:300px;display:flex;flex-direction:column;gap:7px;background:{{p.bg}}">
 <div style="display:flex;justify-content:space-between;align-items:center;gap:6px">
 <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:500">{{p.code}}</span>
-<span style="display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:5px;background:{{p.chipBg}};color:{{p.chipFg}};font-size:11px;font-weight:600;white-space:nowrap">{{p.chipGlyph}} {{p.chip}}</span>
+<sc-if value="{{p.hasChip}}" hint-placeholder-val="{{true}}"><span style="display:inline-flex;align-items:center;gap:4px;padding:1px 7px;border-radius:5px;background:{{p.chipBg}};color:{{p.chipFg}};font-size:11px;font-weight:600;white-space:nowrap">{{p.chipGlyph}} {{p.chip}}</span></sc-if><sc-if value="{{p.notJudged}}" hint-placeholder-val="{{false}}"><span style="font-size:11px;color:#5f6570;white-space:nowrap">{{p.notLine}}</span></sc-if>
 </div>
 <sc-if value="{{p.failed}}" hint-placeholder-val="{{false}}">
 <div style="flex:1;display:flex;flex-direction:column;gap:10px;align-items:flex-start;justify-content:center;padding:12px">
 <span style="font-size:14px;font-weight:600">Couldn’t read this panel</span>
-<span style="font-size:12px;color:#5f6570;line-height:1.4">Finland can’t be label clear until it’s read.</span>
+<span style="font-size:12px;color:#5f6570;line-height:1.4">{{p.failNote}}</span>
 <button style="font:inherit;font-size:13px;font-weight:600;padding:8px 12px;min-height:36px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;cursor:pointer">Retry reading</button>
 </div>
 </sc-if>
@@ -87,7 +87,7 @@ a{color:#2f5eff}a:hover{color:#1f49d9}
 
 <section aria-labelledby="todo-h" style="flex:1 1 520px;max-width:600px;min-width:0;display:flex;flex-direction:column;gap:16px">
 <div style="display:flex;flex-direction:column;gap:4px">
-<h2 id="todo-h" style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.01em">{{heading}}</h2>
+<h2 id="todo-h" style="margin:0;font-size:22px;font-weight:600;letter-spacing:-0.01em;color:{{headColor}};display:flex;align-items:center;gap:8px"><sc-if value="{{headNA}}" hint-placeholder-val="{{false}}"><svg width="20" height="20" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" role="img" aria-label="Not assessed"><circle cx="8" cy="8" r="6.5"></circle><path d="M5 8h6"></path></svg></sc-if>{{heading}}</h2>
 <span style="font-size:14px;color:#5f6570">{{headingSub}}</span>
 </div>
 
@@ -108,7 +108,8 @@ a{color:#2f5eff}a:hover{color:#1f49d9}
 <div style="display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding-top:4px;min-height:44px">
 <sc-if value="{{f.hasCopy}}" hint-placeholder-val="{{false}}"><button style="font:inherit;font-size:14px;font-weight:600;padding:9px 14px;min-height:40px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff;cursor:pointer">Copy required term</button><span style="font-size:14px"><span lang="de" style="font-family:'IBM Plex Mono',monospace;font-weight:500;padding:2px 6px;background:#eef2ff;border-radius:4px">{{f.term}}</span> <span style="font-size:12px;color:#5f6570">{{f.termLang}} · accepted term register</span></span></sc-if>
 <sc-if value="{{f.noCopy}}" hint-placeholder-val="{{false}}"><span style="font-size:13px;color:#5f6570">No accepted wording · see the rule and citation</span></sc-if>
-<button style="font:inherit;font-size:14px;font-weight:500;padding:9px 14px;min-height:40px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;color:#101216;cursor:pointer">Upload revision</button>
+<sc-if value="{{f.hasCopy}}" hint-placeholder-val="{{false}}"><button style="font:inherit;font-size:14px;font-weight:500;padding:9px 14px;min-height:40px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;color:#101216;cursor:pointer">Upload revision</button></sc-if>
+<sc-if value="{{f.noCopy}}" hint-placeholder-val="{{true}}"><button style="font:inherit;font-size:14px;font-weight:600;padding:9px 14px;min-height:40px;border:0;border-radius:8px;background:#2f5eff;color:#ffffff;cursor:pointer">Upload revision</button></sc-if>
 </div>
 </sc-if>
 </article>
@@ -116,14 +117,11 @@ a{color:#2f5eff}a:hover{color:#1f49d9}
 </div>
 </sc-for>
 
-<sc-if value="{{showClear}}" hint-placeholder-val="{{true}}">
-<div style="display:flex;flex-direction:column;gap:6px">
-<sc-for list="{{clearPanels}}" as="c" hint-placeholder-count="3">
-<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border:1px solid #dde0e6;border-radius:8px"><span style="font-size:14px;font-weight:500">{{c.title}}</span><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;background:{{c.bg}};color:{{c.fg}};font-size:12px;font-weight:600">{{c.glyph}} {{c.chip}}</span></div>
-</sc-for>
-</div>
+<sc-if value="{{extractRow}}" hint-placeholder-val="{{false}}">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border:1px dashed #5f6570;border-radius:8px"><span style="font-size:14px"><strong style="font-weight:600">FI · Finnish panel.</strong> Couldn’t read this panel.</span><button style="font:inherit;font-size:13px;font-weight:600;padding:8px 12px;min-height:36px;border:1px solid #dde0e6;border-radius:8px;background:#ffffff;cursor:pointer">Retry reading</button></div>
 </sc-if>
 
+<sc-if value="{{hasNA}}" hint-placeholder-val="{{true}}">
 <div style="display:flex;flex-direction:column;gap:10px">
 <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #dde0e6;padding-bottom:6px"><h3 style="margin:0;font-size:15px;font-weight:600">Not assessed</h3><span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:6px;background:#f1f2f4;color:#5f6570;font-size:12px;font-weight:600">— {{naCount}}</span></div>
 <sc-for list="{{na}}" as="n" hint-placeholder-count="1">
@@ -135,6 +133,7 @@ a{color:#2f5eff}a:hover{color:#1f49d9}
 </article>
 </sc-for>
 </div>
+</sc-if>
 </section>
 </div>
 </sc-if>
@@ -171,66 +170,81 @@ a{color:#2f5eff}a:hover{color:#1f49d9}
 
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["loaded","clear","superseded","older","extract","abstain","never","rechecking","loading","error","noperm"],"default":"clear"},"$preview":{"width":1600,"height":1100}}'>
+<script type="text/x-dc" data-dc-script data-props='{"variant":{"editor":"enum","options":["loaded","clear","notassessed","superseded","older","extract","abstain","never","rechecking","loading","error","noperm"],"default":"clear"},"$preview":{"width":1600,"height":1100}}'>
 class Component extends DCLogic {
   renderVals() {
     const v = this.props.variant ?? 'clear';
     const st = this.state || {};
-    const sel = st.sel ?? 'f1';
-    const zoom = st.zoom ?? 1;
-    const clear = v === 'clear', abstain = v === 'abstain', extract = v === 'extract';
-    const readOnly = v === 'superseded';
-    const pick = (id) => () => this.setState({ sel: id });
+    const market = st.market ?? (v === 'abstain' ? 'SE' : 'DE');
     const ACC = '#2f5eff';
-    const F = clear ? [] : [
+    const readOnly = v === 'superseded';
+    const extract = v === 'extract';
+    const pick = (id) => () => this.setState({ sel: id });
+    const M = { SE: ['Sweden', 'SV', 'Swedish'], DK: ['Denmark', 'DA', 'Danish'], FI: ['Finland', 'FI', 'Finnish'], DE: ['Germany', 'DE', 'German'] };
+    const mName = M[market][0], judged = M[market][1], jLang = M[market][2];
+    // findings and Not assessed items, by panel
+    const withFixes = ['loaded', 'superseded', 'older', 'extract', 'rechecking'].indexOf(v) >= 0;
+    const ALL_F = withFixes ? [
       { id: 'f1', missing: true, panel: 'DE', lang: 'de', langName: 'German', what: 'Type of feed is missing from the German panel', copy: 'Alleinfuttermittel' },
       { id: 'f2', pin: '1', panel: 'DE', lang: 'de', langName: 'German', what: 'Additive printed without its identification number', printed: 'Ernährungsphysiologische Zusatzstoffe: Vitamin D3' }
-    ];
-    const NA = [{ id: 'n1', pin: String(clear ? 1 : 2), panel: 'EN', lang: 'en', langName: 'English', what: 'Claim', printed: 'Rich in omega-3 for a healthy coat', link: 'Not yet in the accepted rulebook · coverage gap', prov: 'Not assessed' }];
-    if (abstain) NA.push({ id: 'n2', pin: '3', panel: 'SV', lang: 'sv', langName: 'Swedish', what: 'Claim · the model abstained, so this is not assessed', printed: 'Naturliga ingredienser', link: 'Not yet in the accepted rulebook · coverage gap', prov: 'Model judgement · confidence [low] · abstained' });
-    const panelName = { DE: 'German', SV: 'Swedish', FI: 'Finnish', EN: 'English' };
-    const pinFor = (panel) => F.filter((f) => f.panel === panel && f.pin).map((f) => ({ f, kind: 'a' })).concat(NA.filter((n) => n.panel === panel).map((n) => ({ f: n, kind: 'n' })));
-    const pinLine = (f, kind) => ({ isText: true, text: f.printed, ring: sel === f.id ? '2px solid ' + ACC : 'none', hasPin: true, pin: f.pin, select: pick(f.id), pinBg: kind === 'a' ? '#9e5600' : '#5f6570', pinShadow: sel === f.id ? '0 0 0 3px #ffffff, 0 0 0 5px ' + ACC : 'none', pinPressed: sel === f.id ? 'true' : 'false', pinAria: 'Finding ' + f.pin + ': ' + f.what });
+    ] : [];
+    const ALL_NA = [];
+    if (v !== 'clear') ALL_NA.push({ id: 'n1', pin: withFixes ? '2' : '1', panel: 'DE', lang: 'de', langName: 'German', what: 'Claim', printed: 'Reich an Omega-3 für ein gesundes Fell', prov: 'Not assessed' });
+    if (v === 'abstain') ALL_NA.push({ id: 'n2', pin: '3', panel: 'SV', lang: 'sv', langName: 'Swedish', what: 'Claim · the model abstained, so this is not assessed', printed: 'Naturliga ingredienser', prov: 'Model judgement · confidence [low] · abstained' });
+    const F = ALL_F.filter((f) => f.panel === judged), NA = ALL_NA.filter((n) => n.panel === judged);
+    const sel = st.sel ?? (F[0] ? F[0].id : NA[0] ? NA[0].id : '');
+    const P = [['DE', 'de', 'German', 'Lachs & Reis Adult'], ['SV', 'sv', 'Swedish', 'Lax & ris Adult'], ['DA', 'da', 'Danish', 'Laks & ris Adult'], ['FI', 'fi', 'Finnish', 'Lohi & riisi Adult'], ['EN', 'en', 'English', 'Salmon & Rice Adult']];
     const bar = (w) => ({ isBar: true, w });
-    const P = [['DE', 'de', 'Lachs & Reis Adult'], ['SV', 'sv', 'Lax & ris Adult'], ['FI', 'fi', 'Lohi & riisi Adult'], ['EN', 'en', 'Salmon & Rice Adult']];
+    const pinLine = (f, kind) => ({ isText: true, text: f.printed, ring: sel === f.id ? '2px solid ' + ACC : 'none', hasPin: true, pin: f.pin, select: pick(f.id), pinBg: kind === 'a' ? '#9e5600' : '#5f6570', pinShadow: sel === f.id ? '0 0 0 3px #ffffff, 0 0 0 5px ' + ACC : 'none', pinPressed: sel === f.id ? 'true' : 'false', pinAria: (kind === 'a' ? 'Finding ' : 'Not assessed item ') + f.pin + ': ' + f.what });
     const panels = P.map((p) => {
-      const code = p[0], open = F.filter((f) => f.panel === code).length, nNa = NA.filter((n) => n.panel === code).length;
-      const failed = extract && code === 'FI';
-      const missingHere = F.some((f) => f.missing && f.panel === code);
+      const code = p[0], isJ = code === judged, failed = extract && code === 'FI';
       const lines = [bar('92%'), bar('80%'), bar('86%')];
-      pinFor(code).forEach((x) => { lines.push(pinLine(x.f, x.kind)); });
+      if (isJ) {
+        F.filter((f) => f.pin).forEach((f) => lines.push(pinLine(f, 'a')));
+        NA.forEach((n) => lines.push(pinLine(n, 'n')));
+      }
       lines.push(bar('74%'), bar('88%'), bar('60%'), bar('82%'));
-      const chip = failed ? ['Couldn’t read', '#f1f2f4', '#5f6570', '!'] : open ? ['Action needed · ' + open + ' open', '#fdf0dd', '#9e5600', '!'] : ['Label clear' + (nNa ? ' · ' + nNa + ' not assessed' : ''), '#e6f2ec', '#0f7a4d', '✓'];
-      return { code: code + ' · ' + panelName[code], lang: p[1], heading: p[2], lines, failed, ok: !failed, chip: chip[0], chipBg: chip[1], chipFg: chip[2], chipGlyph: chip[3],
-        border: missingHere ? (sel === 'f1' ? '2px solid ' + ACC : '2px dashed #9e5600') : failed ? '1px dashed #5f6570' : '1px solid #dde0e6', bg: failed ? '#f4f5f7' : '#ffffff' };
+      const open = F.length, nNa = NA.length;
+      const chip = failed ? ['Couldn’t read', '#f1f2f4', '#5f6570', '!'] : open ? ['Action needed · ' + open + ' open', '#fdf0dd', '#9e5600', '!'] : nNa ? ['Not assessed', '#f1f2f4', '#5f6570', '–'] : ['Label clear', '#e6f2ec', '#0f7a4d', '✓'];
+      const missingHere = isJ && F.some((f) => f.missing);
+      return {
+        code: code + ' · ' + p[2], lang: p[1], heading: p[3], lines, failed, ok: !failed,
+        hasChip: isJ || failed, notJudged: !isJ && !failed, notLine: 'Not a ' + jLang + '-language panel',
+        chip: chip[0], chipBg: chip[1], chipFg: chip[2], chipGlyph: chip[3],
+        failNote: code === judged ? mName + ' can’t be checked until this panel is read.' : 'Retry to read it for its own market.',
+        border: missingHere ? (sel === 'f1' ? '2px solid ' + ACC : '2px dashed #9e5600') : failed ? '1px dashed #5f6570' : '1px solid #dde0e6', bg: failed ? '#f4f5f7' : '#ffffff'
+      };
     });
     const card = (f) => ({ hid: 'h-' + f.id, select: pick(f.id), pressed: sel === f.id ? 'true' : 'false', border: sel === f.id ? ACC : '#dde0e6', shadow: sel === f.id ? '0 0 0 1px ' + ACC : 'none' });
+    const jp = P.find((p) => p[0] === judged);
     const items = F.map((f) => Object.assign(card(f), {
-      hasPin: !!f.pin, pin: f.pin, missing: !!f.missing, panel: 'DE · German panel', what: f.what, hasPrinted: !!f.printed, printed: f.printed, lang: f.lang, langName: f.langName,
+      hasPin: !!f.pin, pin: f.pin, missing: !!f.missing, panel: judged + ' · ' + jp[2] + ' panel', what: f.what, hasPrinted: !!f.printed, printed: f.printed, lang: f.lang, langName: f.langName,
       rule: '[rule key]', cite: '[regulation · article]', prov: 'Rule', showActions: !readOnly, hasCopy: !!f.copy, noCopy: !f.copy, term: f.copy, termLang: 'German'
     }));
-    const groups = items.length ? [{ title: 'DE · German panel', chip: 'Action needed · ' + items.length + ' open', items }] : [];
-    const clearPanels = P.filter((p) => !F.some((f) => f.panel === p[0])).map((p) => {
-      const failed = extract && p[0] === 'FI';
-      return { title: p[0] + ' · ' + panelName[p[0]] + ' panel', chip: failed ? 'Couldn’t read this panel · Retry reading' : 'Label clear', glyph: failed ? '!' : '✓', bg: failed ? '#f1f2f4' : '#e6f2ec', fg: failed ? '#5f6570' : '#0f7a4d' };
-    });
-    const na = NA.map((n) => Object.assign(card(n), { pin: n.pin, panel: n.panel + ' · ' + n.langName + ' panel', what: n.what, printed: n.printed, lang: n.lang, link: n.link, prov: n.prov }));
+    const groups = items.length ? [{ title: judged + ' · ' + jp[2] + ' panel', chip: 'Action needed · ' + items.length + ' open', items }] : [];
+    const na = NA.map((n) => Object.assign(card(n), { pin: n.pin, panel: n.panel + ' · ' + n.langName + ' panel', what: n.what, printed: n.printed, lang: n.lang, link: 'Not yet in the accepted rulebook · coverage gap', prov: n.prov }));
+    const nF = F.length, nN = NA.length;
+    let heading, sub, headNA = false;
+    if (nF && nN) { heading = nF + ' fixes left in ' + mName + ' · ' + nN + ' not assessed'; sub = 'Findings on the ' + jLang + ' panel come first. Pins on the label match the numbers here.'; }
+    else if (nF) { heading = nF + ' fixes left before ' + mName + ' is label clear'; sub = 'Pins on the label match the numbers here.'; }
+    else if (nN) { heading = mName + ': not assessed'; headNA = true; sub = 'No fixes left. ' + nN + (nN === 1 ? ' item isn’t' : ' items aren’t') + ' covered by an accepted rule yet.'; }
+    else { heading = mName + ' is label clear'; sub = 'No fixes left. Every ' + jLang + '-language panel checked for ' + mName + '.'; }
     const banners = {
       superseded: ['A newer result exists.', 'This one is read-only.', 'Open it', 'link'],
       older: ['Checked against ruleset [version].', 'The current ruleset is [current version].', 'Re-check against [current version]', 'button'],
       rechecking: ['Revision uploaded.', 'The new artwork is being checked. Pins turn clear only when that check passes.', 'View check in progress', 'link']
     }[v];
-    const report = ['loaded', 'clear', 'superseded', 'older', 'extract', 'abstain', 'rechecking'].indexOf(v) >= 0;
+    const report = ['loaded', 'clear', 'notassessed', 'superseded', 'older', 'extract', 'abstain', 'rechecking'].indexOf(v) >= 0;
+    const zoom = st.zoom ?? 1;
     const zs = (z) => () => this.setState({ zoom: Math.round(Math.min(1.5, Math.max(0.5, z)) * 100) / 100 });
     return {
       pinLine: v === 'never' ? 'Not checked yet' : 'Pinned to ruleset [version] · artwork [short hash] · checked [date]',
-      markets: [['Sweden', 'SE'], ['Denmark', 'DK'], ['Finland', 'FI'], ['Germany', 'DE']].map((m) => ({ name: m[0], code: m[1], pressed: m[1] === 'DE' ? 'true' : 'false', bg: m[1] === 'DE' ? '#f4f5f7' : '#ffffff' })),
+      markets: ['SE', 'DK', 'FI', 'DE'].map((c) => ({ name: M[c][0], code: c, pressed: c === market ? 'true' : 'false', bg: c === market ? '#f4f5f7' : '#ffffff', pick: () => this.setState({ market: c, sel: null }) })),
       canEdit: !readOnly && report, banner: !!banners, bannerTitle: banners ? banners[0] : '', bannerText: banners ? banners[1] : '', bannerAction: banners ? banners[2] : '',
       bannerIsButton: !!banners && banners[3] === 'button', bannerIsLink: !!banners && banners[3] === 'link',
       showReport: report, isNever: v === 'never', isLoading: v === 'loading', isError: v === 'error', isNoPerm: v === 'noperm',
-      panels, groups, clearPanels, showClear: true, na, naCount: NA.length,
-      heading: clear ? 'Germany is label clear' : F.length + ' fixes left before Germany is label clear',
-      headingSub: clear ? 'No fixes left. 4 panels checked across 4 markets. Not assessed items are still listed below.' : 'Findings on the German panel come first. Pins on the label match the numbers here.',
+      panels, groups, na, naCount: nN, hasNA: nN > 0, extractRow: extract,
+      heading, headingSub: sub, headNA, headColor: headNA ? '#5f6570' : '#101216',
       zoom, zoomLabel: Math.round(zoom * 100) + '%', zoomIn: zs(zoom + 0.25), zoomOut: zs(zoom - 0.25), fit: () => this.setState({ zoom: 1 })
     };
   }
