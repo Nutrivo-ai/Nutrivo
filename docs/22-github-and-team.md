@@ -111,8 +111,9 @@ variable is `true`:
 
 Before setting `SYNTHETIC_ENABLED` (T-1102): production is deployed (a `v*` release has passed its smoke test),
 `APP_BASE_URL`, `SUPABASE_URL` and `SUPABASE_ANON_KEY` are in the prod Infisical environment (optionally
-`SYNTHETIC_VERIFY_REF`, a report reference of the synthetic workspace), and Actions → `synthetic` → Run workflow has
-passed once by hand. From then on it runs every 15 minutes and checks in to the Sentry monitor `synthetic-smoke-prod`
+`SYNTHETIC_VERIFY_REF`, a report reference of the synthetic workspace), while production is closed the
+`SYNTHETIC_BYPASS_TOKEN` secret and its Vercel firewall rule "synthetic bypass" exist (docs/24 §6), and Actions →
+`synthetic` → Run workflow has passed once by hand. From then on it runs every 15 minutes and checks in to the Sentry monitor `synthetic-smoke-prod`
 (docs/17). Alert routing is applied by hand: set the variable `SENTRY_ALERT_TEAM` to the Sentry team whose members
 receive alerts (default `nutrivo`), give the prod `SENTRY_AUTH_TOKEN` the alerts:write scope, install Sentry's GitHub
 integration for this repository, then run Actions → `sentry-alerts` with `check`, then `apply`.

@@ -51,7 +51,11 @@ Every failure is seen within minutes, every model call can be explained later, a
     was never issued must answer exactly `{"status":"unknown"}`, which needs the function and
     `public.verify_reference` to answer (503 means the database did not). With the optional prod secret
     `SYNTHETIC_VERIFY_REF` (a report of the synthetic workspace), that reference must answer `current` or `superseded`.
-  It prints one line per path (ok or FAILED, status, time), never a key, reference, URL or body.
+  Before launch the Vercel firewall's pre-launch rules send `/sign-in` to the pilot page, so with the optional prod
+  secret `SYNTHETIC_BYPASS_TOKEN` the two app paths carry it in the `x-nutrivo-synthetic` header, which the Vercel rule
+  "synthetic bypass" (those two paths only) lets through (docs/24 §6). The Supabase call never carries it, and no path
+  follows a redirect, so the header cannot reach another origin: a 3xx fails as such.
+  It prints one line per path (ok or FAILED, status, time), never a key, the bypass value, a reference, URL or body.
 - **Alerts (T-1102).** Routing is code: `config/sentry-alerts.yaml`, applied by `scripts/sentry/alerts.py` from the
   dispatch-only workflow `sentry-alerts.yml` (production environment; `check` is read-only, `apply` creates or updates
   the rules it names by name). The Sentry token needs alerts:write. Recipients are the members of one Sentry team, by

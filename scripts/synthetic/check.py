@@ -25,11 +25,22 @@ TIMEOUT_S = 15
 BYPASS_HEADER = "x-nutrivo-synthetic"
 
 
-def http_get(url, headers=None, timeout=TIMEOUT_S):
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Never follow a redirect. urllib copies request headers to the redirect target whatever its host, so following
+    one could hand the firewall-bypass header to another origin; a 3xx on these paths fails as HTTP 3xx instead."""
+
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+_OPENER = urllib.request.build_opener(_NoRedirect)
+
+
+def http_get(url, headers=None, timeout=TIMEOUT_S, opener=None):
     req = urllib.request.Request(url, method="GET", headers=dict(headers or {}))
     req.add_header("User-Agent", "nutrivo-synthetic/1.0")
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with (opener or _OPENER).open(req, timeout=timeout) as r:
             return r.status, {k.lower(): v for k, v in r.headers.items()}, r.read()
     except urllib.error.HTTPError as e:
         return e.code, {k.lower(): v for k, v in e.headers.items()}, e.read()
