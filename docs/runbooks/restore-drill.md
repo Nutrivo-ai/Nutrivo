@@ -14,6 +14,17 @@ dashboard. The checks after the restore are scripted: `.github/workflows/restore
    physical backups on.
 2. Run Actions → `doctor` → env `prod`. The `pitr` check must be green. `release-production` also runs it after every
    deploy, and a release fails it while PITR is off.
+3. Create the drill token (#392). The deploy token `SUPABASE_ACCESS_TOKEN` is scoped to `nutrivo-prod` only, and a
+   restore copy gets a new ref, so the drill reaches the copy with its own token and never widens the prod one.
+   Supabase → Account → Access Tokens → a scoped token named `nutrivo-restore-drill`, resource access on the
+   organisation that holds `nutrivo-prod`, with only what the drill calls:
+   - read projects: `GET /v1/projects/{ref}` (the guard, and waiting for the copy to be healthy);
+   - run SQL: `POST /v1/projects/{ref}/database/query` (read-only checks, and the one `cron.unschedule` write);
+   - delete projects: `DELETE /v1/projects/{ref}` (the copy, after a passing drill).
+   Store it in Infisical `Nutrivo prod` / `prod` as `SUPABASE_DRILL_ACCESS_TOKEN`. The script refuses to start without
+   it, and refuses it when it is the same token as `SUPABASE_ACCESS_TOKEN`. Prod itself is only ever read, with the
+   deploy token; the guard still refuses prod's ref and name, another organisation, another region and any project
+   older than 48 hours.
 
 ## Each month
 Do the drill in the first two weeks of the month. The drill checks in to the Sentry cron monitor `restore-drill-prod`

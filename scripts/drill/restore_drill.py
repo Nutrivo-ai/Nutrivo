@@ -12,8 +12,16 @@ is usable and records the drill. It:
      public.verify_reference resolving every report issued before the restore point, run inside the copy so no
      reference leaves the database, with anon still allowed to execute it (non-negotiable 9);
   4. deletes the copy when the drill passes and --delete is given.
-It prints counts and timestamps, never row data or a secret. Everything goes through the Management API with
-SUPABASE_ACCESS_TOKEN from the production environment; the copy and prod stay in Supabase's EU region.
+It prints counts and timestamps, never row data or a secret. Everything goes through the Management API, with two
+tokens from the production environment:
+  - SUPABASE_ACCESS_TOKEN, the deploy token scoped to nutrivo-prod, for the reads on prod (its project record and
+    read-only queries);
+  - SUPABASE_DRILL_ACCESS_TOKEN, a separate token scoped to the organisation's other projects, for every call on the
+    copy, the delete included. A restore copy gets a new ref, so the prod-scoped token cannot reach it (#392), and the
+    prod token is never widened for the drill.
+The drill token needs, on the organisation that holds nutrivo-prod: read projects (GET /v1/projects/{ref}), run SQL
+(POST /v1/projects/{ref}/database/query, read-only and the one cron.unschedule write) and delete projects
+(DELETE /v1/projects/{ref}). The copy and prod stay in Supabase's EU region.
 """
 import argparse, json, os, sys, time, urllib.error, urllib.request
 from functools import partial
@@ -114,11 +122,12 @@ def parse_ts(v):
     return datetime.fromisoformat(str(v).replace("Z", "+00:00")).astimezone(timezone.utc) if v else None
 
 
-def guard(api, drill_ref, prod_ref):
-    """The only project this script ever writes to or deletes is a fresh drill copy. Raises otherwise."""
+def guard(prod_api, copy_api, drill_ref, prod_ref):
+    """The only project this script ever writes to or deletes is a fresh drill copy. Raises otherwise. Prod is read
+    with the prod token and the copy with the drill token, so each token only ever reaches its own project."""
     if not drill_ref or drill_ref == prod_ref:
         raise DrillError("the drill ref is prod's ref: refusing")
-    prod, drill = api.project(prod_ref), api.project(drill_ref)
+    prod, drill = prod_api.project(prod_ref), copy_api.project(drill_ref)
     if drill.get("name") == prod.get("name"):
         raise DrillError("the drill project has prod's name: refusing")
     if drill.get("organization_id") != prod.get("organization_id"):
@@ -126,7 +135,7 @@ def guard(api, drill_ref, prod_ref):
     if drill.get("region") != REGION:
         raise DrillError(f"the drill project is in {drill.get('region')}, not {REGION} (D-02): refusing")
     created = parse_ts(drill.get("created_at"))
-    if created is None or api.now() - created > MAX_AGE:
+    if created is None or copy_api.now() - created > MAX_AGE:
         raise DrillError("the drill project is older than 48 hours, so it is not a fresh restore: refusing")
     return drill
 
@@ -146,9 +155,12 @@ def counts(rows):
     return {r["t"]: int(r["n"]) for r in rows}
 
 
-def drill(api, drill_ref, prod_ref, restore_point, wait_minutes=30, delete=False):
+def drill(prod_api, copy_api, drill_ref, prod_ref, restore_point, wait_minutes=30, delete=False):
+    """prod_api holds the prod-scoped token and only reads prod; copy_api holds the drill token and makes every call
+    on the copy, including the one write (cron.unschedule) and the delete."""
+    api = copy_api
     started = api.now()
-    project = guard(api, drill_ref, prod_ref)
+    project = guard(prod_api, copy_api, drill_ref, prod_ref)
     healthy_at = wait_healthy(api, drill_ref, wait_minutes)
     unscheduled = api.query(drill_ref, SQL["unschedule"], read_only=False)[0]["n"]
 
@@ -157,7 +169,7 @@ def drill(api, drill_ref, prod_ref, restore_point, wait_minutes=30, delete=False
     point = (restore_point - timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%S+00:00")
     d = {k: api.query(drill_ref, SQL[k].replace("{point}", point))
          for k in ("migrations", "rls_off", "counts", "newest_audit", "verify")}
-    p = {k: api.query(prod_ref, SQL[k].replace("{point}", point)) for k in ("migrations", "counts", "reports_by_point")}
+    p = {k: prod_api.query(prod_ref, SQL[k].replace("{point}", point)) for k in ("migrations", "counts", "reports_by_point")}
     dm, pm = d["migrations"][0], p["migrations"][0]
     dc, pc = counts(d["counts"]), counts(p["counts"])
     newest = parse_ts(d["newest_audit"][0]["at"])
@@ -205,7 +217,7 @@ def drill(api, drill_ref, prod_ref, restore_point, wait_minutes=30, delete=False
     if failures:
         return result
     if delete:
-        guard(api, drill_ref, prod_ref)  # again, right before the only destructive call
+        guard(prod_api, copy_api, drill_ref, prod_ref)  # again, right before the only destructive call
         api.delete(drill_ref)
         result["deleted"] = True
     result["duration_seconds"] = int((api.now() - started).total_seconds())
@@ -237,13 +249,18 @@ def main(argv=None):
     ap.add_argument("--delete", action="store_true", help="delete the copy when the drill passes")
     ap.add_argument("--json")
     a = ap.parse_args(argv)
-    token, prod_ref = E("SUPABASE_ACCESS_TOKEN"), E("SUPABASE_PROJECT_REF")
-    if not token or not prod_ref:
-        print("missing SUPABASE_ACCESS_TOKEN or SUPABASE_PROJECT_REF", file=sys.stderr)
+    token, drill_token, prod_ref = E("SUPABASE_ACCESS_TOKEN"), E("SUPABASE_DRILL_ACCESS_TOKEN"), E("SUPABASE_PROJECT_REF")
+    missing = [n for n, v in (("SUPABASE_ACCESS_TOKEN", token), ("SUPABASE_DRILL_ACCESS_TOKEN", drill_token),
+                              ("SUPABASE_PROJECT_REF", prod_ref)) if not v]
+    if missing:
+        print("missing " + ", ".join(missing), file=sys.stderr)
+        return 2
+    if drill_token == token:
+        print("SUPABASE_DRILL_ACCESS_TOKEN must be its own token, not the prod deploy token", file=sys.stderr)
         return 2
     restore_point = parse_ts(a.restore_point)
     try:
-        r = drill(Api(token), a.drill_ref.strip(), prod_ref, restore_point, a.wait_minutes, a.delete)
+        r = drill(Api(token), Api(drill_token), a.drill_ref.strip(), prod_ref, restore_point, a.wait_minutes, a.delete)
     except DrillError as e:
         print(f"restore drill refused or failed: {e}", file=sys.stderr)
         return 1
