@@ -53,12 +53,14 @@ async function read(db: Db, workspaceId: string, productId: string, jobId: strin
     .maybeSingle();
   if (error) throw new ShellReadError("check job", error);
   if (!job) return null;
-  const payload = (job.payload ?? {}) as { artwork_version_id?: string; ruleset_version?: string };
+  const payload = (job.payload ?? {}) as { artwork_version_id?: string; ruleset_version?: string; request_id?: string };
   return {
     product: product.name,
     markets: (job.node_ids ?? []).length,
     languages: await printedLanguages(db, product.id, payload.artwork_version_id),
     rulesetVersion: typeof payload.ruleset_version === "string" ? payload.ruleset_version : null,
+    // private.enqueue stamps the request that queued the job; carried on so the watcher's events keep it (docs/17).
+    requestId: typeof payload.request_id === "string" ? payload.request_id : null,
     initial: {
       id: job.id,
       status: job.status as JobStatus,

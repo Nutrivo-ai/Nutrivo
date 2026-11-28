@@ -23,6 +23,8 @@ export type CheckInProgressProps = {
   markets: number;
   languages: number;
   rulesetVersion: string | null;
+  /** The request_id private.enqueue stamped in the job's payload, so Sentry events carry it end to end (docs/17). */
+  requestId: string | null;
   /** The job as the server read it under RLS; the watcher keeps it current over Realtime. */
   initial: JobRow & { created_at: string };
 };
@@ -35,7 +37,7 @@ export function CheckInProgress(props: CheckInProgressProps) {
   const db = useMemo(() => createClient(), []);
   const router = useRouter();
   const [generation, setGeneration] = useState(0);
-  const job = useCheckJob(db, props.initial.id, { generation });
+  const job = useCheckJob(db, props.initial.id, { generation, requestId: props.requestId ?? undefined });
   const view = progressView({ row: job.row, initial: props.initial, stalled: job.stalled, error: job.error });
   const [openedTerminal] = useState(() => isTerminal(progressView({ row: null, initial: props.initial, stalled: false, error: false })));
   // The elapsed time is the running card's alone: a finished job's own duration is not in what the page reads.
@@ -50,8 +52,8 @@ export function CheckInProgress(props: CheckInProgressProps) {
   }, [moving, report, router]);
 
   useEffect(() => {
-    if (view.kind === "stalled") Sentry.captureMessage("check job not terminal after the lease", { level: "warning", tags: { area: "check", job_id: props.initial.id } });
-  }, [view.kind, props.initial.id]);
+    if (view.kind === "stalled") Sentry.captureMessage("check job not terminal after the lease", { level: "warning", tags: { area: "check", job_id: props.initial.id, request_id: props.requestId ?? "none" } });
+  }, [view.kind, props.initial.id, props.requestId]);
 
   return (
     <Screen
@@ -108,7 +110,7 @@ export function CheckProgressView({
   moving,
   report,
   onCheckAgain,
-}: Omit<CheckInProgressProps, "initial" | "rulesetVersion"> & {
+}: Omit<CheckInProgressProps, "initial" | "rulesetVersion" | "requestId"> & {
   view: ProgressView;
   took: string | null;
   moving: boolean;
