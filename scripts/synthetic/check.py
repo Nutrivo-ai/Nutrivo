@@ -11,19 +11,36 @@ one. Each path is tried twice before it counts as failed, so one dropped connect
            function and public.verify_reference to answer; with SYNTHETIC_VERIFY_REF set (a report of the synthetic
            workspace), that reference must answer current or superseded.
 
+Before launch the Vercel firewall's "pre-launch: app closed" rule sends app routes such as /sign-in to the pilot page
+(docs/24 §7). With SYNTHETIC_BYPASS_TOKEN set, the two app paths carry it in the x-nutrivo-synthetic header, which a
+Vercel firewall rule placed above the pre-launch rules matches and bypasses, so the check reads the real app while
+production stays closed to everyone else. The header is never sent to Supabase and never printed.
+
 Prints one line per path: name, ok or FAILED, the HTTP status and the time taken. Never a URL's query, a key, a
 reference or a response body."""
 import argparse, json, os, sys, time, urllib.error, urllib.request, uuid
 
 E = os.environ.get
 TIMEOUT_S = 15
+BYPASS_HEADER = "x-nutrivo-synthetic"
 
 
-def http_get(url, headers=None, timeout=TIMEOUT_S):
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Never follow a redirect. urllib copies request headers to the redirect target whatever its host, so following
+    one could hand the firewall-bypass header to another origin; a 3xx on these paths fails as HTTP 3xx instead."""
+
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+_OPENER = urllib.request.build_opener(_NoRedirect)
+
+
+def http_get(url, headers=None, timeout=TIMEOUT_S, opener=None):
     req = urllib.request.Request(url, method="GET", headers=dict(headers or {}))
     req.add_header("User-Agent", "nutrivo-synthetic/1.0")
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with (opener or _OPENER).open(req, timeout=timeout) as r:
             return r.status, {k.lower(): v for k, v in r.headers.items()}, r.read()
     except urllib.error.HTTPError as e:
         return e.code, {k.lower(): v for k, v in e.headers.items()}, e.read()
@@ -40,8 +57,14 @@ def _json(body):
         raise Failed("not JSON")
 
 
-def check_health(get, base):
-    status, headers, body = get(f"{base}/api/health")
+def app_headers(env=E):
+    """The firewall-bypass header for the app's own paths only (docs/24 §6), when its secret is set."""
+    token = env("SYNTHETIC_BYPASS_TOKEN")
+    return {BYPASS_HEADER: token} if token else {}
+
+
+def check_health(get, base, headers_out=None):
+    status, headers, body = get(f"{base}/api/health", headers_out or {})
     if status != 200:
         raise Failed(f"HTTP {status}")
     if _json(body).get("status") != "ok":
@@ -51,14 +74,16 @@ def check_health(get, base):
     return status
 
 
-def check_sign_in(get, base):
-    status, headers, body = get(f"{base}/sign-in")
+def check_sign_in(get, base, headers_out=None):
+    status, headers, body = get(f"{base}/sign-in", headers_out or {})
     if status != 200:
         raise Failed(f"HTTP {status}")
     if "text/html" not in headers.get("content-type", ""):
         raise Failed("not an HTML page")
     if b"<form" not in body.lower() and b"sign in" not in body.lower():
-        raise Failed("no sign-in form")
+        # before launch: the pre-launch firewall rule answers with the pilot page unless the bypass header passes
+        raise Failed("no sign-in form" + ("" if headers_out else " (no SYNTHETIC_BYPASS_TOKEN: the pre-launch "
+                                                                   "firewall may have sent it to the pilot page)"))
     return status
 
 
@@ -88,9 +113,10 @@ def run(get=http_get, env=E, retries=1, pause_s=5.0, out=print):
         out(f"config FAILED: missing {', '.join(missing)}")
         return 1
     base, supabase_url = env("APP_BASE_URL").rstrip("/"), env("SUPABASE_URL").rstrip("/")
+    app = app_headers(env)
     checks = [
-        ("health", lambda: check_health(get, base)),
-        ("sign-in", lambda: check_sign_in(get, base)),
+        ("health", lambda: check_health(get, base, app)),
+        ("sign-in", lambda: check_sign_in(get, base, app)),
         ("verify", lambda: check_verify(get, supabase_url, env("SUPABASE_ANON_KEY"), env("SYNTHETIC_VERIFY_REF"))),
     ]
     failed = 0

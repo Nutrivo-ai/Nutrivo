@@ -1,6 +1,6 @@
 """Tests for the synthetic check (T-1102): a fake HTTP layer, no network, no keys.
 Run: python3 -m unittest discover -s scripts/synthetic -p 'test_*.py'"""
-import json, unittest
+import http.server, json, threading, unittest
 
 import check
 
@@ -35,6 +35,80 @@ def run(fake, env=ENV):
     lines = []
     code = check.run(get=fake, env=env.get, pause_s=0, out=lines.append)
     return code, lines
+
+
+class FirewallBypass(unittest.TestCase):
+    """Before launch the pre-launch firewall rule sends /sign-in to the pilot page; the bypass header gets through."""
+
+    def test_app_paths_carry_the_bypass_header(self):
+        fake = Fake()
+        code, lines = run(fake, {**ENV, "SYNTHETIC_BYPASS_TOKEN": "bypass-x"})
+        self.assertEqual(code, 0, lines)
+        self.assertEqual(fake.calls[0][1].get("x-nutrivo-synthetic"), "bypass-x")   # /api/health
+        self.assertEqual(fake.calls[1][1].get("x-nutrivo-synthetic"), "bypass-x")   # /sign-in
+
+    def test_supabase_never_gets_the_bypass_header(self):
+        fake = Fake()
+        run(fake, {**ENV, "SYNTHETIC_BYPASS_TOKEN": "bypass-x"})
+        self.assertNotIn("x-nutrivo-synthetic", fake.calls[2][1])
+
+    def test_no_header_without_the_secret(self):
+        fake = Fake()
+        run(fake)
+        self.assertNotIn("x-nutrivo-synthetic", fake.calls[0][1])   # /api/health
+        self.assertNotIn("x-nutrivo-synthetic", fake.calls[1][1])   # /sign-in
+
+    def test_the_token_is_never_printed(self):
+        pilot = (200, HTML, b"<html><h1>Join the pilot</h1></html>")
+        code, lines = run(Fake(**{"/sign-in": pilot}), {**ENV, "SYNTHETIC_BYPASS_TOKEN": "bypass-x"})
+        self.assertEqual(code, 1)
+        self.assertFalse(any("bypass-x" in l for l in lines), lines)
+
+    def test_the_pilot_page_without_the_secret_says_why(self):
+        pilot = (200, HTML, b"<html><h1>Join the pilot</h1></html>")
+        code, lines = run(Fake(**{"/sign-in": pilot}))
+        self.assertEqual(code, 1)
+        self.assertTrue(any("no SYNTHETIC_BYPASS_TOKEN" in l for l in lines), lines)
+
+
+class NoRedirects(unittest.TestCase):
+    """A redirect is never followed, so the bypass header never reaches another origin (review of #394)."""
+
+    def test_a_redirect_is_answered_not_followed(self):
+        seen = []
+
+        class Other(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                seen.append(self.headers.get("x-nutrivo-synthetic"))
+                self.send_response(200); self.end_headers(); self.wfile.write(b"<form>")
+
+            def log_message(self, *a):
+                pass
+
+        other = http.server.HTTPServer(("127.0.0.1", 0), Other)
+        target = f"http://127.0.0.1:{other.server_port}/sign-in"
+
+        class App(Other):
+            def do_GET(self):
+                self.send_response(302); self.send_header("Location", target); self.end_headers()
+
+        app = http.server.HTTPServer(("127.0.0.1", 0), App)
+        for s in (other, app):
+            threading.Thread(target=s.serve_forever, daemon=True).start()
+        try:
+            status, _, _ = check.http_get(f"http://127.0.0.1:{app.server_port}/sign-in",
+                                          {"x-nutrivo-synthetic": "bypass-x"}, timeout=5)
+        finally:
+            for s in (other, app):
+                s.shutdown(); s.server_close()
+        self.assertEqual(status, 302)
+        self.assertEqual(seen, [])     # the other origin never got a request, let alone the header
+
+    def test_a_redirected_sign_in_fails(self):
+        code, lines = run(Fake(**{"/sign-in": (302, {"location": "https://elsewhere.example/"}, b"")}),
+                          {**ENV, "SYNTHETIC_BYPASS_TOKEN": "bypass-x"})
+        self.assertEqual(code, 1)
+        self.assertTrue(any(l.startswith("sign-in FAILED: HTTP 302") for l in lines), lines)
 
 
 class SyntheticCheck(unittest.TestCase):

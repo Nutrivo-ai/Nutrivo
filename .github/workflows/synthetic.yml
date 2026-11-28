@@ -3,7 +3,8 @@ name: synthetic
 # sets the repository variable SYNTHETIC_ENABLED to true; until then the schedule skips the job and nothing runs. A
 # founder's Run workflow always runs the check, so it can pass once by hand before the switch (docs/22 §4); while the
 # switch is off that run does not check in, so Sentry never expects a schedule nothing keeps. The check
-# (scripts/synthetic/check.py) reads /api/health, /sign-in and the verify Edge Function (public.verify_reference),
+# (scripts/synthetic/check.py) reads /api/health, /sign-in (through the Vercel firewall's "synthetic bypass" rule with
+# SYNTHETIC_BYPASS_TOKEN while production is closed, docs/24 §6) and the verify Edge Function (public.verify_reference),
 # and checks in to the Sentry monitor synthetic-smoke-prod: a failed run is an error check-in, a run that does not
 # happen is a missed one, and either opens an issue routed by config/sentry-alerts.yaml.
 on:

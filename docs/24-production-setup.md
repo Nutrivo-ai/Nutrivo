@@ -41,6 +41,7 @@ The same names and sources as staging (docs/23 §3), from the production account
 | `APP_BASE_URL` | The production web URL, https |
 | `SYNTHETIC_USER_EMAIL`, `SYNTHETIC_USER_PASSWORD` | A synthetic account on a business domain (D-27) |
 | `SYNTHETIC_VERIFY_REF` | Optional: a report of the synthetic workspace, once one exists (scripts/synthetic/check.py) |
+| `SYNTHETIC_BYPASS_TOKEN` | A long random value (`openssl rand -hex 32`) for the Vercel rule "synthetic bypass" while production is closed (§6) |
 | `INFISICAL_CLIENT_ID`, `INFISICAL_CLIENT_SECRET` | The `github-actions-prod` identity's |
 | `ANTHROPIC_API_KEY`, `ANTHROPIC_MODEL_*` | **Leave unset.** The worker refuses to start in prod when they are set (D-11) |
 
@@ -84,13 +85,27 @@ run it through the `doctor` workflow (§5).
 ## 6. Before any customer data (G7)
 1. **Restore drill:** the first one, by docs/runbooks/restore-drill.md. Its Sentry cron monitor `restore-drill-prod`
    then expects one a month.
-2. **Synthetic monitoring:** Settings → Variables → `SYNTHETIC_ENABLED` = `true`. `synthetic.yml` checks production
-   every 15 minutes inside the Sentry monitor `synthetic-smoke-prod` (T-1102). docs/21 item 4 asks for 7 green days.
+2. **Synthetic monitoring:** before launch the firewall's "pre-launch: app closed" rule (§7) sends `/sign-in` to the
+   pilot page, so the check needs its own way through first:
+   1. Generate a long random value (for example `openssl rand -hex 32`) and store it in Infisical prod as
+      `SYNTHETIC_BYPASS_TOKEN`. `scripts/synthetic/check.py` sends it in the `x-nutrivo-synthetic` header to the
+      app's own paths only (`/api/health`, `/sign-in`), never to Supabase, and never prints it.
+   2. Vercel → `nutrivo` → Firewall → a custom rule named "synthetic bypass", placed **above** the pre-launch rules:
+      if request header `x-nutrivo-synthetic` equals that value **and** the request path is `/sign-in` or
+      `/api/health`, then **Bypass**. Publish. Keep it to those two paths: Bypass skips every later rule, rate limits
+      and managed rulesets included, for whoever holds the header.
+   3. Actions → `synthetic` → Run workflow: all three paths must be ok.
+   4. Then Settings → Variables → `SYNTHETIC_ENABLED` = `true`. `synthetic.yml` checks production every 15 minutes
+      inside the Sentry monitor `synthetic-smoke-prod` (T-1102). docs/21 item 4 asks for 7 green days.
+
+   Rotating the value means changing it in Infisical and in the rule together. The rule is removed at launch (§7).
 3. **Alerts reach named people:** each Sentry monitor and alert rule notifies a named founder (docs/17).
 
 ## 7. Opening the doors (at launch, after G6, G8 and G9)
 These are deliberately not done at G7; production stays closed to strangers until the founders launch.
-- Vercel → `nutrivo` → Firewall: remove the rules "pre-launch: pilot form" and "pre-launch: app closed".
+- Vercel → `nutrivo` → Firewall: remove the rules "pre-launch: pilot form" and "pre-launch: app closed", and the
+  rule "synthetic bypass" (§6), which would otherwise exempt its header from the rate limits; then remove
+  `SYNTHETIC_BYPASS_TOKEN` from Infisical prod.
 - Vercel → `nutrivo` → Domains: add `app.nutrivo.ai` back, if the app is served there.
 - Infisical prod: `NEXT_PUBLIC_SIGNUPS_OPEN` = `true`, so the site's buttons read "Check a label free" instead of
   "Join the pilot" (apps/web/src/lib/public/links.ts); then a release, because it is read at build time.
